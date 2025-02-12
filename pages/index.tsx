@@ -1,5 +1,6 @@
 import React from "react";
 import dynamic from "next/dynamic";
+import ThreeScene from "../components/ThreeScene";
 
 const WalletMultiButtonDynamic = dynamic(() => import("@solana/wallet-adapter-react-ui").then((mod) => mod.WalletMultiButton), { ssr: false });
 
@@ -17,7 +18,12 @@ export default function Home() {
 
             {/* Use the dynamically imported wallet button */}
             <WalletMultiButtonDynamic />
-            
+
+            {/* Use the ThreeScene component */}
+            <div className="mt-8 w-full max--w-4xl">
+                <ThreeScene />
+            </div>
+
         </div>
     );
   }
