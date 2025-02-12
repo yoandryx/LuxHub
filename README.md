@@ -1,8 +1,6 @@
 # decentralized-marketplace-dapp
 A decentralized marketplace on Solana for phisical assets using escrow-based transactions.
 
-# Decentralized Marketplace dApp
-
 ## Overview
 
 The Decentralized Marketplace dApp is a blockchain-based platform built on the **Solana network**, allowing users to trade physical assets using cryptocurrency. The platform provides a **secure, decentralized, and escrow-based** transaction system, enabling users to buy and sell high-value assets without relying on traditional banking systems.
