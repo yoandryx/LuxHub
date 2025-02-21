@@ -1,53 +1,70 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import * as THREE from "three";
 
-const ThreeScene: React.FC = () => {
-    const mountRef = useRef<HTMLDivElement>(null);
+export default function ThreeScene() {
+  const mountRef = useRef<HTMLDivElement | null>(null);
 
-    useEffect(() => {
-        //getting the container dimensions and setting up the scene
-        const width = mountRef.current?.clientWidth || 800;
-        const height = mountRef.current?.clientHeight || 600;
+  useEffect(() => {
+    // Scene, Camera, Renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.z = 3;
 
-        //setting up the scene
-        const scene = new THREE.Scene();
+    // Enable transparency in renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth * 0.6, window.innerHeight * 0.5);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setClearColor(0x000000, 0); // Make background transparent
 
-        //setting up the camera
-        const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-        camera.position.z = 5;
+    if (mountRef.current) {
+      mountRef.current.appendChild(renderer.domElement);
+    }
 
-        //setting up the renderer and adding it to the mount refrence container
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(width, height);
-        mountRef.current?.appendChild(renderer.domElement);
+    // Geometry & Material
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshNormalMaterial({
+      transparent: true, // Allow transparency
+      opacity: 1, // Fully visible cube
+    });
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
 
-        //creating a cube geometry and a basic material, then comine them into a mesh and add it to the scene
-        const geometry = new THREE.BoxGeometry(2, 2, 2);
-        const material = new THREE.MeshNormalMaterial({ color: 0x00ff00 });
-        const cube = new THREE.Mesh(geometry, material);
-        scene.add(cube);
+    // Light
+    const light = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(light);
 
-        //setting up the animation loop
-        const animate = () => {
-            requestAnimationFrame(animate);
+    // Animation Loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      cube.rotation.x += 0.001;
+      cube.rotation.y += 0.001;
+      renderer.render(scene, camera);
+    };
+    animate();
 
-            cube.rotation.x += 0.001;
-            cube.rotation.y += 0.001;
+    // Resize Handler
+    const handleResize = () => {
+      const width = mountRef.current?.clientWidth || window.innerWidth * 0.6;
+      const height = window.innerHeight * 0.5;
 
-            renderer.render(scene, camera);
-        };
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    };
 
-        animate();
+    window.addEventListener("resize", handleResize);
 
-        //clean up the scene when the component is unmounted
-        return () => {
-            if (mountRef.current) {
-                mountRef.current.removeChild(renderer.domElement);
-            }
-        };
-    }, []);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      mountRef.current?.removeChild(renderer.domElement);
+      renderer.dispose();
+    };
+  }, []);
 
-    return <div ref={mountRef} style={{ width: "100%", height: "400px" }} />;
-};
-
-export default ThreeScene;
+  return <div ref={mountRef} style={{ width: "100%", height: "auto", display: "flex", justifyContent: "center" }} />;
+}
