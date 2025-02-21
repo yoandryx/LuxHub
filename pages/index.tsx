@@ -12,6 +12,12 @@ const WalletMultiButtonDynamic = dynamic(() =>
 export default function Home() {
   return (
     <div className={styles.container}>
+      
+      {/* 3D Visual Section */}
+      <div className={styles.threeScene}>
+        <ThreeScene />
+      </div>
+    
       {/* Hero Section */}
       <section className={styles.hero}>
         <div className={styles.heroContent}>
@@ -33,10 +39,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3D Visual Section */}
-      <div className={styles.threeScene}>
-        <ThreeScene />
-      </div>
+      
     </div>
   );
 }

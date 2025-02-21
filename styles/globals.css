@@ -1,6 +1,6 @@
 /* styles/globals.css */
 :root {
-  --background: #000000;
+  --background: linear-gradient(180deg, #0d0d0d, #1a1a1a);
   --foreground: #0d0d0d;
   --primary: #ffffff;
   --secondary: #a1a1a1;
@@ -14,6 +14,7 @@ body {
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
+  min-height: 100vh
 }
 
 a {
