@@ -48,7 +48,7 @@
   }
   
   .sortButton {
-    background: var(--accent);
+    background: var(--foreground);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -59,6 +59,6 @@
   }
   
   .sortButton:hover {
-    background: #4f46e5;
+    background: var(--border);
   }
   
