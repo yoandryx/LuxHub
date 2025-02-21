@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { AppProps } from "next/app";
 import { useMemo } from "react";
 import { WalletProvider } from "@solana/wallet-adapter-react";
@@ -11,11 +12,21 @@ import "../styles/globals.css"; // Import global styles
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
+
+    // Prevents hydration mismatch by ensuring the component only renders on the client
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     // Memoized list of wallets
     const wallets = useMemo(() => [
         new PhantomWalletAdapter(), 
         new SolflareWalletAdapter()
     ], []);
+
+    if (!isClient) return null; // Avoiding hydration mismatch
 
     return (
         <WalletProvider wallets={wallets} autoConnect> 
