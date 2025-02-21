@@ -2,37 +2,41 @@ import React from "react";
 import dynamic from "next/dynamic";
 import ThreeScene from "../components/ThreeScene";
 import Link from "next/link";
+import styles from "../styles/Home.module.css"; // Importing CSS module
 
-const WalletMultiButtonDynamic = dynamic(() => import("@solana/wallet-adapter-react-ui").then((mod) => mod.WalletMultiButton), { ssr: false });
+const WalletMultiButtonDynamic = dynamic(() =>
+  import("@solana/wallet-adapter-react-ui").then((mod) => mod.WalletMultiButton),
+  { ssr: false }
+);
 
 export default function Home() {
-    return (
-        <div className="min-h-scren flex flex-col items-center justify-center bg-gray-100">
-            
+  return (
+    <div className={styles.container}>
+      {/* Hero Section */}
+      <section className={styles.hero}>
+        <div className={styles.heroContent}>
+          <h1 className={styles.title}>
+            Welcome to the <span>Decentralized Marketplace</span>
+          </h1>
+          <p className={styles.subtitle}>
+            Buy and Sell with Crypto. Built on <span>Solana</span> using{" "}
+            <span>Next.js</span> & Wallet Adapter.
+          </p>
+
+          {/* Buttons */}
+          <div className={styles.buttonGroup}>
+            <WalletMultiButtonDynamic className={styles.walletButton} />
             <Link href="/create-listing">
-                <button className="mt-6 bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition">
-                    Create a Listing
-                </button>
+              <button className={styles.createButton}>Create a Listing</button>
             </Link>
-
-            {/* Use the dynamically imported wallet button */}
-            <WalletMultiButtonDynamic />
-
-            <h1 className="text-3xl font-bold mb-4">
-                Welcome too the Decentralized Marketplace
-            </h1>
-
-            <p className="mb-4">
-                Built on Solana with Next.js, Tailwind CSS, and Wallet Adapter.
-            </p>
-
-            {/* Use the ThreeScene component */}
-            <div className="mt-8 w-full max--w-4xl">
-                <ThreeScene />
-            </div>
-
-            
-
+          </div>
         </div>
-    );
-  }
+      </section>
+
+      {/* 3D Visual Section */}
+      <div className={styles.threeScene}>
+        <ThreeScene />
+      </div>
+    </div>
+  );
+}
