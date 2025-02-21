@@ -11,7 +11,7 @@ export default function CreateListing() {
 
     useEffect(() => {
         if (!connected) {
-            router.push("/");
+            router.push("/create-listing");
         }
     }, [connected]);
 
