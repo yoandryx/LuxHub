@@ -1,13 +1,14 @@
+import styles from "../styles/Navbar.module.css";
 import Link from "next/link";
 
 export default function Navbar() {
   return (
-    <nav className="bg-blue-500 text-white p-4 flex justify-between">
-      <h1 className="text-xl font-bold">Decentralized Marketplace</h1>
-      <div className="space-x-4">
+    <nav className={styles.navbar}>
+      <div className={styles.logo}>Marketplace</div>
+      <div className={styles.links}>
         <Link href="/">Home</Link>
         <Link href="/listings">Listings</Link>
-        <Link href="/create-listing">Create Listing</Link>
+        <Link href="/create-listing">Create</Link>
         <Link href="/profile">Profile</Link>
       </div>
     </nav>

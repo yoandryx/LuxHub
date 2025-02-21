@@ -1,0 +1,17 @@
+/* styles/globals.css */
+:root {
+  --background: #000000;
+  --foreground: #0d0d0d;
+  --primary: #ffffff;
+  --secondary: #a1a1a1;
+  --accent: #0070f3;
+  --border: #222222;
+}
+
+body {
+  background: var(--background);
+  color: var(--primary);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}

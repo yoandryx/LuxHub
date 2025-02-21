@@ -1,22 +1,21 @@
-import React from "react";
-import Link from "next/link";
-import { useListings } from "../context/ListingsContext"; // Import context
+import styles from "../styles/Listings.module.css";
 
 export default function Listings() {
-  const { listings } = useListings(); // Get listings from context
+  const listings = [
+    { title: "Luxury Watch", price: "12 SOL", image: "/watch.jpg" },
+    { title: "Sneakers", price: "8 SOL", image: "/sneakers.jpg" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Available Listings</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {listings.map((item) => (
-          <div key={item.id} className="bg-white shadow-md p-4 rounded">
-            <img src={item.image} alt={item.title} className="w-full h-48 object-cover rounded" />
-            <h2 className="text-xl font-semibold mt-2">{item.title}</h2>
-            <p className="text-gray-700">{item.price}</p>
-            <Link href={`/listing/${item.id}`} className="block mt-3 text-blue-500 font-semibold">
-              View Details
-            </Link>
+    <div className={styles.container}>
+      <h1>Available Listings</h1>
+      <div className={styles.grid}>
+        {listings.map((listing, index) => (
+          <div key={index} className={styles.card}>
+            <img src={listing.image} alt={listing.title} />
+            <h2>{listing.title}</h2>
+            <p>{listing.price}</p>
+            <button>View Details</button>
           </div>
         ))}
       </div>

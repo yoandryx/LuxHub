@@ -1,0 +1,19 @@
+.container {
+    padding: 40px;
+    max-width: 500px;
+    margin: auto;
+  }
+  
+  .form input,
+    .form textarea {
+    background: var(--foreground);
+    border: 1px solid var(--border);
+    color: var(--primary);
+    padding: 10px;
+    border-radius: 5px;
+    width: 100%;
+    margin-bottom: 10px;
+    }
+
+  
+  

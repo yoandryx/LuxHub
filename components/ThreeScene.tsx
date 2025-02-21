@@ -23,7 +23,7 @@ const ThreeScene: React.FC = () => {
 
         //creating a cube geometry and a basic material, then comine them into a mesh and add it to the scene
         const geometry = new THREE.BoxGeometry(2, 2, 2);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const material = new THREE.MeshNormalMaterial({ color: 0x00ff00 });
         const cube = new THREE.Mesh(geometry, material);
         scene.add(cube);
 
@@ -31,8 +31,8 @@ const ThreeScene: React.FC = () => {
         const animate = () => {
             requestAnimationFrame(animate);
 
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
+            cube.rotation.x += 0.001;
+            cube.rotation.y += 0.001;
 
             renderer.render(scene, camera);
         };
