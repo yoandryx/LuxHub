@@ -1,5 +1,7 @@
 .container {
-    padding: 40px;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
   }
   
   .grid {
@@ -10,42 +12,53 @@
   
   .card {
     background: var(--foreground);
+    border: 1px solid var(--border);
     padding: 20px;
     border-radius: 8px;
-    border: 1px solid var(--border);
-    transition: transform 0.3s ease;
-  }
-  
-  .card img {
-    width: 100%;
-    border-radius: 5px;
-  }
-  
-  .card h2 {
-    color: var(--primary);
-    font-size: 18px;
-    margin-top: 10px;
-  }
-  
-  .card p {
-    color: var(--secondary);
-  }
-  
-  .card button {
-    background: var(--accent);
-    color: white;
-    padding: 8px 15px;
-    border: none;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: background 0.3s;
-  }
-  
-  .card button:hover {
-    background: #0052cc;
+    transition: transform 0.3s;
+    text-align: center;
   }
   
   .card:hover {
     transform: translateY(-5px);
+  }
+  
+  .image {
+    width: 100%;
+    border-radius: 8px;
+  }
+  
+  .cardTitle {
+    color: var(--primary);
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  .price {
+    color: var(--accent);
+  }
+  
+  .details {
+    color: var(--secondary);
+    cursor: pointer;
+  }
+  
+  .details:hover {
+    color: var(--primary);
+  }
+  
+  .sortButton {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.3s;
+    margin-bottom: 20px;
+  }
+  
+  .sortButton:hover {
+    background: #4f46e5;
   }
   

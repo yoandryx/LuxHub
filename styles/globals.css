@@ -4,7 +4,7 @@
   --foreground: #0d0d0d;
   --primary: #ffffff;
   --secondary: #a1a1a1;
-  --accent: #0070f3;
+  --accent: #cccccc;
   --border: #222222;
 }
 
@@ -14,4 +14,9 @@ body {
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
 }

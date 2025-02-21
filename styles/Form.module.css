@@ -15,5 +15,11 @@
     margin-bottom: 10px;
     }
 
-  
+  .restricted {
+  color: var(--secondary);
+  text-align: center;
+  font-size: 18px;
+  margin-top: 50px;
+  }
+
   

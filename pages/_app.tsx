@@ -7,31 +7,29 @@ import Navbar from "../components/Navbar"; // Import Navbar
 import { ListingsProvider } from "../context/ListingsContext"; // Import ListingsProvider
 import "../styles/globals.css"; // Import global styles
 
-// import default styles for the wallet modal
+// Import default styles for the wallet modal
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
-    //create a memoized list of wallets to use.
+    // Memoized list of wallets
     const wallets = useMemo(() => [
         new PhantomWalletAdapter(), 
         new SolflareWalletAdapter()
     ], []);
 
     return (
-        <>
+        <WalletProvider wallets={wallets} autoConnect> 
+            <WalletModalProvider> {/* ✅ Ensures WalletModalContext is available */}
+                
+                <ListingsProvider> {/* ✅ Wrap ListingsProvider inside WalletProviders */}
+                    
+                    <Navbar /> {/* Add Navbar component */}
+                    
+                    <Component {...pageProps} />
 
-            <ListingsProvider> {/* Add ListingsProvider */}
+                </ListingsProvider>
 
-                <Navbar /> {/* Add Navbar component */}
-
-                <WalletProvider wallets = {wallets} autoConnect>
-                    <WalletModalProvider>
-                        <Component {...pageProps} />
-                    </WalletModalProvider>
-                </WalletProvider>
-
-            </ListingsProvider>
-
-        </>
+            </WalletModalProvider>
+        </WalletProvider>
     );
 }
