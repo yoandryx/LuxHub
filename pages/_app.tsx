@@ -13,8 +13,8 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 export default function MyApp({ Component, pageProps }: AppProps) {
     //create a memoized list of wallets to use.
     const wallets = useMemo(() => [
-        new PhantomWalletAdapter, 
-        new SolflareWalletAdapter
+        new PhantomWalletAdapter(), 
+        new SolflareWalletAdapter()
     ], []);
 
     return (
