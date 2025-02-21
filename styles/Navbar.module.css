@@ -5,32 +5,40 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 20px;
+    padding: 15px 20px;
     border-bottom: 1px solid var(--border);
-}
+  }
 
-.links {
+  .leftSection {
     display: flex;
-    padding: 10px 15px;
-    gap: 25px;
-}
+    align-items: center;
+    gap: 20px;
+  }
 
-/* ✅ Apply padding by default to prevent movement */
-.links a {
+  .links {
+    display: flex;
+    gap: 20px;
+  }
+
+  .links a {
     color: var(--secondary);
     text-decoration: none;
     padding: 10px 15px;
     border-radius: 6px;
     transition: background 0.3s ease-in-out, color 0.3s ease-in-out;
-}
+  }
 
-.links a:hover {
+  .links a:hover {
     color: var(--primary);
     background-color: var(--border);
-}
+  }
 
-/* Wallet Button */
-.walletButton {
+  .walletWrapper {
+    margin-right: 10px; 
+    padding-right: 20px;
+  }
+  
+  .walletButton {
     background: var(--accent);
     color: white;
     border: none;
@@ -38,8 +46,8 @@
     cursor: pointer;
     border-radius: 6px;
     transition: background 0.3s ease-in-out;
-}
-
-.walletButton:hover {
-    background: #4f46e5;
-}
+  }
+  
+  .walletButton:hover {
+        background: #4f46e5;
+}   

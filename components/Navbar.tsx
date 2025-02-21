@@ -13,14 +13,25 @@ export default function Navbar() {
 
   return (
     <nav className={styles.navbar}>
-      <div className={styles.logo}>Marketplace</div>
-      <div className={styles.links}>
-        <Link href="/">Home</Link>
-        <Link href="/listings">Listings</Link>
-        <Link href="/create-listing">Create</Link>
-        <Link href="/profile">Profile</Link>
+
+      <div className={styles.leftSection}>
+        <Link href="/">
+          <img src="/logo.svg" alt="Logo" className={styles.logo} />
+        </Link>
+        <div className={styles.logo}>Marketplace</div>
       </div>
-      {isClient && <WalletMultiButton className={styles.walletButton} />} {/* ensures WalletMultiButton is rendered on the client */}
+
+      <div className={styles.links}>
+          <Link href="/">Home</Link>
+          <Link href="/listings">Listings</Link>
+          <Link href="/create-listing">Create</Link>
+          <Link href="/profile">Profile</Link>
+      </div>
+
+      <div className={styles.walletWrapper}>
+        {isClient && <WalletMultiButton className={styles.walletButton} />}
+      </div>
+
     </nav>
   );
 }
