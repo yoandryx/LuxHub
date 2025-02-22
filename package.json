@@ -11,11 +11,13 @@
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
     "@solana/wallet-adapter-wallets": "^0.19.32",
+    "@stripe/stripe-js": "^5.6.0",
     "@types/react-dom": "^19.0.3",
     "next": "^15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.5",
+    "stripe": "^17.6.0",
     "three": "^0.173.0"
   },
   "devDependencies": {

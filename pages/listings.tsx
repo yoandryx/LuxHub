@@ -17,6 +17,13 @@ const listings = [
 ];
 
 export default function Listings() {
+
+  const handleCheckout = async () => {
+    const res = await fetch("/api/checkout", {method: "POST"});
+    const { url } = await res.json();
+    window.location.href = url;
+  };
+
   const [category, setCategory] = useState("");
 
   const filteredListings = category
@@ -32,7 +39,7 @@ export default function Listings() {
               <option value="watches">Watches</option>
               <option value="shoes">Shoes</option>
               <option value="collectibles">Collectibles</option>
-          </select>
+          </select> 
 
           <div className={styles.grid}>
               {filteredListings.map((listing) => (
@@ -42,6 +49,7 @@ export default function Listings() {
                           <h3 className={styles.cardTitle}>{listing.title}</h3>
                           <p className={styles.price}>{listing.price} SOL</p>
                           <p className={styles.details}>View Details →</p>
+                          <button onClick={handleCheckout} className={styles.buyButton}>Buy Wtih Card</button>
                       </div>
                   </Link>
               ))}

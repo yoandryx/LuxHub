@@ -62,3 +62,15 @@
     background: var(--border);
   }
   
+  .buyButton {
+    background: #6366f1;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.buyButton:hover {
+    background: #4f46e5;
+}
