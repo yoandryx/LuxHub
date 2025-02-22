@@ -11,6 +11,11 @@ export default function Navbar() {
     setIsClient(true);
   }, []);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
   return (
     <nav className={styles.navbar}>
 
@@ -27,6 +32,14 @@ export default function Navbar() {
           <Link href="/create-listing">Create</Link>
           <Link href="/profile">Profile</Link>
       </div>
+
+      <input
+        type="text"
+        placeholder="Search listings..."
+        value={searchQuery}
+        onChange={handleSearch}
+        className={styles.searchBar}
+      />
 
       <div className={styles.walletWrapper}>
         {isClient && <WalletMultiButton className={styles.walletButton} />}

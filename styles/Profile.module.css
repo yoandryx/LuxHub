@@ -1,0 +1,10 @@
+.container {
+    background-color: var(--background);
+    color: var(--primary);
+    text-align: center;
+    padding: 40px;
+}
+
+/* p {
+    color: var(--secondary);
+} */

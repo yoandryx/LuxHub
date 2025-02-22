@@ -5,6 +5,7 @@ import { WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
 import Navbar from "../components/Navbar"; // Import Navbar
+import Footer from "../components/Footer";
 import { ListingsProvider } from "../context/ListingsContext"; // Import ListingsProvider
 import "../styles/globals.css"; // Import global styles
 
@@ -30,13 +31,15 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
     return (
         <WalletProvider wallets={wallets} autoConnect> 
-            <WalletModalProvider> {/* ✅ Ensures WalletModalContext is available */}
+            <WalletModalProvider> {/* Ensures WalletModalContext is available */}
                 
-                <ListingsProvider> {/* ✅ Wrap ListingsProvider inside WalletProviders */}
+                <ListingsProvider> {/* Wrap ListingsProvider inside WalletProviders */}
                     
                     <Navbar /> {/* Add Navbar component */}
                     
                     <Component {...pageProps} />
+
+                    <Footer /> {/* Add Footer component */}
 
                 </ListingsProvider>
 

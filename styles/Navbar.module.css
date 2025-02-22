@@ -53,3 +53,17 @@
   .walletButton:hover {
         background: #4f46e5;
 }   
+
+.searchBar {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--foreground);
+  color: white;
+  outline: none;
+  width: 200px;
+}
+
+.searchBar::placeholder {
+  color: var(--secondary);
+}
