@@ -67,3 +67,46 @@
 .searchBar::placeholder {
   color: var(--secondary);
 }
+
+.hamburger {
+  display: none;
+}
+
+
+@media screen and (max-width: 768px) {
+
+  .searchBar {
+    display: none;
+  }
+
+  .links {
+    display: none; /* Hide links by default on mobile */
+    flex-direction: row;
+    position: absolute;
+    top: 60px;
+    margin-top: 25px;
+    align-items: center;
+    justify-content: center;
+    background: var(--foreground);
+    width: 100%;
+    padding: 10px;
+    box-shadow: 0px 4px 6px #00000033;
+    
+  }
+
+  .links.open {
+    display: flex; 
+  }
+
+  .hamburger {
+    display:block;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: var(--primary);
+  }
+
+  .logo {
+    display: none;
+  }
+
+}
