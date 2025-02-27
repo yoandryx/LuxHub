@@ -1,10 +1,69 @@
-.container {
-    background-color: var(--background);
-    color: var(--primary);
+.profileContainer {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
     text-align: center;
-    padding: 40px;
-}
+    color: var(--primary);
+  }
+  
+  .title {
+    font-size: 2rem;
+    margin-bottom: 20px;
+  }
+  
+  .profileCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--foreground);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .profilePic {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+  }
 
-/* p {
-    color: var(--secondary);
-} */
+  .profileInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  .walletAddress {
+    font-family: monospace;
+    background: var(--border);
+    padding: 5px;
+    border-radius: 6px;
+    display: inline-block;
+    margin: 0;
+  }
+  
+  .editButton {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+    color: white;
+  }
+  
+  .editButton:hover {
+    background: #4f46e5;
+  }
+  
+  .listingsSection {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--foreground);
+    border-radius: 8px;
+  }
+  

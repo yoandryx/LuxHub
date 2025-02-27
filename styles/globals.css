@@ -4,8 +4,10 @@
   --foreground: #0d0d0d;
   --primary: #ffffff;
   --secondary: #a1a1a1;
-  --accent: #cccccc;
+  --links: #bcb5de;
+  --accent: #323232;
   --border: #222222;
+  --glass: #0d0d0dd2;
 }
 
 body {

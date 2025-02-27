@@ -1,59 +1,44 @@
 import { useState } from "react";
-import Link from "next/link";
+import { useListings } from "../context/ListingsContext";
 import styles from "../styles/Listings.module.css";
 
-const listings = [
-  { id: "1", 
-    title: "Luxury Watch", 
-    price: 12, image: "/watch.png", 
-    category: "watches" 
-  },
-  { id: "2", 
-    title: "Sneakers", 
-    price: 8, 
-    image: "/sneakers.png", 
-    category: "shoes" 
-  },
-];
-
 export default function Listings() {
+  const { listings } = useListings(); // Fetch listings from context
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleCheckout = async () => {
-    const res = await fetch("/api/checkout", {method: "POST"});
-    const { url } = await res.json();
-    window.location.href = url;
-  };
-
-  const [category, setCategory] = useState("");
-
-  const filteredListings = category
-      ? listings.filter((listing) => listing.category === category)
-      : listings;
+  // Filter listings based on search query
+  const filteredListings = listings.filter((listing) =>
+    listing.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-      <div className={styles.container}>
-          <h2 className={styles.title}>Available Listings</h2>
+    <div className={styles.listingsContainer}>
+      <h1 className={styles.title}>Explore Listings</h1>
 
-          <select className={styles.sortButton} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">All Categories</option>
-              <option value="watches">Watches</option>
-              <option value="shoes">Shoes</option>
-              <option value="collectibles">Collectibles</option>
-          </select> 
+      {/* 🔍 Search Input */}
+      <input
+        type="text"
+        placeholder="Search listings..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className={styles.searchBar}
+      />
 
-          <div className={styles.grid}>
-              {filteredListings.map((listing) => (
-                  <Link key={listing.id} href={`/listing/${listing.id}`}>
-                      <div className={styles.card}>
-                          <img src={listing.image} alt={listing.title} className={styles.image} />
-                          <h3 className={styles.cardTitle}>{listing.title}</h3>
-                          <p className={styles.price}>{listing.price} SOL</p>
-                          <p className={styles.details}>View Details →</p>
-                          <button onClick={handleCheckout} className={styles.buyButton}>Buy Wtih Card</button>
-                      </div>
-                  </Link>
-              ))}
-          </div>
+      {/* 🛍️ Listings Grid */}
+      <div className={styles.grid}>
+        {filteredListings.length > 0 ? (
+          filteredListings.map((listing) => (
+            <div key={listing.id} className={styles.card}>
+              <img src={listing.image} alt={listing.title} className={styles.image} />
+              <h3 className={styles.title}>{listing.title}</h3>
+              <h4 className={styles.description}>{listing.description}</h4>
+              <p className={styles.price}>${listing.price}</p>
+            </div>
+          ))
+        ) : (
+          <p className={styles.noResults}>No listings found.</p>
+        )}
       </div>
+    </div>
   );
 }

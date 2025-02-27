@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import styles from "../../styles/ListingDetails.module.css"; // Import CSS Module
 
 const mockListings = {
-  "1": { title: "Luxury Watch", price: "12 SOL", image: "/watch.png", description: "High-end luxury watch with premium build." },
+  "1": { title: "Luxury Watch", price: "12 SOL", image: "/public/images/watch.png", description: "High-end luxury watch with premium build." },
   "2": { title: "Sneakers", price: "8 SOL", image: "/sneakers.png", description: "Limited edition sneakers with great comfort." }
 };
 

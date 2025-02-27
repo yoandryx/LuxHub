@@ -1,76 +1,74 @@
-.container {
-    max-width: 1200px;
-    margin: auto;
-    padding: 20px;
-  }
-  
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-  }
-  
-  .card {
-    background: var(--foreground);
-    border: 1px solid var(--border);
-    padding: 20px;
-    border-radius: 8px;
-    transition: transform 0.3s;
-    text-align: center;
-  }
-  
-  .card:hover {
-    transform: translateY(-5px);
-  }
-  
-  .image {
-    width: 100%;
-    border-radius: 8px;
-  }
-  
-  .cardTitle {
-    color: var(--primary);
-    font-size: 18px;
-    font-weight: bold;
-  }
-  
-  .price {
-    color: var(--accent);
-  }
-  
-  .details {
-    color: var(--secondary);
-    cursor: pointer;
-  }
-  
-  .details:hover {
-    color: var(--primary);
-  }
-  
-  .sortButton {
-    background: var(--foreground);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.3s;
-    margin-bottom: 20px;
-  }
-  
-  .sortButton:hover {
-    background: var(--border);
-  }
-  
-  .buyButton {
-    background: #6366f1;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
+.listingsContainer {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+  text-align: center;
 }
 
-.buyButton:hover {
-    background: #4f46e5;
+.title {
+  font-size: large;
+  margin-bottom: 20px;
+  color: var(--primary);
+}
+
+/* Search Bar */
+.searchBar {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--foreground);
+  color: var(--primary);
+  outline: none;
+}
+
+.searchBar::placeholder {
+  color: var(--secondary);
+}
+
+/* Listings Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  justify-content: center;
+}
+
+/* Listing Card */
+.card {
+  background: var(--foreground);
+  border: 1px solid var(--border);
+  padding: 15px;
+  border-radius: 8px;
+  transition: transform 0.3s, box-shadow 0.3s;
+  text-align: center;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 2px 10px #323232c1;
+}
+
+.image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.price {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: medium;
+}
+
+.noResults {
+  color: var(--secondary);
+}
+
+.description {
+  color: var(--secondary);
+  font-size: x-small;
 }

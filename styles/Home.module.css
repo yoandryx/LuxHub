@@ -14,8 +14,9 @@
   
   /* Hero Section */
   .hero {
-    max-width: 1000px;
-    padding: 40px;
+    width: 100%;
+    max-width: 1200px;
+    /* padding: 40px; */
     border-radius: 10px;
   }
   
@@ -31,7 +32,11 @@
     font-size: 2.5rem;
     font-size: 48px;
     font-weight: bold;
-    color: linear-gradient(97.65deg,#19fb9b 11.36%,#199890 54.3%,#005f59 100.78%);
+    background-image: linear-gradient(100.51deg,#f087ff 30%,#ae6bff 60%,rgba(110, 31, 206, 0.819) 113.78%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-fill-color: transparent;
+    -webkit-text-fill-color: transparent;
   }
   
   .title span {
@@ -93,5 +98,39 @@
 
   .threeScene {
     width: 100%;
-    max-width: 400px;
+    max-width: 800px;
+  }
+
+  @media screen and (max-width: 768px) {
+    .heroContent {
+      margin-top: 20px;
+    }
+  
+    .title {
+      font-size: 2rem;
+    }
+  
+    .subtitle {
+      font-size: 1rem;
+    }
+  
+    .buttonGroup {
+      flex-direction: row;
+      align-items: center;
+    }
+  
+    .walletButton {
+      padding: 10px 15px;
+    }
+  
+    .createButton {
+      padding: 10px 15px;
+    }
+  
+    .landingGroup {
+      width: 100%;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
   }

@@ -22,7 +22,7 @@ const ListingsContext = createContext<ListingsContextType | undefined>(undefined
 // Provider Component
 export const ListingsProvider = ({ children }: { children: ReactNode }) => {
   const [listings, setListings] = useState<Listing[]>([
-    { id: "1", title: "Luxury Watch", price: "12 SOL", image: "/watch1.jpg", description: "High-end Rolex watch.", category: "watches" },
+    { id: "1", title: "Luxury Watch", price: "12 SOL", image: "/images/watch.png", description: "High-end Rolex watch.", category: "watches" },
     { id: "2", title: "Sneakers", price: "8 SOL", image: "/sneaker.jpg", description: "Limited edition sneakers." , category: "shoes"},
   ]);
 
