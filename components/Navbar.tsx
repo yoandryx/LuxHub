@@ -29,56 +29,71 @@ export default function Navbar() {
   };
 
   return (
+  <>
 
-    <nav className={styles.navbar}>
+    <div className={styles.navbarContainer}>
 
-      {/* Navbar Left Section */}
-      <div className={styles.leftSection}>
+      <nav className={styles.navbar}>
 
-        {/* Navbar Logo */}
-        <Link href="/">
-          {/* <img src="/logo.svg" alt="Logo" className={styles.logo} /> */}
-        </Link>
+        {/* Navbar Left Section */}
+        <div className={styles.leftSection}>
 
-        {/* Navbar Title*/}
-        <div className={styles.logo}>Mercatus</div>
+          {/* Navbar Logo */}
+          <Link href="/">
+            {/* <img src="/logo.svg" alt="Logo" className={styles.logo} /> */}
+          </Link>
 
-      </div>
+          {/* Navbar Title*/}
+          <div className={styles.logo}>Mercatus</div>
 
-      {/* Navbar Links */}
-      <div className={`${styles.links} ${menuOpen ? styles.open : ""}`}>
+        </div>
+        
+        {/* Navbar Links */}
+        {/* <div className={`${styles.links} ${menuOpen ? styles.open : ""}`}> */}
+        <div className={`${styles.links}`}>
+
+          <Link href="/" onClick={closeMenu}>Home</Link>
+          <Link href="/listings" onClick={closeMenu}>Listings</Link>
+          <Link href="/create-listing" onClick={closeMenu}>Create</Link>
+          <Link href="/profile" onClick={closeMenu}>Profile</Link>
+          
+          {/* Wallet Button */}
+          <div className={styles.walletWrapper}>
+            {isClient && <WalletMultiButton className={styles.walletButton} />}
+          </div>
+
+        </div>
+
+          <div className={styles.rightSection}>
+
+            {/* Hamburger Menu Icon */}
+            <div className={styles.hamburger} onClick={toggleMenu}>
+              {menuOpen ? <FaTimes className={styles.icon} /> : <FaBars className={styles.icon} />}
+            </div>
+            
+          </div>
+
+      </nav>
+
+    </div>
+
+    <div className={`${styles.mobileLinks} ${menuOpen ? styles.open : ""}`}>
+
         <Link href="/" onClick={closeMenu}>Home</Link>
         <Link href="/listings" onClick={closeMenu}>Listings</Link>
         <Link href="/create-listing" onClick={closeMenu}>Create</Link>
         <Link href="/profile" onClick={closeMenu}>Profile</Link>
+        
         {/* Wallet Button */}
         <div className={styles.walletWrapper}>
           {isClient && <WalletMultiButton className={styles.walletButton} />}
         </div>
+
       </div>
 
-        <div className={styles.rightSection}>
-          {/* Search Icon & Input */}
-          <div className={styles.searchContainer}>
-            {!showSearch ? (
-              <FaSearch size={20} className={styles.searchIcon} onClick={() => setShowSearch(true)} />
-            ) : (
-              <input
-                type="text"
-                placeholder="Search listings..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={styles.searchBar}
-                onBlur={() => setShowSearch(false)} // Hide input when clicking elsewhere
-              />
-            )}
-          </div>
-          {/* Hamburger Menu Icon */}
-          <div className={styles.hamburger} onClick={toggleMenu}>
-            {menuOpen ? <FaTimes className={styles.icon} /> : <FaBars className={styles.icon} />}
-          </div>
-        </div>
+  </>
 
-    </nav>
+    
+    
   );
 }

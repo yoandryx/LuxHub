@@ -1,11 +1,31 @@
+.navbarContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--primary);
+    top: 20px;
+    position: relative;
+    z-index: 1000;
+}
+
 .navbar {
-    height: 60px;
-    width: 100%;
-    background: var(--foreground);
+    height: 55px;
+    width: 95%;
+    background: #43434352;
+    backdrop-filter: blur(25px);
+    border-radius: 30px;
+
+    position: fixed;
+    top:20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 15px;
+    z-index: 1000;
+  }
+
+  .mobileLinks {
+    display: none;
+    z-index: 0;
   }
 
   .leftSection {
@@ -60,43 +80,6 @@
   
   .walletButton:hover {
     background: #4f46e5;
-}   
-
-/* Search Icon & Input */
-.searchContainer {
-  display: flex;
-}
-
-.searchIcon {
-  /* color: var(--secondary); */
-  cursor: pointer;
-  transition: color 0.3s ease-in-out;
-  background-image: linear-gradient(100.51deg,#f087ff 30%,#ae6bff 60%,rgba(110, 31, 206, 0.819) 113.78%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-fill-color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
-.searchIcon:hover {
-  color: var(--primary);
-}
-
-.searchBar {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--secondary);
-  background: var(--foreground);
-  color: white;
-  outline: none;
-  width: 200px;
-  font-size: 16px;
-  
-}
-
-.searchBar::placeholder {
-  color: var(--secondary);
-  font-size: 16px;
 }
 
 .hamburger {
@@ -110,21 +93,54 @@
 
 
 @media screen and (max-width: 768px) {
+  .navbarContainer {
+    justify-content: left;
+    left: 20px;
+    position: fixed;
+    width: 100%;
+  }
 
-  .links {
-    display: none; 
+  .navbar {
+    width: 150px;
+  }
+
+  .mobileLinks.open {
+    width: 100%;
+    height: 100vh;
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    background: #5c5c5c52;
+    color: var(--primary);
+    width: 100%;
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
+    z-index: 500;
+  }
+
+  .mobileLinks a {
+    padding: 25px 0px;
+    width: 100%;
+    text-align: center;
+    font-size: 3rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--primary);
+    border-radius: 0px;
+  }
+
+  .navbar .links {
+    display: none;
     flex-direction: column;
     position: absolute;
-    top: 75px;
-    align-items: center;
-    /* justify-content: center; */
-    background: var(--glass);
+    padding: 20%;
+    background: #43434352;
     width: 100%;
-    height: 100%;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0px 4px 6px #00000033;
-    gap: 0px;
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    width: fit-content;
   }
 
   .links a {
@@ -136,10 +152,10 @@
     border-radius: 0px;
   }
 
-  .links.open {
+  /* .links.open {
     display: flex; 
-    z-index: 1;
-  }
+    z-index: 1000;
+  } */
 
   .walletWrapper {
     display: flex;
@@ -155,7 +171,7 @@
 
   .logo {
     color: var(--primary);
-    display: flex;
+    display: none;
   }
 
 }

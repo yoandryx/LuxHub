@@ -33,9 +33,8 @@
     font-size: 48px;
     font-weight: bold;
     background-image: linear-gradient(100.51deg,#f087ff 30%,#ae6bff 60%,rgba(110, 31, 206, 0.819) 113.78%);
+    background-clip: text;
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-fill-color: transparent;
     -webkit-text-fill-color: transparent;
   }
   
