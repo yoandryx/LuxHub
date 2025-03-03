@@ -14,6 +14,35 @@ export default function Listings() {
     listing.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleBuyWithCard = async (listing: any) => {
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: listing.title,
+          price: listing.price,
+          quantity: 1,
+        }),
+      });
+  
+      if (!res.ok) {
+        console.error("API Error:", await res.text());
+        return;
+      }
+  
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  };
+  
+
   return (
     
     <div className={styles.listingsContainer}>
@@ -37,6 +66,9 @@ export default function Listings() {
               <h3 className={styles.title}>{listing.title}</h3>
               <h4 className={styles.description}>{listing.description}</h4>
               <p className={styles.price}>${listing.price}</p>
+              <button onClick={() => handleBuyWithCard(listing)} className={styles.cardButton}>
+                Buy with Stripe
+              </button>
             </div>
           ))
         ) : (

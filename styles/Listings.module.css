@@ -72,3 +72,18 @@
   color: var(--secondary);
   font-size: x-small;
 }
+
+.cardButton {
+  background-color: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.cardButton:hover {
+  background-color: #4f46e5;
+}
