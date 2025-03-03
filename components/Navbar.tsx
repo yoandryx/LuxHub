@@ -2,22 +2,17 @@ import { useEffect, useState } from "react";
 import styles from "../styles/Navbar.module.css";
 import Link from "next/link";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { FaSearch, FaBars, FaTimes } from "react-icons/fa";
+import { FaBars, FaTimes } from "react-icons/fa";
 
 export default function Navbar() {
 
   const [isClient, setIsClient] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -79,15 +74,15 @@ export default function Navbar() {
 
     <div className={`${styles.mobileLinks} ${menuOpen ? styles.open : ""}`}>
 
-        <Link href="/" onClick={closeMenu}>Home</Link>
-        <Link href="/listings" onClick={closeMenu}>Listings</Link>
-        <Link href="/create-listing" onClick={closeMenu}>Create</Link>
-        <Link href="/profile" onClick={closeMenu}>Profile</Link>
-        
         {/* Wallet Button */}
         <div className={styles.walletWrapper}>
           {isClient && <WalletMultiButton className={styles.walletButton} />}
         </div>
+
+        <Link href="/" onClick={closeMenu}>Home</Link>
+        <Link href="/listings" onClick={closeMenu}>Listings</Link>
+        <Link href="/create-listing" onClick={closeMenu}>Create</Link>
+        <Link href="/profile" onClick={closeMenu}>Profile</Link>
 
       </div>
 

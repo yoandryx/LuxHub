@@ -122,13 +122,20 @@
   }
 
   .mobileLinks a {
-    padding: 25px 0px;
+    padding: 20px 0px;
+    align-items: start;
     width: 100%;
-    text-align: center;
     font-size: 3rem;
-    border-bottom: 1px solid var(--border);
+    justify-content: left;
+    margin-left: 100px;
+    /* border-bottom: 1px solid var(--border); */
     color: var(--primary);
-    border-radius: 0px;
+    /* border-radius: 0px; */
+  }
+
+  .mobileLinks a:hover {
+    color: var(--secondary);
+    /* background-color: var(--border); */
   }
 
   .navbar .links {
