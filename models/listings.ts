@@ -7,7 +7,7 @@ const listingSchema = new Schema({
     image: String,
     category: String,
     owner: String,
-    approved: { type: Boolean, default: true },
+    approved: { type: Boolean, default: false },
     status: { type: String, default: "pending" }
 }, { collection: "listings" });  // Make sure this matches exactly
 
