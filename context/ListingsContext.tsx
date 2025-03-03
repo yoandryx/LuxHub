@@ -23,8 +23,6 @@ const ListingsContext = createContext<ListingsContextType | undefined>(undefined
 
 // Provider Component
 export const ListingsProvider = ({ children }: { children: ReactNode }) => {
-  const { publicKey } = useWallet();
-
   const [listings, setListings] = useState<Listing[]>([
     {
       id: "1",
@@ -33,7 +31,6 @@ export const ListingsProvider = ({ children }: { children: ReactNode }) => {
       image: "/images/watch.png",
       description: "High-end Rolex watch.",
       category: "watches",
-      owner: "System", // Placeholder for testing
     },
     {
       id: "2",
@@ -42,11 +39,15 @@ export const ListingsProvider = ({ children }: { children: ReactNode }) => {
       image: "/sneaker.jpg",
       description: "Limited edition sneakers.",
       category: "shoes",
-      owner: "System", // Placeholder for testing
     },
   ]);
 
+  const wallet = useWallet();  // ✅ Move useWallet here
+
+  // Define addListing inside the component to access wallet
   const addListing = (newListing: Omit<Listing, "id" | "owner">) => {
+    const { publicKey } = wallet;  // ✅ Access wallet info here
+
     if (!publicKey) {
       console.error("Wallet not connected");
       return;
@@ -56,8 +57,8 @@ export const ListingsProvider = ({ children }: { children: ReactNode }) => {
       ...prevListings,
       {
         ...newListing,
-        id: (prevListings.length + 1).toString(), // Ensure it's a string
-        owner: publicKey.toBase58(), // Assign wallet address as owner
+        id: (prevListings.length + 1).toString(),
+        owner: publicKey.toBase58(),  // ✅ Assign wallet address as owner
       },
     ]);
   };

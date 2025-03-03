@@ -30,6 +30,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     if (!isClient) return null; // Avoiding hydration mismatch
 
     return (
+        
         <WalletProvider wallets={wallets} autoConnect> 
             <WalletModalProvider> {/* Ensures WalletModalContext is available */}
                 

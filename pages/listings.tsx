@@ -1,17 +1,21 @@
+import React from "react";
 import { useState } from "react";
 import { useListings } from "../context/ListingsContext";
 import styles from "../styles/Listings.module.css";
+import Link from "next/link";
 
 export default function Listings() {
+  
   const { listings } = useListings(); // Fetch listings from context
   const [searchQuery, setSearchQuery] = useState("");
-
+  console.log("Listings on Listings Page:", listings); // Log listings to console
   // Filter listings based on search query
   const filteredListings = listings.filter((listing) =>
     listing.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
+    
     <div className={styles.listingsContainer}>
       <h1 className={styles.title}>Explore Listings</h1>
 
@@ -24,7 +28,7 @@ export default function Listings() {
         className={styles.searchBar}
       />
 
-      {/* 🛍️ Listings Grid */}
+      {/* Listings Grid */}
       <div className={styles.grid}>
         {filteredListings.length > 0 ? (
           filteredListings.map((listing) => (
