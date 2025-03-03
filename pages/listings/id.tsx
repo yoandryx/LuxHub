@@ -1,17 +1,37 @@
 import { useRouter } from "next/router";
-import styles from "../../styles/ListingDetails.module.css"; // Import CSS Module
+import styles from "../../styles/ListingDetails.module.css"; // Import CSS
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-const mockListings = {
-  "1": { title: "Luxury Watch", price: "12 SOL", image: "/public/images/watch.png", description: "High-end luxury watch with premium build." },
-  "2": { title: "Sneakers", price: "8 SOL", image: "/sneakers.png", description: "Limited edition sneakers with great comfort." }
+// Define the Listing type
+type Listing = {
+  id: string;
+  title: string;
+  description: string;
+  price: string;
+  image: string;
+  category: string;
+  owner?: string;
 };
 
+// Component
 export default function ListingDetail() {
   const router = useRouter();
   const { id } = router.query;
-  const listing = mockListings[id as string];
 
-  if (!listing) return <p>Listing not found.</p>;
+  // State with proper type
+  const [listing, setListing] = useState<Listing | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      // Fetch listing data from API
+      axios.get(`/api/listings/${id}`)
+        .then((response) => setListing(response.data))
+        .catch((error) => console.error("Failed to fetch listing:", error));
+    }
+  }, [id]);
+
+  if (!listing) return <p>Listing not found or loading...</p>;
 
   return (
     <div className={styles.container}>
