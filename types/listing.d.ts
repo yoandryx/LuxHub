@@ -1,6 +1,6 @@
 // /types/listing.d.ts
 export interface Listing {
-    _id: string;
+    id: string;
     title: string;
     price: string;
     category: string;

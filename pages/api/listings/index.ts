@@ -5,24 +5,28 @@ import Listing from "../../../models/listings";
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
 
-  if (req.method === "POST") {
-    try {
-      const newListing = new Listing(req.body);
-      const savedListing = await newListing.save();
-      res.status(201).json(savedListing);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Failed to create listing" });
-    }
-  } else if (req.method === "GET") {
-    try {
-      const listings = await Listing.find({ approved: true });
-      res.status(200).json(listings);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Failed to fetch listings" });
-    }
-  } else {
-    res.status(405).json({ error: "Method not allowed" });
+  const { method } = req;
+
+  switch (method) {
+    case "GET":
+      try {
+        const listings = await Listing.find({ approved: true });
+        return res.status(200).json(listings);
+      } catch (error) {
+        return res.status(500).json({ message: "Server Error", error });
+      }
+
+    case "POST":
+      try {
+        const newListing = new Listing(req.body);
+        await newListing.save();
+        return res.status(201).json({ message: "Listing created successfully", newListing });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Error creating listing", error });
+      }
+
+    default:
+      return res.status(405).json({ message: "Method Not Allowed" });
   }
 }

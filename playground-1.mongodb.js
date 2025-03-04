@@ -15,7 +15,7 @@ use('Mercatus');
 // Insert a few documents into the listings collection.
 db.getCollection('listings').insertMany([
   { title: 'Luxury Watch', price: '12 SOL', category: 'watches', owner: 'someOwnerId', status: 'pending', approved: 'true' },
-  { title: 'Sneakers', price: '8 SOL', category: 'shoes', owner: 'someOwnerId', status: 'approved', approved: 'true' }
+  { title: 'Sneakers', price: '8 SOL', category: 'shoes', owner: 'someOwnerId', status: 'approved', approved: 'false' }
 ]);
 
 // Run Queries on Listings Collection:
