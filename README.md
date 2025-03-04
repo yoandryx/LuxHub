@@ -1,70 +1,68 @@
-# decentralized-marketplace-dapp
-A decentralized marketplace on Solana for phisical assets using escrow-based transactions.
+# **Decentralized Marketplace dApp**
+A decentralized marketplace on Solana for luxury physical assets using escrow-based transactions.
 
-## Overview
+## 🛒 **Overview**
+The **Decentralized Marketplace dApp** is a blockchain-based platform built on the **Solana network**, enabling users to trade high-value physical assets such as luxury watches securely using cryptocurrency. The platform offers a dual option for users to transact either via their crypto wallets or through a traditional Web2 profile using Stripe for fiat payments. 
 
-The Decentralized Marketplace dApp is a blockchain-based platform built on the **Solana network**, allowing users to trade physical assets using cryptocurrency. The platform provides a **secure, decentralized, and escrow-based** transaction system, enabling users to buy and sell high-value assets without relying on traditional banking systems.
+By leveraging an **escrow-based transaction system**, we ensure that funds are securely held until both parties fulfill the transaction requirements. This hybrid approach aims to ease the transition to Web3 for users while maintaining a decentralized trading experience.
 
-## Project Goals
+---
 
-- **Enable secure crypto transactions** for physical assets.
-- **Implement an escrow system** to protect buyers and sellers.
-- **Provide a decentralized marketplace** where users can trade assets without intermediaries.
-- **Ensure scalability** for future expansion into other goods and services.
-- **Showcase advanced Web3 development** skills using React, Node.js, Rust, and Solana smart contracts.
+## 🎯 **Project Goals**
+- **Hybrid Payment System:** Support both **crypto payments** via Solana wallets and **fiat payments** via Stripe.
+- **Escrow Security:** Implement an escrow-based smart contract for secure transactions.
+- **Decentralized Marketplace:** Allow users to trade assets without intermediaries.
+- **Admin Approval:** Listings require admin approval during the beta phase to maintain quality.
+- **Scalability:** Plan for future expansion to include more product categories and services.
+- **Web3 Adoption:** Showcase advanced Web3 skills using **React, Node.js, Rust, and Solana smart contracts**.
 
-## Features
+---
 
-- 🔐 **Wallet Authentication:** Users connect via Solana-based wallets (Phantom, Solflare, etc.).
-- 🛍️ **Listing Creation:** Sellers can post physical assets with descriptions and images.
-- 🔎 **Search & Filtering:** Users can browse by price, category, and location.
-- 💰 **Escrow-Based Transactions:** Crypto is held in a smart contract until the transaction is verified.
-- 📩 **Messaging System (Future Feature):** Buyers and sellers can communicate securely.
-- 🏆 **User Ratings & Reviews:** Users can rate transactions for trust and reliability.
-- 🎨 **3D Product Showcase:** Integration of **Three.js** for immersive product viewing.
+## 🚀 **Features**
+- **Wallet Authentication:** Solana-based wallets (Phantom, Solflare, etc.).
+- **Web2 & Web3 Profiles:** 
+  - Web2: Email and password with Stripe payments.
+  - Web3: Solana wallet connection for crypto payments.
+- **Listing System:** Sellers can create, update, and manage listings.
+- **Approval Workflow:** Admin-only approval for listings.
+- **Secure Transactions:** Escrow-based payments for both crypto and fiat.
+- **Search & Filtering:** Browse assets by price, category, and location.
+- **3D Product Showcase:** Integration with **Three.js** for immersive viewing.
+- **Notifications:** Email notifications for listing status updates (planned feature).
 
-## Tech Stack
+---
+
+## 🛠️ **Tech Stack**
 
 ### **Frontend**
-
 - **React.js** – UI Development
-- **Next.js** – Optimized framework for SEO and performance
+- **Next.js** – Optimized for SEO and performance
 - **Tailwind CSS** – Modern styling
 - **Three.js** – 3D visualization
 - **Framer Motion** – Animations
-- **Solana Wallet Adapter** – Crypto wallet integration
+- **Solana Wallet Adapter** – Wallet integration
 
 ### **Backend**
-
-- **Node.js + Express** – Backend API
-- **MongoDB / Firebase / PostgreSQL** – Database for storing user and product data
-- **GraphQL (Optional)** – API optimization
-- **Solana Web3.js SDK** – Blockchain interactions
+- **Node.js + Express** – RESTful APIs
+- **MongoDB** – Database for storing user and product data
+- **Stripe API** – For fiat transactions
+- **jsonwebtoken & bcryptjs** – Authentication and password encryption
 
 ### **Smart Contract Development**
-
-- **Rust** – Solana smart contract programming
-- **Anchor Framework** – Simplifies Solana smart contract development
-- **Solana CLI & Solana Playground** – Testing and deploying smart contracts
-- **Solana Program Library (SPL)** – Token and escrow management
+- **Rust** – Programming Solana smart contracts
+- **Anchor Framework** – Simplifies smart contract development
+- **Solana Web3.js SDK** – Blockchain interactions
+- **Escrow Contracts:** For secure transactions
 
 ### **Security & DevOps**
-
 - **Docker** – Containerization for development
-- **Kubernetes/OpenShift** – Scaling the app
-- **Vercel / Netlify** – Frontend hosting
-- **Cloudflare / AWS S3** – Performance optimization
-- **GitHub** – Version control & CI/CD
+- **GitHub CI/CD** – Automated deployments
+- **Vercel** – Frontend hosting
+- **Cloudflare** – CDN and DDoS protection
 
-## How to Contribute
+---
 
-We welcome open-source contributions! Follow these steps:
-
-1. **Fork the repository** on GitHub.
-2. **Create a new feature branch** (`feature/new-feature-name`).
-3. **Submit a pull request** after testing.
-
-## Installation & Setup
+## 📦 **Installation & Setup**
 
 Clone the repo and install dependencies:
 
@@ -74,21 +72,61 @@ cd decentralized-marketplace-dapp
 npm install
 ```
 
-Run the development server:
+### Create `.env.local` File
+
+Add your environment variables:
+
+```bash
+MONGODB_URI=mongodb+srv://<username>:<password>@marketplace.mongodb.net/Mercatus
+JWT_SECRET=your_jwt_secret
+STRIPE_SECRET_KEY=your_stripe_secret_key
+```
+
+### Run Development Server
 
 ```bash
 npm run dev
 ```
 
-## License
+---
 
-This project is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**, ensuring open-source collaboration while protecting the core business logic. See [LICENSE](LICENSE) for details.
-
-## Connect With Us
-
-🚀 Follow project updates on **Twitter, LinkedIn, and GitHub**!
+## 🔑 **Authentication & Authorization**
+- **Signup:** Web2 users can register with email and password; Web3 users can connect with a wallet.
+- **Login:** Generates a JWT token for session management.
+- **Admin Role:** Admin users can approve or reject listings.
 
 ---
 
-This README provides a structured overview of the project, including the features and setup instructions. Let me know if you’d like to add anything before uploading it to your GitHub repo! 🚀
+## 📜 **API Endpoints**
+
+### **Public Endpoints:**
+- `GET /api/listings` – Fetch approved listings.
+- `POST /api/auth/signup` – User registration.
+- `POST /api/auth/login` – User login.
+
+### **Admin Endpoints:**
+- `POST /api/listings/approve` – Approve or reject a listing (Admin only).
+
+---
+
+## 🛡️ **Security Practices**
+- **JWT Authentication:** Secure API access.
+- **Password Encryption:** Using `bcryptjs`.
+- **Input Validation:** Prevents injection attacks.
+
+---
+
+## 🛠️ **How to Contribute**
+1. **Fork the repository** on GitHub.
+2. **Create a new feature branch** (`feature/new-feature-name`).
+3. **Submit a pull request** with a detailed explanation.
+
+---
+
+## 📝 **License**
+This project is licensed under the **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)**. See [LICENSE](LICENSE) for details.
+
+---
+
+This README provides a comprehensive overview of the project, highlighting the key features, tech stack, and setup instructions. It aligns with industry standards and gives clear guidance for both developers and potential collaborators.
 
