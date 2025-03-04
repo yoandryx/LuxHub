@@ -17,7 +17,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         const token = jwt.sign(
             { userId: newUser._id, role: newUser.role },
             process.env.JWT_SECRET!,
-            { expiresIn: '1h' }
+            { expiresIn: '24h' }
         );
 
         res.status(201).json({ token });

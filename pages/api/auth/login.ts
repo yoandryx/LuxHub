@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const token = signToken({ id: user._id, role: user.role });
-        res.status(200).json({ token });
+        res.status(200).json({ token, user });
     } else {
         res.status(405).json({ message: "Method Not Allowed" });
     }

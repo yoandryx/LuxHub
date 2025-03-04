@@ -5,7 +5,7 @@ const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key_here";  // Replace
 // Generate a token for admin
 export const generateAdminToken = () => {
   const payload = { role: "admin" };
-  return jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
+  return jwt.sign(payload, SECRET_KEY, { expiresIn: "24h" });
 };
 
 // Function to sign tokens
