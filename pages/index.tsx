@@ -11,49 +11,51 @@ const WalletMultiButtonDynamic = dynamic(() =>
 
 export default function Home() {
   return (
-    <div className={styles.container}>
-    
-      <section className={styles.hero}>
+    <>
+      <div className={styles.container}>
+      
+        <section className={styles.hero}>
 
-        <div className={styles.heroContent}>
+          <div className={styles.heroContent}>
 
-          {/* Main header*/}
-          <h1 className={styles.title}>
-            Mercatus <br /> The Decentralized Marketplace
-          </h1>
+            {/* Main header*/}
+            <h1 className={styles.title}>
+              Mercatus <br /> The Decentralized Marketplace
+            </h1>
 
-          {/* Main Subtitle */}
-          <p className={styles.subtitle}>
-              Buy and Sell with Crypto. Built on <span>Solana</span> using
-              <span>Next.js</span> & Wallet Adapter.
-          </p>
+            {/* Main Subtitle */}
+            <p className={styles.subtitle}>
+                Buy and Sell with Crypto. Built on <span>Solana</span> using
+                <span>Next.js</span> & Wallet Adapter.
+            </p>
 
-          {/* Grouping Three.js Scene and Buttons */}
-          <div className={styles.landingGroup}>
+            {/* Grouping Three.js Scene and Buttons */}
+            <div className={styles.landingGroup}>
 
-            {/* Three.js Scene */}
-            <div className={styles.threeScene}>
-              <ThreeScene />
-            </div>
+              {/* Three.js Scene */}
+              <div className={styles.threeScene}>
+                <ThreeScene />
+              </div>
 
-            {/* Buttons */}
-            <div className={styles.buttonGroup}>
+              {/* Buttons */}
+              <div className={styles.buttonGroup}>
 
-              {/* Wallet Button */}
-              <WalletMultiButtonDynamic className={styles.walletButton} />
-            
-              {/* Create Listing Button */}
-              <Link href="/create-listing">
-                <button className={styles.createButton}>Create a Listing</button>
-              </Link>
+                {/* Wallet Button */}
+                <WalletMultiButtonDynamic className={styles.walletButton} />
+              
+                {/* Create Listing Button */}
+                <Link href="/create-listing">
+                  <button className={styles.createButton}>Create a Listing</button>
+                </Link>
+              </div>
+
             </div>
 
           </div>
 
-        </div>
-
-      </section>
-      
-    </div>
+        </section>
+        
+      </div>
+    </>
   );
 }

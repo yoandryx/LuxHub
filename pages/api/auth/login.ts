@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        const token = signToken({ id: user._id, role: user.role });
+        const token = signToken({ userId: user._id, role: user.role });
         res.status(200).json({ token, user });
     } else {
         res.status(405).json({ message: "Method Not Allowed" });
