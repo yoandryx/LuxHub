@@ -7,11 +7,11 @@ import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adap
 import Navbar from "../components/Navbar"; // Import Navbar
 import Footer from "../components/Footer";
 import UserHeader from "../components/UserHeader";
+import WalletNavbar from "../components/WalletNavbar"; // Import Navbar
+import "@solana/wallet-adapter-react-ui/styles.css";
 import { ListingsProvider } from "../context/ListingsContext"; // Import ListingsProvider
 import "../styles/globals.css"; // Import global styles
 
-// Import default styles for the wallet modal
-import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
 
@@ -43,6 +43,8 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                         <UserHeader/>
                         
                         <Component {...pageProps} />
+
+                        <WalletNavbar/>
 
                         <Footer /> {/* Add Footer component */}
 

@@ -1,0 +1,120 @@
+.walletNavContainer {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    color: var(--primary);
+}
+  
+.walletNavbar {
+    display: inherit;
+    position: fixed;
+    align-items: center;
+    justify-content: center;
+    bottom:20px;
+    z-index: 1000;
+    height: 55px;
+    width: 90%;
+
+    background: #43434352;
+    backdrop-filter: blur(25px);
+    border-radius: 30px;
+}
+
+.walletNavbar.open {
+    padding-top: 100px;
+    transition: 0.3s ease-in-out
+}
+  
+.walletContainer {
+    display: inherit;
+    justify-content: center;
+    align-items: center;
+    margin: 0px 20px;
+}
+
+.leftSide {
+    display: inherit;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    flex-direction: row;
+    gap: 10px;
+    border: 1px;
+    border-style:solid;
+    border-color: var(--border);
+    border-radius: 5px;
+    padding: 5px;
+    box-shadow: 0px 2px 10px #1b1b1bdb;
+}
+
+.rightSide {
+    display: inherit;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    right: 5px;
+    gap: 10px;
+    border: 1px;
+    border-style:solid;
+    border-color: var(--border);
+    border-radius: 5px;
+    padding: 5px;
+    box-shadow: 0px 2px 10px #1b1b1bdb;
+    cursor: pointer;
+}
+  
+.icons {
+    height: auto;
+    width: 25px;
+}
+
+.wallet-adapter-modal {
+    background-color: #1a1a1a;
+    color: #fff;
+    border-radius: 8px;
+  }
+
+.walletMenuContainer{
+    /* display: none; */
+    position: absolute;
+    opacity: 0;
+    transform: translateY(50%);
+    pointer-events: none; 
+    /* transition: transform 0.5s ease-in-out; */
+}
+
+.walletMenuContainer.open{
+    display: flex;
+    position: fixed;
+    justify-content: space-around;
+    flex-direction: column;
+    gap: 10px;
+    bottom: 80px;
+    opacity: 1;
+    transform: translateY(0%);
+    transition: opacity 0.5s ease-in-out, transform 0.3s ease-in-out;
+    pointer-events: auto;
+}
+
+.walletMenuSelection {
+    display: inherit;
+    justify-content: center;
+    flex-direction: row;
+    gap: 10px;
+}
+
+.prompt {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: xx-small;
+    color: var(--secondary);
+    text-shadow: 0px 2px 10px #1b1b1bdb;
+}
+
+.wallet-adapter-dropdown-list-active {
+    transform: translateY(-200px) !important;
+}
+
+

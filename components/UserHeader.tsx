@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { useRouter } from "next/router";
+import styles from "../styles/UserHeader.module.css"
+import { CiShoppingCart } from "react-icons/ci";
 
 export default function ProfileHeader() {
+
   const router = useRouter();
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -13,16 +18,35 @@ export default function ProfileHeader() {
     router.push("/login");
   };
 
+  const toggleProfileMenu = () => {
+    setProfileMenuOpen(!profileMenuOpen);
+  }
+
   return (
-    <header className=" ">
-      <h1 className=" ">Profile Header</h1>
-      <button onClick={handleLogout} className=" ">
-        Log Out
-      </button>
-      <button onClick={handleLogin} className=" ">
-        Log In
-      </button>
-    </header>
+    <>
+
+      <div className={styles.userNavContainer}>
+        <nav onClick={toggleProfileMenu} className={`${styles.userNavbar} ${profileMenuOpen ? styles.open : ""}`}>
+
+          <CiShoppingCart className={styles.userIcon} />
+
+          <div className={styles.userMenuContainer}>
+            <div className={styles.userMenu} >
+              <div className={`${styles.userOptions} ${profileMenuOpen ? styles.open : ""}`}>
+                {/* <button onClick={handleLogout} className={""}>
+                  Log Out
+                </button>
+                <button onClick={handleLogin} className={""}>
+                  Log In
+                </button> */}
+              </div>
+            </div>
+          </div>
+          
+        </nav>
+      </div>
+
+    </>
   );
 }
 

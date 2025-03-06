@@ -4,16 +4,10 @@ import styles from "../styles/Home.module.css"; // Importing CSS module
 import dynamic from "next/dynamic";
 const ThreeScene = dynamic(() => import("../components/ThreeScene"), { ssr: false });
 
-const WalletMultiButtonDynamic = dynamic(() =>
-  import("@solana/wallet-adapter-react-ui").then((mod) => mod.WalletMultiButton),
-  { ssr: false }
-);
-
 export default function Home() {
   return (
     <>
       <div className={styles.container}>
-      
         <section className={styles.hero}>
 
           <div className={styles.heroContent}>
@@ -37,24 +31,11 @@ export default function Home() {
                 <ThreeScene />
               </div>
 
-              {/* Buttons */}
-              <div className={styles.buttonGroup}>
-
-                {/* Wallet Button */}
-                <WalletMultiButtonDynamic className={styles.walletButton} />
-              
-                {/* Create Listing Button */}
-                <Link href="/create-listing">
-                  <button className={styles.createButton}>Create a Listing</button>
-                </Link>
-              </div>
-
             </div>
 
           </div>
 
         </section>
-        
       </div>
     </>
   );
