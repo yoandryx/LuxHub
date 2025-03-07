@@ -59,6 +59,7 @@
 
 .userOptions.open {
     width: 100px;
+    height: 450px;
     top: 55px;
     display: flex;
     flex-direction: column;

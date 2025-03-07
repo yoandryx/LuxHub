@@ -33,12 +33,7 @@ export default function ProfileHeader() {
           <div className={styles.userMenuContainer}>
             <div className={styles.userMenu} >
               <div className={`${styles.userOptions} ${profileMenuOpen ? styles.open : ""}`}>
-                {/* <button onClick={handleLogout} className={""}>
-                  Log Out
-                </button>
-                <button onClick={handleLogin} className={""}>
-                  Log In
-                </button> */}
+                
               </div>
             </div>
           </div>

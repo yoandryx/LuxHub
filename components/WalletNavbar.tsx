@@ -36,7 +36,13 @@ export default function WalletNavbar() {
 
   const handleLogin = () => {
     router.push("/login");
+    setMenuOpen(false);
   };
+
+  const handleSignup = () => {
+    router.push("/signup");
+    setMenuOpen(false);
+  }
 
   return (
     <>
@@ -69,8 +75,11 @@ export default function WalletNavbar() {
                     <button onClick={handleLogin} className={""}>
                         Login
                     </button>
-                    <button onClick={handleLogin} className={""}>
+                    <button  onClick={handleSignup} className={""}>
                         Signup
+                    </button>
+                    <button onClick={handleLogout} className={""}>
+                      Log Out
                     </button>
                 </div>
 

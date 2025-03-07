@@ -1,0 +1,135 @@
+/* AdminDashboard.module.css */
+
+:root {
+    --background: linear-gradient(180deg, #0d0d0d, #1a1a1a);
+    --foreground: #0d0d0d;
+    --primary: #ffffff;
+    --secondary: #a1a1a1;
+    --accent: #323232;
+    --border: #222222;
+    --glass: #0d0d0d5f;
+  }
+  
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background: var(--foreground);
+    border-radius: 8px;
+    color: var(--primary);
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .logoutButton {
+    background-color: var(--accent);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  
+  .logoutButton:hover {
+    background-color: var(--border);
+    border-color: var(--accent);
+  }
+  
+  .searchContainer {
+    margin-bottom: 20px;
+    text-align: right;
+  }
+  
+  .searchInput {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--background);
+    color: var(--primary);
+    outline: none;
+  }
+  
+  .listingsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  
+  .listingCard {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .listingCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  
+  .cardTitle {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  
+  .cardDescription {
+    font-size: 0.9rem;
+    color: var(--secondary);
+    margin-bottom: 10px;
+  }
+  
+  .cardOwner,
+  .cardStatus {
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+  
+  .actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  
+  .actionButton {
+    background: var(--accent);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  
+  .actionButton:hover {
+    background: var(--border);
+    border-color: var(--accent);
+  }
+  
+  /* Responsive adjustments */
+  @media screen and (max-width: 768px) {
+    .container {
+      padding: 15px;
+    }
+    
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .searchContainer {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+  }
+  

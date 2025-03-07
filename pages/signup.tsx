@@ -1,69 +1,71 @@
 import { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
-import styles from "../styles/Login.module.css";
+import styles from "../styles/Signup.module.css"; // Make sure to create this file
 
-const Login = () => {
+export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const response = await axios.post("http://localhost:3000/api/auth/login", { email, password });
-      const { token, user } = response.data;
 
-      // Save token and user data
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await axios.post("/api/auth/signup", {
+        email,
+        password,
+        type: "web2", // For regular users
+      });
+      const { token, user } = response.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
-
-      console.log("Token Saved: ", localStorage.getItem("token"));
-
-      // Redirect based on role
-      if (user.role === "admin") {
-        router.push("/admin/adminDashboard");
-      } else {
-        router.push("/user/userDashboard");
-      }
-    } catch (error: any) {
-      setError(error.response?.data?.error || "Login failed");
-    } finally {
-      setLoading(false);
+      router.push("/user"); // Redirect regular users to their dashboard
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Signup failed");
     }
   };
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>Login</h2>
+      <h1 className={styles.title}>Sign Up</h1>
       <form onSubmit={handleSubmit} className={styles.form}>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
           className={styles.input}
+          required
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          required
           className={styles.input}
+          required
         />
-        <button type="submit" className={styles.button} disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
+        <input
+          type="password"
+          placeholder="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className={styles.input}
+          required
+        />
         {error && <p className={styles.error}>{error}</p>}
+        <button type="submit" className={styles.button}>
+          Sign Up
+        </button>
       </form>
     </div>
   );
-};
-
-export default Login;
+}
