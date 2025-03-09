@@ -1,58 +1,68 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { AppProps } from "next/app";
-import { useMemo } from "react";
-import { WalletProvider } from "@solana/wallet-adapter-react";
-import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import dynamic from "next/dynamic";
+import { ErrorBoundary } from "react-error-boundary";
+import { ConnectionProvider } from "@solana/wallet-adapter-react";
+import { clusterApiUrl } from "@solana/web3.js";
 import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
-import Navbar from "../components/Navbar"; // Import Navbar
+
+import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import UserHeader from "../components/UserHeader";
-import WalletNavbar from "../components/WalletNavbar"; // Import Navbar
-import "@solana/wallet-adapter-react-ui/styles.css";
-import { ListingsProvider } from "../context/ListingsContext"; // Import ListingsProvider
-import "../styles/globals.css"; // Import global styles
+import WalletNavbar from "../components/WalletNavbar";
+import { ListingsProvider } from "../context/ListingsContext";
+import "../styles/globals.css";
 
+// Dynamically import wallet-related components to load only on the client
+const WalletProviderDynamic = dynamic(
+  () =>
+    import("@solana/wallet-adapter-react").then((mod) => mod.WalletProvider),
+  { ssr: false }
+);
+const WalletModalProviderDynamic = dynamic(
+  () =>
+    import("@solana/wallet-adapter-react-ui").then((mod) => mod.WalletModalProvider),
+  { ssr: false }
+);
+
+function Fallback({ error }: { error: Error }) {
+  return <div style={{ padding: "20px", color: "red" }}>Error: {error.message}</div>;
+}
 
 export default function MyApp({ Component, pageProps }: AppProps) {
+  // A mounted flag to know if the component has mounted on the client
+  const [mounted, setMounted] = useState(false);
 
-    // Prevents hydration mismatch by ensuring the component only renders on the client
-    const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
+  // Always call hooks, regardless of mount state
+  const network = clusterApiUrl("devnet"); // Change to "mainnet-beta" if needed
+  const wallets = useMemo(
+    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    []
+  );
 
-    // Memoized list of wallets
-    const wallets = useMemo(() => [
-        new PhantomWalletAdapter(), 
-        new SolflareWalletAdapter()
-    ], []);
+  // Prepare the full content
+  const content = (
+    <ErrorBoundary FallbackComponent={Fallback}>
+      <ConnectionProvider endpoint={network}>
+        <WalletProviderDynamic wallets={wallets} autoConnect>
+          <WalletModalProviderDynamic>
+            <ListingsProvider>
+              <Navbar />
+              <UserHeader />
+              <Component {...pageProps} />
+              <WalletNavbar />
+              <Footer />
+            </ListingsProvider>
+          </WalletModalProviderDynamic>
+        </WalletProviderDynamic>
+      </ConnectionProvider>
+    </ErrorBoundary>
+  );
 
-    if (!isClient) return null; // Avoiding hydration mismatch
-
-    return (
-        
-        <>
-            <WalletProvider wallets={wallets} autoConnect> 
-                <WalletModalProvider> {/* Ensures WalletModalContext is available */}
-                    
-                    <ListingsProvider> {/* Wrap ListingsProvider inside WalletProviders */}
-                        
-                        <Navbar /> {/* Add Navbar component */}
-
-                        <UserHeader/>
-                        
-                        <Component {...pageProps} />
-
-                        <WalletNavbar/>
-
-                        <Footer /> {/* Add Footer component */}
-
-                    </ListingsProvider>
-
-                </WalletModalProvider>
-            </WalletProvider>
-        </>
-
-    );
+  // Instead of returning null when not mounted, return a minimal div
+  return <>{mounted ? content : <div style={{ minHeight: "100vh" }} />}</>;
 }
