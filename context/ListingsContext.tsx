@@ -1,66 +1,76 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 
-// Define listing type
+// Define listing type with Solana-specific fields
 type Listing = {
-  id: string;
+  id: string; // Eventually a token address or PDA
   title: string;
   description: string;
-  price: string;
+  priceSol: string; // Display-friendly (e.g., "12 SOL")
+  priceLamports: number; // Solana-native (e.g., 12 * 10^9)
   image: string;
   category: string;
-  owner?: string;
+  serialNumber?: string; // For luxury watch NFT bonding
+  owner: string; // PublicKey as base58 string
 };
 
 // Context type
 type ListingsContextType = {
   listings: Listing[];
-  addListing: (newListing: Omit<Listing, "id" | "owner">) => void;
+  addListing: (newListing: Omit<Listing, "id" | "owner" | "priceLamports">) => void;
 };
 
-// Create Context
 const ListingsContext = createContext<ListingsContextType | undefined>(undefined);
 
-// Provider Component
 export const ListingsProvider = ({ children }: { children: ReactNode }) => {
+  const wallet = useWallet();
+  const { publicKey } = wallet;
+
   const [listings, setListings] = useState<Listing[]>([
     {
       id: "1",
-      title: "Luxury Watch",
-      price: "12 SOL",
-      image: "/images/watch.png",
-      description: "High-end Rolex watch.",
+      title: "Luxury Rolex Watch",
+      priceSol: "12 SOL",
+      priceLamports: 12 * 10 ** 9, // Convert SOL to lamports
+      image: "/images/rolex.png",
+      description: "High-end Rolex with certificate.",
       category: "watches",
+      serialNumber: "RLX123456",
+      owner: "mockOwnerPublicKey", // Placeholder for testing
     },
     {
       id: "2",
-      title: "Sneakers",
-      price: "8 SOL",
+      title: "Limited Edition Sneakers",
+      priceSol: "8 SOL",
+      priceLamports: 8 * 10 ** 9,
       image: "/sneaker.jpg",
-      description: "Limited edition sneakers.",
+      description: "Rare sneakers from 2023 drop.",
       category: "shoes",
+      owner: "mockOwnerPublicKey",
     },
   ]);
 
-  const wallet = useWallet();  // ✅ Move useWallet here
-
-  // Define addListing inside the component to access wallet
-  const addListing = (newListing: Omit<Listing, "id" | "owner">) => {
-    const { publicKey } = wallet;  // ✅ Access wallet info here
-
+  const addListing = (newListing: Omit<Listing, "id" | "owner" | "priceLamports">) => {
     if (!publicKey) {
-      console.error("Wallet not connected");
+      alert("Please connect your wallet to add a listing."); // Better UX than console.error
       return;
     }
 
-    setListings((prevListings) => [
-      ...prevListings,
-      {
-        ...newListing,
-        id: (prevListings.length + 1).toString(),
-        owner: publicKey.toBase58(),  // ✅ Assign wallet address as owner
-      },
-    ]);
+    const priceLamports = parseFloat(newListing.priceSol) * 10 ** 9; // Convert SOL to lamports
+    const newId = (listings.length + 1).toString(); // Temporary ID; replace with PDA later
+
+    const listingWithOwner: Listing = {
+      ...newListing,
+      id: newId,
+      priceLamports,
+      owner: publicKey.toBase58(),
+    };
+
+    setListings((prevListings) => [...prevListings, listingWithOwner]);
+
+    // TODO: Call Solana program to create escrow/NFT (placeholder for future)
+    console.log(`Added listing ${newId} by ${publicKey.toBase58()}`);
   };
 
   return (
@@ -70,7 +80,6 @@ export const ListingsProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Custom hook to use the listings context
 export const useListings = () => {
   const context = useContext(ListingsContext);
   if (!context) {
