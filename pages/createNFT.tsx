@@ -8,11 +8,6 @@ export default function CreateListing() {
     const { connected, publicKey } = useWallet(); // Access both connected status and publicKey
     const router = useRouter();
     const { addListing } = useListings();
-    const [category, setCategory] = useState("");
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [price, setPrice] = useState("");
-    const [image, setImage] = useState("");
     const [listingDetails, setListingDetails] = useState({
         title: "",
         description: "",
@@ -26,38 +21,6 @@ export default function CreateListing() {
             router.push("/create-listing");
         }
     }, [connected, publicKey]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!title || !description || !price || !category || !image) {
-            alert("Please fill in all fields.");
-            return;
-        }
-
-        if (!publicKey) {
-            alert("Wallet is not connected.");
-            return;
-        }
-
-        // Create new listing object
-        const newListing = {
-            id: Date.now().toString(), // Generate unique ID
-            title,
-            description,
-            priceSol: parseFloat(price),
-            serialNumber: "some-serial-number", // Replace with actual serial number generation or input
-            image,
-            owners: [publicKey.toBase58()], // Safely access publicKey and call toBase58()
-        };
-
-        addListing(newListing); // Add listing to context or database
-        setTitle("");
-        setDescription("");
-        setPrice("");
-        setImage("");
-        setCategory("");
-        router.push("/listings"); // Redirect to listings page after submission
-    };
 
     // NFT Minting logic
     const handleAddListing = () => {
