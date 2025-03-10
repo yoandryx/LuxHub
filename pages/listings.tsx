@@ -1,6 +1,6 @@
 import React from "react";
 import { useState } from "react";
-import { useListings } from "../context/ListingsContext";
+import { useListings } from "../context/src/ListingsContext";
 import styles from "../styles/Listings.module.css";
 import Link from "next/link";
 

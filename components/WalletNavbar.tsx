@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import styles from "../styles/WalletNavbar.module.css";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { SiSolana, SiEthereum, SiBitcoinsv, SiStripe} from "react-icons/si";

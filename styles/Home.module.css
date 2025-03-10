@@ -59,20 +59,23 @@
     gap: 15px;
   }
   
-  .walletButton {
-    background: #6366f1;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    font-size: 1rem;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.3s ease;
-  }
-  
-  .walletButton:hover {
-    background: #4f46e5;
-  }
+  /* Removed custom styling for wallet buttons */
+
+.walletButton {
+  /* No custom styles applied here */
+  background-color: #2d3748; /* Default button background */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.walletButton:hover {
+  background-color: #1a202c; /* Darker background on hover */
+}
+
   
   .createButton {
     background: transparent;

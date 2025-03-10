@@ -10,7 +10,8 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import UserHeader from "../components/UserHeader";
 import WalletNavbar from "../components/WalletNavbar";
-import { ListingsProvider } from "../context/ListingsContext";
+import { ListingsProvider } from "../context/src/ListingsContext";  // Your Listings Context
+
 import "../styles/globals.css";
 
 // Dynamically import wallet-related components to load only on the client
@@ -30,39 +31,35 @@ function Fallback({ error }: { error: Error }) {
 }
 
 export default function MyApp({ Component, pageProps }: AppProps) {
-  // A mounted flag to know if the component has mounted on the client
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Always call hooks, regardless of mount state
-  const network = clusterApiUrl("devnet"); // Change to "mainnet-beta" if needed
+  const network = clusterApiUrl("devnet");
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
     []
   );
 
-  // Prepare the full content
   const content = (
-    <ErrorBoundary FallbackComponent={Fallback}>
-      <ConnectionProvider endpoint={network}>
-        <WalletProviderDynamic wallets={wallets} autoConnect>
-          <WalletModalProviderDynamic>
-            <ListingsProvider>
+    <ListingsProvider>
+      <ErrorBoundary FallbackComponent={Fallback}>
+        <ConnectionProvider endpoint={network}>
+          <WalletProviderDynamic wallets={wallets} autoConnect>
+            <WalletModalProviderDynamic>
               <Navbar />
               <UserHeader />
               <Component {...pageProps} />
               <WalletNavbar />
               <Footer />
-            </ListingsProvider>
-          </WalletModalProviderDynamic>
-        </WalletProviderDynamic>
-      </ConnectionProvider>
-    </ErrorBoundary>
+            </WalletModalProviderDynamic>
+          </WalletProviderDynamic>
+        </ConnectionProvider>
+      </ErrorBoundary>
+    </ListingsProvider>
   );
 
-  // Instead of returning null when not mounted, return a minimal div
   return <>{mounted ? content : <div style={{ minHeight: "100vh" }} />}</>;
 }
