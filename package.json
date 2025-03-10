@@ -5,6 +5,10 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ethereumjs/block": "^5.3.0",
+    "@ethereumjs/common": "^4.4.0",
+    "@ethereumjs/tx": "^5.4.0",
+    "@ethereumjs/vm": "^8.1.1",
     "@project-serum/anchor": "^0.26.0",
     "@react-three/drei": "^10.0.3",
     "@react-three/fiber": "^9.0.4",
@@ -15,8 +19,12 @@
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.98.0",
     "@types/react-dom": "^19.0.4",
+    "@walletconnect/sign-client": "^2.19.0",
+    "@web3modal/ethereum": "^2.7.1",
+    "@web3modal/react": "^2.7.1",
     "axios": "^1.8.1",
     "bcryptjs": "^3.0.2",
+    "glob": "^11.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.12.0",
     "next": "^15.2.0",
