@@ -13,7 +13,7 @@ interface Listing {
   description: string;
   priceSol: number;
   serialNumber: string;
-  owner: string;
+  owner?: string;
   image?: string;  // Make 'image' optional
 }
 

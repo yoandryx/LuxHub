@@ -1,0 +1,150 @@
+/* Root container */
+.container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Vertically center */
+    align-items: center;     /* Horizontally center */
+    padding: 20px;
+    color: var(--primary);
+}
+
+.addListing .container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Vertically center */
+    align-items: center;     /* Horizontally center */
+    padding: 20px;
+    color: var(--primary);
+}
+
+/* Heading */
+.addListing h2 {
+    color: var(--primary);
+    font-size: 2rem;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Form container */
+.addListing {
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Input Fields */
+.addListing input,
+.addListing textarea {
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--forground);
+    color: var(--primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.addListing input:focus,
+.addListing textarea:focus {
+    border-color: var(--accent);
+    background: var(--glass);
+    outline: none;
+}
+
+/* Textarea styling */
+.addListing textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+/* Button */
+.addListing button {
+    background: var(--border);
+    color: var(--primary);
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    font-size: 1rem;
+    margin-top: 20px;
+}
+
+.addListing button:hover {
+    background: var(--accent);
+}
+
+/* Restricted access message */
+.addListing .restricted {
+    color: var(--secondary);
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+/* Style for the input file (image selection) */
+.addListing input[type="file"] {
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--forground);
+    color: var(--primary);
+    cursor: pointer;
+}
+
+/* Option selection */
+.addListing select {
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--forground);
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .addListing {
+        width: 90%;
+        padding: 20px;
+    }
+
+    /* Heading size on small screens */
+    .addListing h2 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+
+    /* Input fields and buttons scale */
+    .addListing input,
+    .addListing textarea,
+    .addListing button,
+    .addListing select {
+        font-size: 0.9rem;
+        padding: 10px;
+    }
+}
+
+/* Extra small devices (portrait phones, etc.) */
+@media (max-width: 480px) {
+    /* Further reduce padding for smaller screens */
+    .addListing {
+        width: 95%;
+        padding: 15px;
+    }
+
+    /* Increase form font sizes */
+    .addListing input,
+    .addListing textarea,
+    .addListing button,
+    .addListing select {
+        font-size: 0.9rem;
+        padding: 8px;
+    }
+}

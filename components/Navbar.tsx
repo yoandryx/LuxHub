@@ -38,7 +38,7 @@ export default function Navbar() {
 
           <div className={styles.links}>
             <Link href="/listings" onClick={closeMenu}>Listings</Link>
-            <Link href="/create-listing" onClick={closeMenu}>Create</Link>
+            <Link href="/createNFT" onClick={closeMenu}>Create</Link>
             <Link href="/profile" onClick={closeMenu}>Profile</Link>
           </div>
 
