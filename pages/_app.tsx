@@ -1,65 +1,64 @@
-import { useState, useEffect, useMemo } from "react";
-import type { AppProps } from "next/app";
-import dynamic from "next/dynamic";
-import { ErrorBoundary } from "react-error-boundary";
-import { ConnectionProvider } from "@solana/wallet-adapter-react";
-import { clusterApiUrl } from "@solana/web3.js";
-import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { AppProps } from "next/app";
+import React, { useEffect, useState, useMemo } from "react";
+
+import { ListingsProvider } from "../context/src/ListingsContext";
 
 import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import UserHeader from "../components/UserHeader";
+import Footer from "../components/Footer";
 import WalletNavbar from "../components/WalletNavbar";
-import { ListingsProvider } from "../context/src/ListingsContext";  // Your Listings Context
+import { ErrorBoundary } from "react-error-boundary";
+import { Fallback } from "../components/Fallback";
+import "../styles/globals.css"
 
-import "../styles/globals.css";
+import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { Keypair } from "@solana/web3.js";
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
-// Dynamically import wallet-related components to load only on the client
-const WalletProviderDynamic = dynamic(
-  () =>
-    import("@solana/wallet-adapter-react").then((mod) => mod.WalletProvider),
-  { ssr: false }
-);
-const WalletModalProviderDynamic = dynamic(
-  () =>
-    import("@solana/wallet-adapter-react-ui").then((mod) => mod.WalletModalProvider),
-  { ssr: false }
-);
+// Network URL (you can change to 'testnet' or 'mainnet' if needed)
+const network = WalletAdapterNetwork.Devnet;
+const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? "https://api.devnet.solana.com";
+const secretKey = process.env.NEXT_PUBLIC_DEVNET_KEYPAIR ? JSON.parse(process.env.NEXT_PUBLIC_DEVNET_KEYPAIR) : [];
+const keypair = secretKey.length > 0 ? Keypair.fromSecretKey(new Uint8Array(secretKey)) : null;
 
-function Fallback({ error }: { error: Error }) {
-  return <div style={{ padding: "20px", color: "red" }}>Error: {error.message}</div>;
-}
-
-export default function MyApp({ Component, pageProps }: AppProps) {
-  const [mounted, setMounted] = useState(false);
+const App = ({ Component, pageProps }: AppProps) => {
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setIsClient(true); 
   }, []);
 
-  const network = clusterApiUrl("devnet");
-  const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    []
-  );
+  if (keypair) {
+    console.log("Public Key:", keypair.publicKey.toBase58());
+}
+
+  const wallets = useMemo(() => [
+    new SolflareWalletAdapter()
+  ], []); 
+
 
   const content = (
-    <ListingsProvider>
-      <ErrorBoundary FallbackComponent={Fallback}>
-        <ConnectionProvider endpoint={network}>
-          <WalletProviderDynamic wallets={wallets} autoConnect>
-            <WalletModalProviderDynamic>
+    <ErrorBoundary FallbackComponent={Fallback}>
+      <ConnectionProvider endpoint={endpoint}>
+        <WalletProvider wallets={wallets} autoConnect>
+          <WalletModalProvider>
+            <ListingsProvider>
               <Navbar />
               <UserHeader />
-              <Component {...pageProps} />
               <WalletNavbar />
+              <Component {...pageProps} />
               <Footer />
-            </WalletModalProviderDynamic>
-          </WalletProviderDynamic>
-        </ConnectionProvider>
-      </ErrorBoundary>
-    </ListingsProvider>
+            </ListingsProvider>
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    </ErrorBoundary>
   );
 
-  return <>{mounted ? content : <div style={{ minHeight: "100vh" }} />}</>;
-}
+  return isClient ? content : <div>Loading...</div>;
+};
+
+export default App;

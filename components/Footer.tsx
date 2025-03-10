@@ -10,7 +10,7 @@ export default function Footer() {
         {/* Branding Section */}
         <div className={styles.branding}>
           <p>Managed by</p>
-          <img src="/logo.svg" alt="Mercatus Logo" className={styles.logo} />
+          <img src=" " alt="Mercatus Logo" className={styles.logo} />
         </div>
 
         {/* Social Icons */}

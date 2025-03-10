@@ -1,9 +1,9 @@
-import { createContext, useState, ReactNode, useContext } from 'react';
-import { PublicKey, Connection, Transaction } from '@solana/web3.js';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { Program, AnchorProvider, web3 } from '@project-serum/anchor';
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import * as IDL from '../../luxury-marketplace/target/idl/luxury_marketplace.json';
+import { createContext, useState, ReactNode, useContext } from "react";
+import { PublicKey, Connection } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { Program, AnchorProvider, web3 } from "@project-serum/anchor";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import * as IDL from "../../luxury-marketplace/target/idl/luxury_marketplace.json"; // Adjust this path
 
 const PROGRAM_ID = new PublicKey("bVwtqr5iYzMPhiJWLsRFRre2QjjSjR6v7ksN2Z2ZzHY");
 
@@ -14,6 +14,7 @@ interface Listing {
   priceSol: number;
   serialNumber: string;
   owner: string;
+  image?: string;  // Make 'image' optional
 }
 
 interface ListingsContextType {
@@ -27,10 +28,12 @@ interface ListingsContextType {
 export const ListingsContext = createContext<ListingsContextType | undefined>(undefined);
 
 export const useListings = (): ListingsContextType => {
+
   const context = useContext(ListingsContext);
   if (!context) {
-    throw new Error('useListings must be used within a ListingsProvider');
+    throw new Error("useListings must be used within a ListingsProvider");
   }
+
   return context;
 };
 
@@ -47,10 +50,15 @@ export const ListingsProvider = ({ children }: ListingsProviderProps) => {
   const program = new Program(IDL as any, PROGRAM_ID, provider);
 
   const addListing = async (newListing: Listing) => {
-    if (!wallet.publicKey || !wallet.signTransaction) {
+
+    if (!wallet || !wallet.publicKey || !wallet.signTransaction) {
       alert("Please connect your wallet.");
       return;
     }
+
+    console.log("Wallet:", wallet);
+    console.log("Public Key:", wallet.publicKey?.toBase58());
+
 
     const priceLamports = parseFloat(newListing.priceSol.toString()) * 10 ** 9;
     const listingId = Date.now().toString(); // Temp ID

@@ -1,15 +1,4 @@
 /* AdminDashboard.module.css */
-
-:root {
-    --background: linear-gradient(180deg, #0d0d0d, #1a1a1a);
-    --foreground: #0d0d0d;
-    --primary: #ffffff;
-    --secondary: #a1a1a1;
-    --accent: #323232;
-    --border: #222222;
-    --glass: #0d0d0d5f;
-  }
-  
   .container {
     max-width: 1000px;
     margin: 0 auto;

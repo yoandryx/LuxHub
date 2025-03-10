@@ -61,20 +61,19 @@
   
   /* Removed custom styling for wallet buttons */
 
-.walletButton {
-  /* No custom styles applied here */
-  background-color: #2d3748; /* Default button background */
+/* .walletButton {
+  background-color: #2d3748;
   color: white;
   border: none;
   padding: 10px 20px;
   font-size: 1rem;
   cursor: pointer;
   border-radius: 5px;
-}
+} */
 
-.walletButton:hover {
-  background-color: #1a202c; /* Darker background on hover */
-}
+/* .walletButton:hover {
+  background-color: #1a202c;
+} */
 
   
   .createButton {
@@ -121,9 +120,9 @@
       align-items: center;
     }
   
-    .walletButton {
+    /* .walletButton {
       padding: 10px 15px;
-    }
+    } */
   
     .createButton {
       padding: 10px 15px;

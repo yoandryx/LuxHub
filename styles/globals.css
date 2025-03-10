@@ -48,8 +48,7 @@ button:focus {
   background-color: var(--accent);
 }
 
-/* Example overrides */
-.wallet-adapter-modal-wrapper {
+/* .wallet-adapter-modal-wrapper {
   background-color: var(--border);
 }
 
@@ -70,7 +69,6 @@ button:focus {
   padding: 5px;
   width: 100px;
   font-size:xx-small;
-  /* etc. */
 }
 
 .wallet-adapter-dropdown-list {
@@ -84,4 +82,4 @@ button:focus {
   align-content: center;
   flex-direction: column;
   left: 0px;
-}
+} */

@@ -65,7 +65,7 @@ export default function Listings() {
               <img src={listing.image} alt={listing.title} className={styles.image} />
               <h3 className={styles.title}>{listing.title}</h3>
               <h4 className={styles.description}>{listing.description}</h4>
-              <p className={styles.price}>${listing.price}</p>
+              <p className={styles.price}>${listing.priceSol}</p>
               <button onClick={() => handleBuyWithCard(listing)} className={styles.cardButton}>
                 Buy with Stripe
               </button>

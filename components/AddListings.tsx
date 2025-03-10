@@ -1,7 +1,6 @@
-// components/AddListing.tsx
-
 import { useState } from 'react';
 import { useListings } from '../context/src/ListingsContext';
+import { useWallet } from "@solana/wallet-adapter-react";
 
 const AddListing = () => {
   const [title, setTitle] = useState('');
@@ -9,18 +8,26 @@ const AddListing = () => {
   const [serialNumber, setSerialNumber] = useState('');
   const [description, setDescription] = useState('');
   const { addListing } = useListings();
+  
+
+  // const [image, setImage] = useState<string>('');
+  const wallet = useWallet();
+
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const newListing = {
-      id: '', // Will be auto-generated in the backend
+      id: '',  // Will be auto-generated in the backend
       title,
       description,
       priceSol,
       serialNumber,
-      owner: '', // This will be set later
+      owner: wallet.publicKey?.toBase58() || '',  // Use wallet address if connected
+      image: "https://via.placeholder.com/150"  // Default image placeholder
     };
+    
 
     addListing(newListing);
     setTitle('');

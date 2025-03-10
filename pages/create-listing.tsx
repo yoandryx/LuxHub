@@ -30,13 +30,13 @@ export default function CreateListing() {
         }
 
         // Call addListing with the new listing data
-        addListing({
-            title,
-            description,
-            price,
-            image,
-            category,
-        });
+        // addListing({
+        //     title,
+        //     description,
+        //     price,
+        //     image,
+        //     category,
+        // });
 
         // Clear form after submission
         setTitle("");
