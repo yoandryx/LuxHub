@@ -3,7 +3,7 @@ import { PublicKey, Connection } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Program, AnchorProvider, web3 } from "@project-serum/anchor";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import * as IDL from "../../../luxury-marketplace/target/idl/luxury_marketplace.json"; // Adjust this path
+import * as IDL from "../../../Solana-Anchor/target/idl/luxury_marketplace.json"; // Adjust this path
 
 const PROGRAM_ID = new PublicKey("bVwtqr5iYzMPhiJWLsRFRre2QjjSjR6v7ksN2Z2ZzHY");
 
