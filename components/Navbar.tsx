@@ -59,7 +59,7 @@ export default function Navbar() {
                 {menuOpen ? <FaTimes className={styles.icon} /> : <FaBars className={styles.icon} />}
                 <div className={`${styles.mobileNavLinks} ${menuOpen ? styles.open : ""}`}>
                   <Link href="/listings" onClick={closeMenu}>Listings</Link>
-                  <Link href="/create-listing" onClick={closeMenu}>Create</Link>
+                  <Link href="/createNFT" onClick={closeMenu}>Create</Link>
                   <Link href="/profile" onClick={closeMenu}>Profile</Link>
                 </div>
             </div>

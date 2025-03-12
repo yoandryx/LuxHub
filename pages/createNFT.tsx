@@ -18,7 +18,7 @@ export default function CreateListing() {
 
     useEffect(() => {
         if (!connected || !publicKey) {
-            router.push("/create-listing");
+            router.push("/createNFT");
         }
     }, [connected, publicKey]);
 
