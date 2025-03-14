@@ -1,11 +1,15 @@
 import { createContext, useState, ReactNode, useContext } from "react";
-import { PublicKey, Connection } from "@solana/web3.js";
+import { PublicKey, Connection, Transaction, VersionedTransaction } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Program, AnchorProvider, web3 } from "@project-serum/anchor";
+import { WalletMultiButton, WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import { Program, AnchorProvider, web3, Wallet as AnchorWallet } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import * as IDL from "../../../Solana-Anchor/target/idl/luxury_marketplace.json"; // Adjust this path
+import * as IDL from "../../../Solana-Anchor/target/idl/anchor_escrow.json"; // Adjust this path
 
-const PROGRAM_ID = new PublicKey("bVwtqr5iYzMPhiJWLsRFRre2QjjSjR6v7ksN2Z2ZzHY");
+// Deployed program ID from anchor deploy
+const PROGRAM_ID = new PublicKey("8667Wxa5U1LEviLgx8WedQPVH4PfnCfYGYYvHmeuZBUB");
+
+console.log("IDL loaded:", IDL);
 
 interface Listing {
   id: string;
@@ -14,7 +18,7 @@ interface Listing {
   priceSol: number;
   serialNumber: string;
   owner?: string;
-  image?: string;  // Make 'image' optional
+  image?: string;  // This will store the CID or complete URL for the NFT image
 }
 
 interface ListingsContextType {
@@ -28,12 +32,10 @@ interface ListingsContextType {
 export const ListingsContext = createContext<ListingsContextType | undefined>(undefined);
 
 export const useListings = (): ListingsContextType => {
-
   const context = useContext(ListingsContext);
   if (!context) {
     throw new Error("useListings must be used within a ListingsProvider");
   }
-
   return context;
 };
 
@@ -42,26 +44,37 @@ interface ListingsProviderProps {
 }
 
 export const ListingsProvider = ({ children }: ListingsProviderProps) => {
-  const wallet = useWallet();
+  const { connected, publicKey, signTransaction, signAllTransactions, sendTransaction, ...wallet } = useWallet();
   const [listings, setListings] = useState<Listing[]>([]);
-
   const connection = new Connection("https://api.devnet.solana.com", "confirmed");
-  const provider = new AnchorProvider(connection, wallet as any, {});
-  const program = new Program(IDL as any, PROGRAM_ID, provider);
+
+  // Only proceed if the wallet is connected
+  if (!connected || !publicKey || !signTransaction || !sendTransaction) {
+    return <div>Please connect your wallet to proceed.<WalletMultiButton/></div> ;
+  }
+
+  // Create an Anchor wallet object with a dummy payer (for browser wallet, this is not used)
+  const anchorWallet: AnchorWallet = {
+    publicKey,
+    signTransaction,
+    signAllTransactions: signAllTransactions
+      ? signAllTransactions
+      : async <T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> => txs,
+    payer: undefined as any,
+  };
+
+  const provider = new AnchorProvider(connection, anchorWallet, { commitment: "confirmed" });
+  const program = new Program(IDL, provider);
 
   const addListing = async (newListing: Listing) => {
-
-    if (!wallet || !wallet.publicKey || !wallet.signTransaction) {
+    if (!publicKey || !sendTransaction || !program) {
       alert("Please connect your wallet.");
       return;
     }
 
-    console.log("Wallet:", wallet);
-    console.log("Public Key:", wallet.publicKey?.toBase58());
-
-
+    console.log("Wallet:", publicKey.toBase58());
     const priceLamports = parseFloat(newListing.priceSol.toString()) * 10 ** 9;
-    const listingId = Date.now().toString(); // Temp ID
+    const listingId = Date.now().toString(); // Temporary ID
 
     const mintKeypair = web3.Keypair.generate();
     const [metadataPDA] = await PublicKey.findProgramAddress(
@@ -70,14 +83,19 @@ export const ListingsProvider = ({ children }: ListingsProviderProps) => {
         new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s").toBuffer(),
         mintKeypair.publicKey.toBuffer(),
       ],
-      new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s") // Metaplex program ID
+      new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
     );
 
+    const imageUrl = newListing.image
+      ? `https://orange-petite-wolf-341.mypinata.cloud/ipfs/${newListing.image}`
+      : "https://arweave.net/abc123";
+
+    // Use sendTransaction instead of signTransaction to get a string signature.
     const mintTx = await program.methods
-      .mintNft(newListing.serialNumber || "N/A", newListing.title, "https://arweave.net/abc123")
+      .mintNft(newListing.serialNumber || "N/A", newListing.title, imageUrl)
       .accounts({
         mint: mintKeypair.publicKey,
-        seller: wallet.publicKey,
+        seller: publicKey,
         metadata: metadataPDA,
         tokenProgram: TOKEN_PROGRAM_ID,
         metadataProgram: new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"),
@@ -87,11 +105,11 @@ export const ListingsProvider = ({ children }: ListingsProviderProps) => {
       .signers([mintKeypair])
       .transaction();
 
-    const signature = await wallet.sendTransaction(mintTx, connection);
+    const signature = await sendTransaction(mintTx, connection);
     await connection.confirmTransaction(signature);
 
     const [escrowPDA] = await PublicKey.findProgramAddress(
-      [Buffer.from("escrow"), wallet.publicKey.toBuffer(), Buffer.from(listingId)],
+      [Buffer.from("escrow"), publicKey.toBuffer(), Buffer.from(listingId)],
       PROGRAM_ID
     );
 
@@ -99,28 +117,27 @@ export const ListingsProvider = ({ children }: ListingsProviderProps) => {
       .createEscrow(listingId, priceLamports)
       .accounts({
         escrow: escrowPDA,
-        seller: wallet.publicKey,
+        seller: publicKey,
         systemProgram: web3.SystemProgram.programId,
       })
       .transaction();
 
-    const escrowSig = await wallet.sendTransaction(escrowTx, connection);
+    const escrowSig = await sendTransaction(escrowTx, connection);
     await connection.confirmTransaction(escrowSig);
 
     setListings((prev) => [
       ...prev,
-      { ...newListing, id: listingId, priceSol: newListing.priceSol, owner: wallet.publicKey!.toBase58() },
+      { ...newListing, id: listingId, priceSol: newListing.priceSol, owner: publicKey.toBase58() },
     ]);
   };
 
   const commitToBuy = async (listingId: string) => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       alert("Please connect your wallet.");
       return;
     }
-
     const [escrowPDA] = await PublicKey.findProgramAddress(
-      [Buffer.from("escrow"), wallet.publicKey.toBuffer(), Buffer.from(listingId)],
+      [Buffer.from("escrow"), publicKey.toBuffer(), Buffer.from(listingId)],
       PROGRAM_ID
     );
 
@@ -128,23 +145,22 @@ export const ListingsProvider = ({ children }: ListingsProviderProps) => {
       .commitToBuy()
       .accounts({
         escrow: escrowPDA,
-        buyer: wallet.publicKey,
+        buyer: publicKey,
         systemProgram: web3.SystemProgram.programId,
       })
       .transaction();
 
-    const signature = await wallet.sendTransaction(tx, connection);
+    const signature = await sendTransaction(tx, connection);
     await connection.confirmTransaction(signature);
   };
 
   const settleEscrow = async (listingId: string) => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       alert("Please connect your wallet.");
       return;
     }
-
     const [escrowPDA] = await PublicKey.findProgramAddress(
-      [Buffer.from("escrow"), wallet.publicKey!.toBuffer(), Buffer.from(listingId)],
+      [Buffer.from("escrow"), publicKey.toBuffer(), Buffer.from(listingId)],
       PROGRAM_ID
     );
 
@@ -152,12 +168,12 @@ export const ListingsProvider = ({ children }: ListingsProviderProps) => {
       .settleEscrow()
       .accounts({
         escrow: escrowPDA,
-        seller: wallet.publicKey,
-        buyer: wallet.publicKey!, // Replace with buyer's public key in a real case
+        seller: publicKey,
+        buyer: publicKey, // Replace with buyer's public key if needed
       })
       .transaction();
 
-    const signature = await wallet.sendTransaction(tx, connection);
+    const signature = await sendTransaction(tx, connection);
     await connection.confirmTransaction(signature);
   };
 

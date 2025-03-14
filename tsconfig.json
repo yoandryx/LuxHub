@@ -21,7 +21,8 @@
       "node",
       "react",
       "react-dom",
-      "jest"
+      "jest",
+      "mocha"
     ],
     "forceConsistentCasingInFileNames": true
   },

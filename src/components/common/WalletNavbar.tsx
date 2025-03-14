@@ -6,6 +6,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { SiSolana } from "react-icons/si";
 import { IoFingerPrint } from "react-icons/io5";
 import { Connection, Keypair } from "@solana/web3.js";
+import WalletComponent from "./WalletConnect";
 
 const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? "https://api.devnet.solana.com";  // Default to Devnet
 const secretKey = process.env.DEVNET_KEYPAIR ? JSON.parse(process.env.DEVNET_KEYPAIR) : [];  // Default to empty array
@@ -70,6 +71,7 @@ export default function WalletNavbar() {
         <div className={styles.walletContainer}>
           <WalletModalProvider>
             <WalletMultiButton />
+            {/* <WalletComponent /> */}
           </WalletModalProvider>
         </div>
 
