@@ -1,6 +1,6 @@
 import { AppProps } from "next/app";
 import React, { useEffect, useState, useMemo } from "react";
-import { ListingsProvider } from "../context/src/ListingsContext"; 
+import { EscrowProvider } from "../context/src/EscrowContext"; 
 import Navbar from "../components/common/Navbar";
 import UserHeader from "../components/user/UserHeader";
 import Footer from "../components/common/Footer";
@@ -36,20 +36,20 @@ const App = ({ Component, pageProps }: AppProps) => {
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
-            <ListingsProvider>
+            <EscrowProvider>
               <Navbar />
               <UserHeader />
               <WalletNavbar />
               <Component {...pageProps} />
               <Footer />
-            </ListingsProvider>
+            </EscrowProvider>
           </WalletModalProvider>
         </WalletProvider>
       </ConnectionProvider>
     </ErrorBoundary>
   );
 
-  return isClient ? content : <div>Loading...</div>;
+  return isClient ? content : <div className="text-center mt-10">Loading application...</div>;
 };
 
 export default App;
