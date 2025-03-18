@@ -1,89 +1,121 @@
-import { useState, useEffect } from "react";
-import { useListings } from "../context/src/EscrowContext";
+import { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { getProgram } from "../utils/programUtils";
+import { PublicKey, SystemProgram, Keypair, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
+
+// List of authorized wallets (dev and admin)
+const AUTHORIZED_WALLETS = [
+  "DjdHMCKioQ2NukbJVKupNgnt9pHvS1CLEii2NSPY8jyd", // Dev Account
+  "6mst5P2CaiiAoQh426oxadGuksQgkHoUdQAWdeMQWE8X", // Admin
+];
 
 const CreateNFT = () => {
-  // Form state for creating a new NFT listing
+  const wallet = useWallet();
   const [fileCid, setFileCid] = useState<string>("");
   const [priceSol, setPriceSol] = useState<number>(0);
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [minting, setMinting] = useState<boolean>(false);
 
-  // State to hold NFTs fetched from your API route (pinned NFTs from Pinata)
-  const [nfts, setNfts] = useState<any[]>([]);
+  // Check if the connected wallet is authorized to mint NFTs
+  const isAuthorized = wallet.publicKey
+    ? AUTHORIZED_WALLETS.includes(wallet.publicKey.toBase58())
+    : false;
 
-  // Get the escrow functions from your listings context
-  const { addListing, commitToBuy, settleEscrow } = useListings();
-
-  // Fetch NFTs from your API route on component mount
-  useEffect(() => {
-    const fetchNFTs = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/api/pinata/nfts");
-        if (!res.ok) {
-          throw new Error("Failed to fetch NFTs");
-        }
-        const data = await res.json();
-        // Data should be an array of NFT objects from Pinata.
-        setNfts(data);
-      } catch (error) {
-        console.error("Error fetching NFTs:", error);
-      }
-    };
-
-    fetchNFTs();
-  }, []);
-
-  // Form handlers for new NFT listing
+  // Handler for input changes
   const handleFileCidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFileCid(e.target.value);
   };
-
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPriceSol(parseFloat(e.target.value));
   };
-
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
   };
-
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDescription(e.target.value);
   };
 
-  // Submit the new NFT listing to your smart contract via your listings context
-  const handleSubmit = async () => {
+  // Mint NFT using on-chain mint_nft instruction
+  const mintNFT = async () => {
+    if (!wallet.publicKey) {
+      alert("Please connect your wallet.");
+      return;
+    }
+    if (!isAuthorized) {
+      alert("You are not authorized to mint NFTs.");
+      return;
+    }
     if (!fileCid) {
       alert("Please provide a valid CID.");
       return;
     }
-
-    const newListing = {
-      id: Date.now().toString(),
-      title,
-      description,
-      priceSol,
-      serialNumber: "NFT_SERIAL_NUMBER", // Replace or generate a unique serial if needed
-      // This line constructs the image URL using your IPFS gateway and the provided CID.
-      image: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${fileCid}`,
-    };
-
-    console.log("Creating listing with image URL:", `${process.env.NEXT_PUBLIC_GATEWAY_URL}${fileCid}`);
-    // Call your Anchor program function via context
-    await addListing(newListing);
-    // Optionally, refresh the NFT list here if needed.
-  };
-
-  // This function handles the purchase flow by committing to buy and settling escrow.
-  const handleExchange = async (listingId: string) => {
+  
+    setMinting(true);
+  
     try {
-      await commitToBuy(listingId);
-      await settleEscrow(listingId);
-      alert("Purchase successful! NFT exchanged and funds released.");
+      const program = getProgram(wallet);
+
+      console.log("✅ Using programId:", program.programId.toString());
+      console.log("✅ Available accounts in program:", program.account);
+
+  
+      // Dynamically derive the Admin List PDA
+      const [adminListPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("admin_list")],
+        program.programId
+      );
+  
+      // Check if adminList PDA exists
+      const adminListAccount = await program.account.adminList.fetchNullable(adminListPda);
+      
+      if (!adminListAccount) {
+        console.log("Admin list does not exist. Initializing...");
+        await program.methods.initAdminList().accounts({
+          adminList: adminListPda,
+          payer: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        }).rpc();
+        console.log("Admin list initialized.");
+      } else {
+        console.log("Admin list already exists.");
+      }
+  
+      // Generate a new mint keypair for the NFT
+      const mintKeypair = Keypair.generate();
+  
+      // Derive the associated token account address for the recipient
+      const recipientAta = await getAssociatedTokenAddress(
+        mintKeypair.publicKey,
+        wallet.publicKey
+      );
+  
+      // Call the smart contract's mint_nft instruction.
+      const tx = await program.methods.mintNft().accounts({
+        adminList: adminListPda,
+        admin: wallet.publicKey,
+        recipient: wallet.publicKey,
+        nftMint: mintKeypair.publicKey,
+        recipientTokenAccount: recipientAta,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers([mintKeypair])
+      .rpc();
+  
+      console.log("NFT minted successfully, tx:", tx);
+      alert("NFT minted successfully!");
     } catch (error) {
-      console.error("Exchange failed:", error);
-      alert("Transaction failed. Funds returned or escrow canceled.");
+      console.error("Minting error:", error);
+      alert("Minting failed.");
+    } finally {
+      setMinting(false);
     }
   };
+  
 
   return (
     <div>
@@ -91,7 +123,7 @@ const CreateNFT = () => {
       <div style={{ marginBottom: "2rem" }}>
         <input
           type="text"
-          placeholder="Enter CID (e.g., Qm... )"
+          placeholder="Enter CID (e.g., Qm...)"
           value={fileCid}
           onChange={handleFileCidChange}
         />
@@ -113,10 +145,18 @@ const CreateNFT = () => {
           value={priceSol}
           onChange={handlePriceChange}
         />
-        <button onClick={handleSubmit}>Create Listing</button>
+        {isAuthorized ? (
+          <button onClick={mintNFT} disabled={minting}>
+            {minting ? "Minting..." : "Mint NFT"}
+          </button>
+        ) : (
+          <p className="text-red-500">
+            You are not authorized to mint NFTs.
+          </p>
+        )}
       </div>
 
-      {/* Preview for new NFT */}
+      {/* NFT Preview */}
       {fileCid && (
         <div>
           <h2>NFT Preview</h2>
@@ -128,26 +168,9 @@ const CreateNFT = () => {
         </div>
       )}
 
+      {/* Optionally display existing NFTs from Pinata */}
       <h2>Existing NFTs on IPFS</h2>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
-        {nfts.length > 0 ? (
-          nfts.map((nft) => (
-            <div key={nft.ipfs_pin_hash} style={{ border: "1px solid #ccc", padding: "10px" }}>
-              <img
-                src={`${process.env.NEXT_PUBLIC_GATEWAY_URL}${nft.ipfs_pin_hash}`}
-                alt={nft.metadata?.name || "NFT"}
-                style={{ maxWidth: "200px" }}
-              />
-              <h3>{nft.metadata?.name || "Untitled NFT"}</h3>
-              <p>{nft.metadata?.keyvalues?.description || "No description"}</p>
-              {/* Add a Buy NFT button which triggers the escrow purchase flow */}
-              <button onClick={() => handleExchange(nft.id)}>Buy NFT</button>
-            </div>
-          ))
-        ) : (
-          <p>No NFTs found.</p>
-        )}
-      </div>
+      {/* ... your existing code to display NFTs ... */}
     </div>
   );
 };

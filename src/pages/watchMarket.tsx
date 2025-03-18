@@ -35,22 +35,27 @@ export default function EscrowMarketplace() {
   return (
     <div>
       <h1 className="text-2xl font-bold">LuxHub Watch Marketplace</h1>
-      {listings.map((listing) => (
-        <div key={listing.pubkey}>
-          <p>NFT Mint: {listing.nftMint}</p>
-          <p>Price: {listing.price} SOL</p>
-          <p>Status: {listing.status}</p>
-          <button 
-            onClick={() => handleBuy(listing)} 
-            disabled={!wallet.publicKey}
-            className={`px-4 py-2 rounded ${
-              !wallet.publicKey ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-700"
-            }`}
-          >
-            Buy NFT
-          </button>
-        </div>
-      ))}
+      {listings.length > 0 ? (
+        listings.map((listing) => (
+          <div key={listing.pubkey}>
+            <p>NFT Mint: {listing.nftMint}</p>
+            <p>Price: {listing.price} SOL</p>
+            <p>Status: {listing.status}</p>
+            <button 
+              onClick={() => handleBuy(listing)} 
+              disabled={!wallet.publicKey}
+              className={`px-4 py-2 rounded ${
+                !wallet.publicKey ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-700"
+              }`}
+            >
+              Buy NFT
+            </button>
+          </div>
+        ))
+      ) : (
+        <p className="text-gray-500">No admin-minted NFTs available.</p> // ✅ Shows message if no NFTs are found
+      )}
+
     </div>
   );
 }

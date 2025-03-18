@@ -23,9 +23,8 @@ export const EscrowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   if (!wallet.publicKey) return [];
   try {
     const program = getProgram(wallet);
-    const escrowAccounts = await program.provider.connection.getProgramAccounts(
-      program.programId
-    );
+    const escrowAccounts = await program.account.escrow.all();
+
 
     const parsedListings: Listing[] = escrowAccounts.map((account) => {
       const data = program.coder.accounts.decode("Escrow", account.account.data);
