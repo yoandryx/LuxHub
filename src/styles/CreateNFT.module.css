@@ -1,150 +1,232 @@
-/* Root container */
-.container {
-    min-height: 100vh;
+/* styles/CreateNFT.module.css */
+
+/* 
+   Page layout:
+   - A green-blue gradient background
+   - A fixed sidebar on the left (no internal scroll)
+   - Main content on the right for preview + minted NFTs 
+*/
+.pageContainer {
+    display: flex;
+    height: 100vh;
+    overflow: hidden; /* Hides any overflow from main container */
+    font-family: "Helvetica Neue", sans-serif;
+    /* Green -> Blue gradient */
+    background: linear-gradient(135deg, #002a3c 0%, #000000 50%, #17003e 100%);
+    color: #ffffff;
+  }
+  
+  /* Sidebar: fixed width, semi-transparent, blurred background */
+  .sidebar {
+    width: 360px;
+    min-width: 320px;
+    background: rgba(15, 15, 30, 0.7); /* semi-transparent dark */
+    backdrop-filter: blur(12px);       /* blur effect */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.6);
+    border-right: 2px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Vertically center */
-    align-items: center;     /* Horizontally center */
-    padding: 20px;
-    color: var(--primary);
-}
-
-.addListing .container {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Vertically center */
-    align-items: center;     /* Horizontally center */
-    padding: 20px;
-    color: var(--primary);
-}
-
-/* Heading */
-.addListing h2 {
-    color: var(--primary);
-    font-size: 2rem;
+    align-items: center;
+    justify-content: center; /* Center contents vertically */
+  }
+  
+  /* Sidebar heading */
+  .heading {
+    margin-top: 0;
     margin-bottom: 20px;
+    font-size: 1.6rem;
     text-align: center;
-}
-
-/* Form container */
-.addListing {
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    width: 100%;
-    max-width: 500px;
+    color: #ffffff; /* A minty green accent for the heading */
+  }
+  
+  /* Form inputs and button inside the sidebar */
+  .sidebar input,
+  .sidebar button {
+    width: 300px;
+    height: auto;
+    margin-bottom: 5px;
+    padding: 10x;
+    border-radius: px;
+    border: 1px solid #333;
+    background: rgba(40, 40, 60, 0.6);
+    color: #eee;
+    font-size: 1rem;
+    transition: border 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  }
+  
+  .sidebar input::placeholder {
+    color: #bbb;
+  }
+  
+  .sidebar input:focus {
+    outline: none;
+    border-color: #00c2cc; /* a teal accent on focus */
+    box-shadow: 0 0 6px #00c2cc66;
+    background: rgba(50, 50, 70, 0.6);
+  }
+  
+  .sidebar button {
+    background: #00becc; /* teal accent for button */
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 5px #00f2ff1d;
+    margin-top: 10px;
+  }
+  
+  .sidebar button:hover {
+    background: #00e5ff;
+    box-shadow: 0 0 8px #00f2ff66;
+  }
+  
+  /* Main content area: preview + minted NFTs */
+  .mainContent {
+    flex: 1;
+    overflow-y: auto; /* Main content can scroll if needed */
+    padding: 100px 30px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-}
-
-/* Input Fields */
-.addListing input,
-.addListing textarea {
-    padding: 12px;
-    border: 1px solid var(--border);
+  }
+  
+  /* NFT Preview box */
+  .previewSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 300px;
+    background: rgba(24, 22, 22, 0.387);
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 20px;
+    color: #eee;
+  }
+  
+  .previewSection h2 {
+    margin-top: 0;
+    color: #ffffff; /* same accent as heading or a variant */
+  }
+  
+  .previewSection img {
+    width: auto;
+    height: 300px;
     border-radius: 8px;
-    background: var(--forground);
-    color: var(--primary);
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.addListing input:focus,
-.addListing textarea:focus {
-    border-color: var(--accent);
-    background: var(--glass);
-    outline: none;
-}
-
-/* Textarea styling */
-.addListing textarea {
-    resize: vertical;
-    min-height: 120px;
-}
-
-/* Button */
-.addListing button {
-    background: var(--border);
-    color: var(--primary);
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    font-size: 1rem;
-    margin-top: 20px;
-}
-
-.addListing button:hover {
-    background: var(--accent);
-}
-
-/* Restricted access message */
-.addListing .restricted {
-    color: var(--secondary);
+    margin-bottom: 10px;
+  }
+  
+  /* Minted NFTs section */
+  .mintedSection h2 {
+    margin-top: 0;
+    color: #c1ffe4;
+  }
+  
+  /* Responsive grid for minted NFTs */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  
+  .nftCard {
+    background: rgba(24, 22, 22, 0.387);
+    border-radius: 5px;
+    padding: 0px;
     text-align: center;
-    font-size: 1.2rem;
-}
-
-/* Style for the input file (image selection) */
-.addListing input[type="file"] {
-    padding: 12px;
-    border: 1px solid var(--border);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: transform 0.2s ease;
+  }
+  
+  .nftCard:hover {
+    transform: scale(1.02);
+  }
+  
+  .nftCard img {
+    width: auto;
+    height: 300px;
     border-radius: 8px;
-    background: var(--forground);
-    color: var(--primary);
+    margin-bottom: 10px;
+  }
+  
+  /* Overlay for NFT detail card (if you use detailOverlay) */
+  .detailOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 15, 30, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+  
+  .detailContainer {
+    background: rgba(25, 25, 40, 0.9);
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 600px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.7);
+  }
+  
+  .closeButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #00ccb1;
+    color: #111;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
     cursor: pointer;
-}
-
-/* Option selection */
-.addListing select {
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--forground);
-    color: var(--primary);
-    font-size: 1rem;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .addListing {
-        width: 90%;
-        padding: 20px;
+    font-weight: bold;
+  }
+  
+  .closeButton:hover {
+    background: #00b4a0;
+  }
+  
+  /* Media Queries for Responsiveness */
+  @media (max-width: 1024px) {
+    .sidebar {
+      width: 300px;
     }
-
-    /* Heading size on small screens */
-    .addListing h2 {
-        font-size: 1.5rem;
-        margin-bottom: 15px;
+  }
+  
+  @media (max-width: 768px) {
+    /* Switch to column layout if desired */
+    .pageContainer {
+      flex-direction: column;
     }
-
-    /* Input fields and buttons scale */
-    .addListing input,
-    .addListing textarea,
-    .addListing button,
-    .addListing select {
-        font-size: 0.9rem;
-        padding: 10px;
+    .sidebar {
+      width: 100%;
+      border-right: none;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     }
-}
-
-/* Extra small devices (portrait phones, etc.) */
-@media (max-width: 480px) {
-    /* Further reduce padding for smaller screens */
-    .addListing {
-        width: 95%;
-        padding: 15px;
+    .mainContent {
+      padding: 20px;
     }
-
-    /* Increase form font sizes */
-    .addListing input,
-    .addListing textarea,
-    .addListing button,
-    .addListing select {
-        font-size: 0.9rem;
-        padding: 8px;
+  }
+  
+  @media (max-width: 480px) {
+    .sidebar input,
+    .sidebar button {
+      font-size: 0.9rem;
+      padding: 2px;
     }
-}
+    .mainContent {
+      padding: 15px;
+    }
+    .grid {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+  }
+  
