@@ -14,7 +14,6 @@ import { AppProps } from "next/app";
 import React, { useEffect, useState, useMemo } from "react";
 import { EscrowProvider } from "../context/src/EscrowContext"; 
 import Navbar from "../components/common/Navbar";
-import UserHeader from "../components/user/UserHeader";
 import Footer from "../components/common/Footer";
 import WalletNavbar from "../components/common/WalletNavbar";
 import { ErrorBoundary } from "react-error-boundary";
@@ -50,7 +49,6 @@ const App = ({ Component, pageProps }: AppProps) => {
           <WalletModalProvider>
             <EscrowProvider>
               <Navbar />
-              <UserHeader />
               <WalletNavbar />
               <Component {...pageProps} />
               <Footer />

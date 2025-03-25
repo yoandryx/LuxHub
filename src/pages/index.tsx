@@ -11,14 +11,15 @@ export default function Home() {
       <div className={styles.container}>
         <section className={styles.hero}>
           <div className={styles.heroContent}>
+
             {/* Main header*/}
             <h1 className={styles.title}>
-              LuxHub <br /> The Decentralized Marketplace for Luxury Goods
+              LuxHub <br />
             </h1>
 
             {/* Main Subtitle */}
             <p className={styles.subtitle}>
-              Buy and Sell Luxury Timee Pieces with Crypto. Built on <span>Solana</span> using <span>Next.js </span>& Wallet Adapter.
+              Trade Luxury Timepieces for Crypto built on-chain with <span>Solana</span>
             </p>
 
             {/* Grouping Three.js Scene and Buttons */}

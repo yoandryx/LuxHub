@@ -19,36 +19,18 @@ body {
   min-height: 100vh;
 }
 
+html {
+  background-color: var(--accent);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--accent);
+}
+
 a {
   color: var(--primary);
   text-decoration: none;
 }
 
-button {
-  background-color: var(--glass);
-  color: var(--primary);
-  display: inherit;
-  justify-content: center;
-  align-content: center;
-  align-items: center;
-  border: 1px;
-  border-style:solid;
-  border-color: var(--border);
-  border-radius: 5px;
-  padding: 5px;
-  box-shadow: 0px 2px 10px #1b1b1bdb;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: var(--border);
-}
-
-button:focus {
-  background-color: var(--accent);
-}
-
-/* .wallet-adapter-modal-wrapper {
+.wallet-adapter-modal-wrapper {
   background-color: var(--border);
 }
 
@@ -82,4 +64,4 @@ button:focus {
   align-content: center;
   flex-direction: column;
   left: 0px;
-} */
+}

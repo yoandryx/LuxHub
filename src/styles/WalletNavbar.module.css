@@ -11,14 +11,18 @@
     position: fixed;
     align-items: center;
     justify-content: center;
-    bottom:20px;
+    bottom:0px;
     z-index: 1000;
-    height: 55px;
-    width: 90%;
+    height: 25px;
+    width: 100%;
+    padding: 10px;
+    border-top: 1px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--accent);
 
     background: #43434352;
     backdrop-filter: blur(25px);
-    border-radius: 30px;
 }
 
 .walletNavbar.open {
