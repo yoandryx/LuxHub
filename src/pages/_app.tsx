@@ -1,6 +1,6 @@
-//
-//
-//
+
+
+
 // Polyfill for global crypto and nodeCrypto (needed by noble-ed25519 used in Metaplex)
 if (typeof (globalThis as any).crypto === 'undefined') {
   (globalThis as any).crypto = window.crypto;
@@ -9,8 +9,8 @@ if (typeof (globalThis as any).nodeCrypto === 'undefined') {
   (globalThis as any).nodeCrypto = (globalThis as any).crypto;
 }
 
-
 import { AppProps } from "next/app";
+import Head from "next/head";
 import React, { useEffect, useState, useMemo } from "react";
 import { EscrowProvider } from "../context/src/EscrowContext"; 
 import Navbar from "../components/common/Navbar";
@@ -44,6 +44,12 @@ const App = ({ Component, pageProps }: AppProps) => {
 
   const content = (
     <ErrorBoundary FallbackComponent={Fallback}>
+      <Head>
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700,800&display=swap"
+          rel="stylesheet"
+        />
+      </Head>
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
@@ -64,6 +70,5 @@ const App = ({ Component, pageProps }: AppProps) => {
 
 export default App;
 
-//
-//
-//
+
+

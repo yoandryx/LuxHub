@@ -45,9 +45,22 @@ export default function Navbar() {
         <nav className={`${styles.navbar} ${menuOpen ? styles.open : ""}`}>
 
           <div className={styles.leftSection}>
+
             <Link href="/">
-              <FaAtom className={styles.logo} />
+              <img src="/images/purpleLGG.png" alt="logo" className={styles.nwlogo} />
             </Link>
+            <Link href="/">
+              <div className={styles.title}>
+                  LUXHUB.FUN
+              </div>
+            </Link>
+            
+          </div>
+
+          <div className={styles.links}>
+            <Link href="/watchMarket" onClick={closeMenu}>Inventory</Link>
+            <Link href="/createNFT" onClick={closeMenu}>Mint NFT</Link>
+            <Link href="/profile" onClick={closeMenu}>Wallet</Link>
           </div>
 
           <div className={styles.rightSection}>
@@ -65,12 +78,6 @@ export default function Navbar() {
             </button>
           </div>
 
-          <div className={styles.links}>
-            <Link href="/listings" onClick={closeMenu}>Listings</Link>
-            <Link href="/createNFT" onClick={closeMenu}>Create</Link>
-            <Link href="/profile" onClick={closeMenu}>Profile</Link>
-          </div>
-
         </nav>
       </div>
 
@@ -83,13 +90,16 @@ export default function Navbar() {
             <div className={styles.mobileLeftSection}>
               <div className={styles.logo}>
                 <Link href="/">
-                  <FaAtom className={styles.logo} />
+                  {/* <FaAtom className={styles.logo} /> */}
+                  <img src="/images/purpleLGG.png" alt="logo" className={styles.nwlogo} />
                 </Link>
               </div>
 
-              <div>
-                LuxHub
-              </div>
+              <Link href="/">
+                <div className={styles.title}>
+                  LUXHUB.FUN
+                </div>
+              </Link>
             </div>
 
             {/* Navbar Right Section */}
@@ -129,7 +139,7 @@ export default function Navbar() {
       {/* Mobile Menu */}
       <div className={`${styles.menuContainer} ${menuOpen ? styles.open : ""}`}>
         <div className={`${styles.mobileNavLinks} ${menuOpen ? styles.open : ""}`}>
-          <Link href="/watchMarketplace" className={styles.marketplaceBtn} onClick={closeMenu}>Watch Collection</Link>
+          <Link href="/watchMarket" className={styles.marketplaceBtn} onClick={closeMenu}>Watch Collection</Link>
           <Link href="/createNFT" onClick={closeMenu}>Mint NFT</Link>
           <Link href="/createNFT" onClick={closeMenu}>Learn More</Link>
           <Link href="/requestListing" onClick={closeMenu}>Create Listing</Link>

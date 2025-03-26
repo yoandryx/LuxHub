@@ -10,6 +10,15 @@
     background: linear-gradient(180deg, #0d0d0d, #1a1a1a);
     color: white;
     text-align: center;
+    padding: 100px 0;
+  }
+
+  .logo {
+    width: 100%;
+    max-width: 200px;
+    position: absolute;
+    top: 140px;
+    left: 25%;
   }
   
   /* Hero Section */
@@ -32,10 +41,11 @@
     font-size: 2.5rem;
     font-size: 48px;
     font-weight: bold;
-    background-image: linear-gradient(100.51deg,#f087ff 30%,#ae6bff 60%,rgba(110, 31, 206, 0.819) 113.78%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    z-index: 1;
+    /* background-image: linear-gradient(100.51deg,#f087ff 30%,#ae6bff 60%,rgba(110, 31, 206, 0.819) 113.78%); */
+    /* background-clip: text; */
+    /* -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; */
   }
   
   .title span {

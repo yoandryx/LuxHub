@@ -10,7 +10,7 @@
     display: flex;
     height: 100vh;
     overflow: hidden; /* Hides any overflow from main container */
-    font-family: "Helvetica Neue", sans-serif;
+    font-family: 'Clash Display', sans-serif;
     /* Green -> Blue gradient */
     background: linear-gradient(135deg, #002a3c 0%, #000000 50%, #17003e 100%);
     color: #ffffff;
@@ -128,11 +128,13 @@
   /* Responsive grid for minted NFTs */
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 20px;
   }
   
   .nftCard {
+    width: 150px;
+    height: 300px;
     background: rgba(24, 22, 22, 0.387);
     border-radius: 5px;
     padding: 0px;
@@ -144,12 +146,12 @@
   }
   
   .nftCard:hover {
-    transform: scale(1.02);
+    transform: translateY(-2px);
   }
   
   .nftCard img {
     width: auto;
-    height: 300px;
+    height: 150px;
     border-radius: 8px;
     margin-bottom: 10px;
   }
@@ -172,8 +174,9 @@
     background: rgba(25, 25, 40, 0.9);
     padding: 30px;
     border-radius: 10px;
-    max-width: 600px;
-    width: 90%;
+    max-width: 300px;
+    width: 100%;
+    height: 500px;
     position: relative;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.7);
   }

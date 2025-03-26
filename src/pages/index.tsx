@@ -14,8 +14,10 @@ export default function Home() {
 
             {/* Main header*/}
             <h1 className={styles.title}>
-              LuxHub <br />
+              LUXHUB <br />
             </h1>
+
+            <img src="/images/purpleLGG.png" alt="" className={styles.logo} />
 
             {/* Main Subtitle */}
             <p className={styles.subtitle}>
