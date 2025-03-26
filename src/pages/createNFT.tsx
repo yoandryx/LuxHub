@@ -1,4 +1,3 @@
-// pages/CreateNFT.tsx
 import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { getProgram } from "../utils/programUtils";
@@ -58,11 +57,18 @@ const CreateNFT = () => {
   const [country, setCountry] = useState<string>("Switzerland");
   const [releaseDate, setReleaseDate] = useState<string>("2023-05-01");
 
+  // Minting state and progress bar
   const [minting, setMinting] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
+  const [statusMessage, setStatusMessage] = useState<string>("");
+
+  // For showing minted NFTs
   const [mintedNFTs, setMintedNFTs] = useState<MintedNFT[]>([]);
   const [selectedMetadataUri, setSelectedMetadataUri] = useState<string | null>(null);
 
-  // Fetch existing NFTs from your API & IPFS.
+  // -----------------------------
+  // 1. Fetch existing NFTs on load
+  // -----------------------------
   useEffect(() => {
     const fetchExistingNFTs = async () => {
       try {
@@ -80,7 +86,9 @@ const CreateNFT = () => {
               const ipfsRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`);
               const contentType = ipfsRes.headers.get("Content-Type");
               if (!contentType || !contentType.includes("application/json")) {
-                console.warn(`Skipping pin ${ipfsHash} due to non-JSON content type: ${contentType}`);
+                console.warn(
+                  `Skipping pin ${ipfsHash} due to non-JSON content type: ${contentType}`
+                );
                 return null as any;
               }
               const jsonData = await ipfsRes.json();
@@ -107,6 +115,9 @@ const CreateNFT = () => {
     fetchExistingNFTs();
   }, []);
 
+  // -----------------------------
+  // 2. Mint NFT function
+  // -----------------------------
   const mintNFT = async () => {
     if (!wallet.publicKey) {
       alert("Please connect your wallet.");
@@ -118,24 +129,30 @@ const CreateNFT = () => {
     }
 
     setMinting(true);
+    setProgress(0);
+    setStatusMessage("Starting NFT mint process...");
+
     try {
-      console.log("⌛ Starting NFT mint process...");
-      // 1. Get your on-chain program.
+      // 1. Get on-chain program
       const program = getProgram(wallet);
       console.log("✅ Using programId:", program.programId.toBase58());
+      setProgress(10);
+      setStatusMessage("Program loaded. Deriving admin list PDA...");
 
-      // 2. Derive the admin list PDA.
+      // 2. Derive the admin list PDA
       const [adminListPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("admin_list")],
         program.programId
       );
-      console.log("✅ Available adminListPda:", adminListPda.toBase58());
+      console.log("✅ adminListPda:", adminListPda.toBase58());
 
-      // 3. Generate a new mint keypair.
+      // 3. Generate a new mint keypair
       const mintKeypair = Keypair.generate();
       console.log("🔑 New Mint Keypair:", mintKeypair.publicKey.toBase58());
+      setProgress(20);
+      setStatusMessage("Generated new mint keypair...");
 
-      // 4. Derive the associated token account for the NFT.
+      // 4. Derive associated token account (ATA) for recipient
       const recipientAta = await getAssociatedTokenAddress(
         mintKeypair.publicKey,
         wallet.publicKey,
@@ -143,8 +160,11 @@ const CreateNFT = () => {
         TOKEN_PROGRAM_ID
       );
       console.log("✅ Recipient ATA:", recipientAta.toBase58());
+      setProgress(30);
+      setStatusMessage("Created recipient ATA...");
 
-      // 5. Create NFT metadata JSON and upload it to Pinata.
+      // 5. Create NFT metadata JSON, upload to Pinata
+      setStatusMessage("Uploading metadata to Pinata...");
       const metadataJson = createMetadata(
         title,
         description,
@@ -169,8 +189,10 @@ const CreateNFT = () => {
       console.log("📝 Created metadata JSON:", metadataJson);
       const metadataUri = await uploadToPinata(metadataJson, title);
       console.log("✅ Metadata uploaded to Pinata. URI:", metadataUri);
+      setProgress(40);
 
-      // 6. Mint the NFT on-chain via your program.
+      // 6. Mint the NFT on-chain
+      setStatusMessage("Minting NFT on-chain...");
       const tx = await program.methods
         .mintNft()
         .accounts({
@@ -188,12 +210,16 @@ const CreateNFT = () => {
         .signers([mintKeypair])
         .rpc();
       console.log("✅ NFT minted successfully, tx signature:", tx);
+      setProgress(50);
 
-      // 7. Wait for on-chain state propagation.
+      // 7. Wait for on-chain state propagation
       console.log("⏳ Waiting 15 seconds for on-chain propagation...");
+      setStatusMessage("Waiting for on-chain propagation...");
       await new Promise((resolve) => setTimeout(resolve, 15000));
+      setProgress(60);
 
-      // 8. Confirm mint supply and ATA balance.
+      // 8. Confirm mint supply and ATA balance
+      setStatusMessage("Verifying mint supply & token balance...");
       const connection = new Connection(
         process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
       );
@@ -204,12 +230,14 @@ const CreateNFT = () => {
       if (mintState.supply !== BigInt(1) || ataState.amount !== BigInt(1)) {
         throw new Error("Mint supply or ATA balance is not exactly 1");
       }
+      setProgress(70);
 
-      // 9. Set up Metaplex instance.
+      // 9. Create Metaplex instance & build metadata
+      setStatusMessage("Building transaction for NFT metadata...");
       const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
       console.log("✅ Creating NFT metadata using Metaplex builder API...");
 
-      // 10. Build the metadata creation transaction using the builder API.
+      // 10. Build the metadata creation transaction
       const createNftBuilder = await metaplex.nfts().builders().create({
         useExistingMint: mintKeypair.publicKey,
         tokenOwner: wallet.publicKey,
@@ -227,35 +255,43 @@ const CreateNFT = () => {
         mintTokens: false,
       });
       console.log("✅ Metadata builder created.");
+      setProgress(80);
 
-      // 11. Get latest blockhash.
+      // 11. Get latest blockhash
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
       console.log("🧱 Latest blockhash:", blockhash);
 
-      // 12. Convert builder to transaction.
+      // 12. Convert builder to transaction
       const transaction = createNftBuilder.toTransaction({ blockhash, lastValidBlockHeight });
       console.log("📝 Transaction built.");
+      setStatusMessage("Requesting wallet signature...");
+      setProgress(85);
 
-      // 13. Request wallet signature.
+      // 13. Request wallet signature
       if (!wallet.signTransaction) {
         throw new Error("Wallet does not support transaction signing.");
       }
-      console.log("🔏 Requesting wallet signature...");
       const signedTx = await wallet.signTransaction(transaction);
 
-      // 14. Send the signed transaction.
+      // 14. Send the signed transaction
+      console.log("📡 Sending transaction...");
+      setStatusMessage("Sending transaction to network...");
       const txId = await connection.sendRawTransaction(signedTx.serialize());
       console.log("📡 Transaction sent, signature:", txId);
+      setProgress(90);
 
-      // 15. Confirm the transaction.
+      // 15. Confirm the transaction
+      setStatusMessage("Confirming transaction on-chain...");
       await connection.confirmTransaction({
         signature: txId,
         blockhash,
         lastValidBlockHeight,
       });
       console.log("✅ NFT metadata transaction confirmed:", txId);
+      setProgress(95);
 
-      // 16. Fetch NFT metadata using the mint address.
+      // 16. Fetch NFT metadata using the mint address
+      setStatusMessage("Fetching NFT metadata...");
       const mintAddress = mintKeypair.publicKey;
       const fetchedNft = await metaplex.nfts().findByMint({ mintAddress });
       if (!fetchedNft.json) {
@@ -263,7 +299,7 @@ const CreateNFT = () => {
       }
       console.log("✅ Fetched NFT data:", fetchedNft.json);
 
-      // 17. Update local state.
+      // 17. Update local state
       setMintedNFTs((prev) => [
         ...prev,
         {
@@ -275,6 +311,8 @@ const CreateNFT = () => {
         },
       ]);
 
+      setProgress(100);
+      setStatusMessage("NFT minted successfully!");
       alert("🎉 NFT minted successfully with metadata!");
     } catch (error: any) {
       console.error("❌ Minting error:", error);
@@ -284,6 +322,9 @@ const CreateNFT = () => {
     }
   };
 
+  // -----------------------------
+  // 3. Render
+  // -----------------------------
   return (
     <div className={styles.pageContainer}>
       {/* SIDEBAR: NFT creation form (using separate component) */}
@@ -337,6 +378,20 @@ const CreateNFT = () => {
           <div>Description: {description}</div>
           <div>Price: {priceSol}</div>
         </div>
+
+        {/* Progress Bar UI (Shown only while minting) */}
+        {minting && (
+          <div className={styles.mintProgressContainer}>
+            <p>{statusMessage}</p>
+            <div className={styles.progressBar}>
+              <div
+                className={styles.progress}
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+            <p>{progress}%</p>
+          </div>
+        )}
 
         <div className={styles.mintedSection}>
           <h2>Minted NFTs</h2>

@@ -197,6 +197,25 @@
   .closeButton:hover {
     background: #00b4a0;
   }
+
+  .mintProgressContainer {
+    margin: 1em 0;
+  }
+  
+  .progressBar {
+    background-color: #e0e0e0;
+    height: 8px;
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .progress {
+    height: 8px;
+    background-color: #4caf50;
+    transition: width 0.3s ease;
+  }
+  
   
   /* Media Queries for Responsiveness */
   @media (max-width: 1024px) {
