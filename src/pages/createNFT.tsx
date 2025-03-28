@@ -20,6 +20,7 @@ import { createMetadata } from "../utils/metadata";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
 import { NftForm } from "../components/admins/NftForm";
 import styles from "../styles/CreateNFT.module.css";
+import { BN } from "@coral-xyz/anchor";
 
 interface MintedNFT {
   title: string;
@@ -27,6 +28,8 @@ interface MintedNFT {
   image: string;
   priceSol: number;
   metadataUri: string;
+  // We'll store the mint address so we can transfer if needed
+  mintAddress?: string;
 }
 
 const CreateNFT = () => {
@@ -66,9 +69,15 @@ const CreateNFT = () => {
   const [mintedNFTs, setMintedNFTs] = useState<MintedNFT[]>([]);
   const [selectedMetadataUri, setSelectedMetadataUri] = useState<string | null>(null);
 
-  // -----------------------------
-  // 1. Fetch existing NFTs on load
-  // -----------------------------
+  // -------------
+  // NEW:
+  // -------------
+  // We'll store user-entered addresses for transferring NFT in a dictionary keyed by mintAddress.
+  const [transferInputs, setTransferInputs] = useState<{ [key: string]: string }>({});
+
+  // ------------------------------------------------
+  // 1. Fetch existing NFTs from your API on component mount
+  // ------------------------------------------------
   useEffect(() => {
     const fetchExistingNFTs = async () => {
       try {
@@ -106,6 +115,7 @@ const CreateNFT = () => {
             }
           })
         );
+
         const validNFTs = transformed.filter((item) => item !== null) as MintedNFT[];
         setMintedNFTs(validNFTs);
       } catch (error) {
@@ -115,9 +125,9 @@ const CreateNFT = () => {
     fetchExistingNFTs();
   }, []);
 
-  // -----------------------------
+  // ------------------------------------------------
   // 2. Mint NFT function
-  // -----------------------------
+  // ------------------------------------------------
   const mintNFT = async () => {
     if (!wallet.publicKey) {
       alert("Please connect your wallet.");
@@ -299,7 +309,7 @@ const CreateNFT = () => {
       }
       console.log("✅ Fetched NFT data:", fetchedNft.json);
 
-      // 17. Update local state
+      // 17. Update local state (store mintAddress for potential future transfers)
       setMintedNFTs((prev) => [
         ...prev,
         {
@@ -308,6 +318,7 @@ const CreateNFT = () => {
           image: fetchedNft.json?.image || "",
           priceSol,
           metadataUri,
+          mintAddress: mintAddress.toBase58(),
         },
       ]);
 
@@ -322,9 +333,114 @@ const CreateNFT = () => {
     }
   };
 
-  // -----------------------------
-  // 3. Render
-  // -----------------------------
+  // ------------------------------------------------
+  // 3. Secure Transfer to Seller (Hypothetical Example)
+  // ------------------------------------------------
+  // This is your original function for a manual fromAta/toAta:
+  const transferNftToSeller = async (mintAddress: string, fromAta: string, toAta: string) => {
+    if (!wallet.publicKey) {
+      alert("Please connect admin wallet.");
+      return;
+    }
+  
+    try {
+      console.log(`Transferring NFT minted at ${mintAddress} from ATA ${fromAta} to ATA ${toAta}`);
+  
+      const program = getProgram(wallet);
+      const [adminListPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("admin_list")],
+        program.programId
+      );
+      console.log("✅ adminListPda2:", adminListPda.toBase58());
+
+      // For an NFT, amount = 1
+      const tx = await program.methods
+        .restrictedTransferInstruction(new BN(1)) // pass 1 for an NFT
+        .accounts({
+          admin: wallet.publicKey,
+          adminList: adminListPda, // you'd have to fetch or pass in the correct AdminList PDA
+          nftMint: new PublicKey(mintAddress),
+          fromAta: new PublicKey(fromAta),
+          toAta: new PublicKey(toAta),
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+  
+      console.log("✅ Transfer success, tx:", tx);
+      alert("NFT transferred successfully to the seller!");
+    } catch (err) {
+      console.error("❌ Transfer failed:", err);
+    } finally {
+      setMinting(false);
+      setStatusMessage("");
+    }
+  };
+
+  // -------------
+  // NEW: Auto-derive fromAta & toAta
+  // -------------
+  const transferNftToSellerAuto = async (mintAddress: string, newOwnerAddress: string) => {
+    if (!wallet.publicKey) {
+      alert("Please connect admin wallet.");
+      return;
+    }
+
+    try {
+      // 1. Derive fromAta using the CURRENT holder (admin) for demonstration
+      const fromAta = await getAssociatedTokenAddress(
+        new PublicKey(mintAddress),
+        wallet.publicKey
+      );
+
+      // 2. Derive toAta using the newOwnerAddress
+      const toAta = await getAssociatedTokenAddress(
+        new PublicKey(mintAddress),
+        new PublicKey(newOwnerAddress)
+      );
+
+      // 3. Confirm addresses with admin
+      const confirmMsg = `Transfer NFT?\n\nMint: ${mintAddress}\nFrom Wallet: ${wallet.publicKey}\nFrom ATA: ${fromAta}\nTo Wallet: ${newOwnerAddress}\nTo ATA: ${toAta}\n\nProceed?`;
+      if (!window.confirm(confirmMsg)) {
+        alert("Transfer canceled by admin.");
+        return;
+      }
+
+      // 4. Perform the restricted transfer
+      const program = getProgram(wallet);
+      const [adminListPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("admin_list")],
+        program.programId
+      );
+      const tx = await program.methods
+        .restrictedTransferInstruction(new BN(1)) // transferring 1
+        .accounts({
+          admin: wallet.publicKey,
+          adminList: adminListPda,
+          nftMint: new PublicKey(mintAddress),
+          fromAta,
+          toAta,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc();
+
+      console.log("✅ Auto-derive transfer success, tx:", tx);
+      alert("NFT transferred automatically!");
+    } catch (err) {
+      console.error("❌ Auto-derive transfer failed:", err);
+    }
+  };
+
+  // Handler for updating the new owner input in state
+  const handleTransferInputChange = (mint: string, value: string) => {
+    setTransferInputs((prev) => ({
+      ...prev,
+      [mint]: value,
+    }));
+  };
+
+  // ------------------------------------------------
+  // 4. Render
+  // ------------------------------------------------
   return (
     <div className={styles.pageContainer}>
       {/* SIDEBAR: NFT creation form (using separate component) */}
@@ -397,17 +513,58 @@ const CreateNFT = () => {
           <h2>Minted NFTs</h2>
           <div className={styles.grid}>
             {mintedNFTs.length > 0 ? (
-              mintedNFTs.map((nft, index) => (
-                <div key={index} className={styles.nftCard}>
-                  <img src={nft.image} alt={nft.title} />
-                  <h3>{nft.title}</h3>
-                  <p>{nft.description}</p>
-                  <p>Price: {nft.priceSol} SOL</p>
-                  <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
-                    View Details
-                  </button>
-                </div>
-              ))
+              mintedNFTs.map((nft, index) => {
+                const newOwnerValue = transferInputs[nft.mintAddress || ""] || "";
+                return (
+                  <div key={index} className={styles.nftCard}>
+                    <img src={nft.image} alt={nft.title} />
+                    <h3>{nft.title}</h3>
+                    <p>{nft.description}</p>
+                    <p>Price: {nft.priceSol} SOL</p>
+
+                    {/* 
+                      Example: Transfer NFT to a specific seller
+                      We keep your original approach:
+                    */}
+                    <button
+                      onClick={() =>
+                        transferNftToSeller(
+                          nft.mintAddress!,
+                          "RECIPIENT_ATA_HERE",
+                          "SELLER_PUBLIC_KEY_HERE"
+                        )
+                      }
+                    >
+                      Transfer (Manual ATA)
+                    </button>
+
+                    {/* 
+                      NEW auto-derive approach:
+                      1) Type in a new owner's wallet address
+                      2) Press 'Transfer (Auto-ATA)'
+                    */}
+                    <input
+                      type="text"
+                      placeholder="Seller's wallet address"
+                      value={newOwnerValue}
+                      onChange={(e) =>
+                        handleTransferInputChange(nft.mintAddress!, e.target.value)
+                      }
+                      style={{ marginTop: "8px" }}
+                    />
+
+                    <button
+                      onClick={() => transferNftToSellerAuto(nft.mintAddress!, newOwnerValue)}
+                    >
+                      Transfer (Auto-ATA)
+                    </button>
+
+                    <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
+                      View Details
+                    </button>
+                  </div>
+                );
+              })
             ) : (
               <p>No minted NFTs yet.</p>
             )}
