@@ -1,3 +1,4 @@
+// src/pages/createNFT.tsx
 import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { getProgram } from "../utils/programUtils";
@@ -17,32 +18,37 @@ import {
 } from "@solana/spl-token";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { uploadToPinata } from "../utils/pinata";
-import { createMetadata } from "../utils/metadata";
+import { createMetadata, updateNftMetadata } from "../utils/metadata";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
 import { NftForm } from "../components/admins/NftForm";
 import styles from "../styles/CreateNFT.module.css";
 import { BN } from "@coral-xyz/anchor";
+import type { WalletAdapter } from "@solana/wallet-adapter-base";
 
+// Extended MintedNFT interface with currentOwner field.
 interface MintedNFT {
   title: string;
   description: string;
   image: string;
   priceSol: number;
   metadataUri: string;
-  // We'll store the mint address so we can transfer if needed
   mintAddress?: string;
+  currentOwner?: string;
 }
 
 const CreateNFT = () => {
   const wallet = useWallet();
+  const adminWallet = wallet.publicKey?.toBase58();
 
-  // Basic NFT fields
+  // ------------------------------------------------
+  // 1. NFT Creation Form State
+  // ------------------------------------------------
   const [fileCid, setFileCid] = useState<string>("");
   const [priceSol, setPriceSol] = useState<number>(0);
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
 
-  // Additional luxury watch attributes
+  // Additional watch attributes
   const [brand, setBrand] = useState<string>("");
   const [model, setModel] = useState<string>("");
   const [serialNumber, setSerialNumber] = useState<string>("");
@@ -51,9 +57,10 @@ const CreateNFT = () => {
   const [limitedEdition, setLimitedEdition] = useState<string>("");
   const [certificate, setCertificate] = useState<string>("");
   const [warrantyInfo, setWarrantyInfo] = useState<string>("");
-  const [provenance, setProvenance] = useState<string>("");
+  // Set initial provenance to the admin wallet (if available)
+  const [provenance, setProvenance] = useState<string>(adminWallet || "");
 
-  // Additional optional watch attributes
+  // Optional attributes
   const [movement, setMovement] = useState<string>("Automatic");
   const [caseSize, setCaseSize] = useState<string>("42mm");
   const [waterResistance, setWaterResistance] = useState<string>("300m");
@@ -61,20 +68,32 @@ const CreateNFT = () => {
   const [country, setCountry] = useState<string>("Switzerland");
   const [releaseDate, setReleaseDate] = useState<string>("2023-05-01");
 
-  // Minting state and progress bar
+  // ------------------------------------------------
+  // 2. Minting + UI State
+  // ------------------------------------------------
   const [minting, setMinting] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [statusMessage, setStatusMessage] = useState<string>("");
 
-  // For showing minted NFTs
+  // ------------------------------------------------
+  // 3. Minted NFTs Display State
+  // ------------------------------------------------
   const [mintedNFTs, setMintedNFTs] = useState<MintedNFT[]>([]);
   const [selectedMetadataUri, setSelectedMetadataUri] = useState<string | null>(null);
 
-  // We'll store user-entered addresses for transferring NFT in a dictionary keyed by a unique NFT key.
+  // Dictionary for transfer destination inputs, keyed by a unique NFT key.
   const [transferInputs, setTransferInputs] = useState<{ [key: string]: string }>({});
 
   // ------------------------------------------------
-  // 1. Fetch existing NFTs from your API on component mount
+  // Handler: update transfer input state.
+  // ------------------------------------------------
+  const handleTransferInputChange = (key: string, value: string) => {
+    console.log("Updating transferInputs for key:", key, "with:", value);
+    setTransferInputs((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // ------------------------------------------------
+  // 4. Fetch Existing NFTs from Pinata on Mount
   // ------------------------------------------------
   useEffect(() => {
     const fetchExistingNFTs = async () => {
@@ -85,6 +104,9 @@ const CreateNFT = () => {
         const data = await res.json();
         console.log("Raw data from /api/pinata/nfts:", data);
 
+        // Track seen mint addresses to skip duplicates.
+        const seenMintAddresses = new Set<string>();
+
         const transformed: MintedNFT[] = await Promise.all(
           data.map(async (nft: any) => {
             const ipfsHash = nft.ipfs_pin_hash;
@@ -94,38 +116,55 @@ const CreateNFT = () => {
               const contentType = ipfsRes.headers.get("Content-Type");
               if (!contentType || !contentType.includes("application/json")) {
                 console.warn(`Skipping pin ${ipfsHash} due to non-JSON content type: ${contentType}`);
-                return null as any;
+                return null;
               }
               const jsonData = await ipfsRes.json();
               console.log("✅ Fetched JSON metadata:", jsonData);
+
+              // Must have a valid mintAddress; skip if missing.
+              if (!jsonData.mintAddress) return null;
+              // Skip duplicates.
+              if (seenMintAddresses.has(jsonData.mintAddress)) {
+                console.warn(`Skipping duplicate minted address: ${jsonData.mintAddress}`);
+                return null;
+              }
+              seenMintAddresses.add(jsonData.mintAddress);
+
+              // Extract currentOwner from the "Provenance" attribute if present.
+              const currentOwner =
+                jsonData.attributes?.find((attr: any) => attr.trait_type === "Provenance")?.value || "";
+
               return {
                 title: jsonData.name || "No Title",
                 description: jsonData.description || "No Description",
-                image: jsonData.image || `${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`,
+                image: jsonData.image && jsonData.image.startsWith("http")
+                  ? jsonData.image
+                  : `${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`,
                 priceSol: jsonData.priceSol ? parseFloat(jsonData.priceSol) : 0,
                 metadataUri: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`,
-                // If the pinned metadata includes the mintAddress, it can be used here.
-                mintAddress: jsonData.mintAddress, // may be undefined if not stored
-              };
+                mintAddress: jsonData.mintAddress,
+                currentOwner,
+              } as MintedNFT;
             } catch (err) {
               console.error("Error fetching JSON for hash:", ipfsHash, err);
-              return null as any;
+              return null;
             }
           })
         );
 
-        // Instead of filtering out items without a mintAddress, we show all.
         const validNFTs = transformed.filter((item) => item !== null) as MintedNFT[];
-        setMintedNFTs(validNFTs);
+        // Only include NFTs that have a valid mintAddress.
+        setMintedNFTs(validNFTs.filter((nft) => nft.mintAddress));
       } catch (error) {
         console.error("Error fetching existing NFTs:", error);
       }
     };
+
     fetchExistingNFTs();
   }, []);
 
   // ------------------------------------------------
-  // 2. Mint NFT function
+  // 5. Mint NFT
   // ------------------------------------------------
   const mintNFT = async () => {
     if (!wallet.publicKey) {
@@ -136,7 +175,6 @@ const CreateNFT = () => {
       alert("Please provide a valid CID.");
       return;
     }
-
     setMinting(true);
     setProgress(0);
     setStatusMessage("Starting NFT mint process...");
@@ -168,6 +206,7 @@ const CreateNFT = () => {
       setProgress(30);
       setStatusMessage("Created recipient ATA...");
 
+      // Build the metadata JSON and embed the mint address.
       setStatusMessage("Uploading metadata to Pinata...");
       const metadataJson = createMetadata(
         title,
@@ -182,7 +221,7 @@ const CreateNFT = () => {
         limitedEdition,
         certificate,
         warrantyInfo,
-        provenance,
+        provenance, // initial provenance should equal admin wallet initially
         movement,
         caseSize,
         waterResistance,
@@ -190,11 +229,14 @@ const CreateNFT = () => {
         country,
         releaseDate
       );
-      console.log("📝 Created metadata JSON:", metadataJson);
+      // Embed the mint address so it persists on IPFS.
+      (metadataJson as any).mintAddress = mintKeypair.publicKey.toBase58();
+      console.log("📝 Created metadata JSON with mintAddress:", metadataJson);
       const metadataUri = await uploadToPinata(metadataJson, title);
       console.log("✅ Metadata uploaded to Pinata. URI:", metadataUri);
       setProgress(40);
 
+      // Mint the NFT on-chain.
       setStatusMessage("Minting NFT on-chain...");
       const tx = await program.methods
         .mintNft()
@@ -215,7 +257,6 @@ const CreateNFT = () => {
       console.log("✅ NFT minted successfully, tx signature:", tx);
       setProgress(50);
 
-      console.log("⏳ Waiting 15 seconds for on-chain propagation...");
       setStatusMessage("Waiting for on-chain propagation...");
       await new Promise((resolve) => setTimeout(resolve, 15000));
       setProgress(60);
@@ -225,18 +266,15 @@ const CreateNFT = () => {
         process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
       );
       const mintState = await getMint(connection, mintKeypair.publicKey, "finalized");
-      console.log("Mint supply before metadata creation:", mintState.supply.toString());
       const ataState = await getAccount(connection, recipientAta, "finalized", TOKEN_PROGRAM_ID);
-      console.log("Recipient ATA balance before metadata creation:", ataState.amount.toString());
       if (mintState.supply !== BigInt(1) || ataState.amount !== BigInt(1)) {
         throw new Error("Mint supply or ATA balance is not exactly 1");
       }
       setProgress(70);
 
+      // Build the NFT metadata on-chain via Metaplex.
       setStatusMessage("Building transaction for NFT metadata...");
       const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
-      console.log("✅ Creating NFT metadata using Metaplex builder API...");
-
       const createNftBuilder = await metaplex.nfts().builders().create({
         useExistingMint: mintKeypair.publicKey,
         tokenOwner: wallet.publicKey,
@@ -253,14 +291,10 @@ const CreateNFT = () => {
         maxSupply: 0,
         mintTokens: false,
       });
-      console.log("✅ Metadata builder created.");
       setProgress(80);
 
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
-      console.log("🧱 Latest blockhash:", blockhash);
-
       const transaction = createNftBuilder.toTransaction({ blockhash, lastValidBlockHeight });
-      console.log("📝 Transaction built.");
       setStatusMessage("Requesting wallet signature...");
       setProgress(85);
 
@@ -268,11 +302,8 @@ const CreateNFT = () => {
         throw new Error("Wallet does not support transaction signing.");
       }
       const signedTx = await wallet.signTransaction(transaction);
-
-      console.log("📡 Sending transaction...");
       setStatusMessage("Sending transaction to network...");
       const txId = await connection.sendRawTransaction(signedTx.serialize());
-      console.log("📡 Transaction sent, signature:", txId);
       setProgress(90);
 
       setStatusMessage("Confirming transaction on-chain...");
@@ -281,7 +312,6 @@ const CreateNFT = () => {
         blockhash,
         lastValidBlockHeight,
       });
-      console.log("✅ NFT metadata transaction confirmed:", txId);
       setProgress(95);
 
       setStatusMessage("Fetching NFT metadata...");
@@ -290,11 +320,10 @@ const CreateNFT = () => {
       if (!fetchedNft.json) {
         throw new Error("Fetched NFT metadata is null");
       }
-      console.log("✅ Fetched NFT data:", fetchedNft.json);
-
-      // Update local state with the minted NFT.
-      // Note: Minted NFTs stored in local state are lost on page refresh.
-      // To persist them across refreshes, you need to store them in your backend (or include the mintAddress in the pinned metadata).
+      // Extract current owner from attributes (Provenance)
+      const currentOwner =
+        fetchedNft.json.attributes?.find((attr: any) => attr.trait_type === "Provenance")?.value || "";
+      // Append minted NFT to local state.
       setMintedNFTs((prev) => [
         ...prev,
         {
@@ -304,9 +333,9 @@ const CreateNFT = () => {
           priceSol,
           metadataUri,
           mintAddress: mintAddress.toBase58(),
+          currentOwner,
         },
       ]);
-
       setProgress(100);
       setStatusMessage("NFT minted successfully!");
       alert("🎉 NFT minted successfully with metadata!");
@@ -319,24 +348,16 @@ const CreateNFT = () => {
   };
 
   // ------------------------------------------------
-  // 3. Secure Transfer to Seller (Hypothetical Example)
+  // 6. Secure Transfer to Seller (Manual ATA)
   // ------------------------------------------------
   const transferNftToSeller = async (mintAddress: string, fromAta: string, toAta: string) => {
     if (!wallet.publicKey) {
       alert("Please connect admin wallet.");
       return;
     }
-  
     try {
-      console.log(`Transferring NFT minted at ${mintAddress} from ATA ${fromAta} to ATA ${toAta}`);
-  
       const program = getProgram(wallet);
-      const [adminListPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("admin_list")],
-        program.programId
-      );
-      console.log("✅ adminListPda2:", adminListPda.toBase58());
-  
+      const [adminListPda] = PublicKey.findProgramAddressSync([Buffer.from("admin_list")], program.programId);
       const tx = await program.methods
         .restrictedTransferInstruction(new BN(1))
         .accounts({
@@ -348,8 +369,6 @@ const CreateNFT = () => {
           tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
-  
-      console.log("✅ Transfer success, tx:", tx);
       alert("NFT transferred successfully to the seller!");
     } catch (err) {
       console.error("❌ Transfer failed:", err);
@@ -360,28 +379,22 @@ const CreateNFT = () => {
   };
 
   // ------------------------------------------------
-  // NEW: Auto-derive fromAta & toAta with ATA initialization check
+  // 7. Auto-Derived Transfer with Automatic Metadata Update
   // ------------------------------------------------
   const transferNftToSellerAuto = async (mintAddress: string, newOwnerAddress: string) => {
     if (!wallet.publicKey) {
       alert("Please connect admin wallet.");
       return;
     }
-  
     try {
-      const connection = new Connection(process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com");
-
-      console.log("New Owner Address (raw):", newOwnerAddress);
-      console.log("JSON-escaped:", JSON.stringify(newOwnerAddress));
-      console.log("Length:", newOwnerAddress.length);
-  
+      const connection = new Connection(
+        process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
+      );
       const fromAta = await getAssociatedTokenAddress(new PublicKey(mintAddress), wallet.publicKey);
       const toAta = await getAssociatedTokenAddress(new PublicKey(mintAddress), new PublicKey(newOwnerAddress));
-  
       const toAtaInfo = await connection.getAccountInfo(toAta);
       let createAtaIx = null;
       if (!toAtaInfo) {
-        console.log("🔧 Recipient ATA not found; creating it...");
         createAtaIx = createAssociatedTokenAccountInstruction(
           wallet.publicKey,
           toAta,
@@ -389,19 +402,13 @@ const CreateNFT = () => {
           new PublicKey(mintAddress)
         );
       }
-  
       const confirmMsg = `Transfer NFT?\n\nMint: ${mintAddress}\nFrom Wallet: ${wallet.publicKey}\nTo Wallet: ${newOwnerAddress}\nProceed?`;
       if (!window.confirm(confirmMsg)) {
         alert("Transfer canceled by admin.");
         return;
       }
-  
       const program = getProgram(wallet);
-      const [adminListPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("admin_list")],
-        program.programId
-      );
-  
+      const [adminListPda] = PublicKey.findProgramAddressSync([Buffer.from("admin_list")], program.programId);
       let txBuilder = program.methods
         .restrictedTransferInstruction(new BN(1))
         .accounts({
@@ -412,35 +419,65 @@ const CreateNFT = () => {
           toAta,
           tokenProgram: TOKEN_PROGRAM_ID,
         });
-  
       if (createAtaIx) {
-        console.log("✅ Adding ATA creation instruction to the transaction...");
         txBuilder = txBuilder.preInstructions([createAtaIx]);
       }
-  
       const tx = await txBuilder.rpc();
-      console.log("✅ Auto-transfer success, tx:", tx);
       alert("NFT transferred while keeping admin control!");
+      // After transfer, update metadata automatically.
+      await updateMetadataOnTransfer(mintAddress, newOwnerAddress);
     } catch (err) {
       console.error("❌ Transfer failed:", err);
     }
   };
 
-  // Handler for updating the new owner input in state
-  const handleTransferInputChange = (mint: string, value: string) => {
-    console.log("Updating transferInputs for mint:", mint, "with:", value);
-    setTransferInputs((prev) => ({
-      ...prev,
-      [mint]: value,
-    }));
+  // ------------------------------------------------
+  // 8. Update NFT Metadata on Transfer
+  // ------------------------------------------------
+  const updateMetadataOnTransfer = async (mintAddress: string, newOwner: string) => {
+    if (!wallet.publicKey) {
+      alert("Please connect your admin wallet.");
+      return;
+    }
+    try {
+      // Rebuild metadata with updated provenance (current owner)
+      const updatedMetadataJson = createMetadata(
+        title,
+        description,
+        fileCid,
+        wallet.publicKey.toBase58(),
+        brand,
+        model,
+        serialNumber,
+        material,
+        productionYear,
+        limitedEdition,
+        certificate,
+        warrantyInfo,
+        newOwner, // newOwner is used as the current owner in the provenance field
+        movement,
+        caseSize,
+        waterResistance,
+        dialColor,
+        country,
+        releaseDate
+      );
+      (updatedMetadataJson as any).mintAddress = mintAddress;
+      const newUri = await uploadToPinata(updatedMetadataJson, "Updated NFT Metadata");
+      await updateNftMetadata(wallet as unknown as WalletAdapter, mintAddress, { image: newUri });
+      alert("NFT metadata updated successfully!");
+    } catch (error) {
+      console.error("❌ Error updating metadata:", error);
+      alert("Failed to update NFT metadata.");
+    }
   };
 
   // ------------------------------------------------
-  // 4. Render
+  // 9. Render
   // ------------------------------------------------
   return (
     <div className={styles.pageContainer}>
-      {/* SIDEBAR: NFT creation form */}
+      {/* Sidebar: NFT creation form */}
       <div className={styles.sidebar}>
         <NftForm
           fileCid={fileCid}
@@ -474,7 +511,7 @@ const CreateNFT = () => {
         />
       </div>
 
-      {/* MAIN CONTENT: NFT Preview and Minted NFT Grid */}
+      {/* Main Content: NFT preview and minted NFT grid */}
       <div className={styles.mainContent}>
         <div className={styles.previewSection}>
           <h2>NFT Preview</h2>
@@ -496,10 +533,7 @@ const CreateNFT = () => {
           <div className={styles.mintProgressContainer}>
             <p>{statusMessage}</p>
             <div className={styles.progressBar}>
-              <div
-                className={styles.progress}
-                style={{ width: `${progress}%` }}
-              ></div>
+              <div className={styles.progress} style={{ width: `${progress}%` }}></div>
             </div>
             <p>{progress}%</p>
           </div>
@@ -510,44 +544,74 @@ const CreateNFT = () => {
           <div className={styles.grid}>
             {mintedNFTs.length > 0 ? (
               mintedNFTs.map((nft, index) => {
-                // Use mintAddress if available; if not, fallback to metadataUri or index for a unique key.
-                const key = nft.mintAddress || nft.metadataUri || index.toString();
-                // Use the same key for transferInputs so each NFT gets its own input state.
-                const newOwnerValue = transferInputs[key] || "";
-  
+                // Create a unique key using mintAddress and index
+                const uniqueKey = `${nft.mintAddress ?? "nomint"}-${index}`;
+                const newOwnerValue = transferInputs[uniqueKey] || "";
+                const isAdminOwned = nft.currentOwner === adminWallet;
                 return (
-                  <div key={key} className={styles.nftCard}>
-                    <img src={nft.image} alt={nft.title} />
+                  <div key={uniqueKey} className={styles.nftCard}>
+                    {nft.image && nft.image.startsWith("http") ? (
+                      <img src={nft.image} alt={nft.title} />
+                    ) : (
+                      <p style={{ color: "gray" }}>No valid image</p>
+                    )}
                     <h3>{nft.title}</h3>
                     <p>{nft.description}</p>
                     <p>Price: {nft.priceSol} SOL</p>
-  
-                    <button
-                      onClick={() =>
-                        transferNftToSeller(
-                          nft.mintAddress || "",
-                          "RECIPIENT_ATA_HERE",
-                          "SELLER_PUBLIC_KEY_HERE"
-                        )
-                      }
-                    >
-                      Transfer (Manual ATA)
-                    </button>
-  
-                    <input
-                      type="text"
-                      placeholder="Seller's wallet address (e.g. 9D9U8y8B6G...)"
-                      value={newOwnerValue}
-                      onChange={(e) => handleTransferInputChange(key, e.target.value)}
-                      style={{ marginTop: "8px" }}
-                    />
-  
-                    <button
-                      onClick={() => transferNftToSellerAuto(nft.mintAddress || "", newOwnerValue)}
-                    >
-                      Transfer (Auto-ATA)
-                    </button>
-  
+                    {nft.mintAddress && (
+                      <p>
+                        <strong>Mint:</strong> {nft.mintAddress}
+                      </p>
+                    )}
+                    {nft.currentOwner && (
+                      <p>
+                        <strong>Current Owner:</strong> {nft.currentOwner}
+                      </p>
+                    )}
+                    {isAdminOwned ? (
+                      <>
+                        {/* Manual ATA Transfer */}
+                        <button
+                          onClick={() => {
+                            if (nft.mintAddress) {
+                              transferNftToSeller(
+                                nft.mintAddress,
+                                "RECIPIENT_ATA_HERE",
+                                "SELLER_PUBLIC_KEY_HERE"
+                              );
+                            } else {
+                              alert("No valid mint address for manual transfer.");
+                            }
+                          }}
+                        >
+                          Transfer (Manual ATA)
+                        </button>
+                        {/* New owner's wallet address input */}
+                        <input
+                          type="text"
+                          placeholder="Seller's wallet address (e.g. 9D9U8y8B6G...)"
+                          value={newOwnerValue}
+                          onChange={(e) => handleTransferInputChange(uniqueKey, e.target.value)}
+                          style={{ marginTop: "8px" }}
+                        />
+                        {/* Auto-derived Transfer */}
+                        {nft.mintAddress ? (
+                          <button
+                            onClick={() =>
+                              transferNftToSellerAuto(nft.mintAddress!, newOwnerValue)
+                            }
+                          >
+                            Transfer (Auto-ATA)
+                          </button>
+                        ) : (
+                          <p style={{ color: "red" }}>
+                            No valid mint address. Auto-transfer disabled.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p style={{ color: "green" }}>NFT already transferred.</p>
+                    )}
                     <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
                       View Details
                     </button>
