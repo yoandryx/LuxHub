@@ -1,8 +1,7 @@
 /* AdminDashboard.module.css */
   .container {
     max-width: 1000px;
-    margin: 0 auto;
-    padding: 20px;
+    padding: 100px 20px;
     background: var(--foreground);
     border-radius: 8px;
     color: var(--primary);
@@ -108,7 +107,7 @@
   /* Responsive adjustments */
   @media screen and (max-width: 768px) {
     .container {
-      padding: 15px;
+      padding: 100px 15px;
     }
     
     .header {

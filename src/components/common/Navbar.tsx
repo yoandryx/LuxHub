@@ -61,6 +61,7 @@ export default function Navbar() {
             <Link href="/watchMarket" onClick={closeMenu}>Inventory</Link>
             <Link href="/createNFT" onClick={closeMenu}>Mint NFT</Link>
             <Link href="/profile" onClick={closeMenu}>Wallet</Link>
+            <Link href="/adminDashboard" onClick={closeMenu}>Creators</Link>
           </div>
 
           <div className={styles.rightSection}>
@@ -143,7 +144,7 @@ export default function Navbar() {
           <Link href="/createNFT" onClick={closeMenu}>Mint NFT</Link>
           <Link href="/createNFT" onClick={closeMenu}>Learn More</Link>
           <Link href="/requestListing" onClick={closeMenu}>Create Listing</Link>
-          <Link href="/userDashboard" onClick={closeMenu}>Profile</Link>
+          <Link href="/userDashboard" onClick={closeMenu}>Users</Link>
           <Link href="/adminDashboard" onClick={closeMenu}>Creators</Link>
           <Link href="/" onClick={closeMenu}>LUXHUB</Link>
         </div>

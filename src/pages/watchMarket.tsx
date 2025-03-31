@@ -1,61 +1,84 @@
-import { useEscrow } from "../context/src/EscrowContext";
+// src/pages/marketplace.tsx
+import { useEffect, useState } from "react";
+import { PublicKey, Connection } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { getProgram, Listing } from "../utils/programUtils"; // ✅ Import function
-import { PublicKey } from "@solana/web3.js";
+import { getProgram } from "../utils/programUtils";
+import { NftDetailCard } from "../components/marketplace/NftDetailCard";
+import styles from "../styles/WatchMarket.module.css";
 
-export default function EscrowMarketplace() {
-  const { listings, fetchListings } = useEscrow();
+interface NFT {
+  title: string;
+  description: string;
+  image: string;
+  priceSol: number;
+  mintAddress: string;
+  metadataUri: string;
+  currentOwner: string;
+}
+
+const Marketplace = () => {
   const wallet = useWallet();
+  const [nfts, setNfts] = useState<NFT[]>([]);
+  const [selectedNft, setSelectedNft] = useState<NFT | null>(null);
 
-  const handleBuy = async (listing: Listing) => {
-    if (!wallet.publicKey) {
-      alert("Please connect your wallet to proceed.");
-      return;
-    }
+  // Fetch NFTs for sale (for example, from your backend API or directly from on-chain data)
+  useEffect(() => {
+    const fetchNFTs = async () => {
+      try {
+        const res = await fetch("/api/pinata/nfts");
+        if (!res.ok) throw new Error("Failed to fetch NFTs");
+        const data = await res.json();
+        setNfts(data);
+      } catch (error) {
+        console.error("Error fetching NFTs:", error);
+      }
+    };
+    fetchNFTs();
+  }, []);
 
+  // Handler to purchase or exchange NFT (calls the exchange instruction)
+  const handlePurchase = async (nft: NFT) => {
+    if (!wallet.publicKey) return alert("Please connect your wallet.");
     try {
       const program = getProgram(wallet);
-
-      await program.methods.exchange().accounts({
-        escrowAccount: new PublicKey(listing.pubkey),
-        buyer: wallet.publicKey,
-        initializer: new PublicKey(listing.initializer),
-        mint: new PublicKey(listing.nftMint),
-        systemProgram: new PublicKey("11111111111111111111111111111111"),
+      // For example, call the exchange instruction on the NFT’s escrow account
+      // You’ll need to compute the PDA and fill in all required accounts.
+      const tx = await program.methods.exchange().accounts({
+        // Fill in with the required accounts for the exchange instruction.
+        // For example: taker, initializer, escrow, vault, etc.
       }).rpc();
-
-      alert("Purchase successful!");
-      fetchListings();
-    } catch (error) {
-      console.error("Error buying NFT:", error);
-      alert("Transaction failed.");
+      alert("Purchase successful! Transaction: " + tx);
+    } catch (error: any) {
+      console.error("Purchase error:", error);
+      alert("Purchase failed: " + error.message);
     }
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">LuxHub Watch Marketplace</h1>
-      {listings.length > 0 ? (
-        listings.map((listing) => (
-          <div key={listing.pubkey}>
-            <p>NFT Mint: {listing.nftMint}</p>
-            <p>Price: {listing.price} SOL</p>
-            <p>Status: {listing.status}</p>
-            <button 
-              onClick={() => handleBuy(listing)} 
-              disabled={!wallet.publicKey}
-              className={`px-4 py-2 rounded ${
-                !wallet.publicKey ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-700"
-              }`}
-            >
-              Buy NFT
-            </button>
+    <div className={styles.container}>
+      <h1>Marketplace</h1>
+      <div className={styles.nftGrid}>
+        {nfts.map((nft, index) => (
+          <div key={index} className={styles.nftCard}>
+            <img src={nft.image} alt={nft.title} />
+            <h3>{nft.title}</h3>
+            <p>{nft.description}</p>
+            <p>Price: {nft.priceSol} SOL</p>
+            <p>Owner: {nft.currentOwner}</p>
+            <button onClick={() => setSelectedNft(nft)}>View Details</button>
+            <button onClick={() => handlePurchase(nft)}>Purchase</button>
           </div>
-        ))
-      ) : (
-        <p className="text-gray-500">No admin-minted NFTs available.</p> // ✅ Shows message if no NFTs are found
-      )}
+        ))}
+      </div>
 
+      {selectedNft && (
+        <div className={styles.overlay}>
+          <button onClick={() => setSelectedNft(null)}>Close</button>
+          <NftDetailCard metadataUri={selectedNft.metadataUri} />
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default Marketplace;
