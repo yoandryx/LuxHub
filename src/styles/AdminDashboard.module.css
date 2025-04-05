@@ -1,17 +1,38 @@
 /* AdminDashboard.module.css */
   .container {
-    max-width: 1000px;
+    width: auto;
     padding: 100px 20px;
-    background: var(--foreground);
-    border-radius: 8px;
+    /* background: #1b191d; */
+    background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
     color: var(--primary);
+  }
+
+  .container h1 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    width: 100%;
+    font-weight: 500;
+    margin: 10px 0;
+  }
+
+  .container h2 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    width: 100%;
+    font-weight: 300;
   }
   
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    /* margin-top: 20px; */
+    /* background-color: #322e3697; */
+    border-bottom: groove 1px #c8a1ff;
   }
   
   .logoutButton {
@@ -43,6 +64,117 @@
     background: var(--background);
     color: var(--primary);
     outline: none;
+  }
+
+  .luxhubWallet {
+    display: flex;
+    justify-content: center;
+    background-color: #4d4d4d6d;
+    color: rgb(255, 255, 255);
+    border: groove 2px #1b191d;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 10px;
+  }
+
+  .inputGroup {
+    background-color: #3c3c3c7b;
+    border: solid 1px var(--accent);
+    border-radius: 15px;
+    margin: 10px 5px;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    
+  }
+
+  .inputGroup label {
+    padding: 10px;
+    border-bottom: solid 1px #c8a1ff;
+    border-radius: 15px 15px 0 0;
+    left: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #efefef;
+  }
+
+
+
+  .listItem {
+    display: flex;
+    justify-content: center;
+    background-color: #4d4d4d6d;
+    color: rgb(255, 255, 255);
+    border: groove 2px #1b191d;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 10px;
+  }
+
+  .inputGroup input {
+    background-color: var(--accent);
+    color: var(--primary);
+    border: solid 1px #c8a1ff6d;
+    /* border-radius: 5px; */
+    margin: 10px 5px;
+    padding: 10px;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    
+    /* align-items:center; */
+    
+    gap: 10px
+  }
+
+  .inputGroup button {
+    font-size: 12px;
+    background-color: #322e36;
+    color: #dd9aff;
+    text-shadow: 1px 1px 5px var(--foreground);
+    border-style:groove 1px;
+    border-color: #5c4977;
+    border-radius: 5px;
+    height: 25px;
+    margin: 10px;
+    cursor: pointer;
+  }
+
+  .inputGroup button:hover {
+    background-color: #322e3605;
+  }
+
+  .tabContainer {
+    position: fixed;
+    top: 51px;
+    left: 0;
+    display: flex;
+    width: 100%;
+    height: 50px;
+    z-index: 100;
+    background-color: #3c3c3c7b;
+    backdrop-filter: blur(10px);
+    /* border-bottom: solid 1px var(--accent); */
+  }
+
+  .tabContainer button {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: #3c3c3c32;
+    color: var(--primary);
+    border-style:groove;
+    /* backdrop-filter: blur(8px); */
+    --webkit-backdrop-filter: blur(8px);
+    /* margin: 5px; */
+  }
+
+  .tabContainer button:hover {
+    background-color: #1b191d7a;
+    cursor: pointer;
   }
   
   .listingsGrid {

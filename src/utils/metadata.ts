@@ -1,6 +1,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { Metaplex, walletAdapterIdentity, Nft } from "@metaplex-foundation/js";
 import type { WalletAdapter } from "@solana/wallet-adapter-base";
+import { uploadToPinata } from "./pinata";  // Adjust the path as needed
 
 export interface NFTMetadata {
   name: string;
@@ -38,7 +39,8 @@ export const createMetadata = (
   dialColor?: string,
   country?: string,
   releaseDate?: string,
-  currentOwner?: string // NEW: optional current owner field
+  currentOwner?: string,
+  marketStatus?: string
 ): NFTMetadata => {
   const gateway =
     process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
@@ -52,6 +54,7 @@ export const createMetadata = (
     { trait_type: "Certificate", value: certificate },
     { trait_type: "Warranty Info", value: warrantyInfo },
     { trait_type: "Provenance", value: provenance },
+    { trait_type: "Market Status", value: marketStatus }
   ];
 
   if (movement) attributes.push({ trait_type: "Movement", value: movement });
@@ -71,7 +74,7 @@ export const createMetadata = (
     image: `${gateway}${imageCid}`,
     external_url: "",
     seller_fee_basis_points: 300,
-    attributes,
+    attributes: attributes.filter(attr => attr.value !== undefined) as { trait_type: string; value: string }[],
     properties: {
       creators: [
         {
@@ -122,5 +125,64 @@ export const updateNftMetadata = async (
     nftOrSft: nft,
     ...updateArgs,
   });
+  return updatedNft;
+};
+
+// ------------------------------------------------------------------
+// New Helper Functions to Update Market Status in NFT Metadata
+// ------------------------------------------------------------------
+
+// Fetch the current metadata JSON from the NFT's on-chain URI.
+export const fetchMetadataFromMint = async (mintAddress: string): Promise<any> => {
+  try {
+    const connection = new Connection(
+      process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
+    );
+    const metaplex = Metaplex.make(connection);
+    const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mintAddress) });
+    const res = await fetch(nft.uri);
+    if (!res.ok) throw new Error("Failed to fetch NFT metadata");
+    const metadata = await res.json();
+    return metadata;
+  } catch (error) {
+    console.error("Error fetching metadata:", error);
+    return null;
+  }
+};
+
+// Update the "Market Status" attribute in the NFT metadata.
+// This function fetches the current metadata, updates (or adds) the "Market Status" attribute,
+// re-uploads the updated JSON to IPFS, and then updates the on-chain metadata URI.
+export const updateMarketStatus = async (
+  wallet: WalletAdapter,
+  mintAddress: string,
+  newStatus: string
+): Promise<any> => {
+  // Fetch current metadata JSON from IPFS.
+  const currentMetadata = await fetchMetadataFromMint(mintAddress);
+  if (!currentMetadata) throw new Error("Metadata not found");
+
+  // Update or add the "Market Status" attribute.
+  let attributes = currentMetadata.attributes || [];
+  const index = attributes.findIndex((attr: any) => attr.trait_type === "Market Status");
+  if (index !== -1) {
+    attributes[index].value = newStatus;
+  } else {
+    attributes.push({ trait_type: "Market Status", value: newStatus });
+  }
+
+  // Create the updated metadata object.
+  const updatedMetadata = {
+    ...currentMetadata,
+    attributes,
+  };
+
+  // Re-upload the updated metadata to IPFS (using your uploadToPinata function).
+  const newUri = await uploadToPinata(updatedMetadata, "Updated NFT Metadata");
+  console.log("New metadata URI:", newUri);
+
+  // Update the NFT metadata on-chain via Metaplex.
+  // Here we pass the new URI in the 'image' field (adjust updateNftMetadata if needed).
+  const updatedNft = await updateNftMetadata(wallet, mintAddress, { image: newUri });
   return updatedNft;
 };

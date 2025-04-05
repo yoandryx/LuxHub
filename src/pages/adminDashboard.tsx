@@ -1,7 +1,7 @@
 // src/pages/adminDashboard.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { PublicKey, SystemProgram, Connection } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { getProgram } from "../utils/programUtils";
 import { Bar, Pie } from "react-chartjs-2";
@@ -16,11 +16,13 @@ import {
   Legend,
 } from "chart.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
+import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
+import { uploadToPinata } from "../utils/pinata";
 import styles from "../styles/AdminDashboard.module.css";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
-// Types for audit logs and escrow account data.
+// Interfaces
 interface LogEntry {
   timestamp: string;
   action: string;
@@ -39,52 +41,60 @@ interface EscrowAccount {
   mintB: string;
 }
 
-// Define the event types that your on-chain program emits.
-interface NftMintedEvent {
-  mint: PublicKey;
-}
-
-interface EscrowConfigChangedEvent {
-  new_luxhub_wallet: PublicKey;
-}
-
-interface AdminChangedEvent {
-  action: string;
-  admin: PublicKey;
+interface SaleRequest {
+  nftId: string;
+  timestamp: number;
+  ipfs_pin_hash: string;
 }
 
 const AdminDashboard: React.FC = () => {
   // -----------------------
-  // Hooks for State
+  // State Hooks
   // -----------------------
   const wallet = useWallet();
   const [tabIndex, setTabIndex] = useState<number>(0);
   const [status, setStatus] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // Configuration state.
+  // Configuration state
   const [luxhubWallet, setLuxhubWallet] = useState<string>("");
   const [newLuxhubWallet, setNewLuxhubWallet] = useState<string>("");
   const [currentEscrowConfig, setCurrentEscrowConfig] = useState<string>("");
 
-  // Admin state.
+  // Admin state
   const [adminList, setAdminList] = useState<string[]>([]);
   const [newAdmin, setNewAdmin] = useState<string>("");
   const [removeAdminAddr, setRemoveAdminAddr] = useState<string>("");
 
-  // Additional addresses.
+  // Additional addresses
   const [buyerWallet, setBuyerWallet] = useState<string>(""); // For NFT transfer.
   const [initializerAta, setInitializerAta] = useState<string>(""); // For cancel escrow.
 
-  // Escrow management & logs.
+  // Escrow and logs
   const [activeEscrows, setActiveEscrows] = useState<EscrowAccount[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-  // Loading state.
-  const [loading, setLoading] = useState<boolean>(false);
+  // Sale Requests state
+  const [saleRequests, setSaleRequests] = useState<SaleRequest[]>([]);
 
   // -----------------------
-  // Utility Functions
+  // Program and PDAs
+  // -----------------------
+  const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
+  const escrowConfigPda = useMemo(() => {
+    return program
+      ? PublicKey.findProgramAddressSync([Buffer.from("escrow_config")], program.programId)[0]
+      : null;
+  }, [program]);
+  const adminListPda = useMemo(() => {
+    return program
+      ? PublicKey.findProgramAddressSync([Buffer.from("admin_list")], program.programId)[0]
+      : null;
+  }, [program]);
+
+  // -----------------------
+  // Utility: Logging
   // -----------------------
   const addLog = (action: string, tx: string, message: string) => {
     const timestamp = new Date().toLocaleString();
@@ -93,23 +103,9 @@ const AdminDashboard: React.FC = () => {
     setLogs((prev) => [...prev, newLog]);
   };
 
-  // Memoize the program so it is only re-created when the wallet connects.
-  const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
-
-  // Derive PDAs using the same seeds as on-chain.
-  const escrowConfigPda = useMemo(() => {
-    return program
-      ? PublicKey.findProgramAddressSync([Buffer.from("escrow_config")], program.programId)[0]
-      : null;
-  }, [program]);
-
-  const adminListPda = useMemo(() => {
-    return program
-      ? PublicKey.findProgramAddressSync([Buffer.from("admin_list")], program.programId)[0]
-      : null;
-  }, [program]);
-
-  // Helper: Retry mechanism for RPC calls.
+  // -----------------------
+  // Utility: RPC Retry Helper
+  // -----------------------
   const fetchWithRetry = async (
     fetchFunc: () => Promise<any>,
     retries = 3,
@@ -134,38 +130,32 @@ const AdminDashboard: React.FC = () => {
   // -----------------------
   const fetchConfigAndAdmins = async () => {
     if (!program || !escrowConfigPda || !adminListPda) return;
-
     try {
       const configAccount = await fetchWithRetry(() =>
         (program.account as any).escrowConfig.fetch(escrowConfigPda)
       );
       console.log("Fetched escrow config:", configAccount);
       const luxhubWalletStr =
-        configAccount.luxhubWallet && typeof configAccount.luxhubWallet.toBase58 === "function"
-          ? configAccount.luxhubWallet.toBase58()
-          : configAccount.luxhub_wallet && typeof configAccount.luxhub_wallet.toBase58 === "function"
-          ? configAccount.luxhub_wallet.toBase58()
-          : null;
+        configAccount.luxhubWallet?.toBase58?.() ||
+        configAccount.luxhub_wallet?.toBase58?.() ||
+        null;
       if (luxhubWalletStr) {
         setCurrentEscrowConfig(luxhubWalletStr);
       } else {
-        console.warn("Escrow config not initialized; neither luxhubWallet nor luxhub_wallet found", configAccount);
+        console.warn("Escrow config not initialized", configAccount);
         setCurrentEscrowConfig("Not initialized");
       }
     } catch (e) {
       console.error("Failed to fetch escrow config", e);
     }
-
     try {
       const adminAccountRaw = await fetchWithRetry(() =>
         (program.account as any).adminList.fetch(adminListPda)
       );
       console.log("Fetched admin account:", adminAccountRaw);
-      if (adminAccountRaw && adminAccountRaw.admins) {
+      if (adminAccountRaw?.admins) {
         const adminListStr: string[] = adminAccountRaw.admins
-          .map((admin: any) =>
-            admin && typeof admin.toBase58 === "function" ? admin.toBase58() : ""
-          )
+          .map((admin: any) => admin?.toBase58?.() || "")
           .filter((adminStr: string) => adminStr !== "");
         setAdminList(adminListStr);
       } else {
@@ -197,10 +187,23 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Fetch pending sale requests from API.
+  const fetchSaleRequests = async () => {
+    try {
+      const res = await fetch("/api/nft/pendingRequests");
+      const data = await res.json();
+      setSaleRequests(data);
+      console.log("Fetched sale requests:", data);
+    } catch (error) {
+      console.error("Error fetching sale requests:", error);
+    }
+  };
+
   const refreshData = async () => {
     setLoading(true);
     await fetchConfigAndAdmins();
     await fetchActiveEscrows();
+    await fetchSaleRequests();
     setLoading(false);
   };
 
@@ -230,7 +233,7 @@ const AdminDashboard: React.FC = () => {
   const totalRoyaltyEarned = totalEscrowVolume * 0.03;
 
   // -----------------------
-  // Configuration Actions
+  // Configuration & Admin Actions
   // -----------------------
   const initializeEscrowConfig = async () => {
     if (!wallet.publicKey || !program || !escrowConfigPda) {
@@ -278,9 +281,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // -----------------------
-  // Admin Management Actions
-  // -----------------------
   const addAdmin = async () => {
     if (!wallet.publicKey || !program || !adminListPda) {
       alert("Wallet not connected or program not ready.");
@@ -427,6 +427,54 @@ const AdminDashboard: React.FC = () => {
   };
 
   // -----------------------
+  // New: Approve Sale Action (Client-Side)
+  // -----------------------
+  const handleApproveSale = async (req: SaleRequest) => {
+    try {
+      console.log("Approving sale for request:", req);
+      const gateway = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
+      // 1. Fetch current metadata JSON from IPFS.
+      const ipfsRes = await fetch(`${gateway}${req.ipfs_pin_hash}`);
+      if (!ipfsRes.ok) throw new Error("Failed to fetch metadata from IPFS");
+      const jsonData = await ipfsRes.json();
+      console.log("Fetched JSON metadata:", jsonData);
+      
+      // 2. Update the "Market Status" attribute to "active".
+      let attributes = jsonData.attributes || [];
+      const statusIndex = attributes.findIndex((attr: any) => attr.trait_type === "Market Status");
+      if (statusIndex !== -1) {
+        attributes[statusIndex].value = "active";
+      } else {
+        attributes.push({ trait_type: "Market Status", value: "active" });
+      }
+      jsonData.attributes = attributes;
+      
+      // 3. (Optionally) update price here if needed.
+      
+      // 4. Re-upload the updated metadata JSON to IPFS.
+      const updatedMetadataUri = await uploadToPinata(jsonData, jsonData.name || "Updated NFT Metadata");
+      console.log("Updated metadata uploaded. New URI:", updatedMetadataUri);
+      
+      // 5. Update on-chain metadata via Metaplex using the connected admin wallet.
+      const connection = new Connection(process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com");
+      const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
+      const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(req.nftId) });
+      await metaplex.nfts().update({
+        nftOrSft: nft,
+        uri: updatedMetadataUri,
+      });
+      console.log("On-chain metadata updated for NFT:", req.nftId);
+
+      alert("NFT approved for sale!");
+      // Refresh sale requests.
+      fetchSaleRequests();
+    } catch (error: any) {
+      console.error("Approval error:", error);
+      alert("Approval failed: " + error.message);
+    }
+  };
+
+  // -----------------------
   // Analytics Data
   // -----------------------
   const barChartData = {
@@ -445,7 +493,7 @@ const AdminDashboard: React.FC = () => {
             return acc;
           }, {})
         ),
-        backgroundColor: "rgba(75, 192, 192, 0.6)",
+        backgroundColor: "rgba(176, 144, 252, 0.6)",
       },
     ],
   };
@@ -455,43 +503,10 @@ const AdminDashboard: React.FC = () => {
     datasets: [
       {
         data: [totalRoyaltyEarned, totalEscrowVolume],
-        backgroundColor: ["#36A2EB", "#FF6384"],
+        backgroundColor: ["rgb(176, 144, 252)", "rgb(80, 68, 111)"],
       },
     ],
   };
-
-  // -----------------------
-  // Event Subscriptions for On-Chain Events
-  // -----------------------
-  useEffect(() => {
-    if (!program) return;
-    const nftMintedListener = program.addEventListener(
-      "NftMinted",
-      (event: NftMintedEvent, slot: number) => {
-        console.log("NFT Minted event:", event, slot);
-        addLog("NFT Minted", `Slot: ${slot}`, `Mint: ${event.mint.toBase58()}`);
-      }
-    );
-    const escrowConfigChangedListener = program.addEventListener(
-      "EscrowConfigChanged",
-      (event: EscrowConfigChangedEvent, slot: number) => {
-        console.log("Escrow Config Changed event:", event, slot);
-        addLog("Escrow Config Changed", `Slot: ${slot}`, `New Wallet: ${event.new_luxhub_wallet.toBase58()}`);
-      }
-    );
-    const adminChangedListener = program.addEventListener(
-      "AdminChanged",
-      (event: AdminChangedEvent, slot: number) => {
-        console.log("Admin Changed event:", event, slot);
-        addLog("Admin Changed", `Slot: ${slot}`, `Action: ${event.action} Admin: ${event.admin.toBase58()}`);
-      }
-    );
-    return () => {
-      program.removeEventListener(nftMintedListener);
-      program.removeEventListener(escrowConfigChangedListener);
-      program.removeEventListener(adminChangedListener);
-    };
-  }, [program]);
 
   // -----------------------
   // Render Tab Navigation
@@ -501,23 +516,23 @@ const AdminDashboard: React.FC = () => {
       case 0:
         return (
           <div>
-            <h2>Escrow Configuration</h2>
+            {/* <h2>LUXHUB Smart Wallets</h2> */}
             <div className={styles.inputGroup}>
               <label>Current LuxHub Wallet:</label>
-              <input type="text" value={currentEscrowConfig} readOnly />
+              <div className={styles.luxhubWallet}>{currentEscrowConfig}</div>
             </div>
             <div className={styles.inputGroup}>
               <label>Set LuxHub Wallet:</label>
-              <input type="text" value={luxhubWallet} onChange={(e) => setLuxhubWallet(e.target.value)} />
+              <input type="text" placeholder="Initialize LuxHub Wallet Address" value={luxhubWallet} onChange={(e) => setLuxhubWallet(e.target.value)} />
               <button onClick={initializeEscrowConfig}>Initialize Config</button>
             </div>
             <div className={styles.inputGroup}>
               <label>New LuxHub Wallet:</label>
-              <input type="text" value={newLuxhubWallet} onChange={(e) => setNewLuxhubWallet(e.target.value)} />
+              <input type="text" placeholder="Enter New LuxHub Wallet Address" value={newLuxhubWallet} onChange={(e) => setNewLuxhubWallet(e.target.value)} />
               <button onClick={updateEscrowConfig}>Update Config</button>
             </div>
             <div className={styles.inputGroup}>
-              <h3>Admin List</h3>
+              <label>Admin List</label>
               {adminList.length === 0 ? (
                 <p>No admins found.</p>
               ) : (
@@ -530,12 +545,12 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className={styles.inputGroup}>
               <label>Add Admin (Wallet Address):</label>
-              <input type="text" value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} />
+              <input type="text" placeholder="Enter New Admin Wallet Address" value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} />
               <button onClick={addAdmin}>Add Admin</button>
             </div>
             <div className={styles.inputGroup}>
               <label>Remove Admin (Wallet Address):</label>
-              <input type="text" value={removeAdminAddr} onChange={(e) => setRemoveAdminAddr(e.target.value)} />
+              <input type="text" placeholder="Remove Admin (Enter Admin Wallet Address)" value={removeAdminAddr} onChange={(e) => setRemoveAdminAddr(e.target.value)} />
               <button onClick={removeAdmin}>Remove Admin</button>
             </div>
             <div className={styles.inputGroup}>
@@ -554,8 +569,7 @@ const AdminDashboard: React.FC = () => {
       case 1:
         return (
           <div>
-            <h2>User Management</h2>
-            <p>Admin users (detailed list):</p>
+            <h2>Admin List</h2>
             {adminList.length === 0 ? (
               <p>No admins found.</p>
             ) : (
@@ -648,19 +662,39 @@ const AdminDashboard: React.FC = () => {
             )}
           </div>
         );
+      case 5:
+        return (
+          <div>
+            <h2>Sale Requests</h2>
+            <button onClick={fetchSaleRequests}>Refresh Sale Requests</button>
+            {saleRequests.length === 0 ? (
+              <p>No pending sale requests.</p>
+            ) : (
+              saleRequests.map((req, idx) => (
+                <div key={idx} className={styles.listingCard}>
+                  <p><strong>NFT ID:</strong> {req.nftId}</p>
+                  <p><strong>IPFS Hash:</strong> {req.ipfs_pin_hash}</p>
+                  <p><strong>Requested at:</strong> {new Date(req.timestamp).toLocaleString()}</p>
+                  <button onClick={() => handleApproveSale(req)}>
+                    Approve Sale
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        );
       default:
         return null;
     }
   };
 
   // -----------------------
-  // Render the component with a single return that conditionally renders content.
-  // This avoids changing the number/order of hooks between renders.
+  // Final Render
   // -----------------------
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Admin Dashboard</h1>
+        <h1>Admin.Hub</h1>
       </div>
       {!wallet.publicKey ? (
         <p>Please connect your wallet.</p>
@@ -691,6 +725,9 @@ const AdminDashboard: React.FC = () => {
             </button>
             <button onClick={() => setTabIndex(4)} className={tabIndex === 4 ? styles.activeTab : ""}>
               Transaction Logs
+            </button>
+            <button onClick={() => setTabIndex(5)} className={tabIndex === 5 ? styles.activeTab : ""}>
+              Sale Requests
             </button>
           </div>
           <div className={styles.content}>{renderTabContent()}</div>

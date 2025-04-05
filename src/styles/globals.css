@@ -49,9 +49,19 @@ a {
   border-style:solid;
   border-color: var(--border);
   border-radius: 5px;
-  padding: 5px;
-  width: 100px;
-  font-size:xx-small;
+  padding: 0px 0px;
+  width: 100%;
+  font-size:xxx-small;
+}
+
+.wallet-adapter-button-trigger {
+  background-color: #00000000;
+  border: 1px;
+  border-style:solid;
+  border-color: var(--border);
+  border-radius: 5px;
+  padding: 0px 0px;
+  width: 100%;
 }
 
 .wallet-adapter-dropdown-list {
