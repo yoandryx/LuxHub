@@ -12,7 +12,7 @@ if (typeof (globalThis as any).nodeCrypto === 'undefined') {
 import { AppProps } from "next/app";
 import Head from "next/head";
 import React, { useEffect, useState, useMemo } from "react";
-import { EscrowProvider } from "../context/src/EscrowContext"; 
+// import { EscrowProvider } from "../context/src/EscrowContext"; 
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import WalletNavbar from "../components/common/WalletNavbar";
@@ -53,12 +53,12 @@ const App = ({ Component, pageProps }: AppProps) => {
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
-            <EscrowProvider>
+            {/* <EscrowProvider> */}
               <Navbar />
               <WalletNavbar />
               <Component {...pageProps} />
               <Footer />
-            </EscrowProvider>
+            {/* </EscrowProvider> */}
           </WalletModalProvider>
         </WalletProvider>
       </ConnectionProvider>
