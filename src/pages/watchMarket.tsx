@@ -8,7 +8,6 @@ import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
 import styles from "../styles/WatchMarket.module.css";
 
-// Define the NFT interface
 interface NFT {
   title: string;
   description: string;
@@ -20,24 +19,20 @@ interface NFT {
   marketStatus: string;
 }
 
-// Funds token mint address
 const FUNDS_MINT = "So11111111111111111111111111111111111111112";
-
-// Helper: delay in milliseconds (to ease RPC rate limits)
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const Marketplace = () => {
   const wallet = useWallet();
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [selectedMetadataUri, setSelectedMetadataUri] = useState<string | null>(null);
 
-  // Build the connection (Devnet by default).
+  // Devnet connection
   const connection = useMemo(
     () => new Connection(process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"),
     []
   );
 
-  // Build Metaplex instance.
   const metaplex = useMemo(() => {
     if (wallet.publicKey) {
       return Metaplex.make(connection).use(walletAdapterIdentity(wallet));
@@ -45,13 +40,12 @@ const Marketplace = () => {
     return null;
   }, [wallet.publicKey, connection]);
 
-  // Build our program instance if wallet is connected.
   const program = useMemo(() => {
     return wallet.publicKey ? getProgram(wallet) : null;
   }, [wallet.publicKey]);
 
   // ------------------------------------------------
-  // 1) Fetch NFTs from Pinata, filter by "Market Status = active"
+  // 1. Fetch NFTs from Pinata, show only "active" ones
   // ------------------------------------------------
   useEffect(() => {
     if (!wallet.publicKey) return;
@@ -68,13 +62,10 @@ const Marketplace = () => {
         const seenMintAddresses = new Set<string>();
         const nftList: NFT[] = [];
 
-        // Process each NFT sequentially to help avoid rate limits.
         for (const nftItem of data) {
           const ipfsHash = nftItem.ipfs_pin_hash;
           try {
             console.log(`🔗 Processing IPFS hash: ${ipfsHash}`);
-
-            // Get the pinned metadata JSON from your gateway.
             const pinnedRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`);
             if (!pinnedRes.ok) {
               console.warn(`⚠️ Skipping ${ipfsHash}: Response not OK`);
@@ -82,20 +73,17 @@ const Marketplace = () => {
             }
             const pinnedData = await pinnedRes.json();
 
-            // Ensure a unique mintAddress is present.
             if (!pinnedData.mintAddress) {
-              console.warn(`⚠️ Skipping NFT from ${ipfsHash} because mintAddress is missing`);
+              console.warn(`⚠️ No mintAddress in pinned data for ${ipfsHash}`);
               continue;
             }
             if (seenMintAddresses.has(pinnedData.mintAddress)) {
-              console.warn(
-                `⚠️ Skipping duplicate NFT with mintAddress: ${pinnedData.mintAddress}`
-              );
+              console.warn(`⚠️ Duplicate mintAddress: ${pinnedData.mintAddress}`);
               continue;
             }
             seenMintAddresses.add(pinnedData.mintAddress);
 
-            // Use Metaplex to fetch on-chain metadata.
+            // Attempt to fetch on-chain
             if (!metaplex) continue;
             let onChainNFT;
             try {
@@ -103,28 +91,24 @@ const Marketplace = () => {
                 mintAddress: new PublicKey(pinnedData.mintAddress),
               });
             } catch (onChainError) {
-              console.warn(
-                `⚠️ No on‑chain metadata found for mint ${pinnedData.mintAddress}`,
-                onChainError
-              );
+              console.warn(`⚠️ No on-chain metadata for mint ${pinnedData.mintAddress}`, onChainError);
               continue;
             }
 
             const updatedMetadata = onChainNFT.json;
             if (!updatedMetadata) {
-              console.warn(`⚠️ On‑chain metadata is null for mint ${pinnedData.mintAddress}`);
+              console.warn(`⚠️ On-chain metadata is null for ${pinnedData.mintAddress}`);
               continue;
             }
 
             const marketStatus =
-              updatedMetadata.attributes?.find(
-                (attr: any) => attr.trait_type === "Market Status"
-              )?.value || "inactive";
+              updatedMetadata.attributes?.find((attr: any) => attr.trait_type === "Market Status")
+                ?.value || "inactive";
 
-            // Only show NFTs that are "active".
+            // Only show "active"
             if (marketStatus !== "active") continue;
 
-            // Optional short delay to avoid rate limiting.
+            // Rate-limit delay
             await delay(250);
 
             nftList.push({
@@ -135,13 +119,12 @@ const Marketplace = () => {
               mintAddress: pinnedData.mintAddress,
               metadataUri: onChainNFT.uri,
               currentOwner:
-                updatedMetadata.attributes?.find(
-                  (attr: any) => attr.trait_type === "Provenance"
-                )?.value || "",
+                updatedMetadata.attributes?.find((attr: any) => attr.trait_type === "Provenance")
+                  ?.value || "",
               marketStatus,
             });
           } catch (err) {
-            console.error(`❌ Error processing NFT for IPFS hash ${ipfsHash}:`, err);
+            console.error(`❌ Error processing NFT with IPFS hash ${ipfsHash}:`, err);
           }
         }
 
@@ -155,14 +138,13 @@ const Marketplace = () => {
     };
 
     fetchNFTs();
-
     return () => {
       isCancelled = true;
     };
   }, [wallet.publicKey, metaplex]);
 
   // ------------------------------------------------
-  // 2) Purchase Handler
+  // 2. Purchase Handler
   // ------------------------------------------------
   const handlePurchase = async (nft: NFT) => {
     if (!wallet.publicKey || !program) {
@@ -172,25 +154,21 @@ const Marketplace = () => {
     if (!window.confirm(`Purchase ${nft.title} for ${nft.priceSol} SOL?`)) return;
 
     try {
-      const buyerAta = await getAssociatedTokenAddress(
-        new PublicKey(FUNDS_MINT),
-        wallet.publicKey
-      );
+      const buyerAta = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), wallet.publicKey);
       const sellerAta = await getAssociatedTokenAddress(
         new PublicKey(FUNDS_MINT),
         new PublicKey(nft.currentOwner)
       );
 
-      // Attempt to find the escrow with mintB matching `nft.mintAddress`.
+      // Find escrow by matching mintB
       const escrowAccounts = await (program.account as any).escrow.all([
         {
           memcmp: {
-            offset: 113, // Might differ in your layout
+            offset: 113, 
             bytes: nft.mintAddress,
           },
         },
       ]);
-
       if (escrowAccounts.length === 0) {
         throw new Error("No escrow account found for this NFT.");
       }
@@ -198,14 +176,9 @@ const Marketplace = () => {
         throw new Error("Multiple escrow accounts found for this NFT.");
       }
       const escrowPda = escrowAccounts[0].publicKey;
+      const vaultAta = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
 
-      const vaultAta = await getAssociatedTokenAddress(
-        new PublicKey(FUNDS_MINT),
-        escrowPda,
-        true
-      );
-
-      // Call the exchange method on your program to finalize the purchase.
+      // Exchange
       const tx = await program.methods
         .exchange()
         .accounts({
@@ -214,7 +187,7 @@ const Marketplace = () => {
           mintA: new PublicKey(FUNDS_MINT),
           mintB: new PublicKey(nft.mintAddress),
           takerAtaA: buyerAta,
-          takerAtaB: buyerAta, // If you have a separate NFT ATA, update here.
+          takerAtaB: buyerAta,
           initializerAtaB: sellerAta,
           escrow: escrowPda,
           vault: vaultAta,
@@ -224,8 +197,8 @@ const Marketplace = () => {
         })
         .rpc();
 
-      alert("Purchase successful! Transaction: " + tx);
-      // Optionally re-fetch or remove this NFT from the UI.
+      alert("Purchase successful! Tx: " + tx);
+      // Optionally, refresh the UI here
     } catch (error: any) {
       console.error("❌ Purchase error:", error);
       alert("Purchase failed: " + error.message);
@@ -233,7 +206,7 @@ const Marketplace = () => {
   };
 
   // ------------------------------------------------
-  // 3) Render
+  // 3. Render
   // ------------------------------------------------
   return (
     <div className={styles.container}>
@@ -255,9 +228,7 @@ const Marketplace = () => {
                 <h3 className={styles.nftTitle}>{nft.title}</h3>
                 <p className={styles.creator}>
                   Creator:{" "}
-                  {nft.currentOwner
-                    ? nft.currentOwner.slice(0, 6) + "..."
-                    : "Unknown"}
+                  {nft.currentOwner ? nft.currentOwner.slice(0, 6) + "..." : "Unknown"}
                 </p>
                 <p>Price: {nft.priceSol} SOL</p>
                 <p className={styles.description}>{nft.description}</p>
@@ -275,7 +246,7 @@ const Marketplace = () => {
       {selectedMetadataUri && (
         <div className={styles.overlay}>
           <div className={styles.detailContainer}>
-            <button onClick={() => setSelectedMetadataUri(null)}>X</button>
+            <button onClick={() => setSelectedMetadataUri(null)}>Close</button>
             <NftDetailCard metadataUri={selectedMetadataUri} />
           </div>
         </div>
