@@ -2,7 +2,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import type { WalletAdapter } from "@solana/wallet-adapter-base";
-import { uploadToPinata } from "./pinata"; // Adjust path if needed
 
 export interface NFTMetadata {
   name: string;

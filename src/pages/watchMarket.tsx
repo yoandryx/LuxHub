@@ -1,9 +1,9 @@
 // src/pages/watchMarket.tsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, Connection, SystemProgram } from "@solana/web3.js";
+import { PublicKey, Connection, SystemProgram, TransactionInstruction } from "@solana/web3.js";
 import { getProgram } from "../utils/programUtils";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
+import { createAssociatedTokenAccountInstruction, getAssociatedTokenAddress } from "@solana/spl-token";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
 import styles from "../styles/WatchMarket.module.css";
@@ -108,6 +108,13 @@ const Marketplace = () => {
             // Only show "active"
             if (marketStatus !== "active") continue;
 
+            // Extract the "Price" attribute from the metadata attributes array.
+            const priceAttr = updatedMetadata.attributes?.find(
+              (attr: any) => attr.trait_type === "Price"
+            );
+            const priceAttrValue = typeof priceAttr?.value === "string" ? priceAttr.value : "0";
+            const extractedPriceSol = parseFloat(priceAttrValue);
+
             // Rate-limit delay
             await delay(250);
 
@@ -115,7 +122,7 @@ const Marketplace = () => {
               title: updatedMetadata.name || "Untitled",
               description: updatedMetadata.description || "No description provided.",
               image: updatedMetadata.image || "",
-              priceSol: pinnedData.priceSol ? parseFloat(pinnedData.priceSol) : 0,
+              priceSol: extractedPriceSol,
               mintAddress: pinnedData.mintAddress,
               metadataUri: onChainNFT.uri,
               currentOwner:
@@ -154,9 +161,46 @@ const Marketplace = () => {
     if (!window.confirm(`Purchase ${nft.title} for ${nft.priceSol} SOL?`)) return;
 
     try {
-      const buyerAta = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), wallet.publicKey);
-      const sellerAta = await getAssociatedTokenAddress(
+      // Buyer’s Funds ATA
+      const buyerFundsAta = await getAssociatedTokenAddress(
         new PublicKey(FUNDS_MINT),
+        wallet.publicKey
+      );
+      let createBuyerFundsAtaIx: TransactionInstruction | null = null;
+      const buyerFundsAtaInfo = await connection.getAccountInfo(buyerFundsAta);
+      if (!buyerFundsAtaInfo) {
+        console.log("Buyer funds ATA not found; Creating new ATA...");
+        createBuyerFundsAtaIx = createAssociatedTokenAccountInstruction(
+          wallet.publicKey,
+          buyerFundsAta,
+          wallet.publicKey,
+          new PublicKey(FUNDS_MINT)
+        );
+      }
+
+      // Buyer’s NFT ATA
+      const nftMint = new PublicKey(nft.mintAddress);
+      const buyerNftAta = await getAssociatedTokenAddress(nftMint, wallet.publicKey);
+      let createBuyerNftAtaIx: TransactionInstruction | null = null;
+      const buyerNftAtaInfo = await connection.getAccountInfo(buyerNftAta);
+      if (!buyerNftAtaInfo) {
+        console.log("Buyer NFT ATA not found; Creating new ATA...");
+        createBuyerNftAtaIx = createAssociatedTokenAccountInstruction(
+          wallet.publicKey,
+          buyerNftAta,
+          wallet.publicKey,
+          nftMint
+        );
+      }
+
+      // Consolidate pre-instructions (only one check per ATA)
+      const preIx: TransactionInstruction[] = [];
+      if (createBuyerFundsAtaIx) preIx.push(createBuyerFundsAtaIx);
+      if (createBuyerNftAtaIx) preIx.push(createBuyerNftAtaIx);
+
+      // Derive seller NFT ATA
+      const sellerNftAta = await getAssociatedTokenAddress(
+        nftMint,
         new PublicKey(nft.currentOwner)
       );
 
@@ -164,7 +208,7 @@ const Marketplace = () => {
       const escrowAccounts = await (program.account as any).escrow.all([
         {
           memcmp: {
-            offset: 113, 
+            offset: 113,
             bytes: nft.mintAddress,
           },
         },
@@ -178,17 +222,18 @@ const Marketplace = () => {
       const escrowPda = escrowAccounts[0].publicKey;
       const vaultAta = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
 
-      // Exchange
+      // Call the exchange instruction with any pre-instructions for ATA creation.
       const tx = await program.methods
         .exchange()
+        .preInstructions(preIx)
         .accounts({
           taker: wallet.publicKey,
           initializer: new PublicKey(nft.currentOwner),
           mintA: new PublicKey(FUNDS_MINT),
           mintB: new PublicKey(nft.mintAddress),
-          takerAtaA: buyerAta,
-          takerAtaB: buyerAta,
-          initializerAtaB: sellerAta,
+          takerAtaA: buyerFundsAta,
+          takerAtaB: buyerNftAta,
+          initializerAtaB: sellerNftAta,
           escrow: escrowPda,
           vault: vaultAta,
           associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
@@ -198,7 +243,6 @@ const Marketplace = () => {
         .rpc();
 
       alert("Purchase successful! Tx: " + tx);
-      // Optionally, refresh the UI here
     } catch (error: any) {
       console.error("❌ Purchase error:", error);
       alert("Purchase failed: " + error.message);
@@ -227,8 +271,7 @@ const Marketplace = () => {
               <div className={styles.nftDetails}>
                 <h3 className={styles.nftTitle}>{nft.title}</h3>
                 <p className={styles.creator}>
-                  Creator:{" "}
-                  {nft.currentOwner ? nft.currentOwner.slice(0, 6) + "..." : "Unknown"}
+                  Creator: {nft.currentOwner ? nft.currentOwner.slice(0, 6) + "..." : "Unknown"}
                 </p>
                 <p>Price: {nft.priceSol} SOL</p>
                 <p className={styles.description}>{nft.description}</p>
