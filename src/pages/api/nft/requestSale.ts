@@ -1,4 +1,3 @@
-// src/pages/api/nft/requestSale.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import dbConnect from "../../../lib/database/mongodb";
 import SaleRequestModel from "../../../lib/models/SaleRequest";
@@ -9,16 +8,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  // Destructure required fields from the request body.
-  const { 
-    nftId, 
-    ipfs_pin_hash, 
-    seller, 
+  const {
+    nftId,
+    ipfs_pin_hash,
+    seller,
     seed,
-    initializerAmount, 
-    takerAmount, 
-    fileCid, 
-    salePrice 
+    initializerAmount,
+    takerAmount,
+    fileCid,
+    salePrice,
+    buyer // ⬅️ Optional
   } = req.body;
 
   if (
@@ -36,11 +35,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Connect to MongoDB.
     await dbConnect();
 
-    // Create and save the new sale request.
-    await SaleRequestModel.create({
+    const requestDoc: any = {
       nftId,
       ipfs_pin_hash,
       seller,
@@ -50,7 +47,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       fileCid,
       salePrice,
       timestamp: Date.now(),
-    });
+      marketStatus: "pending",
+    };
+
+    if (buyer) {
+      requestDoc.buyer = buyer;
+    }
+
+    await SaleRequestModel.create(requestDoc);
 
     res.status(200).json({ message: "Sale request received" });
   } catch (error) {

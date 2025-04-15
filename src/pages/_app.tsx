@@ -24,6 +24,8 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { SolflareWalletAdapter, PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import '@solana/wallet-adapter-react-ui/styles.css';
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 
 // Network URL
 const network = WalletAdapterNetwork.Devnet;
@@ -55,6 +57,7 @@ const App = ({ Component, pageProps }: AppProps) => {
           <WalletModalProvider>
             {/* <EscrowProvider> */}
               <Navbar />
+              <ToastContainer position="top-right" autoClose={4000} />
               <WalletNavbar />
               <Component {...pageProps} />
               <Footer />

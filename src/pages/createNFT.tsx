@@ -102,39 +102,39 @@ const CreateNFT = () => {
   // ------------------------------------------------
   // 4. Request Sale Handler
   // ------------------------------------------------
-  const handleSaleRequest = async (nftId: string, ipfs_pin_hash?: string) => {
-    if (!ipfs_pin_hash) {
-      console.error("No ipfs_pin_hash provided. Cannot request sale.");
-      return;
-    }
-    if (!wallet.publicKey) {
-      console.error("Wallet not connected. Cannot request sale.");
-      return;
-    }
-    try {
-      const uniqueSeed = Date.now();
-      const payload = {
-        nftId,
-        ipfs_pin_hash,
-        seller: wallet.publicKey.toBase58(),
-        seed: uniqueSeed,
-        initializerAmount: priceSol,
-        takerAmount: 0,
-        fileCid,
-        salePrice: priceSol,
-      };
-      const res = await fetch("/api/nft/requestSale", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Request failed");
-      setSaleRequestSent((prev) => ({ ...prev, [nftId]: true }));
-      console.log("Sale request succeeded for seed:", uniqueSeed);
-    } catch (error) {
-      console.error("Sale request error:", error);
-    }
-  };
+  // const handleSaleRequest = async (nftId: string, ipfs_pin_hash?: string) => {
+  //   if (!ipfs_pin_hash) {
+  //     console.error("No ipfs_pin_hash provided. Cannot request sale.");
+  //     return;
+  //   }
+  //   if (!wallet.publicKey) {
+  //     console.error("Wallet not connected. Cannot request sale.");
+  //     return;
+  //   }
+  //   try {
+  //     const uniqueSeed = Date.now();
+  //     const payload = {
+  //       nftId,
+  //       ipfs_pin_hash,
+  //       seller: wallet.publicKey.toBase58(),
+  //       seed: uniqueSeed,
+  //       initializerAmount: priceSol,
+  //       takerAmount: 0,
+  //       fileCid,
+  //       salePrice: priceSol
+  //     };
+  //     const res = await fetch("/api/nft/requestSale", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(payload),
+  //     });
+  //     if (!res.ok) throw new Error("Request failed");
+  //     setSaleRequestSent((prev) => ({ ...prev, [nftId]: true }));
+  //     console.log("Sale request succeeded for seed:", uniqueSeed);
+  //   } catch (error) {
+  //     console.error("Sale request error:", error);
+  //   }
+  // };
 
   // Update typed input for NFT transfer
   const handleTransferInputChange = (key: string, value: string) => {
@@ -363,7 +363,20 @@ const CreateNFT = () => {
       // Retrieve the minted NFT's JSON, store in mintedNFTs
       setStatusMessage("Fetching NFT metadata...");
       const mintAddress = mintKeypair.publicKey;
-      const fetchedNft = await metaplex.nfts().findByMint({ mintAddress });
+      const fetchWithRetry = async (retries = 10, delayMs = 1500) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const nft = await metaplex.nfts().findByMint({ mintAddress });
+            return nft;
+          } catch (err) {
+            console.warn(`Retry ${i + 1}/${retries} - Metadata not found yet`);
+            await new Promise((res) => setTimeout(res, delayMs));
+          }
+        }
+        throw new Error("Failed to fetch NFT metadata after multiple retries.");
+      };
+      
+      const fetchedNft = await fetchWithRetry();      
       if (!fetchedNft.json) {
         throw new Error("Fetched NFT metadata is null");
       }
@@ -645,22 +658,6 @@ const CreateNFT = () => {
                     <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
                       View Details
                     </button>
-                    {nft.mintAddress && (
-                      <button
-                        onClick={() => {
-                          if (nft.mintAddress && nft.ipfs_pin_hash) {
-                            handleSaleRequest(nft.mintAddress, nft.ipfs_pin_hash);
-                          } else {
-                            alert("No valid mint address or IPFS hash available.");
-                          }
-                        }}
-                      >
-                        Request NFT Sale
-                      </button>
-                    )}
-                    {nft.mintAddress && saleRequestSent[nft.mintAddress] && (
-                      <p>Sale request submitted. Await admin approval.</p>
-                    )}
                   </div>
                 );
               })

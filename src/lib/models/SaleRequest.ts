@@ -11,6 +11,12 @@ const SaleRequestSchema = new mongoose.Schema({
   fileCid: { type: String, required: true },
   salePrice: { type: Number, required: true },
   timestamp: { type: Number, required: true },
+  buyer: { type: String, required: false },
+  marketStatus: {
+    type: String,
+    enum: ["pending", "active", "sold", "rejected"],
+    default: "pending",
+  }
 });
 
 // If the model already exists, reuse it.

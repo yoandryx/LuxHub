@@ -1,4 +1,4 @@
-// src/pages/adminDashboard.tsx
+// src/pages/AdminDashboard.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
@@ -22,12 +22,14 @@ import {
 } from "chart.js";
 import {
   getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { uploadToPinata } from "../utils/pinata";
-import { updateNftMetadata } from "../utils/metadata";  // We'll reference updateNftMetadata
+import { updateNftMetadata } from "../utils/metadata";
 import styles from "../styles/AdminDashboard.module.css";
+import { toast } from "react-toastify";
+
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -39,16 +41,27 @@ interface LogEntry {
 }
 
 interface SaleRequest {
-  nftId: string;          // Mint address
-  seller: string;         // Seller's wallet
-  seed: number;           // Unique seed for the escrow
-  initializerAmount: number; // SOL
-  takerAmount: number;        // SOL
+  nftId: string; // NFT mint address
+  seller: string; // Seller wallet
+  seed: number;
+  initializerAmount: number;
+  takerAmount: number;
   fileCid: string;
-  salePrice: number;      // SOL
+  salePrice: number;
   ipfs_pin_hash?: string;
   timestamp: number;
+  luxhubWallet: string;
+  buyer: string; // Buyer wallet
+  marketStatus?: string;
 }
+
+interface SaleRequestsResponse {
+  saleRequests: SaleRequest[];
+  page: number;
+  totalPages: number;
+  totalCount: number;
+}
+
 
 interface EscrowAccount {
   seed: number;
@@ -60,15 +73,20 @@ interface EscrowAccount {
   file_cid: string;
   mintA: string;
   mintB: string;
+
+  // ✅ New optional fields added by enriched fetch logic
+  name?: string;
+  image?: string;
+  description?: string;
+  vaultATA?: string;
+  attributes?: { trait_type: string; value: string }[];
 }
+
 
 const FUNDS_MINT = "So11111111111111111111111111111111111111112";
 const LAMPORTS_PER_SOL = 1_000_000_000;
+const PLACEHOLDER_BUYER = new PublicKey("11111111111111111111111111111111");
 
-/**
- * Force a new CID by re-uploading the JSON with updatedAt
- * Then update it on chain with updateNftMetadata
- */
 const updateNFTMarketStatus = async (
   mintAddress: string,
   newMarketStatus: string,
@@ -81,33 +99,23 @@ const updateNFTMarketStatus = async (
     );
     const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
 
-    // 1) Fetch on-chain NFT
     console.log("[updateNFTMarketStatus] Fetching on-chain NFT for mint:", mintAddress);
     const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mintAddress) });
     console.log("[updateNFTMarketStatus] Retrieved NFT data:", nft);
 
-    // 2) Fetch off-chain metadata
     console.log("[updateNFTMarketStatus] Fetching current metadata JSON from:", nft.uri);
     const res = await fetch(nft.uri);
-    if (!res.ok) {
-      throw new Error("Failed to fetch current metadata");
-    }
+    if (!res.ok) throw new Error("Failed to fetch current metadata");
     const metadata = await res.json();
     console.log("[updateNFTMarketStatus] Current metadata JSON:", metadata);
 
-    // 3) Update Market Status
     if (!metadata.attributes || !Array.isArray(metadata.attributes)) {
       metadata.attributes = [];
     }
     let updated = false;
     metadata.attributes = metadata.attributes.map((attr: any) => {
       if (attr.trait_type === "Market Status") {
-        console.log(
-          "[updateNFTMarketStatus] Changing Market Status from",
-          attr.value,
-          "to",
-          newMarketStatus
-        );
+        console.log("[updateNFTMarketStatus] Changing Market Status from", attr.value, "to", newMarketStatus);
         updated = true;
         return { ...attr, value: newMarketStatus };
       }
@@ -118,26 +126,19 @@ const updateNFTMarketStatus = async (
       metadata.attributes.push({ trait_type: "Market Status", value: newMarketStatus });
     }
 
-    // Force new CID
     metadata.updatedAt = new Date().toISOString();
     console.log("[updateNFTMarketStatus] Final metadata JSON with updatedAt:", metadata);
 
-    // 4) Re-upload
     console.log("[updateNFTMarketStatus] Uploading updated metadata JSON to Pinata...");
     const newUri = await uploadToPinata(metadata, metadata.name || "Updated NFT Metadata");
     console.log("[updateNFTMarketStatus] New metadata URI:", newUri);
 
-    // 5) Optionally rename NFT to indicate status
     const newName = nft.name.endsWith("(Active)") ? nft.name : nft.name + " (Active)";
     console.log("[updateNFTMarketStatus] New name to update:", newName);
 
-    // 6) On-chain update
     console.log("[updateNFTMarketStatus] Sending updateNftMetadata transaction with {uri, name}...");
     await updateNftMetadata(wallet as any, mintAddress, { uri: newUri, name: newName } as any);
-    console.log(
-      "[updateNFTMarketStatus] On-chain NFT metadata update complete. Market Status set to:",
-      newMarketStatus
-    );
+    console.log("[updateNFTMarketStatus] On-chain NFT metadata update complete. Market Status set to:", newMarketStatus);
   } catch (error) {
     console.error("[updateNFTMarketStatus] Failed to update NFT market status:", error);
   }
@@ -158,14 +159,19 @@ const AdminDashboard: React.FC = () => {
   const [removeAdminAddr, setRemoveAdminAddr] = useState<string>("");
 
   const [buyerWallet, setBuyerWallet] = useState<string>("");
-  const [initializerAta, setInitializerAta] = useState<string>("");
 
   const [saleRequests, setSaleRequests] = useState<SaleRequest[]>([]);
   const [activeEscrows, setActiveEscrows] = useState<EscrowAccount[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-  // Program & PDAs
+  const [dynamicSeeds, setDynamicSeeds] = useState<Map<string, number>>(new Map());
+  const [vaultAddresses, setVaultAddresses] = useState<{ [seed: string]: string }>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLastPage, setIsLastPage] = useState(false);
+  const [sellerFilter, setSellerFilter] = useState("");
+
+
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
   const escrowConfigPda = useMemo(() => {
     return program
@@ -178,7 +184,6 @@ const AdminDashboard: React.FC = () => {
       : null;
   }, [program]);
 
-  // Log helper
   const addLog = (action: string, tx: string, message: string) => {
     const timestamp = new Date().toLocaleString();
     const newLog: LogEntry = { timestamp, action, tx, message };
@@ -186,7 +191,6 @@ const AdminDashboard: React.FC = () => {
     setLogs((prev) => [...prev, newLog]);
   };
 
-  // RPC Retry
   const fetchWithRetry = async (
     fetchFunc: () => Promise<any>,
     retries = 3,
@@ -206,7 +210,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Fetch config & admins
   const fetchConfigAndAdmins = async () => {
     if (!program || !escrowConfigPda || !adminListPda) return;
     try {
@@ -245,47 +248,198 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Fetch active escrows
-  const fetchActiveEscrows = async () => {
+  const fetchActiveEscrows = async (mintFilter?: string) => {
     if (!program) return;
+  
     try {
-      const escrows = await (program.account as any).escrow.all();
-      const mapped = escrows.map((acc: any) => ({
-        seed: acc.account.seed,
-        initializer: acc.account.initializer.toBase58(),
-        luxhub_wallet: acc.account.luxhub_wallet ? acc.account.luxhub_wallet.toBase58() : "",
-        initializer_amount: acc.account.initializer_amount
-          ? acc.account.initializer_amount.toString()
-          : "0",
-        taker_amount: acc.account.taker_amount ? acc.account.taker_amount.toString() : "0",
-        salePrice: acc.account.sale_price ? acc.account.sale_price.toString() : "0",
-        file_cid: acc.account.file_cid || "",
-        mintA: acc.account.mint_a ? acc.account.mint_a.toBase58() : "",
-        mintB: acc.account.mint_b ? acc.account.mint_b.toBase58() : "",
-      }));
-      setActiveEscrows(mapped);
-      console.log("[fetchActiveEscrows] Fetched active escrows:", mapped);
+      const rawEscrows = await (program.account as any).escrow.all();
+      console.log("🔍 Raw Escrows from chain:", rawEscrows);
+  
+      // Filter valid escrows by status and mint
+      const active = rawEscrows.filter((acc: any) => {
+        const notCompleted = !acc.account.isCompleted;
+        const hasSeed = acc.account.seed > 0;
+        const mintB = acc.account.mint_b?.toBase58?.();
+        const matchesMint = mintFilter ? mintB === mintFilter : true;
+        return notCompleted && hasSeed && mintB && matchesMint;
+      });
+  
+      const enriched = await Promise.all(
+        active.map(async (acc: any) => {
+          try {
+            const seed = acc.account.seed;
+            const initializer = acc.account.initializer?.toBase58?.() || "";
+            const mintB = acc.account.mint_b?.toBase58?.();
+  
+            if (!mintB || !PublicKey.isOnCurve(new PublicKey(mintB))) {
+              console.warn("[fetchActiveEscrows] Skipping escrow with invalid mintB:", mintB);
+              return null;
+            }
+  
+            const [escrowPda] = PublicKey.findProgramAddressSync(
+              [Buffer.from("state"), new BN(seed).toArrayLike(Buffer, "le", 8)],
+              program.programId
+            );
+  
+            const vault = await getAssociatedTokenAddress(
+              new PublicKey(mintB),
+              escrowPda,
+              true
+            );
+  
+            // Load metadata
+            const pinataGateway = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
+            const fileCid = acc.account.file_cid;
+            const metadataUri = pinataGateway + fileCid;
+  
+            let metadata: any = {};
+            try {
+              const res = await fetch(metadataUri);
+              metadata = res.ok ? await res.json() : {
+                name: "Pending NFT",
+                description: "Awaiting metadata",
+                attributes: [],
+              };
+            } catch (err) {
+              console.warn("[fetchActiveEscrows] Fallback metadata used for", mintB, err);
+              metadata = {
+                name: "Unfetched NFT",
+                description: "Error fetching metadata",
+                attributes: [],
+              };
+            }
+  
+            return {
+              seed,
+              initializer,
+              mintB,
+              file_cid: fileCid,
+              vaultATA: vault.toBase58(),
+              initializer_amount: acc.account.initializer_amount?.toString?.() || "0",
+              taker_amount: acc.account.taker_amount?.toString?.() || "0",
+              salePrice: acc.account.sale_price?.toString?.() || "0",
+              name: metadata.name || "Unknown NFT",
+              image: metadata.image || "",
+              description: metadata.description || "",
+              attributes: metadata.attributes || [],
+            };
+          } catch (err) {
+            console.error("[fetchActiveEscrows] Skipping failed escrow fetch:", err);
+            return null;
+          }
+        })
+      );
+  
+      setActiveEscrows(enriched.filter(Boolean));
+      console.log("[fetchActiveEscrows] Loaded enriched active escrows:", enriched);
     } catch (e) {
-      console.error("[fetchActiveEscrows] Failed to fetch active escrows", e);
+      console.error("[fetchActiveEscrows] Failed to fetch enriched active escrows:", e);
     }
   };
 
-  // Fetch sale requests
-  const fetchSaleRequests = async () => {
+  const fetchActiveEscrowsByMint = async () => {
     try {
-      const res = await fetch("/api/nft/pendingRequests");
-      const data = await res.json();
-      setSaleRequests(data);
-      console.log("[fetchSaleRequests] Fetched sale requests:", data);
-    } catch (error) {
-      console.error("[fetchSaleRequests] Error fetching sale requests:", error);
+      const res = await fetch("/api/nft/activeEscrowsByMint");
+      const escrows = await res.json();
+  
+      const enriched = await Promise.all(
+        escrows.map(async (escrow: any) => {
+          const seed = escrow.seed;
+          const mintB = escrow.nftId;
+          const pinataGateway =
+            process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
+          const metadataUri = pinataGateway + escrow.fileCid;
+  
+          let metadata: any = {};
+          try {
+            const metaRes = await fetch(metadataUri);
+            metadata = metaRes.ok
+              ? await metaRes.json()
+              : {
+                  name: "Pending NFT",
+                  description: "Awaiting metadata",
+                  attributes: [],
+                };
+          } catch (err) {
+            console.warn("[fetchActiveEscrowsByMint] Failed metadata fetch", mintB, err);
+            metadata = {
+              name: "Unfetched NFT",
+              description: "Error fetching metadata",
+              attributes: [],
+            };
+          }
+  
+          // 🔐 Generate PDA & Vault ATA (based on seed and mintB)
+          let vaultATA = "";
+          try {
+            if (!program) return null;
+
+            const [escrowPda] = PublicKey.findProgramAddressSync(
+              [Buffer.from("state"), new BN(seed).toArrayLike(Buffer, "le", 8)],
+              program.programId
+            );
+
+            const vault = await getAssociatedTokenAddress(
+              new PublicKey(mintB),
+              escrowPda,
+              true
+            );
+            vaultATA = vault.toBase58();
+          } catch (e) {
+            console.warn("[fetchActiveEscrowsByMint] Vault ATA generation failed", e);
+          }
+  
+          return {
+            seed,
+            initializer: escrow.seller,
+            mintB,
+            file_cid: escrow.fileCid,
+            initializer_amount: escrow.initializerAmount?.toString() || "0",
+            taker_amount: escrow.takerAmount?.toString() || "0",
+            salePrice: escrow.salePrice?.toString() || "0",
+            name: metadata.name || "Unknown NFT",
+            image: metadata.image || "",
+            description: metadata.description || "",
+            attributes: metadata.attributes || [],
+            vaultATA, // ✅ add it to the enriched data
+          };
+        })
+      );
+  
+      setActiveEscrows(enriched.filter(Boolean));
+      console.log("[fetchActiveEscrowsByMint] Enriched:", enriched);
+    } catch (err) {
+      console.error("[fetchActiveEscrowsByMint] Error:", err);
     }
   };
+
+  const fetchSaleRequests = async (page = 1, seller = "") => {
+    try {
+      const res = await fetch(`/api/nft/pendingRequests?page=${page}&seller=${seller}`);
+      const data: SaleRequestsResponse = await res.json();
+  
+      if (!data || !Array.isArray(data.saleRequests)) {
+        console.error("Invalid response format:", data);
+        return;
+      }
+  
+      setSaleRequests(data.saleRequests);
+      setCurrentPage(data.page || page);
+      setIsLastPage(data.page >= data.totalPages); // 🔍 accurate last page check
+    } catch (err) {
+      console.error("❌ Error fetching sale requests:", err);
+      setSaleRequests([]);
+    }
+  };
+  
+  
+  
 
   const refreshData = async () => {
     setLoading(true);
     await fetchConfigAndAdmins();
-    await fetchActiveEscrows();
+    // await fetchActiveEscrows();
+    await fetchActiveEscrowsByMint();
     await fetchSaleRequests();
     setLoading(false);
   };
@@ -312,9 +466,6 @@ const AdminDashboard: React.FC = () => {
   );
   const totalRoyaltyEarned = totalEscrowVolume * 0.03;
 
-  // ------------------------------------------------
-  // Configuration & Admin Actions
-  // ------------------------------------------------
   const initializeEscrowConfig = async () => {
     if (!wallet.publicKey || !program || !escrowConfigPda) {
       alert("Wallet not connected or program not ready.");
@@ -425,166 +576,341 @@ const AdminDashboard: React.FC = () => {
   // Escrow Management
   // ------------------------------------------------
   const confirmDelivery = async (escrow: EscrowAccount) => {
+    const confirm = window.confirm(
+      `Approve delivery?\n\nBuyer paid ${(Number(escrow.salePrice) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nSeller will receive ${(Number(escrow.salePrice) * 0.95 / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nLuxHub earns 5%.`
+    );
+    if (!confirm) return;
+  
     if (!wallet.publicKey || !program || !currentEscrowConfig) {
-      alert("Wallet not connected or program not ready.");
+      toast.error("Wallet not connected or program not ready.");
       return;
     }
+  
+    setLoading(true);
+    const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com");
+  
     try {
-      console.log("[confirmDelivery] Confirming delivery for seed:", escrow.seed);
       const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
-      const [escrowPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("state"), seedBuffer],
-        program.programId
-      );
-      const vault = await getAssociatedTokenAddress(new PublicKey(escrow.mintA), escrowPda, true);
-      const sellerFundsAta = await getAssociatedTokenAddress(
-        new PublicKey(escrow.mintA),
-        new PublicKey(escrow.initializer),
-        false
-      );
-      const luxhubFeeAta = await getAssociatedTokenAddress(
-        new PublicKey(escrow.mintA),
-        new PublicKey(currentEscrowConfig),
-        false
-      );
+      const [escrowPda] = PublicKey.findProgramAddressSync([Buffer.from("state"), seedBuffer], program.programId);
+  
+      const onchainEscrow = await (program.account as any).escrow.fetch(escrowPda);
+      const buyerPubkey = onchainEscrow.buyer?.toBase58?.();
+      if (!buyerPubkey || buyerPubkey === PublicKey.default.toBase58()) {
+        toast.error("Buyer not set. Purchase must occur before delivery.");
+        return;
+      }
+  
       const nftMint = new PublicKey(escrow.mintB);
-      const sellerNftAta = await getAssociatedTokenAddress(
-        nftMint,
-        new PublicKey(escrow.initializer),
-        false
+      const vault = await getAssociatedTokenAddress(nftMint, escrowPda, true);
+      const sellerNftAta = await getAssociatedTokenAddress(nftMint, new PublicKey(escrow.initializer));
+      const buyerNftAta = await getAssociatedTokenAddress(nftMint, new PublicKey(buyerPubkey));
+  
+      const sellerFundsAta = await getAssociatedTokenAddress(
+        new PublicKey(FUNDS_MINT),
+        new PublicKey(escrow.initializer)
       );
-      const buyerNftAta = await getAssociatedTokenAddress(
-        nftMint,
-        new PublicKey(buyerWallet),
-        false
+      const info = await connection.getAccountInfo(sellerFundsAta);
+      console.log("👀 Seller wSOL ATA exists?", !!info);
+      const luxhubFeeAta = await getAssociatedTokenAddress(
+        new PublicKey(FUNDS_MINT),
+        new PublicKey(currentEscrowConfig)
       );
+
+      const nftVault = await getAssociatedTokenAddress(new PublicKey(escrow.mintB), escrowPda, true);
+      const wsolVault = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
+      
+      const nftVaultInfo = await connection.getAccountInfo(nftVault);
+      const wsolVaultInfo = await connection.getAccountInfo(wsolVault);
+      
+      if (!nftVaultInfo) {
+        console.warn("❌ NFT vault account does not exist:", nftVault.toBase58());
+        toast.error("NFT vault does not exist. Cannot confirm delivery.");
+        return;
+      }
+      
+      if (!wsolVaultInfo) {
+        console.warn("❌ wSOL vault account does not exist:", wsolVault.toBase58());
+        toast.error("wSOL vault does not exist. Cannot confirm delivery.");
+        return;
+      }
+      
+      const nftAmount = await connection.getTokenAccountBalance(nftVault);
+      const wsolAmount = await connection.getTokenAccountBalance(wsolVault);
+      
+      console.log("📦 NFT Vault Amount:", nftAmount.value.amount);
+      console.log("💰 wSOL Vault Amount:", wsolAmount.value.amount);
+      
+
+      // Convert balances to numbers for comparison
+      const nftAvailable = Number(nftAmount.value.amount);
+      const wsolAvailable = Number(wsolAmount.value.amount);
+      const expectedWsol = Number(escrow.salePrice); // already in lamports
+
+      if (nftAvailable < 1) {
+        toast.error("Vault NFT balance is insufficient. Cannot transfer.");
+        return;
+      }
+
+      if (wsolAvailable < expectedWsol) {
+        toast.error(`Vault does not have enough wSOL. Expected: ${expectedWsol}, Found: ${wsolAvailable}`);
+        return;
+      }
+
+      console.warn("🔍 NFT Vault:", nftVault.toBase58(), "Amount:", nftAvailable);
+      console.warn("🔍 wSOL Vault:", wsolVault.toBase58(), "Amount:", wsolAvailable);
+
+
+  
       const tx = await program.methods
         .confirmDelivery()
         .accounts({
           luxhub: wallet.publicKey,
           escrow: escrowPda,
-          vault: vault,
-          mintA: new PublicKey(escrow.mintA),
+          vault,
+          mintA: new PublicKey(FUNDS_MINT),
+          mintB: nftMint,
           sellerFundsAta,
           luxhubFeeAta,
-          nftMint,
           sellerNftAta,
           buyerNftAta,
-          adminList: adminListPda!,
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .rpc();
+  
+      toast.success("✅ Delivery confirmed!");
       setStatus("Delivery confirmed. Tx: " + tx);
-      addLog("Confirm Delivery", tx, "For escrow seed: " + escrow.seed);
-      fetchActiveEscrows();
-    } catch (error: any) {
-      console.error("[confirmDelivery] error:", error);
-      setStatus("Confirm delivery failed: " + error.message);
-      addLog("Confirm Delivery", "N/A", "Error: " + error.message);
+      addLog("Confirm Delivery", tx, `Escrow ${escrow.seed}`);
+  
+      // === METADATA UPDATE ===
+      const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
+      const nft = await metaplex.nfts().findByMint({ mintAddress: nftMint });
+      const res = await fetch(nft.uri);
+      const metadata = await res.json();
+  
+      metadata.attributes = metadata.attributes || [];
+  
+      const updateAttr = (key: string, val: string) => {
+        const found = metadata.attributes.find((a: any) => a.trait_type === key);
+        if (found) found.value = val;
+        else metadata.attributes.push({ trait_type: key, value: val });
+      };
+  
+      updateAttr("Provenance", escrow.initializer);
+      updateAttr("Owner", buyerPubkey);
+      updateAttr("Market Status", "Holding LuxHub");
+      metadata.updatedAt = new Date().toISOString();
+  
+      const newUri = await uploadToPinata(metadata, metadata.name || "Updated Metadata");
+      await updateNftMetadata(wallet as any, escrow.mintB, { uri: newUri });
+  
+      await fetch("/api/nft/updateStatus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mintAddress: escrow.mintB, marketStatus: "sold" }),
+      });
+  
+      await fetchActiveEscrows();
+    } catch (err: any) {
+      console.error("[confirmDelivery] error:", err);
+      setStatus("Confirm delivery failed: " + err.message);
+      toast.error("❌ Delivery failed: " + err.message);
+    } finally {
+      setLoading(false);
     }
   };
+  
+  
+  
 
   const cancelEscrow = async (escrow: EscrowAccount) => {
-    if (!wallet.publicKey || !program || !initializerAta) {
-      alert("Wallet not connected or program not ready. Please set the Initializer ATA in config.");
+    if (!wallet.publicKey || !program) {
+      alert("Wallet not connected or program not ready.");
       return;
     }
+  
     try {
       console.log("[cancelEscrow] Cancelling escrow with seed:", escrow.seed);
       const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("state"), seedBuffer],
-        program!.programId
+        program.programId
       );
-      const vault = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
+  
+      const vault = await getAssociatedTokenAddress(
+        new PublicKey(FUNDS_MINT),
+        escrowPda,
+        true
+      );
+  
       const tx = await program.methods
         .cancel()
         .accounts({
           initializer: wallet.publicKey,
           mintA: new PublicKey(escrow.mintA),
-          initializerAtaA: new PublicKey(initializerAta),
+          initializerAta: await getAssociatedTokenAddress(
+            new PublicKey(FUNDS_MINT),
+            new PublicKey(escrow.initializer)
+          ),          
           escrow: escrowPda,
           vault: vault,
           tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
         })
         .rpc();
+  
       setStatus("Escrow canceled. Tx: " + tx);
       addLog("Cancel Escrow", tx, "For escrow seed: " + escrow.seed);
+  
+      await fetch("/api/nft/updateStatus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mintAddress: escrow.mintB,
+          marketStatus: "active",
+        }),
+      });
+  
       fetchActiveEscrows();
     } catch (error: any) {
       console.error("[cancelEscrow] error:", error);
       setStatus("Cancel escrow failed: " + error.message);
       addLog("Cancel Escrow", "N/A", "Error: " + error.message);
+      toast.error(`❌ Cancel failed: ${error.message}`);
     }
   };
+  
+  
 
   // ------------------------------------------------
-  // Approve Sale -> Escrow creation
+  // Approve Sale -> Escrow creation (with automatic NFT deposit)
   // ------------------------------------------------
   const handleApproveSale = async (req: SaleRequest) => {
     console.log("[handleApproveSale] Sale request data:", req);
-    console.log("[handleApproveSale] Type of seed =>", req.seed, typeof req.seed);
     if (!req.seller) {
-      console.error("[handleApproveSale] Seller field missing:", req);
-      setStatus("Error: Seller field missing");
+      console.error("[handleApproveSale] Missing seller:", req);
+      setStatus("Error: Missing seller field");
       return;
     }
+  
     try {
-      console.log("[handleApproveSale] Approving listing for NFT:", req.nftId);
-      const sellerPk = new PublicKey(req.seller);
-      const seed = Number(req.seed);
-
-      // Convert SOL -> lamports
-      const initializerLamports = Math.round(req.initializerAmount * LAMPORTS_PER_SOL);
-      const takerLamports = Math.round(req.takerAmount * LAMPORTS_PER_SOL);
-      const salePriceLamports = Math.round(req.salePrice * LAMPORTS_PER_SOL);
-      console.log("[handleApproveSale] Converted amounts (lamports):", {
-        initializerLamports,
-        takerLamports,
-        salePriceLamports,
-      });
-
       const connection = new Connection(
         process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
       );
-      const sellerAtaA = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), sellerPk);
-      const sellerAtaAInfo = await connection.getAccountInfo(sellerAtaA);
-      let preIx: any[] = [];
-      if (!sellerAtaAInfo) {
-        console.log("[handleApproveSale] Seller ATA not found; creating...");
-        const createSellerAtaIx = createAssociatedTokenAccountInstruction(
-          wallet.publicKey!,
-          sellerAtaA,
-          sellerPk,
-          new PublicKey(FUNDS_MINT)
-        );
-        preIx.push(createSellerAtaIx);
-      }
+  
+      const sellerPk = new PublicKey(req.seller);
+      const buyerPk = new PublicKey(
+        typeof req.buyer === "string" ? req.buyer : PLACEHOLDER_BUYER.toBase58()
+      );
+      console.log("[handleApproveSale] Raw buyer field:", req.buyer);
+      const luxhubPk = new PublicKey(
+        typeof req.luxhubWallet === "string" ? req.luxhubWallet : currentEscrowConfig
+      );
+      
 
+      const nftMint = new PublicKey(req.nftId);
+
+      if (
+        req.seed === undefined ||
+        req.initializerAmount === undefined ||
+        req.takerAmount === undefined ||
+        req.salePrice === undefined
+      ) {
+        console.error("[handleApproveSale] Invalid BN input:", req);
+        setStatus("Error: Missing required numeric fields");
+        return;
+      }
+      const seed = Number(req.seed);
+      
       const seedBuffer = new BN(seed).toArrayLike(Buffer, "le", 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("state"), seedBuffer],
         program!.programId
       );
-      const vaultAta = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
       console.log("[handleApproveSale] Escrow PDA:", escrowPda.toBase58());
+      
+      // 🛑 Prevent re-initializing if PDA already exists
+      const escrowInfo = await connection.getAccountInfo(escrowPda);
+      if (escrowInfo !== null) {
+        alert("Escrow PDA already exists. Proceeding to update metadata...");
+        setStatus("Escrow already initialized — updating metadata and cleaning up.");
+        console.warn("[handleApproveSale] PDA exists. Updating metadata...");
+      
+        await updateNFTMarketStatus(req.nftId, "active", wallet);
+        await fetch("/api/nft/updateStatus", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mintAddress: req.nftId,
+            marketStatus: "active"
+          }),
+        });
+      
+        setSaleRequests((prev) => prev.filter((r) => r.nftId !== req.nftId));
+        await refreshData();
+        return;
+      }
+      
+      
+      console.log("[handleApproveSale] Escrow PDA:", escrowPda.toBase58());
+  
+      const vaultAta = await getAssociatedTokenAddress(nftMint, escrowPda, true);
+      const vaultInfo = await connection.getAccountInfo(vaultAta);
+  
+      if (!vaultInfo) {
+        alert("Vault ATA does not exist yet. Please wait for the seller to deposit the NFT.");
+        return;
+      }
+  
+      const vaultBalance = await connection.getTokenAccountBalance(vaultAta);
+      const vaultAmount = Number(vaultBalance.value.uiAmount || 0);
+  
+      if (vaultAmount < req.initializerAmount) {
+        alert("Vault ATA balance is insufficient. Please wait for the seller to deposit the NFT.");
+        return;
+      }
+  
+      console.log("[handleApproveSale] Vault ATA validated.");
+  
+      setStatus("Approving listing...");
+      addLog("Approve Sale", "N/A", `Vault validated. Seed: ${seed}`);
+      console.log("[DEBUG] BN inputs:", {
+        seed: req.seed,
+        initializerAmount: req.initializerAmount,
+        takerAmount: req.takerAmount,
+        salePrice: req.salePrice,
+      });
 
+      const resolvedLuxhubWallet = req.luxhubWallet || currentEscrowConfig;
+
+      if (!resolvedLuxhubWallet) {
+        console.error("[handleApproveSale] LuxHub wallet is missing from request and config.");
+        setStatus("Error: Missing LuxHub Wallet");
+        return;
+      }
+
+      console.log("[handleApproveSale] Using LuxHub Wallet:", resolvedLuxhubWallet);
+      console.log("[handleApproveSale] Using buyer wallet:", buyerPk.toBase58());
+      console.log("[handleApproveSale] Using seller wallet:", sellerPk.toBase58());
+      console.log("[handleApproveSale] Using NFT mint:", nftMint.toBase58());
+      console.log("[handleApproveSale] Using luxhubPk:", luxhubPk.toBase58());
+  
+      // ⬇️ Initialize escrow on-chain
       const tx = await program!.methods
         .initialize(
           new BN(seed),
-          new BN(initializerLamports),
-          new BN(takerLamports),
+          new BN(req.initializerAmount),
+          new BN(req.takerAmount),
           req.fileCid,
-          new PublicKey(currentEscrowConfig),
-          new BN(salePriceLamports)
+          luxhubPk,
+          new BN(req.salePrice),
+          buyerPk
         )
-        .preInstructions(preIx)
         .accounts({
           admin: wallet.publicKey!,
           seller: sellerPk,
           mintA: new PublicKey(FUNDS_MINT),
-          mintB: new PublicKey(req.nftId),
-          sellerAtaA,
+          mintB: nftMint,
+          sellerAtaA: await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), sellerPk),
+          sellerAtaB: await getAssociatedTokenAddress(nftMint, sellerPk),
           escrow: escrowPda,
           vault: vaultAta,
           associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
@@ -593,27 +919,25 @@ const AdminDashboard: React.FC = () => {
           rent: SYSVAR_RENT_PUBKEY,
         })
         .rpc();
-      console.log("[handleApproveSale] Escrow creation Tx:", tx);
-      setStatus("Listing approved and escrow created. Tx: " + tx);
-      addLog("Approve Sale", tx, "Escrow created for seed: " + seed);
-
-      // Remove from saleRequests
-      setSaleRequests((prev) => prev.filter((reqItem) => reqItem.nftId !== req.nftId));
-      refreshData();
-
-      // Finally, update the NFT market status to "active"
-      console.log("[handleApproveSale] Updating NFT metadata market status to 'active'...");
+  
+      console.log("✅ initialize tx:", tx);
+  
+      // Update metadata in your DB
       await updateNFTMarketStatus(req.nftId, "active", wallet);
+  
+      setSaleRequests((prev) => prev.filter((r) => r.nftId !== req.nftId));
+      await refreshData();
+      setStatus("NFT approved and escrow initialized ✅");
+  
     } catch (error: any) {
       console.error("[handleApproveSale] error:", error);
       setStatus("Approve sale failed: " + error.message);
       addLog("Approve Sale", "N/A", "Error: " + error.message);
     }
   };
+  
+  
 
-  // ------------------------------------------------
-  // Analytics & Logs
-  // ------------------------------------------------
   const barChartData = {
     labels: Object.keys(
       logs.reduce((acc: { [action: string]: number }, log) => {
@@ -645,7 +969,35 @@ const AdminDashboard: React.FC = () => {
     ],
   };
 
-  // Tab content
+  useEffect(() => {
+    const fetchVaults = async () => {
+      if (!program) return;
+      const result: { [seed: string]: string } = {};
+  
+      for (const escrow of activeEscrows) {
+        try {
+          const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
+          const [escrowPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("state"), seedBuffer],
+            program.programId
+          );
+          const vault = await getAssociatedTokenAddress(
+            new PublicKey(escrow.mintB),
+            escrowPda,
+            true
+          );
+          result[escrow.seed.toString()] = vault.toBase58();
+        } catch (e) {
+          console.error("Vault fetch failed for seed", escrow.seed, e);
+        }
+      }
+  
+      setVaultAddresses(result);
+    };
+  
+    fetchVaults();
+  }, [activeEscrows, program]);
+
   const renderTabContent = () => {
     switch (tabIndex) {
       case 0:
@@ -681,9 +1033,7 @@ const AdminDashboard: React.FC = () => {
                 <p>No admins found.</p>
               ) : (
                 adminList.map((adminStr, idx) => (
-                  <div key={idx} className={styles.listItem}>
-                    {adminStr}
-                  </div>
+                  <div key={idx} className={styles.listItem}>{adminStr}</div>
                 ))
               )}
             </div>
@@ -716,14 +1066,6 @@ const AdminDashboard: React.FC = () => {
               />
             </div>
             <div className={styles.inputGroup}>
-              <label>Initializer ATA (for Cancel Escrow):</label>
-              <input
-                type="text"
-                value={initializerAta}
-                onChange={(e) => setInitializerAta(e.target.value)}
-              />
-            </div>
-            <div className={styles.inputGroup}>
               <button onClick={refreshData}>
                 {loading ? "Refreshing..." : "Refresh Data"}
               </button>
@@ -738,51 +1080,101 @@ const AdminDashboard: React.FC = () => {
               <p>No admins found.</p>
             ) : (
               adminList.map((adminStr, idx) => (
-                <div key={idx} className={styles.listItem}>
-                  {adminStr}
-                </div>
+                <div key={idx} className={styles.listItem}>{adminStr}</div>
               ))
             )}
           </div>
         );
-      case 2:
-        return (
-          <div>
-            <h2>Active Escrows</h2>
-            {activeEscrows.length === 0 ? (
-              <p>No active escrows found.</p>
-            ) : (
-              activeEscrows.map((escrow, idx) => (
-                <div key={idx} className={styles.listingCard}>
-                  <p>
-                    <strong>Seed:</strong> {escrow.seed}
-                  </p>
-                  <p>
-                    <strong>Initializer:</strong> {escrow.initializer}
-                  </p>
-                  <p>
-                    <strong>Initializer Amount:</strong> {escrow.initializer_amount}
-                  </p>
-                  <p>
-                    <strong>Taker Amount:</strong> {escrow.taker_amount}
-                  </p>
-                  <p>
-                    <strong>Sale Price:</strong> {escrow.salePrice} (lamports)
-                  </p>
-                  <p>
-                    <strong>File CID:</strong> {escrow.file_cid}
-                  </p>
-                  <div className={styles.actions}>
-                    <button onClick={() => {/* confirmDelivery(escrow) */}}>
-                      Confirm Delivery
-                    </button>
-                    <button onClick={() => cancelEscrow(escrow)}>Cancel Escrow</button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        );
+        case 2:
+          return (
+            <div>
+              <h2>Active Escrows</h2>
+              {activeEscrows.length === 0 ? (
+                <p>No active escrows found.</p>
+              ) : (
+                activeEscrows.map((escrow, idx) => {
+                  if (Number(escrow.seed.toString()) === 0) return null;
+
+                  const initializerAmountSol = Number(escrow.initializer_amount) / LAMPORTS_PER_SOL;
+                  const takerAmountSol = Number(escrow.taker_amount) / LAMPORTS_PER_SOL;
+                  const salePriceSol = Number(escrow.salePrice) / LAMPORTS_PER_SOL;
+
+                  if (!program) return null;
+
+                  const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
+                  const [escrowPda] = PublicKey.findProgramAddressSync(
+                    [Buffer.from("state"), seedBuffer],
+                    program.programId
+                  );
+
+                  return (
+                    <div key={idx} className={styles.listingCard}>
+                      <h3>{escrow.name || "Unnamed NFT"}</h3>
+
+                      {escrow.image && (
+                        <div className={styles.nftImageWrapper}>
+                          <img
+                            src={escrow.image}
+                            alt={escrow.name}
+                            className={styles.nftImage}
+                            style={{ maxWidth: "200px", borderRadius: "10px" }}
+                          />
+                        </div>
+                      )}
+
+                      <p className={styles.nftDescription}>
+                        {escrow.description || "No description available."}
+                      </p>
+
+                      <p><strong>Seed:</strong> {escrow.seed.toString()}</p>
+
+                      <p>
+                        <strong>Escrow PDA:</strong>{" "}
+                        <a
+                          href={`https://solscan.io/account/${escrowPda.toBase58()}?cluster=devnet`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {escrowPda.toBase58()}
+                        </a>
+                      </p>
+
+                      <p>
+                        <strong>Vault ATA:</strong>{" "}
+                        <code>{escrow.vaultATA || "Loading..."}</code>
+                      </p>
+
+                      <p><strong>Mint Address:</strong> {escrow.mintB}</p>
+                      <p><strong>Initializer Wallet:</strong> {escrow.initializer}</p>
+                      <p><strong>Initializer Amount:</strong> {initializerAmountSol.toFixed(2)} SOL</p>
+                      <p><strong>Taker Amount:</strong> {takerAmountSol.toFixed(2)} SOL</p>
+                      <p><strong>Sale Price:</strong> {salePriceSol.toFixed(2)} SOL</p>
+                      <p><strong>Royalty (3%):</strong> {(salePriceSol * 0.03).toFixed(2)} SOL</p>
+                      <p><strong>File CID:</strong> {escrow.file_cid}</p>
+
+                      {escrow.attributes && escrow.attributes.length > 0 && (
+                        <div className={styles.attributesSection}>
+                          <h4>Attributes:</h4>
+                          <ul>
+                            {escrow.attributes.map((attr: any, i: number) => (
+                              <li key={i}>
+                                <strong>{attr.trait_type}:</strong> {attr.value}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className={styles.actions}>
+                        <button onClick={() => confirmDelivery(escrow)}>Confirm Delivery</button>
+                        <button onClick={() => cancelEscrow(escrow)}>Cancel Escrow</button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          );
       case 3:
         return (
           <div>
@@ -818,12 +1210,8 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
             <div className={styles.inputGroup}>
-              <p>
-                <strong>Total Escrow Volume:</strong> {totalEscrowVolume}
-              </p>
-              <p>
-                <strong>Total Royalty Earned (3%):</strong> {totalRoyaltyEarned.toFixed(2)}
-              </p>
+              <p><strong>Total Escrow Volume:</strong> {totalEscrowVolume}</p>
+              <p><strong>Total Royalty Earned (3%):</strong> {totalRoyaltyEarned.toFixed(2)}</p>
             </div>
           </div>
         );
@@ -845,49 +1233,79 @@ const AdminDashboard: React.FC = () => {
             )}
           </div>
         );
-      case 5:
-        return (
-          <div>
-            <h2>Sale Requests</h2>
-            <button onClick={fetchSaleRequests}>Refresh Sale Requests</button>
-            {saleRequests.length === 0 ? (
-              <p>No pending sale requests.</p>
-            ) : (
-              saleRequests.map((req, idx) => (
-                <div key={idx} className={styles.listingCard}>
-                  <p>
-                    <strong>NFT Mint:</strong> {req.nftId}
-                  </p>
-                  <p>
-                    <strong>Seller:</strong> {req.seller}
-                  </p>
-                  <p>
-                    <strong>Seed:</strong> {req.seed}
-                  </p>
-                  <p>
-                    <strong>Initializer Amount (SOL):</strong> {req.initializerAmount}
-                  </p>
-                  <p>
-                    <strong>Taker Amount (SOL):</strong> {req.takerAmount}
-                  </p>
-                  <p>
-                    <strong>Sale Price (SOL):</strong> {req.salePrice}
-                  </p>
-                  <p>
-                    <strong>File CID:</strong> {req.fileCid}
-                  </p>
-                  <p>
-                    <strong>Requested at:</strong>{" "}
-                    {new Date(req.timestamp).toLocaleString()}
-                  </p>
-                  <button disabled={!req.seller} onClick={() => handleApproveSale(req)}>
-                    Approve Sale
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        );
+        case 5:
+          return (
+            <div>
+              <h2>Sale Requests</h2>
+              <div className={styles.inputGroup}>
+                <input
+                  type="text"
+                  placeholder="Filter by Seller Wallet"
+                  value={sellerFilter}
+                  onChange={(e) => setSellerFilter(e.target.value)}
+                />
+                <button onClick={() => fetchSaleRequests(1, sellerFilter)}>Search</button>
+              </div>
+              <div className={styles.paginationControls}>
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => fetchSaleRequests(currentPage - 1, sellerFilter)}
+                >
+                  Prev
+                </button>
+                <span>Page {currentPage}</span>
+                <button
+                  disabled={isLastPage}
+                  onClick={() => fetchSaleRequests(currentPage + 1, sellerFilter)}
+                >
+                  Next
+                </button>
+              </div>
+              {saleRequests.length === 0 ? (
+                <p>No pending sale requests.</p>
+              ) : (
+                saleRequests.map((req, idx) => {
+                  const currentSeed = req.seed ?? dynamicSeeds.get(req.nftId) ?? Date.now();
+
+                  const updateSeed = () => {
+                    const newSeed = Date.now();
+                    setDynamicSeeds((prev) => {
+                      const updated = new Map(prev);
+                      updated.set(req.nftId, newSeed); // override the seed for this NFT
+                      return updated;
+                    });
+                  
+                    // Optional: show status message or toast
+                    toast.success("✅ New seed generated for listing.");
+                  };
+                  
+
+                  return (
+                    <div key={idx} className={styles.listingCard}>
+                      <p className={styles.statusBadge}>PENDING</p>
+                      <p><strong>NFT Mint:</strong> {req.nftId}</p>
+                      <p><strong>Seller:</strong> {req.seller}</p>
+                      <p><strong>Seed:</strong> {currentSeed}</p>
+                      <p><strong>Initializer Amount (SOL):</strong> {req.initializerAmount}</p>
+                      <p><strong>Taker Amount (SOL):</strong> {req.takerAmount}</p>
+                      <p><strong>Sale Price (SOL):</strong> {req.salePrice}</p>
+                      <p><strong>File CID:</strong> {req.fileCid}</p>
+                      <p><strong>Requested at:</strong> {new Date(req.timestamp).toLocaleString()}</p>
+                      <div className={styles.actions}>
+                        <button
+                          disabled={!req.seller}
+                          onClick={() => handleApproveSale({ ...req, seed: currentSeed })}
+                        >
+                          Approve Sale
+                        </button>
+                        <button onClick={updateSeed}>Generate New Seed</button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          );
       default:
         return null;
     }
@@ -903,7 +1321,7 @@ const AdminDashboard: React.FC = () => {
       ) : isAdmin === false ? (
         <>
           <h1>Admin Dashboard</h1>
-          <p>Unauthorized: You are not an admin.</p>
+          <p>If you believe this is an error, check your admin config or switch wallets.</p>
         </>
       ) : isAdmin === null ? (
         <>
@@ -913,40 +1331,22 @@ const AdminDashboard: React.FC = () => {
       ) : (
         <>
           <div className={styles.tabContainer}>
-            <button
-              onClick={() => setTabIndex(0)}
-              className={tabIndex === 0 ? styles.activeTab : ""}
-            >
+            <button onClick={() => setTabIndex(0)} className={tabIndex === 0 ? styles.activeTab : ""}>
               Configuration
             </button>
-            <button
-              onClick={() => setTabIndex(1)}
-              className={tabIndex === 1 ? styles.activeTab : ""}
-            >
+            <button onClick={() => setTabIndex(1)} className={tabIndex === 1 ? styles.activeTab : ""}>
               User Management
             </button>
-            <button
-              onClick={() => setTabIndex(2)}
-              className={tabIndex === 2 ? styles.activeTab : ""}
-            >
+            <button onClick={() => setTabIndex(2)} className={tabIndex === 2 ? styles.activeTab : ""}>
               Escrow Management
             </button>
-            <button
-              onClick={() => setTabIndex(3)}
-              className={tabIndex === 3 ? styles.activeTab : ""}
-            >
+            <button onClick={() => setTabIndex(3)} className={tabIndex === 3 ? styles.activeTab : ""}>
               Detailed Analytics
             </button>
-            <button
-              onClick={() => setTabIndex(4)}
-              className={tabIndex === 4 ? styles.activeTab : ""}
-            >
+            <button onClick={() => setTabIndex(4)} className={tabIndex === 4 ? styles.activeTab : ""}>
               Transaction Logs
             </button>
-            <button
-              onClick={() => setTabIndex(5)}
-              className={tabIndex === 5 ? styles.activeTab : ""}
-            >
+            <button onClick={() => setTabIndex(5)} className={tabIndex === 5 ? styles.activeTab : ""}>
               Sale Requests
             </button>
           </div>
