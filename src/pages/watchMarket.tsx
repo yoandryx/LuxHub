@@ -13,6 +13,8 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
   AccountLayout,
+  createSyncNativeInstruction,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
@@ -34,6 +36,7 @@ const FUNDS_MINT = "So11111111111111111111111111111111111111112";
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const Marketplace = () => {
+
   const wallet = useWallet();
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [selectedMetadataUri, setSelectedMetadataUri] = useState<string | null>(null);
@@ -62,6 +65,7 @@ const Marketplace = () => {
   // 1. Fetch NFTs from Pinata, show only "active" ones.
   // ------------------------------------------------
   const fetchNFTs = async () => {
+
     if (!wallet.publicKey || !metaplex) return;
     let isCancelled = false;
 
@@ -73,13 +77,14 @@ const Marketplace = () => {
       pauseOnHover: false,
       draggable: false,
       progress: undefined,
-      theme: "light",
+      theme: "dark",
     });
   
     try {
-      console.log("🔍 Fetching NFT data from /api/pinata/nfts");
+      
       const res = await fetch("/api/pinata/nfts");
       if (!res.ok) throw new Error("Failed to fetch NFT data");
+
       const data: any[] = await res.json();
       console.log("📦 Raw Pinata data received:", data);
   
@@ -89,20 +94,26 @@ const Marketplace = () => {
       for (const nftItem of data) {
         const ipfsHash = nftItem.ipfs_pin_hash;
         try {
+
           const pinnedRes = await fetch(
             `${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`
           );
+
           if (!pinnedRes.ok) {
             console.warn(`⚠️ Skipping ${ipfsHash}: Response not OK`);
             continue;
           }
+
           const pinnedData = await pinnedRes.json();
           if (!pinnedData.mintAddress) continue;
+
           if (seenMintAddresses.has(pinnedData.mintAddress)) continue;
           seenMintAddresses.add(pinnedData.mintAddress);
   
           let onChainNFT;
+
           try {
+            // Fetch the NFT from the blockchain using its mint address
             onChainNFT = await metaplex.nfts().findByMint({
               mintAddress: new PublicKey(pinnedData.mintAddress),
             });
@@ -161,12 +172,12 @@ const Marketplace = () => {
   useEffect(() => {
     fetchNFTs();
   }, [wallet.publicKey, metaplex]);
-  
 
   // ------------------------------------------------
   // 2. Purchase Handler
   // ------------------------------------------------
   const handlePurchase = async (nft: NFT) => {
+    
     if (!wallet.publicKey || !program) {
       alert("Please connect your wallet.");
       return;
@@ -177,71 +188,71 @@ const Marketplace = () => {
     try {
       const buyer = wallet.publicKey;
       const nftMint = new PublicKey(nft.mintAddress);
-      const fundsMint = new PublicKey(FUNDS_MINT);
+      const fundsMint = new PublicKey(FUNDS_MINT); // So111... is wSOL
       const LAMPORTS_PER_SOL = 1_000_000_000;
       const priceLamports = Math.floor(nft.priceSol * LAMPORTS_PER_SOL);
   
-      // Prepare connection and ATAs
+      // Prepare ATAs
       const buyerFundsAta = await getAssociatedTokenAddress(fundsMint, buyer);
       const buyerNftAta = await getAssociatedTokenAddress(nftMint, buyer);
+      const vaultAta = await getAssociatedTokenAddress(fundsMint, buyer, true);
   
       const buyerFundsAtaInfo = await connection.getAccountInfo(buyerFundsAta);
       const buyerNftAtaInfo = await connection.getAccountInfo(buyerNftAta);
-      const rentExemption = await connection.getMinimumBalanceForRentExemption(AccountLayout.span);
+  
       const balance = await connection.getBalance(buyer);
       const preIx: TransactionInstruction[] = [];
   
-      if (!buyerFundsAtaInfo) {
-        console.log("Creating buyer funds ATA...");
-        preIx.push(createAssociatedTokenAccountInstruction(
-          buyer, buyerFundsAta, buyer, fundsMint
-        ));
-      }
-  
-      if (!buyerNftAtaInfo) {
-        console.log("Creating buyer NFT ATA...");
-        preIx.push(createAssociatedTokenAccountInstruction(
-          buyer, buyerNftAta, buyer, nftMint
-        ));
-      }
-  
-      if (balance < priceLamports) {
+      if (balance < priceLamports + 1_000_000) {
         throw new Error(`Insufficient SOL balance. Required: ${priceLamports}, Found: ${balance}`);
       }
   
-      // Fetch escrow account via mintB memcmp (offset = 113)
+      // Create buyer wSOL ATA if missing
+      if (!buyerFundsAtaInfo) {
+        console.log("Creating buyer wSOL ATA...");
+        preIx.push(
+          createAssociatedTokenAccountInstruction(buyer, buyerFundsAta, buyer, fundsMint)
+        );
+      }
+  
+      // Create buyer NFT ATA if missing
+      if (!buyerNftAtaInfo) {
+        console.log("Creating buyer NFT ATA...");
+        preIx.push(
+          createAssociatedTokenAccountInstruction(buyer, buyerNftAta, buyer, nftMint)
+        );
+      }
+  
+      // Wrap SOL into wSOL
+      preIx.push(
+        SystemProgram.transfer({
+          fromPubkey: buyer,
+          toPubkey: buyerFundsAta,
+          lamports: priceLamports,
+        }),
+        createSyncNativeInstruction(buyerFundsAta)
+      );
+  
+      // Fetch escrow PDA
       const escrowAccounts = await (program.account as any).escrow.all([
         { memcmp: { offset: 113, bytes: nft.mintAddress } },
       ]);
       if (escrowAccounts.length !== 1) {
         throw new Error("Could not uniquely identify escrow account for this NFT.");
       }
-      const escrowPda = escrowAccounts[0].publicKey;
   
-      // Derive vault ATA (vault holds wSOL, associated with mintA and escrow PDA)
-      const vaultAta = await getAssociatedTokenAddress(fundsMint, escrowPda, true);
-      const vaultExists = await connection.getAccountInfo(vaultAta);
+      const escrowPda = escrowAccounts[0].publicKey;
+      const vault = await getAssociatedTokenAddress(fundsMint, escrowPda, true);
+      const vaultExists = await connection.getAccountInfo(vault);
+  
       if (!vaultExists) {
-        console.log("Vault ATA missing — creating...");
-        preIx.push(createAssociatedTokenAccountInstruction(
-          buyer,
-          vaultAta,
-          escrowPda,
-          fundsMint
-        ));
+        console.log("Creating escrow vault ATA...");
+        preIx.push(
+          createAssociatedTokenAccountInstruction(buyer, vault, escrowPda, fundsMint)
+        );
       }
   
-      console.log("📦 Sending exchange() with accounts:");
-      console.table({
-        taker: buyer.toBase58(),
-        mintA: FUNDS_MINT,
-        mintB: nftMint.toBase58(),
-        takerFundsAta: buyerFundsAta.toBase58(),
-        takerNftAta: buyerNftAta.toBase58(),
-        vault: vaultAta.toBase58(),
-        escrow: escrowPda.toBase58(),
-      });
-  
+      console.log("📦 Sending exchange()...");
       const tx = await program.methods
         .exchange()
         .preInstructions(preIx)
@@ -251,9 +262,9 @@ const Marketplace = () => {
           mintB: nftMint,
           takerFundsAta: buyerFundsAta,
           takerNftAta: buyerNftAta,
-          vault: vaultAta,
+          vault,
           escrow: escrowPda,
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+          tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
@@ -263,19 +274,17 @@ const Marketplace = () => {
       alert("✅ Purchase successful! Tx: " + tx);
       toast.success("🎉 Purchase completed!");
   
-      // Update backend DB
+      // Update DB
       await fetch("/api/nft/updateBuyer", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          buyer: wallet.publicKey.toBase58(),
+          buyer: buyer.toBase58(),
           mintAddress: nft.mintAddress,
-          vaultAta: vaultAta.toBase58(),
+          vaultAta: vault.toBase58(),
           priceSol: nft.priceSol,
         }),
-      });      
+      });
   
       await delay(1000);
       fetchNFTs();

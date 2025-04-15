@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           buyer,
           vaultAta,
           salePrice: priceSol,
-          marketStatus: "sold",
+          marketStatus: "In Escrow",
           updatedAt: new Date(),
         },
       }

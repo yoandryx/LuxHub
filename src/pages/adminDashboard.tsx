@@ -62,7 +62,6 @@ interface SaleRequestsResponse {
   totalCount: number;
 }
 
-
 interface EscrowAccount {
   seed: number;
   initializer: string;
@@ -81,7 +80,6 @@ interface EscrowAccount {
   vaultATA?: string;
   attributes?: { trait_type: string; value: string }[];
 }
-
 
 const FUNDS_MINT = "So11111111111111111111111111111111111111112";
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -145,6 +143,7 @@ const updateNFTMarketStatus = async (
 };
 
 const AdminDashboard: React.FC = () => {
+
   const wallet = useWallet();
   const [tabIndex, setTabIndex] = useState<number>(0);
   const [status, setStatus] = useState<string>("");
@@ -171,13 +170,14 @@ const AdminDashboard: React.FC = () => {
   const [isLastPage, setIsLastPage] = useState(false);
   const [sellerFilter, setSellerFilter] = useState("");
 
-
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
+
   const escrowConfigPda = useMemo(() => {
     return program
       ? PublicKey.findProgramAddressSync([Buffer.from("escrow_config")], program.programId)[0]
       : null;
   }, [program]);
+
   const adminListPda = useMemo(() => {
     return program
       ? PublicKey.findProgramAddressSync([Buffer.from("admin_list")], program.programId)[0]
@@ -401,7 +401,7 @@ const AdminDashboard: React.FC = () => {
             image: metadata.image || "",
             description: metadata.description || "",
             attributes: metadata.attributes || [],
-            vaultATA, // ✅ add it to the enriched data
+            vaultATA,
           };
         })
       );
@@ -432,9 +432,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
   
-  
-  
-
   const refreshData = async () => {
     setLoading(true);
     await fetchConfigAndAdmins();
@@ -464,7 +461,8 @@ const AdminDashboard: React.FC = () => {
     (acc, escrow) => acc + Number(escrow.initializer_amount),
     0
   );
-  const totalRoyaltyEarned = totalEscrowVolume * 0.03;
+
+  const totalRoyaltyEarned = totalEscrowVolume * 0.05;
 
   const initializeEscrowConfig = async () => {
     if (!wallet.publicKey || !program || !escrowConfigPda) {
@@ -573,9 +571,10 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // Escrow Management
+  // Escrow Confirmation
   // ------------------------------------------------
   const confirmDelivery = async (escrow: EscrowAccount) => {
+
     const confirm = window.confirm(
       `Approve delivery?\n\nBuyer paid ${(Number(escrow.salePrice) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nSeller will receive ${(Number(escrow.salePrice) * 0.95 / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nLuxHub earns 5%.`
     );
@@ -590,10 +589,11 @@ const AdminDashboard: React.FC = () => {
     const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com");
   
     try {
+
       const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
       const [escrowPda] = PublicKey.findProgramAddressSync([Buffer.from("state"), seedBuffer], program.programId);
-  
       const onchainEscrow = await (program.account as any).escrow.fetch(escrowPda);
+
       const buyerPubkey = onchainEscrow.buyer?.toBase58?.();
       if (!buyerPubkey || buyerPubkey === PublicKey.default.toBase58()) {
         toast.error("Buyer not set. Purchase must occur before delivery.");
@@ -640,7 +640,6 @@ const AdminDashboard: React.FC = () => {
       console.log("📦 NFT Vault Amount:", nftAmount.value.amount);
       console.log("💰 wSOL Vault Amount:", wsolAmount.value.amount);
       
-
       // Convert balances to numbers for comparison
       const nftAvailable = Number(nftAmount.value.amount);
       const wsolAvailable = Number(wsolAmount.value.amount);
@@ -658,24 +657,24 @@ const AdminDashboard: React.FC = () => {
 
       console.warn("🔍 NFT Vault:", nftVault.toBase58(), "Amount:", nftAvailable);
       console.warn("🔍 wSOL Vault:", wsolVault.toBase58(), "Amount:", wsolAvailable);
-
-
   
       const tx = await program.methods
-        .confirmDelivery()
-        .accounts({
-          luxhub: wallet.publicKey,
-          escrow: escrowPda,
-          vault,
-          mintA: new PublicKey(FUNDS_MINT),
-          mintB: nftMint,
-          sellerFundsAta,
-          luxhubFeeAta,
-          sellerNftAta,
-          buyerNftAta,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .rpc();
+      .confirmDelivery()
+      .accounts({
+        luxhub: wallet.publicKey,
+        escrow: escrowPda,
+        nftVault: nftVault,
+        wsolVault: wsolVault,
+        mintA: new PublicKey(FUNDS_MINT),
+        mintB: nftMint,
+        sellerFundsAta,
+        luxhubFeeAta,
+        sellerNftAta,
+        buyerNftAta,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
   
       toast.success("✅ Delivery confirmed!");
       setStatus("Delivery confirmed. Tx: " + tx);
@@ -706,10 +705,10 @@ const AdminDashboard: React.FC = () => {
       await fetch("/api/nft/updateStatus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mintAddress: escrow.mintB, marketStatus: "sold" }),
+        body: JSON.stringify({ mintAddress: escrow.mintB, marketStatus: "Holding" }),
       });
   
-      await fetchActiveEscrows();
+      await fetchActiveEscrowsByMint();
     } catch (err: any) {
       console.error("[confirmDelivery] error:", err);
       setStatus("Confirm delivery failed: " + err.message);
@@ -719,16 +718,18 @@ const AdminDashboard: React.FC = () => {
     }
   };
   
-  
-  
-
+  // ------------------------------------------------
+  // Escrow Cancellation
+  // ------------------------------------------------
   const cancelEscrow = async (escrow: EscrowAccount) => {
+
     if (!wallet.publicKey || !program) {
       alert("Wallet not connected or program not ready.");
       return;
     }
   
     try {
+
       console.log("[cancelEscrow] Cancelling escrow with seed:", escrow.seed);
       const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
@@ -777,8 +778,6 @@ const AdminDashboard: React.FC = () => {
       toast.error(`❌ Cancel failed: ${error.message}`);
     }
   };
-  
-  
 
   // ------------------------------------------------
   // Approve Sale -> Escrow creation (with automatic NFT deposit)
@@ -792,20 +791,22 @@ const AdminDashboard: React.FC = () => {
     }
   
     try {
+
       const connection = new Connection(
         process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
       );
   
       const sellerPk = new PublicKey(req.seller);
+
       const buyerPk = new PublicKey(
         typeof req.buyer === "string" ? req.buyer : PLACEHOLDER_BUYER.toBase58()
       );
       console.log("[handleApproveSale] Raw buyer field:", req.buyer);
+
       const luxhubPk = new PublicKey(
         typeof req.luxhubWallet === "string" ? req.luxhubWallet : currentEscrowConfig
       );
       
-
       const nftMint = new PublicKey(req.nftId);
 
       if (
@@ -818,8 +819,8 @@ const AdminDashboard: React.FC = () => {
         setStatus("Error: Missing required numeric fields");
         return;
       }
+
       const seed = Number(req.seed);
-      
       const seedBuffer = new BN(seed).toArrayLike(Buffer, "le", 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("state"), seedBuffer],
@@ -830,9 +831,9 @@ const AdminDashboard: React.FC = () => {
       // 🛑 Prevent re-initializing if PDA already exists
       const escrowInfo = await connection.getAccountInfo(escrowPda);
       if (escrowInfo !== null) {
-        alert("Escrow PDA already exists. Proceeding to update metadata...");
+        // alert("Escrow PDA already exists. Proceeding to update metadata...");
         setStatus("Escrow already initialized — updating metadata and cleaning up.");
-        console.warn("[handleApproveSale] PDA exists. Updating metadata...");
+        // console.warn("[handleApproveSale] PDA exists. Updating metadata...");
       
         await updateNFTMarketStatus(req.nftId, "active", wallet);
         await fetch("/api/nft/updateStatus", {
@@ -848,7 +849,6 @@ const AdminDashboard: React.FC = () => {
         await refreshData();
         return;
       }
-      
       
       console.log("[handleApproveSale] Escrow PDA:", escrowPda.toBase58());
   
@@ -936,8 +936,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
   
-  
-
   const barChartData = {
     labels: Object.keys(
       logs.reduce((acc: { [action: string]: number }, log) => {
@@ -1299,6 +1297,8 @@ const AdminDashboard: React.FC = () => {
                           Approve Sale
                         </button>
                         <button onClick={updateSeed}>Generate New Seed</button>
+                        <button>Cancel Escrow</button>
+                        {/* <button onClick={() => cancelEscrow(escrow)}>Cancel Escrow</button> */}
                       </div>
                     </div>
                   );

@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
     const owned = await SaleRequestModel.find({
       buyer: wallet,
-      marketStatus: "sold",
+      marketStatus: "Holding",
     }).lean();
 
     res.status(200).json(owned);

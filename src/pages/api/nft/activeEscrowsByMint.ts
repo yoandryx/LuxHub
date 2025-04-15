@@ -9,7 +9,7 @@ export default async function handler(
       const db = await connectToDatabase();
       const active = await db
         .collection("salerequests")
-        .find({ marketStatus: "active" }) // adjust this if you use another key
+        .find({ marketStatus: "In Escrow" }) 
         .toArray();
   
       res.status(200).json(active);
