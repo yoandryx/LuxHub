@@ -12,7 +12,7 @@ if (typeof (globalThis as any).nodeCrypto === 'undefined') {
 import { AppProps } from "next/app";
 import Head from "next/head";
 import React, { useEffect, useState, useMemo } from "react";
-import { EscrowProvider } from "../context/src/EscrowContext"; 
+// import { EscrowProvider } from "../context/src/EscrowContext"; 
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import WalletNavbar from "../components/common/WalletNavbar";
@@ -24,6 +24,8 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { SolflareWalletAdapter, PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import '@solana/wallet-adapter-react-ui/styles.css';
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 
 // Network URL
 const network = WalletAdapterNetwork.Devnet;
@@ -53,12 +55,13 @@ const App = ({ Component, pageProps }: AppProps) => {
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
-            <EscrowProvider>
+            {/* <EscrowProvider> */}
               <Navbar />
+              <ToastContainer position="top-right" autoClose={4000} />
               <WalletNavbar />
               <Component {...pageProps} />
               <Footer />
-            </EscrowProvider>
+            {/* </EscrowProvider> */}
           </WalletModalProvider>
         </WalletProvider>
       </ConnectionProvider>

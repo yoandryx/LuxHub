@@ -23,7 +23,8 @@
     align-items: center;
     border-radius: 5px;
     width: 100%;
-    font-weight: 300;
+    font-weight: 400;
+    color: #c8a1ff;
   }
   
   .header {
@@ -54,6 +55,7 @@
     margin-bottom: 20px;
     text-align: right;
   }
+
   
   .searchInput {
     width: 100%;
@@ -114,21 +116,25 @@
     margin: 10px;
   }
 
-  .inputGroup input {
-    background-color: var(--accent);
-    color: var(--primary);
-    border: solid 1px #c8a1ff6d;
-    /* border-radius: 5px; */
-    margin: 10px 5px;
-    padding: 10px;
-    display:flex;
-    flex-direction: column;
-    justify-content: center;
-    
-    /* align-items:center; */
-    
-    gap: 10px
+  .searchInput,
+  .inputGroup input,
+  .inputGroup select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(200, 161, 255, 0.2);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    height: 35px;
   }
+
+  .inputGroup label {
+    color: #c8a1ff;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+  }
+
 
   .inputGroup button {
     font-size: 12px;
@@ -156,7 +162,7 @@
     height: 50px;
     z-index: 100;
     background-color: #3c3c3c7b;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px);
     /* border-bottom: solid 1px var(--accent); */
   }
 
@@ -184,18 +190,37 @@
   }
   
   .listingCard {
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(200, 161, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 20px;
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), inset 0 0 0.5px rgba(255, 255, 255, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
+  
   
   .listingCard:hover {
     transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease-in-out;
   }
+  
+  
+  .listingCard p {
+    margin: 6px 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #eaeaea;
+  }
+  
+  .listingCard strong {
+    color: #c8a1ff;
+    font-weight: 500;
+  }
+  
   
   .cardTitle {
     font-size: 1.25rem;
@@ -216,25 +241,90 @@
   }
   
   .actions {
-    display: flex;
     gap: 10px;
-    justify-content: flex-end;
+    display: flex;
+  }
+
+  .actions button {
+    background: rgba(142, 107, 255, 0.15);
+    border: 1px solid #b991ff;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    backdrop-filter: blur(6px);
+    transition: background 0.3s ease;
   }
   
-  .actionButton {
-    background: var(--accent);
-    color: var(--primary);
-    border: 1px solid var(--border);
-    padding: 6px 10px;
-    border-radius: 5px;
+  .actions button:hover {
+    background: rgba(200, 161, 255, 0.2);
+    box-shadow: 0 0 12px rgba(180, 130, 255, 0.4);
+  }
+
+  .statusBadge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #c8a1ff;
+    background: rgba(200, 161, 255, 0.12);
+    border: 1px solid rgba(200, 161, 255, 0.3);
+    border-radius: 50px;
+    backdrop-filter: blur(8px);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .paginationControls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+  }
+  
+  .paginationControls button {
+    padding: 6px 14px;
+    background: rgba(200, 161, 255, 0.1);
+    border: 1px solid rgba(200, 161, 255, 0.4);
+    color: #c8a1ff;
+    font-weight: 600;
+    border-radius: 20px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
     cursor: pointer;
-    transition: background 0.3s, border-color 0.3s;
+    transition: all 0.2s ease-in-out;
+    backdrop-filter: blur(10px);
   }
   
-  .actionButton:hover {
-    background: var(--border);
-    border-color: var(--accent);
+  .paginationControls button:hover {
+    background: rgba(200, 161, 255, 0.2);
+    box-shadow: 0 0 10px rgba(200, 161, 255, 0.3);
+    transform: translateY(-1px);
   }
+  
+  .paginationControls button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .paginationControls span {
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(200, 161, 255, 0.2);
+    color: #fff;
+    font-size: 16px;
+  }
+
+  .activeTab {
+    background-color: rgba(200, 161, 255, 0.15);
+    border-bottom: 2px solid #c8a1ff;
+    font-weight: 600;
+    color: #ffffff;
+  }
+  
   
   /* Responsive adjustments */
   @media screen and (max-width: 768px) {
