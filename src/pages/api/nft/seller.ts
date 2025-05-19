@@ -56,7 +56,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let currentOwner = "";
         if (metadata.attributes && Array.isArray(metadata.attributes)) {
           const ownerAttr = metadata.attributes.find(
-            (attr: any) => attr.trait_type === "Current Owner" || attr.trait_type === "Provenance"
+            // (attr: any) => attr.trait_type === "Current Owner" || attr.trait_type === "Provenance"
+            (attr: any) => attr.trait_type === "Provenance" || attr.trait_type === "Provenance"
+
           );
           if (ownerAttr) currentOwner = ownerAttr.value;
         }

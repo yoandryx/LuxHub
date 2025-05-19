@@ -8,16 +8,17 @@ import {
   SYSVAR_RENT_PUBKEY,
 } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
-import {
-  getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
-  AccountLayout,
-} from "@solana/spl-token";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { getProgram } from "../utils/programUtils";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import styles from "../styles/SellerDashboard.module.css";
+import NFTCard from "../components/marketplace/NFTCard";
+import { NftDetailCard } from "../components/marketplace/NftDetailCard";
+import { SiSolana } from "react-icons/si";
+import { IoMdInformationCircle } from "react-icons/io";
+import NFTChangeRequestForm from "../components/user/NFTChangeRequestForm";
+import MintRequestForm from "../components/user/MintRequestForm";
 
-// Define our NFT interface – note that the API endpoint now returns complete objects.
 export interface NFT {
   mintAddress: string;
   title: string;
@@ -27,28 +28,29 @@ export interface NFT {
   fileCid: string;
   salePrice: number;
   metadataUri: string;
+  isInEscrow?: boolean;
+  isRequested?: boolean;
+  seed?: number;
+  nftId: string;
+  timestamp: number;
+  seller: string;
+  attributes?: { trait_type: string, value: string }[]; 
 }
 
-export interface ListingRequest {
-  nftId: string;
-  seed: number;
-  fileCid: string;
-  salePrice: number;
-}
 
 const FUNDS_MINT = "So11111111111111111111111111111111111111112";
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-// Notification type (success, error, info)
-type Notification = { type: "success" | "error" | "info"; message: string } | null;
-
 const SellerDashboard: React.FC = () => {
   const wallet = useWallet();
   const [nfts, setNfts] = useState<NFT[]>([]);
-  const [status, setStatus] = useState<string>("");
-  const [notification, setNotification] = useState<Notification>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
+  const [loadingMint, setLoadingMint] = useState<string | null>(null);
 
-  // Create a connection using the NEXT_PUBLIC_ENDPOINT environment variable.
+  const [activeTab, setActiveTab] = useState("My NFTs");
+
+
   const connection = useMemo(
     () =>
       new Connection(
@@ -56,87 +58,153 @@ const SellerDashboard: React.FC = () => {
       ),
     []
   );
+  const metaplex = useMemo(
+    () =>
+      wallet.publicKey
+        ? Metaplex.make(connection).use(walletAdapterIdentity(wallet))
+        : null,
+    [wallet.publicKey, connection]
+  );
+  const program = useMemo(
+    () => (wallet.publicKey ? getProgram(wallet) : null),
+    [wallet.publicKey]
+  );
 
-  // Create a Metaplex instance for on‑chain NFT metadata.
-  const metaplex = useMemo(() => {
-    if (wallet.publicKey) {
-      return Metaplex.make(connection).use(walletAdapterIdentity(wallet));
-    }
-    return null;
-  }, [wallet.publicKey, connection]);
+  const fetchNFTs = async () => {
+    if (!wallet.publicKey || !metaplex || !program) return;
 
-  // Get the Anchor program.
-  const program = useMemo(() => {
-    return wallet.publicKey ? getProgram(wallet) : null;
-  }, [wallet.publicKey]);
+    try {
+      const res = await fetch("/api/pinata/nfts");
+      if (!res.ok) throw new Error("Failed to fetch from Pinata");
+      const pins = await res.json();
 
-  // ----------------------------
-  // FETCH SELLER NFT DATA (with backend endpoint)
-  // ----------------------------
-  useEffect(() => {
-    const fetchSellerNFTs = async () => {
-      if (!wallet.publicKey) return;
-      try {
-        console.log("[SellerDashboard] Fetching seller NFTs...");
-        const res = await fetch(`/api/nft/seller?wallet=${wallet.publicKey.toBase58()}`);
-        if (!res.ok) {
-          const errorBody = await res.text();
-          console.error("[SellerDashboard] Failed to fetch seller NFTs:", errorBody);
-          throw new Error("Failed to fetch seller NFTs");
+      const groupedByMint: Record<string, { json: any; cid: string; date: string }[]> = {};
+      for (const pin of pins) {
+        const url = `${process.env.NEXT_PUBLIC_GATEWAY_URL}${pin.ipfs_pin_hash}`;
+        try {
+          const head = await fetch(url, { method: "HEAD" });
+          const contentType = head.headers.get("Content-Type");
+          if (!contentType?.includes("application/json")) continue;
+
+          const res = await fetch(url);
+          const json = await res.json();
+          const mint = json.mintAddress;
+          if (!mint) continue;
+
+          groupedByMint[mint] = groupedByMint[mint] || [];
+          groupedByMint[mint].push({ json, cid: pin.ipfs_pin_hash, date: pin.date_pinned });
+        } catch (err) {
+          console.warn("Skipping invalid pin:", pin.ipfs_pin_hash, err);
         }
-        const data: NFT[] = await res.json();
-        console.log(`[SellerDashboard] Total NFTs fetched: ${data.length}`);
-        setNfts(data);
-      } catch (error) {
-        console.error("[SellerDashboard] Error fetching seller NFTs:", error);
-        setNotification({ type: "error", message: "Error fetching your NFTs." });
       }
-    };
-    fetchSellerNFTs();
-  }, [wallet.publicKey]);
-  
 
-  // ----------------------------
-  // CHECK NFT BALANCE AND DEPOSIT INTO ESCROW
-  // ----------------------------
-  const checkAndDepositNFT = async (nft: NFT & { seed?: number }) => {
-    if (!wallet.publicKey || !program) {
-      setNotification({ type: "error", message: "Wallet or program not connected." });
+      const result: NFT[] = [];
+      for (const mint of Object.keys(groupedByMint)) {
+        try {
+          const sorted = groupedByMint[mint].sort(
+            (a, b) =>
+              new Date(b.json.updatedAt || b.date).getTime() -
+              new Date(a.json.updatedAt || a.date).getTime()
+          );
+          const latest = sorted[0].json;
+          const mintKey = new PublicKey(mint);
+          const tokenAccounts = await connection.getParsedTokenAccountsByOwner(wallet.publicKey, {
+            mint: mintKey,
+          });
+
+          let ownsToken = tokenAccounts.value.some(
+            (acc) => acc.account.data.parsed.info.tokenAmount.uiAmount >= 1
+          );
+
+          const metadataOwner =
+            latest.attributes?.find((a: any) => a.trait_type === "Current Owner")?.value;
+
+          if (!ownsToken && metadataOwner === wallet.publicKey.toBase58()) ownsToken = true;
+
+          const seed =
+            latest.seed ||
+            latest.attributes?.find((a: any) => a.trait_type === "Escrow Seed")?.value ||
+            Date.now();
+          const [escrowPda] = await PublicKey.findProgramAddress(
+            [Buffer.from("state"), new BN(seed).toArrayLike(Buffer, "le", 8)],
+            program.programId
+          );
+          const vaultAta = await getAssociatedTokenAddress(mintKey, escrowPda, true);
+          const isInEscrow = !!(await connection.getAccountInfo(vaultAta));
+
+          if (!ownsToken && !isInEscrow) continue;
+
+          const marketStatus =
+            latest.marketStatus ||
+            latest.attributes?.find((a: any) => a.trait_type === "Market Status")?.value ||
+            "inactive";
+          const salePrice = parseFloat(
+            latest.priceSol ||
+              latest.attributes?.find((a: any) => a.trait_type === "Price")?.value ||
+              "0"
+          );
+
+          result.push({
+            mintAddress: mint,
+            title: latest.name || "Untitled",
+            description: latest.description || "",
+            image: latest.image || "",
+            marketStatus,
+            fileCid: latest.image?.split("/").pop() || "",
+            salePrice,
+            metadataUri: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${sorted[0].cid}`,
+            isInEscrow,
+            isRequested: marketStatus === "requested",
+            seed: Number(seed),
+
+            // Add fallbacks for NFTCard
+            nftId: mint,
+            timestamp: new Date(latest.updatedAt || sorted[0].date).getTime(),
+            seller: metadataOwner || wallet.publicKey.toBase58(), // fallback
+          });
+          
+        } catch (e) {
+          console.warn(`⚠️ Skipping ${mint} due to error:`, e);
+        }
+      }
+
+      setNfts(result);
+    } catch (err) {
+      console.error("❌ Error loading NFTs:", err);
+      setNotification("Failed to fetch your NFTs.");
+    }
+  };
+
+  useEffect(() => {
+    fetchNFTs();
+  }, [wallet.publicKey, metaplex, program]);
+
+  const handleListNFT = async (nft: NFT & { seed?: number }) => {
+    if (!wallet.publicKey || !program || !metaplex) {
+      setNotification("Wallet or program not connected.");
       return;
     }
+    setLoadingMint(nft.mintAddress);
     try {
-      console.log(`[SellerDashboard] Checking NFT deposit status for mint: ${nft.mintAddress}`);
       const nftMint = new PublicKey(nft.mintAddress);
       const sellerNftAta = await getAssociatedTokenAddress(nftMint, wallet.publicKey);
       const ataInfo = await connection.getAccountInfo(sellerNftAta);
-      if (!ataInfo) {
-        setNotification({ type: "error", message: "NFT ATA is missing. Please mint or transfer your NFT." });
-        return;
-      }
-      const balanceResult = await connection.getTokenAccountBalance(sellerNftAta);
-      const balance = Number(balanceResult.value.uiAmount);
-      console.log(`[SellerDashboard] NFT ATA balance: ${balance}`);
-      if (balance < 1) {
-        setNotification({ type: "error", message: "Your NFT balance is zero. Deposit your NFT first." });
-        return;
-      }
-  
+      if (!ataInfo) throw new Error("NFT ATA is missing. Please mint or transfer your NFT.");
+
+      const balance = Number((await connection.getTokenAccountBalance(sellerNftAta)).value.uiAmount);
+      if (balance < 1) throw new Error("You must own the NFT before listing it.");
+
       const salePriceLamports = Math.floor(nft.salePrice * LAMPORTS_PER_SOL);
       const seed = Date.now();
-      nft.seed = seed; // ✅ Store seed on the NFT object
-      const seedBuffer = new BN(seed).toArrayLike(Buffer, "le", 8);
-  
+      nft.seed = seed;
+
       const [escrowPda] = await PublicKey.findProgramAddress(
-        [Buffer.from("state"), seedBuffer],
+        [Buffer.from("state"), new BN(seed).toArrayLike(Buffer, "le", 8)],
         program.programId
       );
-  
       const vaultAta = await getAssociatedTokenAddress(nftMint, escrowPda, true);
-      console.log("[SellerDashboard] Preparing to initialize escrow and create vault if needed...");
 
-  
-      console.log(`[SellerDashboard] Depositing NFT using seed: ${seed}`);
-      const tx = await program.methods
+      await program.methods
         .initialize(
           new BN(seed),
           new BN(1),
@@ -161,137 +229,142 @@ const SellerDashboard: React.FC = () => {
           rent: SYSVAR_RENT_PUBKEY,
         })
         .rpc();
-        console.log("[SellerDashboard] NFT deposited successfully. Tx:", tx);
-        setNotification({ type: "success", message: "NFT deposited into escrow vault successfully." });
-      } catch (error: any) {
-        console.error("[SellerDashboard] Deposit NFT error:", error);
-        setNotification({ type: "error", message: "Deposit NFT failed: " + error.message });
-      }
-    };
-  
-    const requestListing = async (nft: NFT & { seed?: number }) => {
-    if (!wallet.publicKey || !program) {
-      setNotification({ type: "error", message: "Wallet or program not connected." });
-      return;
-    }
-  
-    const seed = nft.seed;
-    if (!seed) {
-      setNotification({
-        type: "error",
-        message: "Missing escrow seed. Please deposit your NFT again.",
-      });
-      return;
-    }
-  
-    try {
-      const nftMint = new PublicKey(nft.mintAddress);
-      const seedBuffer = new BN(seed).toArrayLike(Buffer, "le", 8);
-  
-      const [escrowPda] = await PublicKey.findProgramAddress(
-        [Buffer.from("state"), seedBuffer],
-        program.programId
-      );
-  
-      const vaultAta = await getAssociatedTokenAddress(nftMint, escrowPda, true);
-      const vaultBalanceResult = await connection.getTokenAccountBalance(vaultAta);
-      const vaultBalance = Number(vaultBalanceResult.value.uiAmount);
-      console.log(`[SellerDashboard] Vault ATA balance for ${nft.mintAddress}:`, vaultBalance);
-  
-      if (vaultBalance < 1) {
-        setNotification({
-          type: "error",
-          message: "Your NFT is not deposited in the vault. Please deposit it before requesting a listing.",
-        });
-        return;
-      }
-  
-      const listingPayload = {
-        nftId: nft.mintAddress,
-        seed,
-        fileCid: nft.fileCid,
-        salePrice: nft.salePrice,
+
+      const metadata = await metaplex.nfts().findByMint({ mintAddress: nftMint });
+      const updatedAttributes = metadata.json?.attributes || [];
+      const updatedJson = {
+        ...(metadata.json || {}),
+        attributes: [
+          ...updatedAttributes.filter(
+            (attr: any) =>
+              attr.trait_type !== "Market Status" && attr.trait_type !== "Escrow Seed"
+          ),
+          { trait_type: "Market Status", value: "requested" },
+          { trait_type: "Escrow Seed", value: seed.toString() },
+        ],
+        updatedAt: new Date().toISOString(),
       };
-  
-      console.log("[SellerDashboard] Sending listing request with payload:", listingPayload);
-  
-      const res = await fetch("/api/nft/requestSale", {
+
+      const pinRes = await fetch("/api/pinata/pinJson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nftId: listingPayload.nftId,
-          seed: listingPayload.seed,
-          fileCid: listingPayload.fileCid,
-          salePrice: listingPayload.salePrice,
-          seller: wallet.publicKey.toBase58(),
-          initializerAmount: 1,
-          takerAmount: 0,
-          ipfs_pin_hash: listingPayload.fileCid,
-          timestamp: Date.now()
-        }),        
+        body: JSON.stringify(updatedJson),
       });
-  
-      if (!res.ok) throw new Error("Listing request failed");
-  
-      console.log("[SellerDashboard] Listing request submitted successfully.");
-      setNotification({ type: "success", message: "Listing request submitted successfully." });
-    } catch (error: any) {
-      console.error("[SellerDashboard] Listing request error:", error);
-      setNotification({ type: "error", message: "Listing request failed: " + error.message });
+      const { IpfsHash } = await pinRes.json();
+      const newUri = `${process.env.NEXT_PUBLIC_GATEWAY_URL}${IpfsHash}`;
+
+      await metaplex.nfts().update({
+        nftOrSft: metadata,
+        uri: newUri,
+      });
+
+      await fetchNFTs();
+      setNotification("✅ NFT submitted and metadata updated.");
+    } catch (err: any) {
+      console.error("[handleListNFT] Failed:", err);
+      setNotification(err.message);
+    } finally {
+      setLoadingMint(null);
     }
   };
-  
-  
 
   return (
-    <div className={styles.container}>
-      <h1>Seller NFT Management</h1>
-      <p>Your wallet: {wallet.publicKey ? wallet.publicKey.toBase58() : "Not connected"}</p>
-      {status && <p className={styles.status}>{status}</p>}
-      {notification && (
-        <div
-          className={
-            notification.type === "success"
-              ? styles.notificationSuccess
-              : notification.type === "error"
-              ? styles.notificationError
-              : styles.notificationInfo
-          }
-        >
-          {notification.message}
+    <>
+
+      <div className={styles.container}>
+
+        <div className={styles.tabContainer}>
+          <button className={activeTab === "My NFTs" ? styles.activeTab : ""} onClick={() => setActiveTab("My NFTs")}>
+            My NFTs
+          </button>
+          <button className={activeTab === "Request Metadata Change" ? styles.activeTab : ""} onClick={() => setActiveTab("Request Metadata Change")}>
+            Request Metadata Change
+          </button>
+          <button className={activeTab === "Request NFT Mint" ? styles.activeTab : ""} onClick={() => setActiveTab("Request NFT Mint")}>
+            Request NFT Mint
+          </button>
         </div>
-      )}
-      <div className={styles.nftGrid}>
-        {nfts.length === 0 ? (
-          <p>You do not have any NFTs registered for sale.</p>
-        ) : (
-          nfts.map((nft, index) => (
-            <div key={index} className={styles.nftCard}>
-              <div className={styles.nftImageWrapper}>
-                {nft.image ? <img src={nft.image} alt={nft.title} /> : <p>No Image Available</p>}
-              </div>
-              <div className={styles.nftDetails}>
-                <h3>{nft.title}</h3>
-                <p>{nft.description}</p>
-                <p>
-                  <strong>Mint:</strong> {nft.mintAddress}
-                </p>
-                <p>
-                  <strong>Status:</strong> {nft.marketStatus}
-                </p>
-                <p>
-                  <strong>Sale Price:</strong> {nft.salePrice} SOL
-                </p>
-                <div className={styles.buttonGroup}>
-                  <button onClick={() => requestListing(nft)}>Request Listing</button>
-                  <button onClick={() => checkAndDepositNFT(nft)}>Deposit NFT</button>
+
+        {/* <h1>User Dashboard</h1>
+
+        <p>{wallet.publicKey ? `Connected Wallet Address: ${wallet.publicKey.toBase58()}` : "Not connected"}</p> */}
+
+        {notification && <p>{notification}</p>}
+
+        {activeTab === "My NFTs" && (
+          <>
+            <div className={styles.nftGrid}>
+              {nfts.map((nft, i) => (
+                <div key={i} className={styles.cardWrapper}>
+                  <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+
+                  <div className={styles.sellerActions}>
+                    <p className={styles.tooltipWrapper} data-tooltip="The price of this NFT">
+                      <SiSolana/>{nft.salePrice}<IoMdInformationCircle className={styles.infoIcon} />
+                    </p>
+                    <p className={styles.tooltipWrapper} data-tooltip="The current holding status of this NFT if its in escrow or not">
+                      {nft.isInEscrow ? "In Escrow" : "Holding NFT"} 
+                      <IoMdInformationCircle className={styles.infoIcon} />
+                    </p>
+                    
+                    {nft.marketStatus === "requested" ? (
+                      <div
+                        className={styles.tooltipWrapper}
+                        data-tooltip="This NFT is waiting for admin approval before it can be listed"
+                      >
+                        <p>Awaiting admin approval<IoMdInformationCircle className={styles.infoIcon} /></p>
+                      </div>
+                    ) : nft.isInEscrow ? (
+                      <div
+                        className={styles.tooltipWrapper}
+                        data-tooltip="This NFT is active in the LuxHub marketplace"
+                      >
+                        <p>Listed in marketplace <IoMdInformationCircle className={styles.infoIcon} /></p>
+                      </div>
+                    ) : (
+                      <button
+                        className={styles.tooltipButton}
+                        data-tooltip="Submit your NFT for admin approval"
+                        onClick={() => handleListNFT(nft)}
+                        disabled={loadingMint === nft.mintAddress}
+                      >
+                        {loadingMint === nft.mintAddress ? "Processing..." : "Request Listing"}
+                      </button>
+                    )}
+
+                  </div>
+                </div>
+              ))}
+            </div>
+            {selectedNFT && (
+              <div className={styles.overlay}>
+                <div className={styles.detailContainer}>
+                  <NftDetailCard metadataUri={selectedNFT.metadataUri} onClose={() => setSelectedNFT(null)} />
                 </div>
               </div>
-            </div>
-          ))
+            )}
+          </>
         )}
+
+        {activeTab === "Request Metadata Change" && (
+            <div style={{ marginTop: "30px" }}>
+              <NFTChangeRequestForm
+                nfts={nfts.filter(nft =>
+                  !nft.isInEscrow && nft.marketStatus !== "requested"
+                )}
+              />
+            </div>
+        )}
+
+        {activeTab === "Request NFT Mint" && (
+            <div style={{ marginTop: "30px" }}>
+              <MintRequestForm />
+            </div>
+        )}
+
       </div>
-    </div>
+
+    </>
   );
 };
 

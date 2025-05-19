@@ -1,6 +1,7 @@
 import Link from "next/link";
 import styles from "../../styles/Footer.module.css";
-import { FaTwitter, FaDiscord, FaGithub, FaTelegram, FaGlobe } from "react-icons/fa";
+import { FaDiscord, FaGithub, FaTelegram, FaGlobe } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
 
 export default function Footer() {
   return (
@@ -9,15 +10,15 @@ export default function Footer() {
         
         {/* Branding Section */}
         <div className={styles.branding}>
-          <p>Managed by</p>
-          <img src=" " alt="Mercatus Logo" className={styles.logo} />
+          <p>LUXHUB</p>
+          <img src="/images/purpleLGG.png" alt="Luxhub Logo" className={styles.logo} />
         </div>
 
         {/* Social Icons */}
         <div className={styles.socialIcons}>
-          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"><FaTwitter /></a>
+          <a href="https://x.com/LuxHubdotFun" target="_blank" rel="noopener noreferrer"><FaXTwitter/></a>
           <a href="https://discord.com" target="_blank" rel="noopener noreferrer"><FaDiscord /></a>
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer"><FaGithub /></a>
+          <a href="https://github.com/yoandryx/luxhub" target="_blank" rel="noopener noreferrer"><FaGithub /></a>
           <a href="https://telegram.org" target="_blank" rel="noopener noreferrer"><FaTelegram /></a>
         </div>
 
@@ -51,7 +52,7 @@ export default function Footer() {
       </div>
 
       {/* Copyright */}
-      <p className={styles.copyright}>© {new Date().getFullYear()} Mercatus. All rights reserved.</p>
+      <p className={styles.copyright}>© {new Date().getFullYear()} LuxHub. All rights reserved.</p>
     </footer>
   );
 }

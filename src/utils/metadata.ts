@@ -16,9 +16,7 @@ export interface NFTMetadata {
     files: { uri: string; type: string }[];
     category?: string;
   };
-  // Additional fields used by your app
   updatedAt?: string;
-  // If you want to store 'uri' field, you can add it explicitly
 }
 
 // Create metadata JSON object
@@ -44,10 +42,14 @@ export const createMetadata = (
   releaseDate?: string,
   currentOwner?: string,
   marketStatus?: string,
-  priceSol?: number
+  priceSol?: number,
+  boxPapers?: string,          // Yes/No
+  condition?: string,          // New, Excellent, etc.
+  serviceHistory?: string,     // e.g., "Serviced 2024"
+  features?: string[]          // e.g., ["Chronograph", "GMT"]
 ): NFTMetadata => {
   const gateway = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
-  const attributes = [
+  const attributes: { trait_type: string; value: string }[] = [
     { trait_type: "Brand", value: brand },
     { trait_type: "Model", value: model },
     { trait_type: "Serial Number", value: serialNumber },
@@ -59,17 +61,21 @@ export const createMetadata = (
     { trait_type: "Provenance", value: provenance },
     { trait_type: "Market Status", value: marketStatus || "inactive" },
   ];
-  if (priceSol !== undefined) {
-    attributes.push({ trait_type: "Price", value: priceSol.toString() });
-  }
+
+  // Conditionally include optional fields
+  if (priceSol !== undefined) attributes.push({ trait_type: "Price", value: priceSol.toString() });
   if (movement) attributes.push({ trait_type: "Movement", value: movement });
   if (caseSize) attributes.push({ trait_type: "Case Size", value: caseSize });
   if (waterResistance) attributes.push({ trait_type: "Water Resistance", value: waterResistance });
   if (dialColor) attributes.push({ trait_type: "Dial Color", value: dialColor });
   if (country) attributes.push({ trait_type: "Country", value: country });
   if (releaseDate) attributes.push({ trait_type: "Release Date", value: releaseDate });
-  if (currentOwner) {
-    attributes.push({ trait_type: "Current Owner", value: currentOwner });
+  if (currentOwner) attributes.push({ trait_type: "Current Owner", value: currentOwner });
+  if (boxPapers) attributes.push({ trait_type: "Box & Papers", value: boxPapers });
+  if (condition) attributes.push({ trait_type: "Condition", value: condition });
+  if (serviceHistory) attributes.push({ trait_type: "Service History", value: serviceHistory });
+  if (features && features.length > 0) {
+    features.forEach((feat) => attributes.push({ trait_type: "Feature", value: feat }));
   }
 
   return {
@@ -78,7 +84,7 @@ export const createMetadata = (
     description,
     image: `${gateway}${imageCid}`,
     external_url: "",
-    seller_fee_basis_points: 300,
+    seller_fee_basis_points: 500,
     attributes,
     properties: {
       creators: [
@@ -95,6 +101,7 @@ export const createMetadata = (
       ],
       category: "Timepieces",
     },
+    updatedAt: new Date().toISOString(),
   };
 };
 

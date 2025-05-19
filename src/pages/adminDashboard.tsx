@@ -9,17 +9,6 @@ import {
 } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import { getProgram } from "../utils/programUtils";
-import { Bar, Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
 import {
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID,
@@ -29,9 +18,9 @@ import { uploadToPinata } from "../utils/pinata";
 import { updateNftMetadata } from "../utils/metadata";
 import styles from "../styles/AdminDashboard.module.css";
 import { toast } from "react-toastify";
-
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
+import { MetadataEditorTab } from "../components/admins/MetadataEditorTab";
+import { MetadataChangeRequestsTab } from "../components/admins/MetadataChangeRequestsTab";
+import { CiSearch } from "react-icons/ci";
 
 interface LogEntry {
   timestamp: string;
@@ -72,8 +61,6 @@ interface EscrowAccount {
   file_cid: string;
   mintA: string;
   mintB: string;
-
-  // ✅ New optional fields added by enriched fetch logic
   name?: string;
   image?: string;
   description?: string;
@@ -85,6 +72,9 @@ const FUNDS_MINT = "So11111111111111111111111111111111111111112";
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const PLACEHOLDER_BUYER = new PublicKey("11111111111111111111111111111111");
 
+// ------------------------------------------------
+// Update NFT Market Status
+// ------------------------------------------------
 const updateNFTMarketStatus = async (
   mintAddress: string,
   newMarketStatus: string,
@@ -145,7 +135,7 @@ const updateNFTMarketStatus = async (
 const AdminDashboard: React.FC = () => {
 
   const wallet = useWallet();
-  const [tabIndex, setTabIndex] = useState<number>(0);
+  const [tabIndex, setTabIndex] = useState<number>(5);
   const [status, setStatus] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -156,8 +146,6 @@ const AdminDashboard: React.FC = () => {
   const [adminList, setAdminList] = useState<string[]>([]);
   const [newAdmin, setNewAdmin] = useState<string>("");
   const [removeAdminAddr, setRemoveAdminAddr] = useState<string>("");
-
-  const [buyerWallet, setBuyerWallet] = useState<string>("");
 
   const [saleRequests, setSaleRequests] = useState<SaleRequest[]>([]);
   const [activeEscrows, setActiveEscrows] = useState<EscrowAccount[]>([]);
@@ -191,6 +179,9 @@ const AdminDashboard: React.FC = () => {
     setLogs((prev) => [...prev, newLog]);
   };
 
+  // ------------------------------------------------
+  // Rate Limit Handling
+  // ------------------------------------------------
   const fetchWithRetry = async (
     fetchFunc: () => Promise<any>,
     retries = 3,
@@ -210,6 +201,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // ------------------------------------------------
+  // Fetch Config and Admins
+  // ------------------------------------------------
   const fetchConfigAndAdmins = async () => {
     if (!program || !escrowConfigPda || !adminListPda) return;
     try {
@@ -248,95 +242,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const fetchActiveEscrows = async (mintFilter?: string) => {
-    if (!program) return;
-  
-    try {
-      const rawEscrows = await (program.account as any).escrow.all();
-      console.log("🔍 Raw Escrows from chain:", rawEscrows);
-  
-      // Filter valid escrows by status and mint
-      const active = rawEscrows.filter((acc: any) => {
-        const notCompleted = !acc.account.isCompleted;
-        const hasSeed = acc.account.seed > 0;
-        const mintB = acc.account.mint_b?.toBase58?.();
-        const matchesMint = mintFilter ? mintB === mintFilter : true;
-        return notCompleted && hasSeed && mintB && matchesMint;
-      });
-  
-      const enriched = await Promise.all(
-        active.map(async (acc: any) => {
-          try {
-            const seed = acc.account.seed;
-            const initializer = acc.account.initializer?.toBase58?.() || "";
-            const mintB = acc.account.mint_b?.toBase58?.();
-  
-            if (!mintB || !PublicKey.isOnCurve(new PublicKey(mintB))) {
-              console.warn("[fetchActiveEscrows] Skipping escrow with invalid mintB:", mintB);
-              return null;
-            }
-  
-            const [escrowPda] = PublicKey.findProgramAddressSync(
-              [Buffer.from("state"), new BN(seed).toArrayLike(Buffer, "le", 8)],
-              program.programId
-            );
-  
-            const vault = await getAssociatedTokenAddress(
-              new PublicKey(mintB),
-              escrowPda,
-              true
-            );
-  
-            // Load metadata
-            const pinataGateway = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
-            const fileCid = acc.account.file_cid;
-            const metadataUri = pinataGateway + fileCid;
-  
-            let metadata: any = {};
-            try {
-              const res = await fetch(metadataUri);
-              metadata = res.ok ? await res.json() : {
-                name: "Pending NFT",
-                description: "Awaiting metadata",
-                attributes: [],
-              };
-            } catch (err) {
-              console.warn("[fetchActiveEscrows] Fallback metadata used for", mintB, err);
-              metadata = {
-                name: "Unfetched NFT",
-                description: "Error fetching metadata",
-                attributes: [],
-              };
-            }
-  
-            return {
-              seed,
-              initializer,
-              mintB,
-              file_cid: fileCid,
-              vaultATA: vault.toBase58(),
-              initializer_amount: acc.account.initializer_amount?.toString?.() || "0",
-              taker_amount: acc.account.taker_amount?.toString?.() || "0",
-              salePrice: acc.account.sale_price?.toString?.() || "0",
-              name: metadata.name || "Unknown NFT",
-              image: metadata.image || "",
-              description: metadata.description || "",
-              attributes: metadata.attributes || [],
-            };
-          } catch (err) {
-            console.error("[fetchActiveEscrows] Skipping failed escrow fetch:", err);
-            return null;
-          }
-        })
-      );
-  
-      setActiveEscrows(enriched.filter(Boolean));
-      console.log("[fetchActiveEscrows] Loaded enriched active escrows:", enriched);
-    } catch (e) {
-      console.error("[fetchActiveEscrows] Failed to fetch enriched active escrows:", e);
-    }
-  };
-
+  // ------------------------------------------------
+  // Fetch Active Escrows by Mint
+  // ------------------------------------------------
   const fetchActiveEscrowsByMint = async () => {
     try {
       const res = await fetch("/api/nft/activeEscrowsByMint");
@@ -413,6 +321,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // ------------------------------------------------
+  // Fetch Sale Requests
+  // ------------------------------------------------
   const fetchSaleRequests = async (page = 1, seller = "") => {
     try {
       const res = await fetch(`/api/nft/pendingRequests?page=${page}&seller=${seller}`);
@@ -431,11 +342,10 @@ const AdminDashboard: React.FC = () => {
       setSaleRequests([]);
     }
   };
-  
+
   const refreshData = async () => {
     setLoading(true);
     await fetchConfigAndAdmins();
-    // await fetchActiveEscrows();
     await fetchActiveEscrowsByMint();
     await fetchSaleRequests();
     setLoading(false);
@@ -457,13 +367,9 @@ const AdminDashboard: React.FC = () => {
     }
   }, [wallet.publicKey, adminList]);
 
-  const totalEscrowVolume = activeEscrows.reduce(
-    (acc, escrow) => acc + Number(escrow.initializer_amount),
-    0
-  );
-
-  const totalRoyaltyEarned = totalEscrowVolume * 0.05;
-
+  // ------------------------------------------------
+  // Initialize Escrow Config Logic
+  // ------------------------------------------------
   const initializeEscrowConfig = async () => {
     if (!wallet.publicKey || !program || !escrowConfigPda) {
       alert("Wallet not connected or program not ready.");
@@ -490,6 +396,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // ------------------------------------------------
+  // Update Escrow Config Logic
+  // ------------------------------------------------
   const updateEscrowConfig = async () => {
     if (!wallet.publicKey || !program || !escrowConfigPda || !adminListPda) {
       alert("Wallet not connected or program not ready.");
@@ -516,6 +425,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // ------------------------------------------------
+  // Add Admin Logic
+  // ------------------------------------------------
   const addAdmin = async () => {
     if (!wallet.publicKey || !program || !adminListPda) {
       alert("Wallet not connected or program not ready.");
@@ -543,6 +455,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // ------------------------------------------------
+  // Remove Admin Logic
+  // ------------------------------------------------
   const removeAdmin = async () => {
     if (!wallet.publicKey || !program || !adminListPda) {
       alert("Wallet not connected or program not ready.");
@@ -770,7 +685,8 @@ const AdminDashboard: React.FC = () => {
         }),
       });
   
-      fetchActiveEscrows();
+      fetchActiveEscrowsByMint();
+
     } catch (error: any) {
       console.error("[cancelEscrow] error:", error);
       setStatus("Cancel escrow failed: " + error.message);
@@ -935,38 +851,10 @@ const AdminDashboard: React.FC = () => {
       addLog("Approve Sale", "N/A", "Error: " + error.message);
     }
   };
-  
-  const barChartData = {
-    labels: Object.keys(
-      logs.reduce((acc: { [action: string]: number }, log) => {
-        acc[log.action] = (acc[log.action] || 0) + 1;
-        return acc;
-      }, {})
-    ),
-    datasets: [
-      {
-        label: "Admin Actions",
-        data: Object.values(
-          logs.reduce((acc: { [action: string]: number }, log) => {
-            acc[log.action] = (acc[log.action] || 0) + 1;
-            return acc;
-          }, {})
-        ),
-        backgroundColor: "rgba(176, 144, 252, 0.6)",
-      },
-    ],
-  };
 
-  const pieChartData = {
-    labels: ["Royalty Earned", "Total Escrow Volume"],
-    datasets: [
-      {
-        data: [totalRoyaltyEarned, totalEscrowVolume],
-        backgroundColor: ["rgb(176, 144, 252)", "rgb(80, 68, 111)"],
-      },
-    ],
-  };
-
+  // ------------------------------------------------
+  // Vault Address Fetching
+  // ------------------------------------------------
   useEffect(() => {
     const fetchVaults = async () => {
       if (!program) return;
@@ -996,119 +884,38 @@ const AdminDashboard: React.FC = () => {
     fetchVaults();
   }, [activeEscrows, program]);
 
+  // ------------------------------------------------
+  // Render Admin Tabs
+  // ------------------------------------------------
   const renderTabContent = () => {
     switch (tabIndex) {
-      case 0:
+      case 2:
         return (
           <div>
-            <div className={styles.inputGroup}>
-              <label>Current LuxHub Wallet:</label>
-              <div className={styles.luxhubWallet}>{currentEscrowConfig}</div>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Set LuxHub Wallet:</label>
-              <input
-                type="text"
-                placeholder="Initialize LuxHub Wallet Address"
-                value={luxhubWallet}
-                onChange={(e) => setLuxhubWallet(e.target.value)}
-              />
-              <button onClick={initializeEscrowConfig}>Initialize Config</button>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>New LuxHub Wallet:</label>
-              <input
-                type="text"
-                placeholder="Enter New LuxHub Wallet Address"
-                value={newLuxhubWallet}
-                onChange={(e) => setNewLuxhubWallet(e.target.value)}
-              />
-              <button onClick={updateEscrowConfig}>Update Config</button>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Admin List</label>
-              {adminList.length === 0 ? (
-                <p>No admins found.</p>
-              ) : (
-                adminList.map((adminStr, idx) => (
-                  <div key={idx} className={styles.listItem}>{adminStr}</div>
-                ))
-              )}
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Add Admin (Wallet Address):</label>
-              <input
-                type="text"
-                placeholder="Enter New Admin Wallet Address"
-                value={newAdmin}
-                onChange={(e) => setNewAdmin(e.target.value)}
-              />
-              <button onClick={addAdmin}>Add Admin</button>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Remove Admin (Wallet Address):</label>
-              <input
-                type="text"
-                placeholder="Remove Admin (Enter Admin Wallet Address)"
-                value={removeAdminAddr}
-                onChange={(e) => setRemoveAdminAddr(e.target.value)}
-              />
-              <button onClick={removeAdmin}>Remove Admin</button>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Buyer Wallet (for NFT transfer):</label>
-              <input
-                type="text"
-                value={buyerWallet}
-                onChange={(e) => setBuyerWallet(e.target.value)}
-              />
-            </div>
-            <div className={styles.inputGroup}>
-              <button onClick={refreshData}>
-                {loading ? "Refreshing..." : "Refresh Data"}
-              </button>
-            </div>
-          </div>
-        );
-      case 1:
-        return (
-          <div>
-            <h2>Admin List</h2>
-            {adminList.length === 0 ? (
-              <p>No admins found.</p>
+            <h2>Active Escrows</h2>
+            {activeEscrows.length === 0 ? (
+              <p>No active escrows found.</p>
             ) : (
-              adminList.map((adminStr, idx) => (
-                <div key={idx} className={styles.listItem}>{adminStr}</div>
-              ))
-            )}
-          </div>
-        );
-        case 2:
-          return (
-            <div>
-              <h2>Active Escrows</h2>
-              {activeEscrows.length === 0 ? (
-                <p>No active escrows found.</p>
-              ) : (
-                activeEscrows.map((escrow, idx) => {
-                  if (Number(escrow.seed.toString()) === 0) return null;
+              activeEscrows.map((escrow, idx) => {
+                if (Number(escrow.seed.toString()) === 0) return null;
 
-                  const initializerAmountSol = Number(escrow.initializer_amount) / LAMPORTS_PER_SOL;
-                  const takerAmountSol = Number(escrow.taker_amount) / LAMPORTS_PER_SOL;
-                  const salePriceSol = Number(escrow.salePrice) / LAMPORTS_PER_SOL;
+                const initializerAmountSol = Number(escrow.initializer_amount) / LAMPORTS_PER_SOL;
+                const takerAmountSol = Number(escrow.taker_amount) / LAMPORTS_PER_SOL;
+                const salePriceSol = Number(escrow.salePrice) / LAMPORTS_PER_SOL;
 
-                  if (!program) return null;
+                if (!program) return null;
 
-                  const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
-                  const [escrowPda] = PublicKey.findProgramAddressSync(
-                    [Buffer.from("state"), seedBuffer],
-                    program.programId
-                  );
+                const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
+                const [escrowPda] = PublicKey.findProgramAddressSync(
+                  [Buffer.from("state"), seedBuffer],
+                  program.programId
+                );
 
-                  return (
-                    <div key={idx} className={styles.listingCard}>
-                      <h3>{escrow.name || "Unnamed NFT"}</h3>
+                return (
+                  <div key={idx} className={styles.listingCard}>
+                    <h3>{escrow.name || "Unnamed NFT"}</h3>
 
+                    <div className={styles.listingCardInfo}>
                       {escrow.image && (
                         <div className={styles.nftImageWrapper}>
                           <img
@@ -1133,22 +940,22 @@ const AdminDashboard: React.FC = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          {escrowPda.toBase58()}
+                          {escrowPda.toBase58().slice(0, 4)} . . . {escrowPda.toBase58().slice(-4)}
                         </a>
                       </p>
 
                       <p>
                         <strong>Vault ATA:</strong>{" "}
-                        <code>{escrow.vaultATA || "Loading..."}</code>
+                        <code>{escrow.vaultATA?.slice(0, 4) || "Loading..."} . . . {escrow.vaultATA?.slice(-4)}</code>
                       </p>
 
-                      <p><strong>Mint Address:</strong> {escrow.mintB}</p>
-                      <p><strong>Initializer Wallet:</strong> {escrow.initializer}</p>
+                      <p><strong>Mint Address:</strong> {escrow.mintB.slice(0,4)} . . . {escrow.mintB.slice(-4)}</p>
+                      <p><strong>Initializer Wallet:</strong> {escrow.initializer.slice(0,4)} . . . {escrow.initializer.slice(-4)}</p>
                       <p><strong>Initializer Amount:</strong> {initializerAmountSol.toFixed(2)} SOL</p>
                       <p><strong>Taker Amount:</strong> {takerAmountSol.toFixed(2)} SOL</p>
                       <p><strong>Sale Price:</strong> {salePriceSol.toFixed(2)} SOL</p>
                       <p><strong>Royalty (3%):</strong> {(salePriceSol * 0.03).toFixed(2)} SOL</p>
-                      <p><strong>File CID:</strong> {escrow.file_cid}</p>
+                      <p><strong>File CID:</strong> {escrow.file_cid.slice(0,4)} . . . {escrow.file_cid.slice(-4)}</p>
 
                       {escrow.attributes && escrow.attributes.length > 0 && (
                         <div className={styles.attributesSection}>
@@ -1168,126 +975,69 @@ const AdminDashboard: React.FC = () => {
                         <button onClick={() => cancelEscrow(escrow)}>Cancel Escrow</button>
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-          );
-      case 3:
-        return (
-          <div>
-            <h2>Detailed Analytics</h2>
-            <div className={styles.chartContainer}>
-              <h3>Admin Actions</h3>
-              <div className={styles.chart}>
-                <Bar
-                  data={barChartData}
-                  options={{
-                    responsive: true,
-                    plugins: {
-                      legend: { position: "top" },
-                      title: { display: true, text: "Admin Actions" },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-            <div className={styles.chartContainer}>
-              <h3>Royalty vs Escrow Volume</h3>
-              <div className={styles.chart}>
-                <Pie
-                  data={pieChartData}
-                  options={{
-                    responsive: true,
-                    plugins: {
-                      legend: { position: "top" },
-                      title: { display: true, text: "Royalty vs Escrow Volume" },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-            <div className={styles.inputGroup}>
-              <p><strong>Total Escrow Volume:</strong> {totalEscrowVolume}</p>
-              <p><strong>Total Royalty Earned (3%):</strong> {totalRoyaltyEarned.toFixed(2)}</p>
-            </div>
-          </div>
-        );
-      case 4:
-        return (
-          <div>
-            <h2>Transaction Logs (On‑Chain Events Only)</h2>
-            {logs.length === 0 ? (
-              <p>No on‑chain event logs available.</p>
-            ) : (
-              logs.map((log, index) => (
-                <div key={index} className={styles.listingCard}>
-                  <p className={styles.logTimestamp}>{log.timestamp}</p>
-                  <p className={styles.logAction}>{log.action}</p>
-                  <p className={styles.logTx}>Tx: {log.tx}</p>
-                  <p className={styles.logMessage}>{log.message}</p>
-                </div>
-              ))
+                  </div>
+                );
+              })
             )}
           </div>
         );
-        case 5:
-          return (
-            <div>
-              <h2>Sale Requests</h2>
+      case 5:
+        return (
+          <div>
+            <h2>Marketplace Listing Requests</h2>
+
+            <div className={styles.inputGroupContainer}>
               <div className={styles.inputGroup}>
-                <input
-                  type="text"
-                  placeholder="Filter by Seller Wallet"
-                  value={sellerFilter}
-                  onChange={(e) => setSellerFilter(e.target.value)}
-                />
-                <button onClick={() => fetchSaleRequests(1, sellerFilter)}>Search</button>
-              </div>
-              <div className={styles.paginationControls}>
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => fetchSaleRequests(currentPage - 1, sellerFilter)}
-                >
-                  Prev
-                </button>
-                <span>Page {currentPage}</span>
-                <button
-                  disabled={isLastPage}
-                  onClick={() => fetchSaleRequests(currentPage + 1, sellerFilter)}
-                >
-                  Next
-                </button>
-              </div>
-              {saleRequests.length === 0 ? (
-                <p>No pending sale requests.</p>
-              ) : (
-                saleRequests.map((req, idx) => {
-                  const currentSeed = req.seed ?? dynamicSeeds.get(req.nftId) ?? Date.now();
 
-                  const updateSeed = () => {
-                    const newSeed = Date.now();
-                    setDynamicSeeds((prev) => {
-                      const updated = new Map(prev);
-                      updated.set(req.nftId, newSeed); // override the seed for this NFT
-                      return updated;
-                    });
-                  
-                    // Optional: show status message or toast
-                    toast.success("✅ New seed generated for listing.");
-                  };
-                  
+                <div className={styles.searchContainer}>
+                  <button onClick={() => fetchSaleRequests(1, sellerFilter)}><CiSearch className={styles.searchIcon} /></button>
+                  <input type="text" placeholder="Filter by Seller Wallet" value={sellerFilter} className={styles.searchBar} onChange={(e) => setSellerFilter(e.target.value)} />
+                </div>
 
-                  return (
-                    <div key={idx} className={styles.listingCard}>
-                      <p className={styles.statusBadge}>PENDING</p>
-                      <p><strong>NFT Mint:</strong> {req.nftId}</p>
-                      <p><strong>Seller:</strong> {req.seller}</p>
+              </div>
+            </div>
+
+            <div className={styles.paginationControls}>
+              <button
+                disabled={currentPage === 1}
+                onClick={() => fetchSaleRequests(currentPage - 1, sellerFilter)}
+              >
+                Prev
+              </button>
+              <span>Page {currentPage}</span>
+              <button
+                disabled={isLastPage}
+                onClick={() => fetchSaleRequests(currentPage + 1, sellerFilter)}
+              >
+                Next
+              </button>
+            </div>
+            {saleRequests.length === 0 ? (
+              <p>No pending sale requests.</p>
+            ) : (
+              saleRequests.map((req, idx) => {
+                const currentSeed = req.seed ?? dynamicSeeds.get(req.nftId) ?? Date.now();
+
+                const updateSeed = () => {
+                  const newSeed = Date.now();
+                  setDynamicSeeds((prev) => {
+                    const updated = new Map(prev);
+                    updated.set(req.nftId, newSeed); // override the seed for this NFT
+                    return updated;
+                  });
+                 };
+                
+                return (
+                  <div key={idx} className={styles.listingCard}>
+                    <div className={styles.statusBadge}><div>PENDING</div></div>
+                    <div className={styles.listingCardInfo}>
+                      <p><strong>NFT Mint:</strong> {req.nftId.slice(0,4)} . . . {req.nftId.slice(-4)}</p>
+                      <p><strong>Seller:</strong> {req.seller.slice(0,4)} . . . {req.seller.slice(-4)}</p>
                       <p><strong>Seed:</strong> {currentSeed}</p>
                       <p><strong>Initializer Amount (SOL):</strong> {req.initializerAmount}</p>
                       <p><strong>Taker Amount (SOL):</strong> {req.takerAmount}</p>
                       <p><strong>Sale Price (SOL):</strong> {req.salePrice}</p>
-                      <p><strong>File CID:</strong> {req.fileCid}</p>
+                      <p><strong>File CID:</strong> {req.fileCid.slice(0,4)} . . . {req.fileCid.slice(-4)}</p>
                       <p><strong>Requested at:</strong> {new Date(req.timestamp).toLocaleString()}</p>
                       <div className={styles.actions}>
                         <button
@@ -1298,14 +1048,79 @@ const AdminDashboard: React.FC = () => {
                         </button>
                         <button onClick={updateSeed}>Generate New Seed</button>
                         <button>Cancel Escrow</button>
-                        {/* <button onClick={() => cancelEscrow(escrow)}>Cancel Escrow</button> */}
                       </div>
                     </div>
-                  );
-                })
-              )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        );
+      case 6:
+        return <MetadataEditorTab />;
+      case 7:
+        return <MetadataChangeRequestsTab wallet={wallet} />;
+      case 0:
+        return (
+          <div>
+            <div className={styles.configInputGroupContainer}>
+              <div className={styles.configInputGroup}>
+                <label>Current LuxHub Wallet:</label>
+                <div className={styles.luxhubWallet}>{currentEscrowConfig.slice(0, 4)}...{currentEscrowConfig.slice(-4)}</div>
+              </div>
+              <div className={styles.configInputGroup}>
+                <label>Set LuxHub Wallet:</label>
+                <input
+                  type="text"
+                  placeholder="Initialize LuxHub Wallet Address"
+                  value={luxhubWallet}
+                  onChange={(e) => setLuxhubWallet(e.target.value)}
+                />
+                <button onClick={initializeEscrowConfig}>Initialize Config</button>
+              </div>
+              <div className={styles.configInputGroup}>
+                <label>New LuxHub Wallet:</label>
+                <input
+                  type="text"
+                  placeholder="Enter New LuxHub Wallet Address"
+                  value={newLuxhubWallet}
+                  onChange={(e) => setNewLuxhubWallet(e.target.value)}
+                />
+                <button onClick={updateEscrowConfig}>Update Config</button>
+              </div>
+              <div className={styles.configInputGroup}>
+                <label>Admin List</label>
+                {adminList.length === 0 ? (
+                  <p>No admins found.</p>
+                ) : (
+                  adminList.map((adminStr, idx) => (
+                    <div key={idx} className={styles.listItem}>{adminStr.slice(0, 4)}...{adminStr.slice(-4)}</div>
+                  ))
+                )}
+              </div>
+              <div className={styles.configInputGroup}>
+                <label>Add Admin (Wallet Address):</label>
+                <input
+                  type="text"
+                  placeholder="Enter New Admin Wallet Address"
+                  value={newAdmin}
+                  onChange={(e) => setNewAdmin(e.target.value)}
+                />
+                <button onClick={addAdmin}>Add Admin</button>
+              </div>
+              <div className={styles.configInputGroup}>
+                <label>Remove Admin (Wallet Address):</label>
+                <input
+                  type="text"
+                  placeholder="Remove Admin (Enter Admin Wallet Address)"
+                  value={removeAdminAddr}
+                  onChange={(e) => setRemoveAdminAddr(e.target.value)}
+                />
+                <button onClick={removeAdmin}>Remove Admin</button>
+              </div>
             </div>
-          );
+          </div>
+        );
       default:
         return null;
     }
@@ -1314,7 +1129,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Admin.Hub</h1>
+        <h1>Admin Dashboard</h1>
       </div>
       {!wallet.publicKey ? (
         <p>Please connect your wallet.</p>
@@ -1331,23 +1146,20 @@ const AdminDashboard: React.FC = () => {
       ) : (
         <>
           <div className={styles.tabContainer}>
-            <button onClick={() => setTabIndex(0)} className={tabIndex === 0 ? styles.activeTab : ""}>
-              Configuration
+            <button className={`${styles.tab} ${tabIndex === 5 ? styles.activeTab : ""}`} onClick={() => setTabIndex(5)}>
+              Sale Requests
             </button>
-            <button onClick={() => setTabIndex(1)} className={tabIndex === 1 ? styles.activeTab : ""}>
-              User Management
-            </button>
-            <button onClick={() => setTabIndex(2)} className={tabIndex === 2 ? styles.activeTab : ""}>
+            <button className={`${styles.tab} ${tabIndex === 2 ? styles.activeTab : ""}`} onClick={() => setTabIndex(2)}>
               Escrow Management
             </button>
-            <button onClick={() => setTabIndex(3)} className={tabIndex === 3 ? styles.activeTab : ""}>
-              Detailed Analytics
+            <button className={`${styles.tab} ${tabIndex === 6 ? styles.activeTab : ""}`} onClick={() => setTabIndex(6)}>
+              NFT Metadata Editor
             </button>
-            <button onClick={() => setTabIndex(4)} className={tabIndex === 4 ? styles.activeTab : ""}>
-              Transaction Logs
+            <button className={`${styles.tab} ${tabIndex === 7 ? styles.activeTab : ""}`} onClick={() => setTabIndex(7)}>
+              Metadata Change Requests
             </button>
-            <button onClick={() => setTabIndex(5)} className={tabIndex === 5 ? styles.activeTab : ""}>
-              Sale Requests
+            <button className={`${styles.tab} ${tabIndex === 0 ? styles.activeTab : ""}`} onClick={() => setTabIndex(0)}>
+              Configuration
             </button>
           </div>
           <div className={styles.content}>{renderTabContent()}</div>

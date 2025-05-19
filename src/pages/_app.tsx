@@ -26,6 +26,7 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
+import LuxuryAssistant from '../components/user/LuxuryAssistant';
 
 // Network URL
 const network = WalletAdapterNetwork.Devnet;
@@ -40,8 +41,8 @@ const App = ({ Component, pageProps }: AppProps) => {
   
   // Memoize wallet adapter setup
   const wallets = useMemo(() => [
-    new SolflareWalletAdapter(),
-    new PhantomWalletAdapter(),
+    // new SolflareWalletAdapter(),
+    // new PhantomWalletAdapter(),
   ], []);
 
   const content = (
@@ -60,6 +61,7 @@ const App = ({ Component, pageProps }: AppProps) => {
               <ToastContainer position="top-right" autoClose={4000} />
               <WalletNavbar />
               <Component {...pageProps} />
+              <LuxuryAssistant />
               <Footer />
             {/* </EscrowProvider> */}
           </WalletModalProvider>
