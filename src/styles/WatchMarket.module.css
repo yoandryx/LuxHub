@@ -4,6 +4,7 @@
   background: linear-gradient(135deg, rgba(31, 31, 31, 0.4) 0%, rgba(19, 19, 19, 0.3) 50%, rgba(21, 21, 21, 0.55) 100%);
   min-height: 100vh;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Title styling */
@@ -12,7 +13,9 @@
   font-size: 2.5rem;
   color: #ffffff;
   margin-bottom: 40px;
-  font-weight: 600;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* Grid for all NFT cards */
@@ -38,7 +41,7 @@
 
 /* Hover effect */
 .nftCard:hover {
-  transform: translateY(-5px);
+  transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -54,6 +57,13 @@
 .nftImageWrapper img {
   width: 100%;
   height: auto;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+/* Image hover effect */
+.nftImageWrapper:hover img {
+  transform: scale(0.95);
   object-fit: cover;
 }
 
@@ -138,7 +148,7 @@
 }
 
 /* Detail container in overlay */
-.detailContainer {
+/* .detailContainer {
   background-color: #ffffff;
   padding: 30px;
   border-radius: 8px;
@@ -148,14 +158,14 @@
   overflow-y: auto;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   position: relative;
-}
+} */
 
 .detailContainer button {
   background-color: transparent;
   border: none;
   font-size: 1.2rem;
   font-weight: 700;
-  color: #333;
+  /* color: #333; */
   cursor: pointer;
   position: absolute;
   top: 15px;
@@ -190,4 +200,268 @@
   .nftImageWrapper {
     width: 100%;
   }
+}
+
+.cardWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  /* background-color: #00000030; */
+  padding: 10px;
+  border-radius: 15px;
+}
+
+.sellerActions {
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #000000dc;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 0 15px #0000009d;
+  padding: 1px;
+  width: 100%;
+  font-size: x-small;
+}
+
+.sellerActions p {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #c8a1ff33;
+  border: 1px solid #c8a1ff33;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: small;
+  margin: 5px;
+  color: #ffffff;
+}
+
+.sellerActions p:hover {
+  border: 1px solid #c8a1ff;
+}
+
+.sellerActions button {
+  background-color: #c8a1ff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  color: #000000;
+  text-shadow: 0 0 1px #0000006e;
+  box-shadow: 0 0 20px #c8a1ff66;
+  /* font-size: x-small; */
+  cursor: pointer;
+  margin: 5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: background-color 0.3s ease;
+}
+
+.sellerActions button:hover {
+  background-color: #c8a1ff65;
+  box-shadow: 0 0 20px #c8a1ff;
+  border: 1px solid #c8a1ff;
+  color: #ffffff;
+}
+
+.tooltipButton {
+  position: relative;
+}
+
+.tooltipButton::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipButton:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.tooltipWrapper {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tooltipWrapper::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipWrapper:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.infoIcon {
+    display: none;
+  }
+
+@media (max-width: 768px) {
+  .infoIcon {
+    display: flex;
+    margin-left: 6px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: small;
+  }
+}
+
+.marketHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filterToggle {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 80px;
+  left: -65px;
+  padding: 8px 12px;
+  gap: 12px;
+  background-color: #b991ff;
+  color: black;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  z-index: 10;
+}
+.filterToggle:hover {
+  background-color: #c8a1ff;
+  translate: 70px 0;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 90;
+}
+
+.sidebarModal {
+  position: absolute;
+  left: 0;
+  top: 50px;
+  bottom: 0;
+  width: 320px;
+  background: #111;
+  overflow-y: auto;
+  z-index: 2000;
+}
+
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.inputGroupContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 20px 0;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: #3c3c3c7b;
+  border: solid 1px var(--accent);
+  border-radius: 8px;
+  width: 700px;
+}
+
+.searchContainer {
+  display: flex;
+  margin: 10px;
+}
+
+.searchBar {
+  background-color: var(--accent);
+  color: var(--primary);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  width: 100%;
+  padding-left: 40px; 
+  outline: none;
+  font-size: small;
+  height: 35px;
+}
+
+.inputGroup button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3c3c3c;
+  margin-right: 10px;
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  font-size: x-large;
+  transition: background 0.3s ease;
+}
+  
+.inputGroup button:hover {
+  background: #59595900;
+  cursor: pointer;
+}
+
+.sellerActions .contactButton {
+  background-color: #c8a1ff77;
+  box-shadow: none;
+  border: #c8a1ff 1px solid;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.priceInfo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 600;
 }

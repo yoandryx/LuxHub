@@ -10,7 +10,7 @@
     display: inherit;
     position: fixed;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     bottom:0px;
     z-index: 1000;
     height: 15px;
@@ -20,7 +20,7 @@
     border-width: 1px;
     border-style: solid;
     border-color: var(--accent);
-
+  
     background: #43434352;
     backdrop-filter: blur(25px);
 }
@@ -119,8 +119,68 @@
     text-shadow: 0px 2px 10px #1b1b1bdb;
 }
 
-/* .wallet-adapter-dropdown-list-active {
-    transform: translateY(0) !important;
-} */
+.solPriceTag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    margin-right: 12px;
+  }
 
+  .walletAddress {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    margin-left: 12px;
+  }
+  
+  .solIcon {
+    color: #c8a1ff;
+    font-size: 16px;
+  }
+  
+  /* @keyframes shimmerFlash {
+    0% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0.8; transform: scale(1); }
+  } */
+  
+  .shimmer {
+    animation: shimmerFlash 0.5s ease-in-out;
+  }
+  
+
+  @keyframes shimmerFlash {
+    0% {
+      background-position: -100%;
+      opacity: 0.8;
+    }
+    50% {
+      background-position: 100%;
+      opacity: 1;
+    }
+    100% {
+      background-position: -100%;
+      opacity: 0.8;
+    }
+  }
+  
+  .shimmer {
+    animation: shimmerFlash 0.5s linear;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(200, 161, 255, 0.6) 50%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
+    background-size: 200% auto;
+    --webkit-background-clip: text;
+    --webkit-text-fill-color: transparent;
+    font-weight: bold;
+  }
 

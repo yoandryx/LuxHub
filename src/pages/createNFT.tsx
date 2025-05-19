@@ -8,6 +8,7 @@ import {
   Keypair,
   SYSVAR_RENT_PUBKEY,
   Connection,
+  ParsedAccountData,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -15,6 +16,7 @@ import {
   getMint,
   getAccount,
   createAssociatedTokenAccountInstruction,
+  AccountLayout,
 } from "@solana/spl-token";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { uploadToPinata } from "../utils/pinata";
@@ -24,6 +26,9 @@ import { NftForm } from "../components/admins/NftForm";
 import styles from "../styles/CreateNFT.module.css";
 import { BN } from "@coral-xyz/anchor";
 import type { WalletAdapter } from "@solana/wallet-adapter-base";
+
+import NFTPreviewCard from "../components/admins/NFTPreviewCard";
+import { FaCopy } from "react-icons/fa";
 
 // Extended MintedNFT interface with optional ipfs_pin_hash and marketStatus fields.
 interface MintedNFT {
@@ -36,6 +41,7 @@ interface MintedNFT {
   currentOwner?: string;   // Wallet that currently owns it
   ipfs_pin_hash?: string;  // Pinata hash
   marketStatus?: string;   // e.g. "inactive" or "active"
+  updatedAt?: string;     // Date of last update
 }
 
 // Define a fallback gateway constant.
@@ -51,94 +57,63 @@ const CreateNFT = () => {
     return true;
   };
 
-  // ------------------------------------------------
-  // 1. NFT Creation Form State
-  // ------------------------------------------------
-  const [fileCid, setFileCid] = useState<string>("");
-  const [priceSol, setPriceSol] = useState<number>(0);
-  const [title, setTitle] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
+  const [features, setFeatures] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"mint" | "minted" | "transferred">("mint");
 
-  // Additional attributes
-  const [brand, setBrand] = useState<string>("");
-  const [model, setModel] = useState<string>("");
-  const [serialNumber, setSerialNumber] = useState<string>("");
-  const [material, setMaterial] = useState<string>("");
-  const [productionYear, setProductionYear] = useState<string>("");
-  const [limitedEdition, setLimitedEdition] = useState<string>("");
-  const [certificate, setCertificate] = useState<string>("");
-  const [warrantyInfo, setWarrantyInfo] = useState<string>("");
-  // For provenance (initially set to admin wallet)
-  const [provenance, setProvenance] = useState<string>(adminWallet || "");
-  // Default market status
-  const [marketStatus, setMarketStatus] = useState<string>("inactive");
+  const [fileCid, setFileCid] = useState("");
+  const [priceSol, setPriceSol] = useState(0);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
 
-  // Optional watch-specific attributes
-  const [movement, setMovement] = useState<string>("Automatic");
-  const [caseSize, setCaseSize] = useState<string>("42mm");
-  const [waterResistance, setWaterResistance] = useState<string>("300m");
-  const [dialColor, setDialColor] = useState<string>("Black");
-  const [country, setCountry] = useState<string>("Switzerland");
-  const [releaseDate, setReleaseDate] = useState<string>("2023-05-01");
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
+  const [material, setMaterial] = useState("");
+  const [productionYear, setProductionYear] = useState("");
+  const [limitedEdition, setLimitedEdition] = useState("");
+  const [certificate, setCertificate] = useState("");
+  const [warrantyInfo, setWarrantyInfo] = useState("");
+  const [provenance, setProvenance] = useState(adminWallet || "");
+  const [marketStatus, setMarketStatus] = useState("inactive");
 
-  // ------------------------------------------------
-  // 2. Minting + UI State
-  // ------------------------------------------------
-  const [minting, setMinting] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [statusMessage, setStatusMessage] = useState<string>("");
+  const [movement, setMovement] = useState("");
+  const [caseSize, setCaseSize] = useState("");
+  const [waterResistance, setWaterResistance] = useState("");
+  const [dialColor, setDialColor] = useState("");
+  const [country, setCountry] = useState("");
+  const [releaseDate, setReleaseDate] = useState("");
+  const [boxPapers, setBoxPapers] = useState("");
+  const [condition, setCondition] = useState("");
 
-  // ------------------------------------------------
-  // 3. Minted NFTs Display State
-  // ------------------------------------------------
+  const [minting, setMinting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState("");
+
   const [mintedNFTs, setMintedNFTs] = useState<MintedNFT[]>([]);
   const [selectedMetadataUri, setSelectedMetadataUri] = useState<string | null>(null);
-
-  // Track typed input for NFT transfer
   const [transferInputs, setTransferInputs] = useState<{ [key: string]: string }>({});
-  // Track sale request status
-  const [saleRequestSent, setSaleRequestSent] = useState<{ [mint: string]: boolean }>({});
+  const [transferredNFTs, setTransferredNFTs] = useState<MintedNFT[]>([]); 
+  const [showPreview, setShowPreview] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // ------------------------------------------------
-  // 4. Request Sale Handler
-  // ------------------------------------------------
-  // const handleSaleRequest = async (nftId: string, ipfs_pin_hash?: string) => {
-  //   if (!ipfs_pin_hash) {
-  //     console.error("No ipfs_pin_hash provided. Cannot request sale.");
-  //     return;
-  //   }
-  //   if (!wallet.publicKey) {
-  //     console.error("Wallet not connected. Cannot request sale.");
-  //     return;
-  //   }
-  //   try {
-  //     const uniqueSeed = Date.now();
-  //     const payload = {
-  //       nftId,
-  //       ipfs_pin_hash,
-  //       seller: wallet.publicKey.toBase58(),
-  //       seed: uniqueSeed,
-  //       initializerAmount: priceSol,
-  //       takerAmount: 0,
-  //       fileCid,
-  //       salePrice: priceSol
-  //     };
-  //     const res = await fetch("/api/nft/requestSale", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(payload),
-  //     });
-  //     if (!res.ok) throw new Error("Request failed");
-  //     setSaleRequestSent((prev) => ({ ...prev, [nftId]: true }));
-  //     console.log("Sale request succeeded for seed:", uniqueSeed);
-  //   } catch (error) {
-  //     console.error("Sale request error:", error);
-  //   }
-  // };
 
-  // Update typed input for NFT transfer
   const handleTransferInputChange = (key: string, value: string) => {
     setTransferInputs((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const isValidSolanaAddress = (address: string): boolean => {
+    try {
+      const pubkey = new PublicKey(address);
+      return PublicKey.isOnCurve(pubkey); // Ensures it's valid and usable
+    } catch (e) {
+      return false;
+    }
+  };  
+
+  const handleCopy = (label: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedField(label);
+    setTimeout(() => setCopiedField(null), 1000); // Reset tooltip after 1s
   };
 
   // ------------------------------------------------
@@ -147,66 +122,103 @@ const CreateNFT = () => {
   useEffect(() => {
     const fetchExistingNFTs = async () => {
       try {
-        console.log("🔍 Fetching existing NFTs from /api/pinata/nfts...");
+        console.log("🔍 Fetching NFTs from /api/pinata/nfts...");
         const res = await fetch("/api/pinata/nfts");
-        if (!res.ok) throw new Error("Failed to fetch existing NFTs");
-        const data = await res.json();
-        console.log("Raw data from /api/pinata/nfts:", data);
+        if (!res.ok) throw new Error("❌ Failed to fetch existing NFTs");
 
-        const seenMintAddresses = new Set<string>();
-        const transformed = await Promise.all(
-          data.map(async (nft: any) => {
-            const ipfsHash = nft.ipfs_pin_hash;
-            try {
-              console.log(`🔗 Fetching JSON metadata from IPFS hash: ${ipfsHash}`);
-              const ipfsRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`);
-              const contentType = ipfsRes.headers.get("Content-Type");
-              if (!contentType || !contentType.includes("application/json")) {
-                console.warn(`Skipping pin ${ipfsHash} due to non-JSON content type: ${contentType}`);
-                return null;
-              }
-              const jsonData = await ipfsRes.json();
-              console.log("✅ Fetched JSON metadata:", jsonData);
+        const pins = await res.json();
+        console.log(`📦 Retrieved ${pins.length} pins from Pinata.`);
 
-              if (!jsonData.mintAddress) return null;
-              if (seenMintAddresses.has(jsonData.mintAddress)) return null;
-              seenMintAddresses.add(jsonData.mintAddress);
+        const connection = new Connection(process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com");
+        const metaplex = Metaplex.make(connection);
 
-              const currentOwner =
-                jsonData.attributes?.find((attr: any) => attr.trait_type === "Provenance")?.value ||
-                "";
-              return {
-                title: jsonData.name || "No Title",
-                description: jsonData.description || "No Description",
-                image:
-                  jsonData.image && jsonData.image.startsWith("http")
-                    ? jsonData.image
-                    : `${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`,
-                priceSol: jsonData.priceSol ? parseFloat(jsonData.priceSol) : 0,
-                metadataUri: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`,
-                mintAddress: jsonData.mintAddress,
-                currentOwner,
-                ipfs_pin_hash: ipfsHash,
-                marketStatus:
-                  jsonData.attributes?.find((attr: any) => attr.trait_type === "Market Status")
-                    ?.value || "inactive",
-              } as MintedNFT;
-            } catch (err) {
-              console.error("Error fetching JSON for hash:", ipfsHash, err);
-              return null;
+        const groupedByMint: Record<string, { json: any; cid: string; date: string }[]> = {};
+
+        for (const pin of pins) {
+          const url = `${process.env.NEXT_PUBLIC_GATEWAY_URL}${pin.ipfs_pin_hash}`;
+          try {
+            const head = await fetch(url, { method: "HEAD" });
+            const contentType = head.headers.get("Content-Type");
+            if (!contentType || !contentType.includes("application/json")) {
+              console.log(`⚠️ Skipping non-JSON pin: ${pin.ipfs_pin_hash}`);
+              continue;
             }
-          })
-        );
 
-        const validNFTs = transformed.filter((item) => item !== null);
-        setMintedNFTs(validNFTs as MintedNFT[]);
-      } catch (error) {
-        console.error("Error fetching existing NFTs:", error);
+            const res = await fetch(url);
+            const json = await res.json();
+            const mint = json.mintAddress;
+            if (!mint) {
+              console.warn(`⚠️ JSON missing mintAddress: ${pin.ipfs_pin_hash}`, json);
+              continue;
+            }
+
+            if (!groupedByMint[mint]) groupedByMint[mint] = [];
+            groupedByMint[mint].push({ json, cid: pin.ipfs_pin_hash, date: pin.date_pinned });
+          } catch (e) {
+            console.warn("⛔ Skipping invalid pin:", pin.ipfs_pin_hash, e);
+          }
+        }
+
+        console.log(`🧮 Grouped pins by ${Object.keys(groupedByMint).length} unique mint addresses`);
+
+        const result: MintedNFT[] = [];
+
+        for (const mint of Object.keys(groupedByMint)) {
+          try {
+            console.log(`🔗 Fetching on-chain NFT for mint: ${mint}`);
+            const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mint) });
+
+            const sortedPins = groupedByMint[mint].sort((a, b) => {
+              const aDate = new Date(a.json.updatedAt || a.date).getTime();
+              const bDate = new Date(b.json.updatedAt || b.date).getTime();
+              return bDate - aDate;
+            });
+
+            const latestMetadata = sortedPins[0];
+            const meta = latestMetadata.json;
+
+            const largestAccounts = await connection.getTokenLargestAccounts(new PublicKey(mint));
+            const largestAccountInfo = await connection.getParsedAccountInfo(largestAccounts.value[0].address);
+            const realOwner =
+              "parsed" in (largestAccountInfo.value?.data || {})
+                ? (largestAccountInfo.value?.data as ParsedAccountData).parsed.info.owner
+                : "";
+
+            console.log(`✅ Resolved mint: ${mint}`);
+            console.log("🆕 Latest Metadata:", meta);
+            console.log("👤 Current Owner:", realOwner);
+
+            result.push({
+              title: meta.name || "No Title",
+              description: meta.description || "",
+              image: meta.image?.startsWith("http") ? meta.image : nft.uri,
+              priceSol: parseFloat(
+                typeof meta.priceSol === "number"
+                  ? meta.priceSol
+                  : meta.attributes?.find((a: any) => a.trait_type === "Price")?.value || "0"
+              ),
+              metadataUri: nft.uri,
+              mintAddress: mint,
+              currentOwner: realOwner,
+              ipfs_pin_hash: latestMetadata.cid,
+              marketStatus: meta.attributes?.find((a: any) => a.trait_type === "Market Status")?.value || "inactive",
+            });
+          } catch (e) {
+            console.warn(`❌ Skipping mint ${mint}:`, e);
+          }
+        }
+
+        console.log(`🏁 Final result includes ${result.length} NFTs`);
+        setMintedNFTs(result);
+      } catch (err) {
+        console.error("❌ fetchExistingNFTs failed:", err);
       }
     };
 
     fetchExistingNFTs();
   }, []);
+
+
 
   // ------------------------------------------------
   // 6. Mint NFT (with Listing Data)
@@ -267,9 +279,11 @@ const CreateNFT = () => {
         dialColor,
         country,
         releaseDate,
-        wallet.publicKey.toBase58(), // currentOwner
+        wallet.publicKey.toBase58(),
         marketStatus,
-        priceSol
+        priceSol,
+        boxPapers,
+        condition
       );
       (metadataJson as any).mintAddress = mintKeypair.publicKey.toBase58();
       console.log("📝 Created metadata JSON with mintAddress:", metadataJson);
@@ -324,7 +338,7 @@ const CreateNFT = () => {
         tokenOwner: wallet.publicKey,
         uri: metadataUri,
         name: title,
-        sellerFeeBasisPoints: 300,
+        sellerFeeBasisPoints: 500,
         symbol: "LUXHUB",
         creators: [
           {
@@ -400,7 +414,6 @@ const CreateNFT = () => {
       ]);
       setProgress(100);
       setStatusMessage("NFT minted successfully!");
-      alert("🎉 NFT minted successfully with metadata!");
     } catch (error: any) {
       console.error("❌ Minting error:", error);
       alert("Minting failed: " + error.message);
@@ -421,6 +434,21 @@ const CreateNFT = () => {
       const connection = new Connection(
         process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
       );
+      const nftMint = new PublicKey(mintAddress);
+      const tokenAccounts = await connection.getTokenAccountsByOwner(wallet.publicKey, {
+        mint: nftMint,
+      });
+
+      const userTokenAccount = tokenAccounts.value.find((accInfo) => {
+        const data = AccountLayout.decode(accInfo.account.data);
+        return data.amount === BigInt(1);
+      });
+
+      if (!userTokenAccount) {
+        alert("You do not own this NFT and cannot transfer it.");
+        return;
+      }
+
       const fromAta = await getAssociatedTokenAddress(new PublicKey(mintAddress), wallet.publicKey);
       const toAta = await getAssociatedTokenAddress(
         new PublicKey(mintAddress),
@@ -496,18 +524,23 @@ const CreateNFT = () => {
 
       if (currentMetadata.attributes && Array.isArray(currentMetadata.attributes)) {
         // Update or add the 'Current Owner' attribute
-        const idx = currentMetadata.attributes.findIndex(
-          (attr: any) =>
-            attr.trait_type === "Provenance" || attr.trait_type === "Current Owner"
-        );
-        if (idx !== -1) {
-          currentMetadata.attributes[idx].value = newOwner;
-        } else {
-          currentMetadata.attributes.push({
-            trait_type: "Current Owner",
-            value: newOwner,
-          });
+        if (!currentMetadata.attributes) {
+          currentMetadata.attributes = [];
         }
+        
+        const updateAttribute = (trait: string, value: string) => {
+          const index = currentMetadata.attributes.findIndex(
+            (attr: any) => attr.trait_type === trait
+          );
+          if (index !== -1) {
+            currentMetadata.attributes[index].value = value;
+          } else {
+            currentMetadata.attributes.push({ trait_type: trait, value });
+          }
+        };
+        
+        updateAttribute("Provenance", wallet.publicKey.toBase58());
+        updateAttribute("Current Owner", newOwner);
       } else {
         // No attributes? Create them
         currentMetadata.attributes = [{ trait_type: "Current Owner", value: newOwner }];
@@ -531,156 +564,304 @@ const CreateNFT = () => {
   // ------------------------------------------------
   // 9. Render
   // ------------------------------------------------
+
+  
   return (
     <div className={styles.pageContainer}>
-      {/* Sidebar Form */}
-      <div className={styles.sidebar}>
-        <NftForm
-          fileCid={fileCid}
-          setFileCid={setFileCid}
-          title={title}
-          setTitle={setTitle}
-          description={description}
-          setDescription={setDescription}
-          priceSol={priceSol}
-          setPriceSol={setPriceSol}
-          brand={brand}
-          setBrand={setBrand}
-          model={model}
-          setModel={setModel}
-          serialNumber={serialNumber}
-          setSerialNumber={setSerialNumber}
-          material={material}
-          setMaterial={setMaterial}
-          productionYear={productionYear}
-          setProductionYear={setProductionYear}
-          limitedEdition={limitedEdition}
-          setLimitedEdition={setLimitedEdition}
-          certificate={certificate}
-          setCertificate={setCertificate}
-          warrantyInfo={warrantyInfo}
-          setWarrantyInfo={setWarrantyInfo}
-          provenance={provenance}
-          setProvenance={setProvenance}
-          mintNFT={mintNFT}
-          minting={minting}
-        />
+      {/* Tabs */}
+      <div className={styles.tabContainer}>
+        <button className={activeTab === "mint" ? styles.activeTab : ""} onClick={() => setActiveTab("mint")}>
+          Mint New NFT
+        </button>
+        <button className={activeTab === "minted" ? styles.activeTab : ""} onClick={() => setActiveTab("minted")}>
+          Minted NFTs
+        </button>
+        <button className={activeTab === "transferred" ? styles.activeTab : ""} onClick={() => setActiveTab("transferred")}>
+          Transferred NFTs
+        </button>
       </div>
-
-      {/* Main Content */}
-      <div className={styles.mainContent}>
-        {/* NFT preview */}
-        <div className={styles.previewSection}>
-          <h2>NFT Preview</h2>
-          {fileCid ? (
-            <img
-              src={`${process.env.NEXT_PUBLIC_GATEWAY_URL}${fileCid}`}
-              alt="NFT Preview"
-              style={{ maxWidth: "200px", marginTop: "20px" }}
-            />
-          ) : (
-            <p>No image selected</p>
-          )}
-          <div>Title: {title}</div>
-          <div>Description: {description}</div>
-          <div>Price: {priceSol} SOL</div>
-        </div>
-
-        {/* Mint progress bar */}
-        {minting && (
-          <div className={styles.mintProgressContainer}>
-            <p>{statusMessage}</p>
-            <div className={styles.progressBar}>
-              <div className={styles.progress} style={{ width: `${progress}%` }}></div>
+  
+      {/* Mint Tab */}
+      {activeTab === "mint" && (
+        <div className={styles.mainContent}>
+          <div className={styles.mintCard}>
+            <div className={styles.leftColumn}>
+              <NftForm
+                fileCid={fileCid}
+                setFileCid={setFileCid}
+                title={title}
+                setTitle={setTitle}
+                description={description}
+                setDescription={setDescription}
+                priceSol={priceSol}
+                setPriceSol={setPriceSol}
+                brand={brand}
+                setBrand={setBrand}
+                model={model}
+                setModel={setModel}
+                serialNumber={serialNumber}
+                setSerialNumber={setSerialNumber}
+                material={material}
+                setMaterial={setMaterial}
+                productionYear={productionYear}
+                setProductionYear={setProductionYear}
+                limitedEdition={limitedEdition}
+                setLimitedEdition={setLimitedEdition}
+                certificate={certificate}
+                setCertificate={setCertificate}
+                warrantyInfo={warrantyInfo}
+                setWarrantyInfo={setWarrantyInfo}
+                provenance={provenance}
+                setProvenance={setProvenance}
+                movement={movement}
+                setMovement={setMovement}
+                caseSize={caseSize}
+                setCaseSize={setCaseSize}
+                waterResistance={waterResistance}
+                setWaterResistance={setWaterResistance}
+                dialColor={dialColor}
+                setDialColor={setDialColor}
+                country={country}
+                setCountry={setCountry}
+                releaseDate={releaseDate}
+                setReleaseDate={setReleaseDate}
+                boxPapers={boxPapers}
+                setBoxPapers={setBoxPapers}
+                condition={condition}
+                setCondition={setCondition}
+                mintNFT={mintNFT}
+                minting={minting}
+                features={features}
+                setFeatures={setFeatures}
+              />
             </div>
-            <p>{progress}%</p>
+            <div className={styles.rightColumn}>
+              <div className={styles.formTitle}>Lux.NFT Preview</div>
+              <NFTPreviewCard
+                fileCid={fileCid}
+                title={title}
+                description={description}
+                priceSol={priceSol}
+                brand={brand}
+                onViewDetails={() => setShowPreview(true)}
+              />
+              {minting && (
+                <div className={styles.mintProgressContainer}>
+                  <p>{statusMessage}</p>
+                  <div className={styles.progressBar}>
+                    <div className={styles.progress} style={{ width: `${progress}%` }} />
+                  </div>
+                  <p>{progress}%</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
+      )}
+  
+      {/* Minted NFTs Tab */}
+      {activeTab === "minted" && (() => {
+        const userWalletAddress = wallet.publicKey?.toBase58();
 
-        {/* Minted NFTs grid */}
-        <div className={styles.mintedSection}>
-          <h2>Minted NFTs</h2>
-          <div className={styles.grid}>
-            {mintedNFTs.length > 0 ? (
-              mintedNFTs.map((nft, index) => {
-                const uniqueKey = `${nft.mintAddress ?? "nomint"}-${index}`;
-                const newOwnerValue = transferInputs[uniqueKey] || "";
-                const isAdminOwned = nft.currentOwner === adminWallet;
-                return (
-                  <div key={uniqueKey} className={styles.nftCard}>
-                    {nft.image && nft.image.startsWith("http") ? (
-                      <img src={nft.image} alt={nft.title} />
-                    ) : (
-                      <p style={{ color: "gray" }}>No valid image</p>
-                    )}
-                    <h3>{nft.title}</h3>
-                    <p>{nft.description}</p>
-                    <p>Price: {nft.priceSol} SOL</p>
-                    {nft.mintAddress && (
-                      <p>
-                        <strong>Mint:</strong> {nft.mintAddress}
-                      </p>
-                    )}
-                    {nft.currentOwner && (
-                      <p>
-                        <strong>Current Owner:</strong> {nft.currentOwner}
-                      </p>
-                    )}
-                    {isAdminOwned ? (
-                      <>
-                        <input
-                          type="text"
-                          placeholder="Seller's wallet address..."
-                          value={newOwnerValue}
-                          onChange={(e) => handleTransferInputChange(uniqueKey, e.target.value)}
-                          style={{ marginTop: "8px" }}
-                        />
-                        {nft.mintAddress ? (
+        const dedupedMintedNFTs = Object.values(
+          mintedNFTs.reduce((acc, nft) => {
+            if (!nft.mintAddress) return acc;
+
+            const existing = acc[nft.mintAddress];
+            const currentUpdated = new Date(nft.updatedAt ?? 0);
+            const existingUpdated = existing ? new Date(existing.updatedAt ?? 0) : new Date(0);
+
+            if (!existing || currentUpdated > existingUpdated) {
+              acc[nft.mintAddress] = nft;
+            }
+
+            return acc;
+          }, {} as Record<string, MintedNFT>)
+        );
+
+
+        console.log("🔁 Rendering deduped NFTs:", dedupedMintedNFTs.map(nft => ({
+          name: nft.title,
+          mint: nft.mintAddress,
+          owner: nft.currentOwner,
+          price: nft.priceSol
+        })));
+
+        return (
+          <div className={styles.mintedSection}>
+            <h2>Minted NFTs</h2>
+            <div className={styles.grid}>
+              {dedupedMintedNFTs.length > 0 ? (
+                dedupedMintedNFTs.map((nft, index) => {
+                  const uniqueKey = `${nft.mintAddress ?? "nomint"}-${index}`;
+                  const newOwnerValue = transferInputs[uniqueKey] || "";
+                  const isCurrentUserOwner = nft.currentOwner === userWalletAddress;
+
+                  return (
+                    <div key={uniqueKey} className={styles.nftCard}>
+                      <img
+                        src={nft.image?.startsWith("http") ? nft.image : "/fallback.png"}
+                        alt={nft.title}
+                      />
+                      <h3>{nft.title}</h3>
+                        <div className={styles.cardInfoHolder}>
+                          <div className={styles.cardInfoHead}>Price:</div> 
+                          <p>{nft.priceSol}</p>
+                        </div>
+                      {nft.marketStatus && (
+                        <div className={styles.cardInfoHolder}>
+                          <div className={styles.cardInfoHead}>Status:</div> 
+                          <p>{nft.marketStatus}</p>
+                        </div>
+                      )}
+                      {nft.mintAddress && (
+                        <div className={styles.cardInfoHolder}>
+                          <div className={styles.cardInfoHead}>Mint:</div>
+                          <div className={styles.copyWrapper}>
+                            <p
+                              className={styles.copyableText}
+                              onClick={() => handleCopy(`mint-${index}`, nft.mintAddress || "")}
+                            >
+                              {nft.mintAddress.slice(0, 4)}...{nft.mintAddress.slice(-4)} <FaCopy style={{ marginLeft: "6px" }} />
+                              <span className={styles.tooltip}>
+                                {copiedField === `mint-${index}` ? "Copied!" : "Copy Address"}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {nft.currentOwner && (
+                        <div className={styles.cardInfoHolder}>
+                          <div className={styles.cardInfoHead}>Current Owner:</div>
+                          <div className={styles.copyWrapper}>
+                            <p
+                              className={styles.copyableText}
+                              onClick={() => handleCopy(`owner-${index}`, nft.currentOwner || "")}
+                            >
+                              {nft.currentOwner.slice(0, 4)}...{nft.currentOwner.slice(-4)} <FaCopy style={{ marginLeft: "6px" }} />
+                              <span className={styles.tooltip}>
+                                {copiedField === `owner-${index}` ? "Copied!" : "Copy Address"}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+
+                      {isCurrentUserOwner ? (
+                        <div className={styles.transferSection}>
+                          <div>NFT Transfer</div>
+                          <input
+                            className={styles.transferInput}
+                            type="text"
+                            placeholder="Seller's wallet address..."
+                            value={newOwnerValue}
+                            onChange={(e) => handleTransferInputChange(uniqueKey, e.target.value.trim())}
+                          />
+                          {newOwnerValue && !isValidSolanaAddress(newOwnerValue) && (
+                            <p className={styles.transferWarning}>Invalid wallet address</p>
+                          )}
                           <button
                             onClick={() => transferNftToSellerAuto(nft.mintAddress!, newOwnerValue)}
+                            disabled={!isValidSolanaAddress(newOwnerValue)}
                           >
                             Transfer NFT to Seller
                           </button>
-                        ) : (
-                          <p style={{ color: "red" }}>
-                            No valid mint address. Transfer disabled.
-                          </p>
-                        )}
-                        {nft.marketStatus && (
-                          <p>
-                            <strong>Status:</strong> {nft.marketStatus}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <p style={{ color: "green" }}>NFT already transferred.</p>
-                    )}
-                    <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
-                      View Details
-                    </button>
-                  </div>
-                );
-              })
+                        </div>
+                      ) : (
+                        <p style={{ color: "red" }}>Only the NFT owner can transfer this item.</p>
+                      )}
+                      <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
+                        View Details
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <p>No minted NFTs yet.</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+  
+      {/* Transferred Tab (optional filtered version) */}
+      {activeTab === "transferred" && (
+        <div className={styles.mintedSection}>
+          <h2>Transferred NFTs</h2>
+          <div className={styles.grid}>
+            {mintedNFTs.filter(n => n.currentOwner !== adminWallet).length > 0 ? (
+              mintedNFTs.filter(n => n.currentOwner !== adminWallet).map((nft, index) => (
+                <div key={index} className={styles.nftCard}>
+                  <img src={nft.image} alt={nft.title} />
+                  <h3>{nft.title}</h3>
+                  <p><strong>Owner:</strong> {nft.currentOwner?.slice(0,4)}...{nft.currentOwner?.slice(-4)}</p>
+                  <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
+                    View Details
+                  </button>
+                </div>
+              ))
             ) : (
-              <p>No minted NFTs yet.</p>
+              <p>No transferred NFTs yet.</p>
             )}
           </div>
         </div>
-      </div>
-
-      {/* NFT detail overlay */}
+      )}
+  
+      {/* Detail Overlay */}
       {selectedMetadataUri && (
         <div className={styles.detailOverlay}>
           <div className={styles.detailContainer}>
             <button className={styles.closeButton} onClick={() => setSelectedMetadataUri(null)}>
               Close
             </button>
-            <NftDetailCard metadataUri={selectedMetadataUri} />
+            <NftDetailCard
+              metadataUri={selectedMetadataUri}
+              mintAddress={mintedNFTs.find(n => n.metadataUri === selectedMetadataUri)?.mintAddress}
+              onClose={() => setSelectedMetadataUri(null)}
+            />
           </div>
         </div>
       )}
+
+      {showPreview && (
+        <div className={styles.modalBackdrop} onClick={() => setShowPreview(false)}>
+          <div className={styles.modalWrapper} onClick={(e) => e.stopPropagation()}>
+            <NftDetailCard
+              onClose={() => setShowPreview(false)}
+              previewData={{
+                title,
+                description,
+                image: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${fileCid}`,
+                priceSol,
+                attributes: [
+                  { trait_type: "Brand", value: brand },
+                  { trait_type: "Model", value: model },
+                  { trait_type: "Serial Number", value: serialNumber },
+                  { trait_type: "Material", value: material },
+                  { trait_type: "Production Year", value: productionYear },
+                  { trait_type: "Movement", value: movement },
+                  { trait_type: "Water Resistance", value: waterResistance },
+                  { trait_type: "Dial Color", value: dialColor },
+                  { trait_type: "Country", value: country },
+                  { trait_type: "Release Date", value: releaseDate },
+                  { trait_type: "Box & Papers", value: boxPapers },
+                  { trait_type: "Condition", value: condition },
+                  { trait_type: "Warranty Info", value: warrantyInfo },
+                  { trait_type: "Certificate", value: certificate },
+                  { trait_type: "Features", value: features },
+                  { trait_type: "Limited Edition", value: limitedEdition },
+                ],
+              }} // as above
+            />
+          </div>
+        </div>
+      )}
+
     </div>
-  );
+  ); 
 };
 
 export default CreateNFT;

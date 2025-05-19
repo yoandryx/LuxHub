@@ -19,7 +19,12 @@ import {
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
 import styles from "../styles/WatchMarket.module.css";
-import { toast } from "react-toastify";
+import { IoMdInformationCircle } from "react-icons/io";
+import { SiSolana } from "react-icons/si";
+import NFTCard from "../components/marketplace/NFTCard";
+import FilterSortPanel from "../components/marketplace/FilterSortPanel";
+import { CiSearch } from "react-icons/ci";
+import { FaAngleRight } from "react-icons/fa6";
 
 interface NFT {
   title: string;
@@ -30,7 +35,27 @@ interface NFT {
   metadataUri: string;
   currentOwner: string;
   marketStatus: string;
+
+  nftId: string;
+  fileCid: string;
+  timestamp: number;
+  seller: string;
+  
+  attributes?: {
+    trait_type: string;
+    value: string;
+  }[];
+  salePrice?: number;
 }
+
+type FilterOptions = {
+  brands: string[];
+  materials: string[];
+  colors: string[];
+  sizes: string[];
+  categories: string[];
+};
+
 
 const FUNDS_MINT = "So11111111111111111111111111111111111111112";
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,7 +64,54 @@ const Marketplace = () => {
 
   const wallet = useWallet();
   const [nfts, setNfts] = useState<NFT[]>([]);
-  const [selectedMetadataUri, setSelectedMetadataUri] = useState<string | null>(null);
+  const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
+  const [loadingMint, setLoadingMint] = useState<string | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortOption, setSortOption] = useState<"price_low" | "price_high" | "latest">("latest");
+
+  const [filters, setFilters] = useState<FilterOptions>({
+    brands: [],
+    materials: [],
+    colors: [],
+    sizes: [],
+    categories: []
+  });
+
+  const filteredNfts = useMemo(() => {
+    return nfts
+      .filter((nft) => {
+        const brand = nft.attributes?.find(attr => attr.trait_type === "Brand")?.value ?? "";
+        const material = nft.attributes?.find(attr => attr.trait_type === "Material")?.value ?? "";
+        const color = nft.attributes?.find(attr => attr.trait_type === "Dial Color")?.value ?? "";
+        const size = nft.attributes?.find(attr => attr.trait_type === "Case Size")?.value ?? "";
+        const category = nft.attributes?.find(attr => attr.trait_type === "Category")?.value ?? "";
+
+        const matchesFilters =
+          (!filters.brands.length || filters.brands.includes(brand)) &&
+          (!filters.materials.length || filters.materials.includes(material)) &&
+          (!filters.colors.length || filters.colors.includes(color)) &&
+          (!filters.sizes.length || filters.sizes.includes(size)) &&
+          (!filters.categories.length || filters.categories.includes(category));
+
+        const matchesSearch =
+          !searchQuery ||
+          brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          nft.mintAddress.toLowerCase().includes(searchQuery.toLowerCase());
+
+        return matchesFilters && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (a.marketStatus === "active" && b.marketStatus !== "active") return -1;
+        if (a.marketStatus !== "active" && b.marketStatus === "active") return 1;
+        if (sortOption === "price_low") return a.priceSol - b.priceSol;
+        if (sortOption === "price_high") return b.priceSol - a.priceSol;
+        if (sortOption === "latest") return b.timestamp - a.timestamp;
+        return 0;
+      });
+  }, [nfts, filters, searchQuery, sortOption]);
 
   // Create a connection to the devnet endpoint.
   const connection = useMemo(
@@ -68,17 +140,6 @@ const Marketplace = () => {
 
     if (!wallet.publicKey || !metaplex) return;
     let isCancelled = false;
-
-    toast.info("🔄 Refreshing listings...", {
-      position: "top-right",
-      autoClose: 2000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: false,
-      draggable: false,
-      progress: undefined,
-      theme: "dark",
-    });
   
     try {
       
@@ -129,15 +190,23 @@ const Marketplace = () => {
               (attr: any) => attr.trait_type === "Market Status"
             )?.value || "inactive";
   
-          const validStatuses = ["active"];
+          const validStatuses = ["active", "Holding LuxHub"];
           if (!validStatuses.includes(marketStatus)) continue;
   
           const priceAttr = updatedMetadata.attributes?.find(
             (attr: any) => attr.trait_type === "Price"
           );
+          const extractedPriceSol = parseFloat(priceAttr?.value || "0");
+
           const priceAttrValue =
             typeof priceAttr?.value === "string" ? priceAttr.value : "0";
-          const extractedPriceSol = parseFloat(priceAttrValue);
+          // const extractedPriceSol = parseFloat(priceAttrValue);
+
+          const currentOwner =
+          updatedMetadata.attributes?.find(
+            (attr: any) => attr.trait_type === "Current Owner"
+          )?.value || "Unknown";
+
   
           await delay(250);
   
@@ -148,11 +217,18 @@ const Marketplace = () => {
             priceSol: extractedPriceSol,
             mintAddress: pinnedData.mintAddress,
             metadataUri: onChainNFT.uri,
-            currentOwner:
-              updatedMetadata.attributes?.find(
-                (attr: any) => attr.trait_type === "Provenance"
-              )?.value || "",
+            currentOwner,
             marketStatus,
+            nftId: "",
+            fileCid: "",
+            timestamp: Date.now(),
+            seller: "",
+            attributes: (updatedMetadata.attributes || [])
+              .filter((attr: any) => attr.trait_type && attr.value)
+              .map((attr: any) => ({
+                trait_type: attr.trait_type as string,
+                value: attr.value as string,
+              }))
           });
         } catch (err) {
           console.error(`❌ Error processing NFT with IPFS hash ${ipfsHash}:`, err);
@@ -162,7 +238,6 @@ const Marketplace = () => {
       if (!isCancelled) {
         console.log("🔎 Active NFTs after filtering:", nftList);
         setNfts(nftList);
-        toast.success("Listings updated!");
       }
     } catch (error) {
       console.error("❌ Error fetching NFTs:", error);
@@ -184,7 +259,8 @@ const Marketplace = () => {
     }
   
     if (!window.confirm(`Purchase ${nft.title} for ${nft.priceSol} SOL?`)) return;
-  
+    setLoadingMint(nft.mintAddress);
+
     try {
       const buyer = wallet.publicKey;
       const nftMint = new PublicKey(nft.mintAddress);
@@ -272,7 +348,6 @@ const Marketplace = () => {
         .rpc();
   
       alert("✅ Purchase successful! Tx: " + tx);
-      toast.success("🎉 Purchase completed!");
   
       // Update DB
       await fetch("/api/nft/updateBuyer", {
@@ -291,6 +366,8 @@ const Marketplace = () => {
     } catch (err: any) {
       console.error("❌ Purchase failed:", err);
       alert("Purchase failed: " + err.message);
+    } finally {
+      setLoadingMint(null);
     }
   };
   
@@ -298,45 +375,92 @@ const Marketplace = () => {
   return (
     <div className={styles.container}>
       <h1>Marketplace</h1>
+
+      <div className={styles.inputGroupContainer}>
+        <div className={styles.inputGroup}>
+          <div className={styles.searchContainer}>
+            <button><CiSearch className={styles.searchIcon} /></button>
+            <input
+              type="text"
+              placeholder="Search by brand or mint address"
+              className={styles.searchBar}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className={styles.clearButton}>
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+
+      <button className={styles.filterToggle} onClick={() => setShowFilters(true)}>Filters<FaAngleRight /></button>
+
+      {showFilters && (
+        <FilterSortPanel
+          onFilterChange={(filters) => setFilters((prev) => ({ ...prev, ...filters }))}
+          onSortChange={setSortOption}
+          currentSort={sortOption}
+          onClose={() => setShowFilters(false)}
+        />
+      )}
+
       {nfts.length === 0 ? (
         <p>No active NFTs available for sale at the moment.</p>
       ) : (
         <div className={styles.nftGrid}>
-          {nfts.map((nft, index) => (
-            <div key={index} className={styles.nftCard}>
-              <div className={styles.nftImageWrapper}>
-                {nft.image ? (
-                  <img src={nft.image} alt={nft.title} />
-                ) : (
-                  <p style={{ color: "gray" }}>No image available</p>
-                )}
-              </div>
-              <div className={styles.nftDetails}>
-                <h3 className={styles.nftTitle}>{nft.title}</h3>
-                <p className={styles.creator}>
-                  Creator:{" "}
-                  {nft.currentOwner
-                    ? nft.currentOwner.slice(0, 6) + "..."
-                    : "Unknown"}
-                </p>
-                <p>Price: {nft.priceSol} SOL</p>
-                <p className={styles.description}>{nft.description}</p>
-                <div className={styles.buttonGroup}>
-                  <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
-                    View Details
+          {filteredNfts.map((nft, index) => (
+            <div key={index} className={styles.cardWrapper}>
+              <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+              <div className={styles.sellerActions}>
+                {nft.marketStatus === "pending" ? (
+                  <div className={styles.tooltipWrapper} data-tooltip="This NFT is waiting for admin approval before it can be listed">
+                    <p>Awaiting admin approval<IoMdInformationCircle className={styles.infoIcon} /></p>
+                  </div>
+                ) : nft.marketStatus === "requested" ? (
+                  <div className={styles.tooltipWrapper} data-tooltip="Submit your NFT for admin approval">
+                    <p>Listed in marketplace<IoMdInformationCircle className={styles.infoIcon} /></p>
+                  </div>
+                ) : nft.marketStatus === "Holding LuxHub" ? (
+                  <button
+                    className={styles.contactButton}
+                    data-tooltip="Reach out to the current owner to make an offer"
+                    onClick={() => window.open(`https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`, "_blank")}
+                  >
+                    Contact Owner
                   </button>
-                  <button onClick={() => handlePurchase(nft)}>Purchase</button>
+                ) : (
+                  <button
+                    className={styles.tooltipButton}
+                    data-tooltip="This LuxHub NFT is in escrow ready for purchase"
+                    onClick={() => handlePurchase(nft)}
+                    disabled={loadingMint === nft.mintAddress}
+                  >
+                    {loadingMint === nft.mintAddress ? "Processing..." : "BUY"}
+                  </button>
+                )}
+
+                <div className={styles.tooltipWrapper} data-tooltip="The price of this NFT">
+                  <p className={styles.priceInfo}><SiSolana/>{nft.priceSol}<IoMdInformationCircle className={styles.infoIcon} /></p>
                 </div>
+
+                <p className={styles.tooltipWrapper} data-tooltip="The current holding status of this NFT in the marketplace">
+                  {nft.marketStatus === "active" ? "Available" : "Offer"}
+                  <IoMdInformationCircle className={styles.infoIcon} />
+                </p>
               </div>
             </div>
           ))}
         </div>
       )}
-      {selectedMetadataUri && (
+      {selectedNFT && (
         <div className={styles.overlay}>
           <div className={styles.detailContainer}>
-            <button onClick={() => setSelectedMetadataUri(null)}>Close</button>
-            <NftDetailCard metadataUri={selectedMetadataUri} />
+            <button onClick={() => setSelectedNFT(null)}>Close</button>
+            <NftDetailCard mintAddress={selectedNFT.mintAddress} metadataUri={selectedNFT.metadataUri} onClose={() => setSelectedNFT(null)} />
           </div>
         </div>
       )}

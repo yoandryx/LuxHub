@@ -1,0 +1,106 @@
+.metadataEditorWrapper {
+    padding: 40px;
+    max-width: 900px;
+    margin: 50px auto;
+  }
+
+.metadataEditorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  max-width: 900px;
+  margin: 50px auto;
+  background: #ffffff05;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+}
+  
+  .sectionTitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+  
+  .metadataInput {
+    /* width: 100%; */
+    padding: 10px 14px;
+    margin: 8px 0;
+    font-size: 1rem;
+    background-color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    color: #fff;
+    transition: all 0.2s ease;
+  }
+  
+  .metadataInput::placeholder {
+    color: #aaa;
+  }
+  
+  .metadataInput:focus {
+    border-color: #c8a1ff;
+    box-shadow: 0 0 5px rgba(200, 161, 255, 0.4);
+    outline: none;
+  }
+  
+  .metadataEditorContent {
+    width: 100%;
+    margin-top: 20px;
+  }
+  
+  .attributeRow {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  
+  .attributeRow input {
+    flex: 1;
+    padding: 8px 10px;
+    width: 100%;
+    background-color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    color: #fff;
+  }
+  
+  .attributeRow button {
+    background: #ff4d4d;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0 12px;
+    cursor: pointer;
+  }
+  
+  .saveButton {
+    margin: 10px;
+    padding: 12px 20px;
+    font-weight: bold;
+    background: #c8a1ff;
+    color: #1a1a1a;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    box-shadow: 0 0 10px rgba(200, 161, 255, 0.3);
+  }
+  
+  .saveButton:hover {
+    background: #d8bcff;
+  }
+  
+  .jsonViewer {
+    background: #1e1e1e;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 0.9rem;
+    color: #ddd;
+    white-space: pre-wrap;
+  }
+  

@@ -1,7 +1,7 @@
-// /src/pages/luxhubHolders.tsx
 import { useEffect, useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
 import styles from "../styles/LuxhubHolders.module.css";
+import NFTCard from "../components/marketplace/NFTCard";
+import { NftDetailCard } from "../components/marketplace/NftDetailCard";
 
 interface NFT {
   nftId: string;
@@ -11,56 +11,100 @@ interface NFT {
   seller: string;
   buyer: string;
   marketStatus: string;
+  image?: string;
+  title?: string;
+  attributes?: { trait_type: string; value: string }[];
 }
 
 const LuxhubHolders = () => {
-  const wallet = useWallet();
-  const [ownedNFTs, setOwnedNFTs] = useState<NFT[]>([]);
+  const [holderNFTs, setHolderNFTs] = useState<NFT[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalNFT, setModalNFT] = useState<NFT | null>(null);
 
-  const fetchOwnedNFTs = async () => {
-    if (!wallet.publicKey) return;
+  const fetchAllHoldersNFTs = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/nft/ownedByWallet?wallet=${wallet.publicKey.toBase58()}`);
-      const data = await res.json();
-      setOwnedNFTs(data || []);
+      const res = await fetch("/api/nft/holders");
+      const raw = await res.json();
+
+      const enriched = await Promise.all(
+        raw.map(async (nft: NFT) => {
+          try {
+            const metaRes = await fetch(`https://gateway.pinata.cloud/ipfs/${nft.fileCid}`);
+            const metadata = await metaRes.json();
+            const ownerAttr = metadata.attributes?.find((a: any) => a.trait_type === "Owner")?.value || "";
+      
+            return {
+              ...nft,
+              image: metadata.image,
+              title: metadata.name || "Lux NFT",
+              attributes: metadata.attributes || [],
+              owner: ownerAttr, // ✅ Add this line
+            };
+          } catch (e) {
+            console.warn(`Metadata fetch failed for: ${nft.nftId}`);
+            return { ...nft, image: null, title: "Unnamed NFT" };
+          }
+        })
+      );      
+
+      setHolderNFTs(enriched);
     } catch (e) {
-      console.error("Failed to fetch owned NFTs", e);
+      console.error("Error fetching NFTs:", e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (wallet.publicKey) fetchOwnedNFTs();
-  }, [wallet.publicKey]);
+    fetchAllHoldersNFTs();
+  }, []);
 
   return (
     <div className={styles.container}>
-      <h1>My LuxHub NFTs</h1>
-      {!wallet.publicKey ? (
-        <p>Please connect your wallet to view your NFTs.</p>
-      ) : loading ? (
-        <p>Loading your NFTs...</p>
-      ) : ownedNFTs.length === 0 ? (
-        <p>You don’t own any NFTs yet.</p>
-      ) : (
-        <div className={styles.nftGrid}>
-          {ownedNFTs.map((nft, idx) => (
-            <div key={idx} className={styles.nftCard}>
-              <p><strong>Mint Address:</strong> {nft.nftId}</p>
-              <p><strong>Seller:</strong> {nft.seller}</p>
-              <p><strong>Price Paid:</strong> {nft.salePrice} SOL</p>
-              <p><strong>Purchased:</strong> {new Date(nft.timestamp).toLocaleString()}</p>
-              <p><strong>Status:</strong> {nft.marketStatus}</p>
-              <a href={`https://ipfs.io/ipfs/${nft.fileCid}`} target="_blank" rel="noopener noreferrer">
-                View Metadata
-              </a>
+      <h1 className={styles.heading}>LuxHub.Holders</h1>
+      <p className={styles.subheading}>A public showcase of NFTs held by LuxHub collectors.</p>
+
+      <div style={{ margin: "0 auto 30px", maxWidth: "400px", textAlign: "center" }}>
+        <select
+          style={{
+            background: "#1f1f1f",
+            color: "#b991ff",
+            padding: "8px 12px",
+            borderRadius: "10px",
+            border: "1px solid #b991ff",
+            backdropFilter: "blur(6px)",
+          }}
+        >
+          <option value="all">All Collections</option>
+          <option value="ap">Audemars Piguet</option>
+          <option value="rolex">Rolex</option>
+          <option value="hublot">Hublot</option>
+        </select>
+      </div>
+
+      <div className={styles.holderGrid}>
+        {holderNFTs.map((nft, i) => (
+          <NFTCard key={i} nft={nft} onClick={() => setModalNFT(nft)} />
+        ))}
+      </div>
+
+      {modalNFT && (
+          <div className={styles.detailOverlay}>
+            <div className={styles.detailContainer}>
+              <button className={styles.closeButton} onClick={() => setModalNFT(null)}>Close</button>
+              <NftDetailCard
+                metadataUri={`https://gateway.pinata.cloud/ipfs/${modalNFT.fileCid}`}
+                priceSol={modalNFT.salePrice}
+                owner={modalNFT.buyer} // ← or modalNFT.owner if you add that to enriched NFTs
+                onClose={() => setModalNFT(null)}
+                showContactButton
+              />
+
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+        
     </div>
   );
 };

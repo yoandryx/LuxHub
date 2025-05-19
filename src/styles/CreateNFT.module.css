@@ -1,296 +1,580 @@
-/* styles/CreateNFT.module.css */
+/* Updated styles/CreateNFT.module.css with AdminDashboard tab styling */
 
-/* 
-   Page layout:
-   - A green-blue gradient background
-   - A fixed sidebar on the left (no internal scroll)
-   - Main content on the right for preview + minted NFTs 
-*/
 .pageContainer {
-    display: flex;
-    height: 100vh;
-    overflow: hidden; /* Hides any overflow from main container */
-    font-family: 'Clash Display', sans-serif;
-    /* Green -> Blue gradient */
-    background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
-    color: #ffffff;
-  }
-  
-  /* Sidebar: fixed width, semi-transparent, blurred background */
-  .sidebar {
-    width: 360px;
-    min-width: 320px;
-    background: rgba(25, 25, 25, 0.7); /* semi-transparent dark */
-    backdrop-filter: blur(12px);       /* blur effect */
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.6);
-    border-right: 2px solid rgba(255, 255, 255, 0.1);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center; /* Center contents vertically */
-  }
-  
-  /* Sidebar heading */
-  .heading {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 1.6rem;
-    text-align: center;
-    color: #ffffff; /* A minty green accent for the heading */
-  }
-  
-  /* Form inputs and button inside the sidebar */
-  .sidebar input,
-  .sidebar button {
-    width: 200px;
-    height: auto;
-    margin-bottom: 5px;
-    padding: 10px;
-    border-radius: 4px;
-    border: 1px solid #333;
-    background: rgba(35, 35, 35, 0.6);
-    color: #eee;
-    font-size: 1rem;
-    transition: border 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-  }
-  
-  .sidebar input::placeholder {
-    color: #bbb;
-  }
-  
-  .sidebar input:focus {
-    outline: none;
-    border-color: #c8a1ff; /* a teal accent on focus */
-    box-shadow: 0 0 4px #fd84ff49;
-    background: rgba(85, 85, 85, 0.6);
-  }
-  
-  .sidebar button {
-    background: #c8a1ff; /* teal accent for button */
-    color: #31263f;
-    font-weight: bold;
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 0 5px #00f2ff1d;
-    margin-top: 10px;
-  }
-  
-  .sidebar button:hover {
-    background: #d8bcff;
-    box-shadow: 0 0 4px #c8a1ff;
-  }
-  
-  /* Main content area: preview + minted NFTs */
+  min-height: 100vh;
+  padding: 100px 20px;
+  font-family: 'Clash Display', sans-serif;
+  background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
+  color: #ffffff;
+}
+
+.tabContainer {
+  position: fixed;
+  top: 51px;
+  left: 0;
+  display: flex;
+  width: 100%;
+  height: 50px;
+  z-index: 100;
+  background-color: #3c3c3c7b;
+  backdrop-filter: blur(8px);
+  /* border-bottom: solid 1px var(--accent); */
+}
+
+.tabContainer button {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #3c3c3c32;
+  color: var(--primary);
+  border-style:groove;
+  /* backdrop-filter: blur(8px); */
+  --webkit-backdrop-filter: blur(8px);
+  /* margin: 5px; */
+}
+
+.tabContainer button:hover {
+  background-color: #1b191d7a;
+  cursor: pointer;
+}
+
+.activeTab {
+  background-color: rgba(200, 161, 255, 0.15);
+  border-bottom: 2px solid #c8a1ff;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.mainContent {
+  padding: 80px 30px 40px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Mint section layout */
+.mintSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.mintFormWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.previewSection {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 300px;
+  background: rgba(24, 22, 22, 0.387);
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  padding: 20px;
+  color: #eee;
+}
+
+.mintProgressContainer {
+  margin: 1em 0;
+}
+
+.progressBar {
+  background-color: #2b2b2b;
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 10px;
+  border: 1px solid #c8a1ff;
+  border-radius: 5px;
+  background-color: #c8a1ff;
+  box-shadow: #c8a1ff 0px 0px 5px;
+  transition: width 0.3s ease;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  margin: 0 auto;
+  padding: 20px;
+  overflow-x: hidden;
+  grid-gap: 50px
+}
+
+.nftCard {
+  background: rgba(22, 22, 22, 0.05);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  backdrop-filter: blur(12px);
+  border-radius: 18px;
+  padding: 20px;
+  text-align: center;
+  color: #fff;
+  width: 90%;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), inset 0 0 0.5px rgba(255, 255, 255, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* .nftCard:hover {
+  transform: translateY(-4px);
+} */
+
+.nftCard img {
+  width: 100%;
+  height: auto;
+  max-height: 180px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  transition: transform 0.3s ease;
+  object-fit: cover;
+}
+
+.nftCard img:hover {
+  transform: scale(1.05);
+}
+
+.nftCard h3 {
+  margin: 10px 0;
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.cardInfoHolder {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.cardInfoHead {
+  font-size: 12px;
+  color: #c8a1ff;
+  font-weight: 500;
+}
+
+.nftCard p {
+  color: #ccc;
+  font-size: 12px;
+  margin: 8px 0;
+  padding: 5px;
+  background-color: #4f4f4f2e;
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 5px;
+  font-weight: 00;
+  text-align: left;
+}
+
+.copyableText {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  color: #ccc;
+  transition: color 0.2s ease;
+}
+
+.copyableText:hover {
+  color: #fff;
+}
+
+.copyWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip {
+  visibility: hidden;
+  opacity: 0;
+  background-color: #2e2e2e;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  position: absolute;
+  z-index: 10;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: opacity 0.3s ease;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.copyWrapper:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+
+.nftCard button {
+  background: #c8a1ff;
+  color: #31263f;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #00f2ff1d;
+  margin-top: 10px;
+}
+
+.nftCard button:hover {
+  background: #d8bcff;
+}
+
+.formContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 5px;
+  padding: 20px;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(12px);
+  margin-top: 50px;
+}
+
+/* .formContainerUsers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
+  padding: 20px;
+  margin-bottom: 50px;
+  backdrop-filter: blur(12px);
+} */
+
+.formContainer input,
+.formContainer select {
+  flex: 1 1 20px;
+  min-width: 200px;
+  padding: 5px 10px;
+  margin: 5px;
+  background-color: var(--border);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 5px;
+  color: #fff;
+  font-size: 0.9rem;
+  backdrop-filter: blur(6px);
+}
+
+.formContainer input::placeholder {
+  color: #aaa;
+}
+
+.formContainer input:focus,
+.formContainer select:focus {
+  outline: none;
+  border-color: #c8a1ff;
+  box-shadow: 0 0 5px rgba(200, 161, 255, 0.3);
+}
+
+.formContainer option {
+  background-color: #1c1c1c; /* Fix blue dropdown background */
+  color: #fff;
+}
+
+.mintButton {
+  background-color: #c8a1ff;
+  color: #1a1a1a;
+  font-weight: bold;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 10px rgba(200, 161, 255, 0.3);
+}
+
+.mintButton:hover {
+  background-color: #d8bcff;
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.5);
+}
+
+.mintCard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.leftColumn {
+  flex: 1 1 480px;
+  max-width: 700px;
+}
+
+.previewContainer {
+  position: sticky;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  top: 100px
+}
+
+.rightColumn {
+  position: sticky;
+  top: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 1 1 300px;
+  max-width: 400px;
+  background: rgba(30, 30, 30, 0.6);
+  border-radius: 5px;
+  padding: 20px;
+  color: #eee;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  /* margin: 100px; */
+}
+
+.rightColumn img {
+  width: 100%;
+  border-radius: 10px;
+}
+
+/* Radix Select Section  */
+.selectTrigger {
+  flex: 1 1 20px;
+  min-width: 200px;
+  padding: 10px 12px;
+  margin: 5px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  color: #fff;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(6px);
+}
+
+.selectIcon {
+  margin-left: 8px;
+  color: #c8a1ff;
+}
+
+.selectContent {
+  background-color: #1c1c1c;
+  border-radius: 10px;
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+  width: 100%;
+}
+
+.selectViewport {
+  padding: 5px;
+}
+
+.selectItem {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.selectItem:hover,
+.selectItem[data-highlighted] {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  outline: none;
+  border: 1px solid #c8a1ff;
+  box-shadow: 0 0 5px rgba(200, 161, 255, 0.3);
+}
+
+.selectCheck {
+  margin-left: 8px;
+  color: #c8a1ff;
+}
+
+.selectScroll {
+  color: #c8a1ff;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.formSection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.formTitle {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 20px;
+}
+
+.formSectionTitle {
+  grid-column: 1 / -1;
+  font-weight: 500;
+  font-size: 1.25rem;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+}
+
+.formSectionTitle img {
+  width: 20px;
+  height: 20px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  max-width: 100%;
+}
+
+.formGrid h3 {
+  grid-column: 1 / -1;
+  font-size: 1rem;
+  margin: 0.5rem 0;
+  color: #c8a1ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formGrid input,
+.formGrid textarea {
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.85rem;
+  resize: none;
+}
+
+.inlineSolInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formFieldWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px; /* Add this */
+  width: 100%;
+}
+
+.formLabel {
+  font-size: 0.9rem;
+  color: #ffffff;
+} 
+
+.formHint {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.solPriceWrapper {
+  display: inline-block;
+  position: relative;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  min-width: 70px;
+  text-align: center;
+  transition: background 0.3s ease;
+}
+
+.transferSection {
+  color: #bbb;
+  font-size: 16px;
+  margin: 8px 0;
+  padding: 15px;
+  background-color: #4f4f4f2e;
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 5px;
+  font-weight: 500;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-direction: column;
+}
+
+.transferInput {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 10px;
+  color: #fff;
+  backdrop-filter: blur(6px);
+  transition: all 0.2s ease;
+}
+
+.transferInput::placeholder {
+  color: #aaa;
+}
+
+.transferInput:focus {
+  border-color: #c8a1ff;
+  box-shadow: 0 0 5px rgba(200, 161, 255, 0.4);
+  outline: none;
+}
+
+
+
+@media screen and (max-width: 768px) {
   .mainContent {
-    flex: 1;
-    overflow-y: auto; /* Main content can scroll if needed */
-    padding: 100px 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    scrollbar-width: none;
+    padding: 60px 20px;
   }
-  
-  /* NFT Preview box */
-  .previewSection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 300px;
-    background: rgba(24, 22, 22, 0.387);
-    border-radius: 5px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(20px);
-    padding: 20px;
-    color: #eee;
+
+  .tabContainer button {
+    font-size: 11px;
+    padding: 10px 5px;
   }
-  
-  .previewSection h2 {
-    margin-top: 0;
-    color: #ffffff; /* same accent as heading or a variant */
-  }
-  
-  .previewSection img {
-    width: auto;
-    height: 300px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-  }
-  
-  /* Minted NFTs section */
-  .mintedSection h2 {
-    margin-top: 0;
-    color: #c1ffe4;
-  }
-  
-  /* Responsive grid for minted NFTs */
+
   .grid {
-    display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    grid-gap: 20px;
-    margin-top: 20px;
-    padding: 0 20px;
   }
-  
+
   .nftCard {
+    padding: 15px;
+  }
+
+  .previewSection {
     width: 100%;
-    /* height: 300px; */
-    background: rgba(24, 22, 22, 0.387);
-    border-radius: 20px;
-    padding: 0px;
-    text-align: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: transform 0.2s ease;
-    z-index: 2;
+    max-width: 320px;
   }
-
-  .nftCard:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-  }
-  
-  .nftCard img {
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    transition: transform 0.3s ease;
-  }
-
-  .nftCard img:hover {
-    transform: scale(1.05);
-    transition: transform 0.3s ease;
-    z-index: -1;
-  }
-  .nftCard h3 {
-    margin: 10px 0;
-    color: #ffffff; /* A minty green accent for the heading */
-    font-size: 18px;
-  }
-
-  .nftCard p {
-    color: #bbb;
-    font-size: 12px;
-    margin: 2px 0;
-    padding:5px;
-    background-color: #4f4f4f2e;
-  }
-  .nftCard button {
-    background: #c8a1ff; /* teal accent for button */
-    color: #31263f;
-    font-weight: bold;
-    cursor: pointer;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    box-shadow: 0 0 5px #00f2ff1d;
-    margin-top: 10px;
-  }
-
-  .nftCard button:hover {
-    background: #d8bcff;
-  }
-
-  /* Overlay for NFT detail card (if you use detailOverlay) */
-  .detailOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(15, 15, 30, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-  }
-  
-  .detailContainer {
-    background: rgba(25, 25, 40, 0.9);
-    padding: 30px;
-    border-radius: 10px;
-    max-width: 300px;
-    width: 100%;
-    position: relative;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.7);
-  }
-  
-  .closeButton {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #00ccb1;
-    color: #111;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  
-  .closeButton:hover {
-    background: #00b4a0;
-  }
-
-  .mintProgressContainer {
-    margin: 1em 0;
-  }
-  
-  .progressBar {
-    background-color: #2b2b2b;
-    height: 8px;
-    width: 100%;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  
-  .progress {
-    height: 10px;
-    border: 1px solid #c8a1ff;
-    border-radius: 5px;
-    background-color: #c8a1ff;
-    box-shadow: #c8a1ff 0px 0px 5px;
-    transition: width 0.3s ease;
-  }
-  
-  
-  /* Media Queries for Responsiveness */
-  @media (max-width: 1024px) {
-    .sidebar {
-      width: 300px;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    /* Switch to column layout if desired */
-    .pageContainer {
-      flex-direction: column;
-    }
-    .sidebar {
-      width: 100%;
-      border-right: none;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-      padding-top: 80px;
-    }
-    .mainContent {
-      padding: 20px;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .sidebar input,
-    .sidebar button {
-      font-size: 0.9rem;
-      padding: 2px;
-    }
-    .mainContent {
-      padding: 15px;
-    }
-    .grid {
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    }
-  }
-  
+}
