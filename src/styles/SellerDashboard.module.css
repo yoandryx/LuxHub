@@ -294,9 +294,7 @@
   width: 100%;
   height: 50px;
   z-index: 100;
-  background-color: #3c3c3c7b;
-  backdrop-filter: blur(8px);
-  /* border-bottom: solid 1px var(--accent); */
+  transition: ease-in-out 0.3s;
 }
 
 .tabContainer button {
@@ -304,20 +302,24 @@
   font-size: 12px;
   font-weight: 500;
   background-color: #3c3c3c32;
+
   color: var(--primary);
-  border-style:groove;
-  /* backdrop-filter: blur(8px); */
-  --webkit-backdrop-filter: blur(8px);
-  /* margin: 5px; */
+  text-shadow: #000000 0px 1px 3px;
+
+  border: 1px groove var(--border);
+  backdrop-filter: blur(25px);
+  --webkit-backdrop-filter: blur(25px);
+  transition: ease-in-out 0.3s;
 }
 
 .tabContainer button:hover {
   background-color: #1b191d7a;
   cursor: pointer;
+  border-bottom: 1px solid #c8a1ff;
 }
 
-.activeTab {
-  background-color: rgba(200, 161, 255, 0.15);
+.tabContainer .activeTab {
+  background-color: #1b191da5;
   border-bottom: 2px solid #c8a1ff;
   font-weight: 600;
   color: #ffffff;

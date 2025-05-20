@@ -54,10 +54,11 @@
 }
 
 .subtitle {
-  font-size: 1rem;
+  font-size: small;
   color: #aaa;
-  font-weight: 300;
+  font-weight: 400;
   margin-top: 6px;
+  letter-spacing: 1px;
 }
 
 .subtitle span {
@@ -81,6 +82,12 @@
   /* padding: 60px 0 30px; */
   text-align: center;
   overflow: visible;
+}
+
+.featuredNFTs h2 {
+  font-size: large;
+  letter-spacing: 1px;
+  margin: 50px 0 0 0;
 }
 
 .nftScrollWrapper {
@@ -159,19 +166,25 @@
 .chevronLeft,
 .chevronRight {
   position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   top: 50%;
   transform: translateY(-50%);
   z-index: 4;
   background: rgba(0, 0, 0, 0.4);
   border: none;
   color: white;
-  font-size: 1.3rem;
-  padding: 8px 12px;
+  font-size: small;
+  height: 40px;
+  width: 40px;
   cursor: pointer;
   border-radius: 50%;
   transition: all 0.3s ease;
-  opacity: 0; /* NEW */
-  pointer-events: none; /* NEW prevent click unless hover */
+  opacity: 0; 
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  pointer-events: none; 
 }
 
 .scrollAreaWrapper:hover .chevronLeft,
@@ -190,7 +203,7 @@
 
 .chevronLeft:hover,
 .chevronRight:hover {
-  background: rgba(0, 0, 0, 0.574);
+  background: #00000092;
 }
 
 
@@ -243,6 +256,24 @@
   margin-bottom: 10px;
   font-size: 0.95rem;
   color: #ccc;
+}
+
+.ctaContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  /* padding: 60px 20px; */
+  margin-top: 100px;
+}
+
+.ctaContainer h2 {
+  font-size: x-large;
+  color: #fff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  /* margin-top: 30px; */
 }
 
 .cta {
@@ -323,7 +354,7 @@
 
 .overlaySteps {
   position: relative;
-  height: 100vh;
+  /* height: 100vh; */
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -333,19 +364,32 @@
   pointer-events: none;
 }
 .overlaySteps h2 {
-  font-size: 2rem;
-  color: #dac5ff;
+  font-size: large;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ffffff;
   margin-bottom: 30px;
+  border-bottom: 1px solid #c8a1ff;
+}
+
+.overlaySteps p {
+  font-size: small;
+  color: #d2d2d2;
+  letter-spacing: 1px;
+  font-weight: 400;
+  margin-top: 6px;
 }
 
 .stepCard {
   background: rgba(20, 20, 20, 0.7);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 32px;
   max-width: 800px;
-  margin: 0 25px 32px;
+  margin: 0 10px 10px;
   /* box-shadow: 0 0 20px rgba(185, 145, 255, 0.1); */
   color: white;
   pointer-events: auto;
@@ -393,5 +437,3 @@
   border: none;
   cursor: pointer;
 }
-
-

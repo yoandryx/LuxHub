@@ -5,7 +5,7 @@ import NFTCard from "../components/marketplace/NFTCard";
 import styles from "../styles/Home.module.css";
 import ScrollSteps from "../components/common/ScrollSteps";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
-
+import { SlArrowLeft, SlArrowRight } from "react-icons/sl";
 const WaveScene = dynamic(() => import("../components/common/WaveScene"), { ssr: false });
 
 interface NFT {
@@ -33,7 +33,7 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const SCROLL_SPEED = 0.5;
+  const SCROLL_SPEED = 1;
   const CARD_WIDTH = 340;
 
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function Home() {
 
         {/* FEATURED NFTS */}
         <section className={styles.featuredNFTs}>
-          <h2>COLLECTION</h2>
+          <h2>INVENTORY</h2>
           <div
             className={styles.scrollAreaWrapper}
             ref={wrapperRef}
@@ -156,8 +156,8 @@ export default function Home() {
           >
             <div className={styles.fadeLeft} />
             <div className={styles.fadeRight} />
-            <button className={styles.chevronLeft} onClick={() => scrollByOffset(-340)}>&lt;</button>
-            <button className={styles.chevronRight} onClick={() => scrollByOffset(340)}>&gt;</button>
+            <button className={styles.chevronLeft} onClick={() => scrollByOffset(-340)}><SlArrowLeft /></button>
+            <button className={styles.chevronRight} onClick={() => scrollByOffset(340)}><SlArrowRight /></button>
 
             <div className={`${styles.nftScrollWrapper} ${styles.nosnap}`} ref={scrollRef}>
               <div className={styles.nftScrollRow}>
@@ -175,7 +175,22 @@ export default function Home() {
           </div>
         </section>
 
-        <ScrollSteps />
+        <section>
+          <div className={styles.ctaContainer}>
+            <h2>Built on Trust. Secured by Code</h2>
+            <p className={styles.subtitle}>LuxHub is a decentralized marketplace for luxury items. <span>BUY, SELL, and TRADE</span> your assets with <span>CONFIDENCE.</span></p>
+          </div>
+          <ScrollSteps />
+        </section>
+
+        {/* <ScrollSteps /> */}
+
+        {/* <section>
+          <div className={styles.ctaContainer}>
+            <button className={styles.ctaButton}>Explore Marketplace</button>
+            <button className={styles.ctaButton}>Mint Your Own</button>
+          </div>
+        </section> */}
 
         {selectedNFT && (
           <div className={styles.detailOverlay}>

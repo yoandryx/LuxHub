@@ -1,8 +1,7 @@
 /* src/styles/LuxuryAssistant.module.css */
 .chatContainer {
-  /* border: 1px solid #c8a1ff42; */
   border-radius: 8px;
-  padding: 5px;
+  padding: 10px 25px;
   width: 100%;
   max-width: 400px;
   background-color: #3333335a;
@@ -48,6 +47,7 @@
   border: 1px solid #3c3c3c;
   background-color: #333;
   height: 20px;
+  font-size: 16px;
   /* box-shadow: #c8a1ff 0px 0px 2px; */
   color: #fff;  
 }
@@ -96,6 +96,11 @@
   z-index: 9999;
 }
 
+.floatingButton:hover {
+  background-color: #c8a1ff;
+  box-shadow: #000000 0px 0px 4px;
+}
+
 .floatingButton p {
   position: absolute;
   left: 50%;
@@ -112,12 +117,12 @@
 .floatingChat {
   position: fixed;
   bottom: 100px;
-  right: 50px;
+  right: 80px;
   z-index: 9998;
 }
 
 .logo {
     width: auto;
-    height: 45px;
+    height: 25px;
     /* margin-right: 8px; */
 }

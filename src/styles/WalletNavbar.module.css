@@ -16,11 +16,6 @@
     height: 15px;
     width: 100%;
     padding: 10px;
-    border-top: 1px;
-    border-width: 1px;
-    border-style: solid;
-    border-color: var(--accent);
-  
     background: #43434352;
     backdrop-filter: blur(25px);
 }

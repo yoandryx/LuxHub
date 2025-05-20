@@ -156,7 +156,7 @@ const MintRequestForm = () => {
 
             <div className={styles.formSection}>
                 <div className={styles.formSectionTitle}>Watch Image</div>
-                <input type="file" accept="image/*" onChange={handleImageUpload} />
+                <input className={styles.formUploadButton} type="file" accept="image/*" onChange={handleImageUpload} />
                 {/* {imagePreview && <img src={imagePreview} className={styles.previewImage} />} */}
             </div>
 

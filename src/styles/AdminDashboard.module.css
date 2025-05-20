@@ -83,7 +83,7 @@
 }
 
 .tabContainer {
-  position: fixed;
+  /* position: fixed;
   top: 51px;
   left: 0;
   display: flex;
@@ -91,19 +91,37 @@
   height: 50px;
   z-index: 100;
   background-color: #3c3c3c7b;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px); */
+  position: fixed;
+  top: 51px;
+  left: 0;
+  display: flex;
+  width: 100%;
+  height: 50px;
+  z-index: 100;
   transition: ease-in-out 0.3s;
 }
 
 .tab {
-  width: 100%;
+  /* width: 100%;
   font-size: 12px;
   font-weight: 500;
   background-color: #3c3c3c32;
   color: var(--primary);
   border-style: groove;
   backdrop-filter: blur(8px);
-  --webkit-backdrop-filter: blur(8px);
+  --webkit-backdrop-filter: blur(8px); */
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #3c3c3c32;
+
+  color: var(--primary);
+  text-shadow: #000000 0px 1px 3px;
+
+  border: 1px groove var(--border);
+  backdrop-filter: blur(25px);
+  --webkit-backdrop-filter: blur(25px);
   transition: ease-in-out 0.3s;
 }
 
@@ -112,9 +130,10 @@
   cursor: pointer;
 }
 
-.activeTab {
-  background-color: #1b191d7a;
+.tab.activeTab {
+  background-color: #1b191da5;
   border-bottom: 2px solid #c8a1ff;
+  font-weight: 600;
   color: #ffffff;
 }
 
@@ -398,9 +417,6 @@
   width: 100%;
   height: 35px;
   z-index: 100;
-  background-color: #00000081;
-  background: #8e6bff26;
-  backdrop-filter: blur(8px);
   transition: ease-in-out 0.3s;
 }
 
@@ -408,24 +424,25 @@
   width: 100%;
   font-size: 12px;
   font-weight: 500;
-  background-color: #3c3c3c32;
+  background-color: #c8a1ff31;
   color: var(--primary);
   border: 1px groove #c8a1ff66;
-  backdrop-filter: blur(8px);
-  --webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(25px);
+  --webkit-backdrop-filter: blur(25px);
   transition: ease-in-out 0.3s;
 }
 
 .subTab:hover {
-  background-color: #1b191d7a;
   cursor: pointer;
-  background: #c8a1ff33;
+  /* background: #c8a1ff33; */
+  border-bottom: 1px solid #c8a1ff;
 }
 
 .subTabActive {
-  background: #c8a1ff33;
-  /* box-shadow: 0 0 8px #c8a1ff66; */
+  background: #c8a1ff74;
   border-bottom: 2px solid #c8a1ff;
+  font-weight: 600;
+  text-shadow: #000000 0px 1px 3px;
 }
 
 .ownerBadge {

@@ -6,20 +6,36 @@ import * as THREE from "three";
 import RolexScene from "../marketplace/RolexScene";
 import styles from "../../styles/Home.module.css";
 
+// const steps = [
+//   {
+//     title: "Verification",
+//     desc: "Every luxury watch uploaded is verified using blockchain-anchored authenticity records.",
+//   },
+//   {
+//     title: "Escrow Protection",
+//     desc: "Smart contract escrow protects buyers and sellers by locking funds and NFTs.",
+//   },
+//   {
+//     title: "Ownership Transfer",
+//     desc: "Once approved, NFT ownership transfers and is stored on-chain immutably.",
+//   },
+// ];
+
 const steps = [
   {
-    title: "Verification",
-    desc: "Every luxury watch uploaded is verified using blockchain-anchored authenticity records.",
+    title: "Authenticity Verification",
+    desc: "Each timepiece is verified by LuxHub admins and paired with a blockchain-anchored NFT containing provenance and specs.",
   },
   {
-    title: "Escrow Protection",
-    desc: "Smart contract escrow protects buyers and sellers by locking funds and NFTs.",
+    title: "Secure Escrow",
+    desc: "Funds and NFTs are held in a Solana smart contract escrow until the sale is approved, ensuring full protection for both parties.",
   },
   {
-    title: "Ownership Transfer",
-    desc: "Once approved, NFT ownership transfers and is stored on-chain immutably.",
+    title: "Immutable Ownership Transfer",
+    desc: "Upon admin approval, ownership of the NFT is immutably transferred on-chain, completing the transaction securely and transparently.",
   },
 ];
+
 
 const ScrollSteps = () => {
   const wrapperRef = useRef(null);
