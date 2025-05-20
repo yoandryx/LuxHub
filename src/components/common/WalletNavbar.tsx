@@ -45,26 +45,26 @@ export default function WalletNavbar() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const fetchWalletBalance = async () => {
-      if (publicKey) {
-        try {
-          const connection = new Connection(endpoint, "confirmed");
-          const lamports = await connection.getBalance(publicKey);
-          setWalletBalance(lamports / 10 ** 9); // convert to SOL
-        } catch (err) {
-          console.error("Failed to fetch wallet balance:", err);
-        }
-      } else {
-        setWalletBalance(null);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchWalletBalance = async () => {
+  //     if (publicKey) {
+  //       try {
+  //         const connection = new Connection(endpoint, "confirmed");
+  //         const lamports = await connection.getBalance(publicKey);
+  //         setWalletBalance(lamports / 10 ** 9); // convert to SOL
+  //       } catch (err) {
+  //         console.error("Failed to fetch wallet balance:", err);
+  //       }
+  //     } else {
+  //       setWalletBalance(null);
+  //     }
+  //   };
   
-    fetchWalletBalance();
+  //   fetchWalletBalance();
   
-    const interval = setInterval(fetchWalletBalance, 30000); // update every 30s
-    return () => clearInterval(interval);
-  }, [publicKey]);
+  //   const interval = setInterval(fetchWalletBalance, 30000); // update every 30s
+  //   return () => clearInterval(interval);
+  // }, [publicKey]);
   
   
 

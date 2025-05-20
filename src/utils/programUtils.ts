@@ -1,6 +1,7 @@
 import { Program, Idl, AnchorProvider } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
-import idl from "../../Solana-Anchor/target/idl/anchor_escrow.json";
+// import idl from "../../Solana-Anchor/target/idl/anchor_escrow.json";
+import idl from "../idl/anchor_escrow.json";
 import { WalletContextState } from "@solana/wallet-adapter-react";
 
 /**
