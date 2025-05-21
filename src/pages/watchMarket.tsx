@@ -25,6 +25,7 @@ import NFTCard from "../components/marketplace/NFTCard";
 import FilterSortPanel from "../components/marketplace/FilterSortPanel";
 import { CiSearch } from "react-icons/ci";
 import { FaAngleRight } from "react-icons/fa6";
+import Loader from "../components/common/Loader";
 
 interface NFT {
   title: string;
@@ -409,7 +410,7 @@ const Marketplace = () => {
       )}
 
       {nfts.length === 0 ? (
-        <p>No active NFTs available for sale at the moment.</p>
+        <Loader />
       ) : (
         <div className={styles.nftGrid}>
           {filteredNfts.map((nft, index) => (

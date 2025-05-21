@@ -1,0 +1,152 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 20px;
+  /* font-family: 'Poppins', sans-serif; */
+  color: #f5f5f5;
+  letter-spacing: 1px;
+}
+
+.pageTitle {
+  font-size: 2.5rem;
+  text-align: center;
+  color: #b991ff;
+  margin-bottom: 40px;
+  font-weight: 500;
+}
+
+.section {
+  margin-bottom: 60px;
+}
+
+.section h2 {
+  font-size: 1.8rem;
+  font-weight: 400;
+  color: #ffffff;
+  margin-bottom: 20px;
+  border-left: 5px solid #b991ff;
+  padding-left: 16px;
+}
+
+.section p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #d3d3d3;
+}
+
+.section ul {
+  list-style: disc;
+  margin-left: 30px;
+  margin-top: 10px;
+}
+
+.section li {
+  margin-bottom: 12px;
+  line-height: 1.6;
+  color: #cccccc;
+  font-weight: 300;
+}
+
+.section strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.buttonGroup {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.primaryButton {
+  padding: 12px 24px;
+  background-color: #b991ff;
+  color: black;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.primaryButton:hover {
+  background-color: #a57cf5;
+}
+
+.secondaryButton {
+  padding: 12px 24px;
+  border: 1px solid #b991ff;
+  background-color: transparent;
+  color: #b991ff;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.secondaryButton:hover {
+  background-color: #b991ff;
+  color: black;
+}
+
+.roadmapGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+  margin-top: 40px;
+}
+
+.roadmapCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 24px 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(185, 145, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.roadmapCard::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(185,145,255,0.2), transparent 70%);
+  transform: rotate(30deg);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.roadmapCard h3 {
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+  font-weight: 500;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.roadmapCard ul {
+  padding-left: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.roadmapCard li {
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+  color: #e0e0e0;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+.phase1 { border-left: 5px solid #2ecc71; }
+.phase2 { border-left: 5px solid #9b59b6; }
+.phase3 { border-left: 5px solid #f39c12; }
+.phase4 { border-left: 5px solid #e67e22; }
+.phase5 { border-left: 5px solid #3498db; }
+

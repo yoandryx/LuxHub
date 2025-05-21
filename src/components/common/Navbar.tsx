@@ -74,9 +74,10 @@ export default function Navbar() {
           <div className={styles.links}>
             <Link href="/watchMarket" onClick={closeMenu}>Marketplace</Link>
             {isAdmin && <Link href="/createNFT" onClick={closeMenu}>Mint NFT</Link>}
-            <Link href="/luxhubHolders" onClick={closeMenu}>LuxHolder</Link>
-            <Link href="/adminDashboard" onClick={closeMenu}>Creators</Link>
-            <Link href="/sellerDashboard" onClick={closeMenu}>Selling</Link>
+            <Link href="/luxhubHolders" onClick={closeMenu}>Holders</Link>
+            {isAdmin && <Link href="/adminDashboard" onClick={closeMenu}>Admins</Link>}
+            <Link href="/sellerDashboard" onClick={closeMenu}>User Dashboard</Link>
+            {!isAdmin && <Link href="/learnMore" onClick={closeMenu}>Learn More</Link>}
           </div>
 
           <div className={styles.rightSection}>
@@ -141,20 +142,20 @@ export default function Navbar() {
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>MARKETPLACE</div>
             <Link href="/watchMarket" onClick={closeMenu}>Inventory</Link>
-            <Link href="/sellerDashboard" onClick={closeMenu}>Selling</Link>
-            {isAdmin && <Link href="/createNFT" onClick={closeMenu}>Learn More</Link>}
+            {!isAdmin && <Link href="/learnMore" onClick={closeMenu}>Learn More</Link>}
           </div>
 
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>LUXHUB</div>
-            <Link href="/luxhubHolders" onClick={closeMenu}>LuxHolder</Link>
-            <Link href="/adminDashboard" onClick={closeMenu}>Creators</Link>
-            {isAdmin && <Link href="/createNFT" onClick={closeMenu}>Mint NFT</Link>}
+            <Link href="/sellerDashboard" onClick={closeMenu}>User Dashboard</Link>
+            <Link href="/luxhubHolders" onClick={closeMenu}>Holders</Link>
+            {isAdmin && <Link href="/adminDashboard" onClick={closeMenu}>Admins</Link>}
+            {isAdmin && <Link href="/createNFT" onClick={closeMenu}>Mint</Link>}
           </div>
 
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>ACCOUNT</div>
-            <Link href="/userDashboard" onClick={closeMenu}>Users</Link>
+            <Link href="/sellerDashboard" onClick={closeMenu}>Profile</Link>
             <Link href="/" onClick={closeMenu}>Home</Link>
           </div>
         </div>

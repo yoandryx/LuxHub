@@ -192,6 +192,81 @@ export default function Home() {
           </div>
         </section> */}
 
+        <section className={styles.overlaySteps}>
+          <h1 className={styles.roadmapTitle}>Roadmap</h1>
+          <div className={styles.roadmapGrid}>
+              {/* Phase 1 */}
+              <div className={`${styles.stepCard} ${styles.phase1}`}>
+              <h2>Phase 1 — Foundation</h2>
+              <ul>
+                  <li>Launched NFT minting with admin approval system</li>
+                  <li>Built full Seller & Admin Dashboards with end-to-end workflow</li>
+                  <li>Integrated escrow logic with secure vaults for NFTs and funds</li>
+                  <li>Enabled metadata updates + change request system</li>
+              </ul>
+              </div>
+
+              {/* Phase 2 */}
+              <div className={`${styles.stepCard} ${styles.phase2}`}>
+              <h2>Phase 2 — Marketplace Expansion</h2>
+              <ul>
+                  <li>Launch public marketing and partner onboarding campaign</li>
+                  <li>Add support for <strong>luxury bags, art, collectibles, vehicles, and jewelry.</strong></li>
+                  <li>Introduce verified seller profiles & reputation badges</li>
+                  <li>Begin whitelisting luxury dealers globally</li>
+                  <li>Enable multi-language UI for international markets</li>
+              </ul>
+              </div>
+
+              {/* Phase 3 */}
+              <div className={`${styles.stepCard} ${styles.phase3}`}>
+              <h2>Phase 3 — Authentication Infrastructure</h2>
+              <ul>
+                  <li>Develop & test LuxHub NFC chips for physical item tagging</li>
+                  <li>Launch mobile scan app for verifying ownership on-chain</li>
+                  <li>Introduce QR/NFC-linked vault certificates with metadata access</li>
+                  <li>Prepare for API integrations with logistics partners</li>
+              </ul>
+              </div>
+
+              {/* Phase 4 */}
+              <div className={`${styles.stepCard} ${styles.phase4}`}>
+              <h2>Phase 4 — Automation & AI</h2>
+              <ul>
+                  <li>Launch AI-powered metadata assistant for NFT creation</li>
+                  <li>Implement fraud-detection models using image recognition</li>
+                  <li>Begin semi-automated admin review workflows</li>
+                  <li>Support natural language metadata requests</li>
+              </ul>
+              </div>
+
+              {/* Phase 5 */}
+              <div className={`${styles.stepCard} ${styles.phase5}`}>
+              <h2>Phase 5 — Metaverse-Ready NFTs</h2>
+              <ul>
+                  <li>Offer custom 3D NFT versions of luxury items by verified artists</li>
+                  <li>Allow users to showcase assets in metaverses and Web3 games</li>
+                  <li>Enable provenance + real-world proof-of-ownership for 3D flexing</li>
+                  {/* <li>Explore integrations with platforms like GTA6, Decentraland, and others</li> */}
+              </ul>
+              </div>
+          </div>
+        </section>
+
+
+
+        <section className={styles.overlaySteps}>
+          <h2>Join LuxHub</h2>
+          <p>
+            We welcome luxury watch collectors, trusted dealers, investors, and Web3 builders. Whether you're here to sell authenticated timepieces or contribute to the next generation of asset marketplaces, you're in the right place.
+          </p>
+          <div className={styles.buttonGroup}>
+            <a href="/sellerDashboard" className={styles.primaryButton}>Mint a Watch NFT</a>
+            <a href="/watchMarket" className={styles.primaryButton}>Explore Marketplace</a>
+            <a href="/sellerDashboard" className={styles.secondaryButton}>Manage My Listings</a>
+          </div>
+        </section>
+
         {selectedNFT && (
           <div className={styles.detailOverlay}>
             <div className={styles.detailContainer}>

@@ -18,6 +18,7 @@ import { SiSolana } from "react-icons/si";
 import { IoMdInformationCircle } from "react-icons/io";
 import NFTChangeRequestForm from "../components/user/NFTChangeRequestForm";
 import MintRequestForm from "../components/user/MintRequestForm";
+import Loader from "../components/common/Loader";
 
 export interface NFT {
   mintAddress: string;
@@ -293,53 +294,57 @@ const SellerDashboard: React.FC = () => {
 
         {activeTab === "My NFTs" && (
           <>
-            <div className={styles.nftGrid}>
-              {nfts.map((nft, i) => (
-                <div key={i} className={styles.cardWrapper}>
-                  <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+            {nfts.length === 0 ? (
+              <Loader />
+            ) : (
+              <div className={styles.nftGrid}>
+                {nfts.map((nft, i) => (
+                  <div key={i} className={styles.cardWrapper}>
+                    <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
 
-                  <div className={styles.sellerActions}>
-                    <p className={styles.tooltipWrapper} data-tooltip="The price of this NFT">
-                      <SiSolana/>{nft.salePrice}<IoMdInformationCircle className={styles.infoIcon} />
-                    </p>
-                    <p className={styles.tooltipWrapper} data-tooltip="The current holding status of this NFT if its in escrow or not">
-                      {nft.isInEscrow ? "In Escrow" : "Holding NFT"} 
-                      <IoMdInformationCircle className={styles.infoIcon} />
-                    </p>
-                    
-                    {nft.marketStatus === "requested" ? (
-                      <div
-                        className={styles.tooltipWrapper}
-                        data-tooltip="This NFT is waiting for admin approval before it can be listed"
-                      >
-                        <p>Awaiting admin approval<IoMdInformationCircle className={styles.infoIcon} /></p>
-                      </div>
-                    ) : nft.isInEscrow ? (
-                      <div
-                        className={styles.tooltipWrapper}
-                        data-tooltip="This NFT is active in the LuxHub marketplace"
-                      >
-                        <p>Listed in marketplace <IoMdInformationCircle className={styles.infoIcon} /></p>
-                      </div>
-                    ) : (
-                      <button
-                        className={styles.tooltipButton}
-                        data-tooltip="Submit your NFT for admin approval"
-                        onClick={() => handleListNFT(nft)}
-                        disabled={loadingMint === nft.mintAddress}
-                      >
-                        {loadingMint === nft.mintAddress ? "Processing..." : "Request Listing"}
-                      </button>
-                    )}
+                    <div className={styles.sellerActions}>
+                      <p className={styles.tooltipWrapper} data-tooltip="The price of this NFT">
+                        <SiSolana/>{nft.salePrice}<IoMdInformationCircle className={styles.infoIcon} />
+                      </p>
+                      <p className={styles.tooltipWrapper} data-tooltip="The current holding status of this NFT if its in escrow or not">
+                        {nft.isInEscrow ? "In Escrow" : "Holding NFT"} 
+                        <IoMdInformationCircle className={styles.infoIcon} />
+                      </p>
+                      
+                      {nft.marketStatus === "requested" ? (
+                        <div
+                          className={styles.tooltipWrapper}
+                          data-tooltip="This NFT is waiting for admin approval before it can be listed"
+                        >
+                          <p>Awaiting admin approval<IoMdInformationCircle className={styles.infoIcon} /></p>
+                        </div>
+                      ) : nft.isInEscrow ? (
+                        <div
+                          className={styles.tooltipWrapper}
+                          data-tooltip="This NFT is active in the LuxHub marketplace"
+                        >
+                          <p>Listed in marketplace <IoMdInformationCircle className={styles.infoIcon} /></p>
+                        </div>
+                      ) : (
+                        <button
+                          className={styles.tooltipButton}
+                          data-tooltip="Submit your NFT for admin approval"
+                          onClick={() => handleListNFT(nft)}
+                          disabled={loadingMint === nft.mintAddress}
+                        >
+                          {loadingMint === nft.mintAddress ? "Processing..." : "Request Listing"}
+                        </button>
+                      )}
 
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             {selectedNFT && (
               <div className={styles.overlay}>
                 <div className={styles.detailContainer}>
-                  <NftDetailCard metadataUri={selectedNFT.metadataUri} onClose={() => setSelectedNFT(null)} />
+                  <NftDetailCard metadataUri={selectedNFT.metadataUri} mintAddress={selectedNFT.mintAddress} onClose={() => setSelectedNFT(null)} />
                 </div>
               </div>
             )}
@@ -350,7 +355,7 @@ const SellerDashboard: React.FC = () => {
             <div style={{ marginTop: "30px" }}>
               <NFTChangeRequestForm
                 nfts={nfts.filter(nft =>
-                  !nft.isInEscrow && nft.marketStatus !== "requested"
+                  !nft.isInEscrow && nft.marketStatus !== "requested" && nft.marketStatus !== "active"
                 )}
               />
             </div>
