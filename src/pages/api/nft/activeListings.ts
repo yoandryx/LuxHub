@@ -6,7 +6,7 @@
 // export default async function handler(req: NextApiRequest, res: NextApiResponse) {
 //   try {
 //     // Setup connection and Metaplex instance.
-//     const connection = new Connection(process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com");
+//     const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com");
 //     const metaplex = Metaplex.make(connection);
 
 //     // Get the admin list from an environment variable (comma-separated list of admin public keys).

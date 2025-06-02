@@ -88,7 +88,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
         let uri = metadataUri;
   
         if (!uri && mintAddress) {
-          const connection = new Connection(process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com");
+          const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com");
           const metaplex = Metaplex.make(connection);
           const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mintAddress) });
           uri = nft.uri;

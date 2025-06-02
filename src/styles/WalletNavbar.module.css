@@ -121,7 +121,7 @@
     font-size: 14px;
     font-weight: 500;
     color: #ffffff;
-    margin-right: 12px;
+    margin-right: 30px;
   }
 
   .walletAddress {
@@ -131,7 +131,7 @@
     font-size: 14px;
     font-weight: 500;
     color: #ffffff;
-    margin-left: 12px;
+    margin-left: 30px;
   }
   
   .solIcon {

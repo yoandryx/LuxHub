@@ -118,7 +118,7 @@ const Marketplace = () => {
   const connection = useMemo(
     () =>
       new Connection(
-        process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
+        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
       ),
     []
   );
@@ -138,90 +138,88 @@ const Marketplace = () => {
   // 1. Fetch NFTs from Pinata, show only "active" ones.
   // ------------------------------------------------
   const fetchNFTs = async () => {
-
-    if (!wallet.publicKey || !metaplex) return;
+    if (!metaplex) return;
     let isCancelled = false;
-  
+
     try {
-      
       const res = await fetch("/api/pinata/nfts");
       if (!res.ok) throw new Error("Failed to fetch NFT data");
 
-      const data: any[] = await res.json();
-      console.log("📦 Raw Pinata data received:", data);
-  
-      const seenMintAddresses = new Set<string>();
-      const nftList: NFT[] = [];
-  
-      for (const nftItem of data) {
-        const ipfsHash = nftItem.ipfs_pin_hash;
+      const rawData: any[] = await res.json();
+      console.log("📦 Raw Pinata data received:", rawData);
+
+      // TEMP: Collect latest pins per mintAddress
+      const pinMap = new Map<string, any>();
+      for (const item of rawData) {
+        const ipfsHash = item.ipfs_pin_hash;
+        const pinnedRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`);
+        if (!pinnedRes.ok) continue;
+
+        const contentType = pinnedRes.headers.get("content-type");
+        if (!contentType?.includes("application/json")) continue;
+
         try {
-
-          const pinnedRes = await fetch(
-            `${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`
-          );
-
-          if (!pinnedRes.ok) {
-            console.warn(`⚠️ Skipping ${ipfsHash}: Response not OK`);
-            continue;
-          }
-
           const pinnedData = await pinnedRes.json();
-          if (!pinnedData.mintAddress) continue;
-
-          if (seenMintAddresses.has(pinnedData.mintAddress)) continue;
-          seenMintAddresses.add(pinnedData.mintAddress);
-  
-          let onChainNFT;
-
-          try {
-            // Fetch the NFT from the blockchain using its mint address
-            onChainNFT = await metaplex.nfts().findByMint({
-              mintAddress: new PublicKey(pinnedData.mintAddress),
-            });
-          } catch {
+          const mintAddress = pinnedData.mintAddress;
+          if (!mintAddress) {
+            console.warn(`⚠️ Skipping ${ipfsHash}: No mintAddress found in pinned JSON`);
             continue;
           }
-  
+
+          const existing = pinMap.get(mintAddress);
+          const existingDate = existing ? new Date(existing.date_pinned) : null;
+          const newDate = new Date(item.date_pinned);
+
+          if (!existing || newDate > existingDate!) {
+            pinMap.set(mintAddress, { ...item, pinnedData });
+          }
+        } catch (err) {
+          console.warn(`❌ Error parsing JSON for ${ipfsHash}:`, err);
+          continue;
+        }
+      }
+
+      const nftList: NFT[] = [];
+
+      for (const [mintAddress, { ipfs_pin_hash, pinnedData }] of pinMap.entries()) {
+        try {
+          const onChainNFT = await metaplex.nfts().findByMint({
+            mintAddress: new PublicKey(mintAddress),
+          });
+
           const updatedMetadata = onChainNFT.json;
           if (!updatedMetadata) continue;
-  
+
           const marketStatus =
-            updatedMetadata.attributes?.find(
-              (attr: any) => attr.trait_type === "Market Status"
-            )?.value || "inactive";
-  
+            updatedMetadata.attributes?.find((attr: any) => attr.trait_type === "Market Status")?.value || "inactive";
+
           const validStatuses = ["active", "Holding LuxHub"];
-          if (!validStatuses.includes(marketStatus)) continue;
-  
+          if (!validStatuses.includes(marketStatus)) {
+            console.log(`⚠️ Skipping ${mintAddress} due to marketStatus: ${marketStatus}`);
+            continue;
+          }
+
           const priceAttr = updatedMetadata.attributes?.find(
             (attr: any) => attr.trait_type === "Price"
           );
           const extractedPriceSol = parseFloat(priceAttr?.value || "0");
 
-          const priceAttrValue =
-            typeof priceAttr?.value === "string" ? priceAttr.value : "0";
-          // const extractedPriceSol = parseFloat(priceAttrValue);
-
           const currentOwner =
-          updatedMetadata.attributes?.find(
-            (attr: any) => attr.trait_type === "Current Owner"
-          )?.value || "Unknown";
+            updatedMetadata.attributes?.find(
+              (attr: any) => attr.trait_type === "Current Owner"
+            )?.value || "Unknown";
 
-  
-          await delay(250);
-  
           nftList.push({
             title: updatedMetadata.name || "Untitled",
             description: updatedMetadata.description || "No description provided.",
             image: updatedMetadata.image || "",
             priceSol: extractedPriceSol,
-            mintAddress: pinnedData.mintAddress,
+            mintAddress,
             metadataUri: onChainNFT.uri,
             currentOwner,
             marketStatus,
             nftId: "",
-            fileCid: "",
+            fileCid: ipfs_pin_hash,
             timestamp: Date.now(),
             seller: "",
             attributes: (updatedMetadata.attributes || [])
@@ -229,25 +227,26 @@ const Marketplace = () => {
               .map((attr: any) => ({
                 trait_type: attr.trait_type as string,
                 value: attr.value as string,
-              }))
+              })),
           });
+
         } catch (err) {
-          console.error(`❌ Error processing NFT with IPFS hash ${ipfsHash}:`, err);
+          console.error(`❌ Failed to process mint ${mintAddress}`, err);
         }
       }
-  
+
       if (!isCancelled) {
-        console.log("🔎 Active NFTs after filtering:", nftList);
+        console.log("🔎 Final active NFTs:", nftList);
         setNfts(nftList);
       }
     } catch (error) {
       console.error("❌ Error fetching NFTs:", error);
     }
   };
-  
+
   useEffect(() => {
     fetchNFTs();
-  }, [wallet.publicKey, metaplex]);
+  }, [metaplex]);
 
   // ------------------------------------------------
   // 2. Purchase Handler
@@ -371,6 +370,16 @@ const Marketplace = () => {
       setLoadingMint(null);
     }
   };
+
+  const getTotalFiltersSelected = () => {
+    return Object.values(filters).reduce(
+      (count, arr) => count + (Array.isArray(arr) ? arr.length : 0),
+      0
+    );
+  };
+
+  const totalSelected = getTotalFiltersSelected();
+
   
 
   return (
@@ -398,16 +407,53 @@ const Marketplace = () => {
       </div>
 
 
-      <button className={styles.filterToggle} onClick={() => setShowFilters(true)}>Filters<FaAngleRight /></button>
+      <button className={styles.filterToggle} onClick={() => setShowFilters(true)}>
+        Filters{" "}
+        {totalSelected > 0 ? (
+          <span className={styles.filterCount}>({totalSelected})</span>
+        ) : (
+          <FaAngleRight />
+        )}
+      </button>
 
-      {showFilters && (
+      {/* {showFilters && (
         <FilterSortPanel
-          onFilterChange={(filters) => setFilters((prev) => ({ ...prev, ...filters }))}
+          onFilterChange={(incomingFilters) =>
+            setFilters((prev) => ({
+              ...prev,
+              brands: incomingFilters.brands ?? [],
+              materials: incomingFilters.materials ?? [],
+              colors: incomingFilters.colors ?? [],
+              sizes: incomingFilters.sizes ?? [],
+              categories: incomingFilters.categories ?? [],
+            }))
+          }
+          currentFilters={filters}
           onSortChange={setSortOption}
           currentSort={sortOption}
           onClose={() => setShowFilters(false)}
         />
-      )}
+      )} */}
+
+      <div className={`${styles.filterPanelWrapper} ${showFilters ? styles.open : styles.closed}`}>
+        <FilterSortPanel
+          onFilterChange={(incomingFilters) =>
+            setFilters((prev) => ({
+              ...prev,
+              brands: incomingFilters.brands ?? [],
+              materials: incomingFilters.materials ?? [],
+              colors: incomingFilters.colors ?? [],
+              sizes: incomingFilters.sizes ?? [],
+              categories: incomingFilters.categories ?? [],
+            }))
+          }
+          currentFilters={filters}
+          onSortChange={setSortOption}
+          currentSort={sortOption}
+          onClose={() => setShowFilters(false)}
+        />
+      </div>
+
 
       {nfts.length === 0 ? (
         <Loader />

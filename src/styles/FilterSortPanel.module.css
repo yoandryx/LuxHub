@@ -96,3 +96,27 @@
 .resetButton:hover {
   background-color: #666;
 }
+
+/* In FilterSortPanel.module.css */
+.filterButton {
+  background: #222;
+  border: 1px solid #444;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterButton:hover {
+  background-color: #b991ff;
+  color: black;
+}
+
+.active {
+  background-color: #b991ff !important;
+  color: black !important;
+  border: 2px solid #8e63e3;
+  box-shadow: #b991ff7c 0 0 8px;
+  font-weight: bold;
+}

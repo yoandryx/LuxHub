@@ -129,7 +129,7 @@ const CreateNFT = () => {
         const pins = await res.json();
         console.log(`📦 Retrieved ${pins.length} pins from Pinata.`);
 
-        const connection = new Connection(process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com");
+        const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com");
         const metaplex = Metaplex.make(connection);
 
         const groupedByMint: Record<string, { json: any; cid: string; date: string }[]> = {};
@@ -322,7 +322,7 @@ const CreateNFT = () => {
 
       // Validate on-chain
       const connection = new Connection(
-        process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
+        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
       );
       const mintState = await getMint(connection, mintKeypair.publicKey, "finalized");
       const ataState = await getAccount(connection, recipientAta, "finalized", TOKEN_PROGRAM_ID);
@@ -432,7 +432,7 @@ const CreateNFT = () => {
     }
     try {
       const connection = new Connection(
-        process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
+        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
       );
       const nftMint = new PublicKey(mintAddress);
       const tokenAccounts = await connection.getTokenAccountsByOwner(wallet.publicKey, {
@@ -511,7 +511,7 @@ const CreateNFT = () => {
     }
     try {
       const connection = new Connection(
-        process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
+        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
       );
       const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
 

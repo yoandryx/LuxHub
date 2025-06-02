@@ -48,6 +48,8 @@ const App = ({ Component, pageProps }: AppProps) => {
   const content = (
     <ErrorBoundary FallbackComponent={Fallback}>
       <Head>
+        <title>LuxHub</title>
+        <link rel="icon" href="/images/purpleLGG.png" type="image/luxury-marketplace" />
         <link
           href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700,800&display=swap"
           rel="stylesheet"

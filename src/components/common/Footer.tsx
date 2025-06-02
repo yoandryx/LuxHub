@@ -25,18 +25,15 @@ export default function Footer() {
         {/* Footer Links */}
         <div className={styles.footerLinks}>
           <div>
-            <h4>Marketplace</h4>
+            <h4>MARKETPLACE</h4>
             <Link href="/">Home</Link>
-            <Link href="/listings">Listings</Link>
-            <Link href="/create-listing">Create Listing</Link>
-            <Link href="/profile">About Us</Link>
-            <Link href="/disclaimer">Disclaimer</Link>
-            <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/watchMarket">Inventory</Link>
+            <Link href="/sellerDashboard">Request a Mint</Link>
+            <Link href="/learnMore">Learn More</Link>
           </div>
           <div>
-            <h4>Get Connected</h4>
-            <Link href="/blog">Blog</Link>
-            <Link href="/newsletter">Newsletter</Link>
+            <h4>GET CONNECTED</h4>
+            <Link href="https://x.com/LuxHubdotFun" >Contact Us on X</Link>
           </div>
         </div>
 
@@ -45,8 +42,8 @@ export default function Footer() {
           <FaGlobe />
           <select>
             <option>EN</option>
-            <option>ES</option>
-            <option>FR</option>
+            {/* <option>ES</option> */}
+            {/* <option>FR</option> */}
           </select>
         </div>
       </div>

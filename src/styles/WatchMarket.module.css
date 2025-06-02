@@ -353,7 +353,7 @@
   top: 80px;
   left: -65px;
   padding: 8px 12px;
-  gap: 12px;
+  gap: 22px;
   background-color: #b991ff;
   color: black;
   border: none;
@@ -464,4 +464,21 @@
   gap: 8px;
   color: #ffffff;
   font-weight: 600;
+}
+
+.filterPanelWrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.4s ease;
+  opacity: 0;
+}
+
+.filterPanelWrapper.open {
+  max-height: 1000px; /* large enough to show full content */
+  opacity: 1;
+}
+
+.filterPanelWrapper.closed {
+  max-height: 0;
+  opacity: 0;
 }

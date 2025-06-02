@@ -18,7 +18,6 @@ import { SiSolana } from "react-icons/si";
 import { IoMdInformationCircle } from "react-icons/io";
 import NFTChangeRequestForm from "../components/user/NFTChangeRequestForm";
 import MintRequestForm from "../components/user/MintRequestForm";
-import Loader from "../components/common/Loader";
 
 export interface NFT {
   mintAddress: string;
@@ -48,6 +47,8 @@ const SellerDashboard: React.FC = () => {
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [loadingMint, setLoadingMint] = useState<string | null>(null);
+  const [pendingSales, setPendingSales] = useState<{ [nftId: string]: string }>({});
+
 
   const [activeTab, setActiveTab] = useState("My NFTs");
 
@@ -55,7 +56,7 @@ const SellerDashboard: React.FC = () => {
   const connection = useMemo(
     () =>
       new Connection(
-        process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
+        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
       ),
     []
   );
@@ -73,6 +74,16 @@ const SellerDashboard: React.FC = () => {
 
   const fetchNFTs = async () => {
     if (!wallet.publicKey || !metaplex || !program) return;
+
+    // Fetch all pending sale requests from MongoDB
+    const pendingRes = await fetch(`/api/nft/pendingRequests?seller=${wallet.publicKey.toBase58()}`);
+    const pendingData = await pendingRes.json();
+
+    const pendingSalesMap: { [nftId: string]: string } = {};
+    pendingData.saleRequests.forEach((req: any) => {
+      pendingSalesMap[req.nftId] = req.marketStatus;
+    });
+    setPendingSales(pendingSalesMap);
 
     try {
       const res = await fetch("/api/pinata/nfts");
@@ -131,7 +142,25 @@ const SellerDashboard: React.FC = () => {
             program.programId
           );
           const vaultAta = await getAssociatedTokenAddress(mintKey, escrowPda, true);
-          const isInEscrow = !!(await connection.getAccountInfo(vaultAta));
+
+          let isInEscrow = false;
+
+          try {
+            const balanceRes = await connection.getTokenAccountBalance(vaultAta);
+            const balance = parseInt(balanceRes.value.amount);
+            isInEscrow = balance > 0;
+            console.log(`📦 Escrow balance for ${mint}:`, balance);
+          } catch (err) {
+            if (err instanceof Error) {
+              console.warn(`⚠️ Failed to get escrow balance for ${mint}:`, err.message);
+            } else {
+              console.warn(`⚠️ Failed to get escrow balance for ${mint}:`, err);
+            }
+            isInEscrow = false;
+          }
+
+
+          console.log(`📦 Escrow status for ${mint}:`, isInEscrow ? "In Escrow" : "Not in Escrow");
 
           if (!ownsToken && !isInEscrow) continue;
 
@@ -145,12 +174,41 @@ const SellerDashboard: React.FC = () => {
               "0"
           );
 
+          // ⛑️ Check if this NFT is already in the salerequests collection
+          const existingRes = await fetch(`/api/nft/checkSaleRequest?nftId=${mint}`);
+          const existingSaleRequest = await existingRes.json();
+          const mongoMarketStatus = existingSaleRequest?.marketStatus || marketStatus;
+
+          if (!existingSaleRequest.exists && isInEscrow) {
+            console.log("💾 Posting missing escrow to MongoDB");
+
+            const pinCid = sorted[0].cid;
+
+            await fetch("/api/nft/requestSale", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                nftId: mint,
+                ipfs_pin_hash: pinCid, // ✅ FIXED
+                seller: metadataOwner || wallet.publicKey.toBase58(),
+                seed: Number(seed),
+                initializerAmount: 1,
+                takerAmount: 0,
+                fileCid: latest.image?.split("/").pop() || "",
+                salePrice,
+                timestamp: new Date(latest.updatedAt || sorted[0].date).getTime(),
+                marketStatus: "pending",
+                buyer: wallet.publicKey.toBase58(),
+              }),
+            });
+          }
+
           result.push({
             mintAddress: mint,
             title: latest.name || "Untitled",
             description: latest.description || "",
             image: latest.image || "",
-            marketStatus,
+            marketStatus: pendingSalesMap[mint] || marketStatus,
             fileCid: latest.image?.split("/").pop() || "",
             salePrice,
             metadataUri: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${sorted[0].cid}`,
@@ -180,11 +238,124 @@ const SellerDashboard: React.FC = () => {
     fetchNFTs();
   }, [wallet.publicKey, metaplex, program]);
 
+  // const handleListNFT = async (nft: NFT & { seed?: number }) => {
+  //   if (!wallet.publicKey || !program || !metaplex) {
+  //     setNotification("Wallet or program not connected.");
+  //     return;
+  //   }
+  //   setLoadingMint(nft.mintAddress);
+  //   try {
+  //     const nftMint = new PublicKey(nft.mintAddress);
+  //     const sellerNftAta = await getAssociatedTokenAddress(nftMint, wallet.publicKey);
+  //     const ataInfo = await connection.getAccountInfo(sellerNftAta);
+  //     if (!ataInfo) throw new Error("NFT ATA is missing. Please mint or transfer your NFT.");
+
+  //     const balance = Number((await connection.getTokenAccountBalance(sellerNftAta)).value.uiAmount);
+  //     if (balance < 1) throw new Error("You must own the NFT before listing it.");
+
+  //     const salePriceLamports = Math.floor(nft.salePrice * LAMPORTS_PER_SOL);
+  //     const seed = Date.now();
+  //     nft.seed = seed;
+
+  //     const [escrowPda] = await PublicKey.findProgramAddress(
+  //       [Buffer.from("state"), new BN(seed).toArrayLike(Buffer, "le", 8)],
+  //       program.programId
+  //     );
+  //     const vaultAta = await getAssociatedTokenAddress(nftMint, escrowPda, true);
+
+  //     await program.methods
+  //       .initialize(
+  //         new BN(seed),
+  //         new BN(1),
+  //         new BN(0),
+  //         nft.fileCid,
+  //         wallet.publicKey,
+  //         new BN(salePriceLamports),
+  //         wallet.publicKey
+  //       )
+  //       .accounts({
+  //         admin: wallet.publicKey,
+  //         seller: wallet.publicKey,
+  //         mintA: new PublicKey(FUNDS_MINT),
+  //         mintB: nftMint,
+  //         sellerAtaA: await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), wallet.publicKey),
+  //         sellerAtaB: sellerNftAta,
+  //         escrow: escrowPda,
+  //         vault: vaultAta,
+  //         associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+  //         tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+  //         systemProgram: SystemProgram.programId,
+  //         rent: SYSVAR_RENT_PUBKEY,
+  //       })
+  //       .rpc();
+
+  //     // const metadata = await metaplex.nfts().findByMint({ mintAddress: nftMint });
+  //     // const updatedAttributes = metadata.json?.attributes || [];
+  //     // const updatedJson = {
+  //     //   ...(metadata.json || {}),
+  //     //   attributes: [
+  //     //     ...updatedAttributes.filter(
+  //     //       (attr: any) =>
+  //     //         attr.trait_type !== "Market Status" && attr.trait_type !== "Escrow Seed"
+  //     //     ),
+  //     //     { trait_type: "Market Status", value: "requested" },
+  //     //     { trait_type: "Escrow Seed", value: seed.toString() },
+  //     //   ],
+  //     //   updatedAt: new Date().toISOString(),
+  //     // };
+
+  //     // const pinRes = await fetch("/api/pinata/pinJson", {
+  //     //   method: "POST",
+  //     //   headers: { "Content-Type": "application/json" },
+  //     //   body: JSON.stringify(updatedJson),
+  //     // });
+  //     // const { IpfsHash } = await pinRes.json();
+  //     // const newUri = `${process.env.NEXT_PUBLIC_GATEWAY_URL}${IpfsHash}`;
+
+  //     // await metaplex.nfts().update({
+  //     //   nftOrSft: metadata,
+  //     //   uri: newUri,
+  //     // });
+
+  //     await fetch("/api/nft/requestSale", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         nftId: nft.mintAddress,
+  //         seller: wallet.publicKey.toBase58(),
+  //         seed,
+  //         initializerAmount: 1,
+  //         takerAmount: 0,
+  //         fileCid: nft.fileCid,
+  //         salePrice: salePriceLamports,
+  //         timestamp: Date.now(),
+  //         marketStatus: "pending",
+  //         buyer: wallet.publicKey.toBase58(),
+  //         luxhubWallet: wallet.publicKey.toBase58(),
+  //       }),
+  //     });
+
+  //     await fetchNFTs();
+  //     setNotification("✅ NFT submitted and metadata updated.");
+  //   } catch (err: any) {
+  //     console.error("[handleListNFT] Failed:", err);
+  //     setNotification(err.message);
+  //   } finally {
+  //     setLoadingMint(null);
+  //   }
+  // };
+
   const handleListNFT = async (nft: NFT & { seed?: number }) => {
     if (!wallet.publicKey || !program || !metaplex) {
       setNotification("Wallet or program not connected.");
       return;
     }
+
+    const confirm = window.confirm(
+      "⚠️ Please do not close or refresh the page while depositing your NFT into escrow.\n\nClick OK to continue."
+    );
+    if (!confirm) return;
+
     setLoadingMint(nft.mintAddress);
     try {
       const nftMint = new PublicKey(nft.mintAddress);
@@ -204,6 +375,12 @@ const SellerDashboard: React.FC = () => {
         program.programId
       );
       const vaultAta = await getAssociatedTokenAddress(nftMint, escrowPda, true);
+
+      console.warn("⚠️ Save this seed temporarily in case anything goes wrong:", seed);
+      localStorage.setItem(`lastSeed_${nft.mintAddress}`, seed.toString());
+      alert(
+        `✅ NFT is being submitted for escrow.\n\nImportant: Save this number in case something goes wrong:\n\nSeed: ${seed}`
+      );
 
       await program.methods
         .initialize(
@@ -231,36 +408,30 @@ const SellerDashboard: React.FC = () => {
         })
         .rpc();
 
-      const metadata = await metaplex.nfts().findByMint({ mintAddress: nftMint });
-      const updatedAttributes = metadata.json?.attributes || [];
-      const updatedJson = {
-        ...(metadata.json || {}),
-        attributes: [
-          ...updatedAttributes.filter(
-            (attr: any) =>
-              attr.trait_type !== "Market Status" && attr.trait_type !== "Escrow Seed"
-          ),
-          { trait_type: "Market Status", value: "requested" },
-          { trait_type: "Escrow Seed", value: seed.toString() },
-        ],
-        updatedAt: new Date().toISOString(),
-      };
+      // Assuming you already fetched Pinata metadata during fetchNFTs()
+      const pinCid = nft.metadataUri?.replace(process.env.NEXT_PUBLIC_GATEWAY_URL || "", "");
 
-      const pinRes = await fetch("/api/pinata/pinJson", {
+      await fetch("/api/nft/requestSale", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedJson),
+        body: JSON.stringify({
+          nftId: nft.mintAddress,
+          ipfs_pin_hash: pinCid, // ✅ Required field
+          seller: wallet.publicKey.toBase58(),
+          seed,
+          initializerAmount: 1,
+          takerAmount: 0,
+          fileCid: nft.fileCid,
+          salePrice: salePriceLamports,
+          timestamp: Date.now(),
+          marketStatus: "pending",
+          buyer: wallet.publicKey.toBase58(),
+        }),
       });
-      const { IpfsHash } = await pinRes.json();
-      const newUri = `${process.env.NEXT_PUBLIC_GATEWAY_URL}${IpfsHash}`;
 
-      await metaplex.nfts().update({
-        nftOrSft: metadata,
-        uri: newUri,
-      });
-
+      setNotification("✅ NFT submitted successfully! Awaiting admin approval.");
+      alert("🎉 Success! Your NFT has been submitted. Please wait for admin approval.");
       await fetchNFTs();
-      setNotification("✅ NFT submitted and metadata updated.");
     } catch (err: any) {
       console.error("[handleListNFT] Failed:", err);
       setNotification(err.message);
@@ -294,57 +465,53 @@ const SellerDashboard: React.FC = () => {
 
         {activeTab === "My NFTs" && (
           <>
-            {nfts.length === 0 ? (
-              <Loader />
-            ) : (
-              <div className={styles.nftGrid}>
-                {nfts.map((nft, i) => (
-                  <div key={i} className={styles.cardWrapper}>
-                    <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+            <div className={styles.nftGrid}>
+              {nfts.map((nft, i) => (
+                <div key={i} className={styles.cardWrapper}>
+                  <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
 
-                    <div className={styles.sellerActions}>
-                      <p className={styles.tooltipWrapper} data-tooltip="The price of this NFT">
-                        <SiSolana/>{nft.salePrice}<IoMdInformationCircle className={styles.infoIcon} />
-                      </p>
-                      <p className={styles.tooltipWrapper} data-tooltip="The current holding status of this NFT if its in escrow or not">
-                        {nft.isInEscrow ? "In Escrow" : "Holding NFT"} 
-                        <IoMdInformationCircle className={styles.infoIcon} />
-                      </p>
-                      
-                      {nft.marketStatus === "requested" ? (
-                        <div
-                          className={styles.tooltipWrapper}
-                          data-tooltip="This NFT is waiting for admin approval before it can be listed"
-                        >
-                          <p>Awaiting admin approval<IoMdInformationCircle className={styles.infoIcon} /></p>
-                        </div>
-                      ) : nft.isInEscrow ? (
-                        <div
-                          className={styles.tooltipWrapper}
-                          data-tooltip="This NFT is active in the LuxHub marketplace"
-                        >
-                          <p>Listed in marketplace <IoMdInformationCircle className={styles.infoIcon} /></p>
-                        </div>
-                      ) : (
-                        <button
-                          className={styles.tooltipButton}
-                          data-tooltip="Submit your NFT for admin approval"
-                          onClick={() => handleListNFT(nft)}
-                          disabled={loadingMint === nft.mintAddress}
-                        >
-                          {loadingMint === nft.mintAddress ? "Processing..." : "Request Listing"}
-                        </button>
-                      )}
+                  <div className={styles.sellerActions}>
+                    <p className={styles.tooltipWrapper} data-tooltip="The price of this NFT">
+                      <SiSolana/>{nft.salePrice}<IoMdInformationCircle className={styles.infoIcon} />
+                    </p>
+                    <p className={styles.tooltipWrapper} data-tooltip="The current holding status of this NFT if its in escrow or not">
+                      {nft.isInEscrow ? "In Escrow" : "Holding NFT"} 
+                      <IoMdInformationCircle className={styles.infoIcon} />
+                    </p>
+                    
+                    { nft.marketStatus === "pending" ? (
+                      <div
+                        className={styles.tooltipWrapper}
+                        data-tooltip="This NFT is waiting for admin approval before it can be listed"
+                      >
+                        <p>Awaiting admin approval<IoMdInformationCircle className={styles.infoIcon} /></p>
+                      </div>
+                    ) : nft.isInEscrow || nft.marketStatus === "active" ? (
+                      <div
+                        className={styles.tooltipWrapper}
+                        data-tooltip="This NFT is active in the LuxHub marketplace"
+                      >
+                        <p>Listed in marketplace <IoMdInformationCircle className={styles.infoIcon} /></p>
+                      </div>
+                    ) : (
+                      <button
+                        className={styles.tooltipButton}
+                        data-tooltip="Submit your NFT for admin approval"
+                        onClick={() => handleListNFT(nft)}
+                        disabled={loadingMint === nft.mintAddress}
+                      >
+                        {loadingMint === nft.mintAddress ? "Processing..." : "Request Listing"}
+                      </button>
+                    )}
 
-                    </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
             {selectedNFT && (
               <div className={styles.overlay}>
                 <div className={styles.detailContainer}>
-                  <NftDetailCard metadataUri={selectedNFT.metadataUri} mintAddress={selectedNFT.mintAddress} onClose={() => setSelectedNFT(null)} />
+                  <NftDetailCard metadataUri={selectedNFT.metadataUri} onClose={() => setSelectedNFT(null)} />
                 </div>
               </div>
             )}
@@ -355,7 +522,7 @@ const SellerDashboard: React.FC = () => {
             <div style={{ marginTop: "30px" }}>
               <NFTChangeRequestForm
                 nfts={nfts.filter(nft =>
-                  !nft.isInEscrow && nft.marketStatus !== "requested" && nft.marketStatus !== "active"
+                  !nft.isInEscrow && nft.marketStatus !== "requested" && nft.marketStatus !== "active" && nft.marketStatus !== "pending"
                 )}
               />
             </div>

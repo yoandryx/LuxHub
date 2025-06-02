@@ -81,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("Updated metadata uploaded. New URI:", updatedMetadataUri);
 
     // Update on-chain metadata via Metaplex using the admin wallet adapter.
-    const connection = new Connection(process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com");
+    const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com");
     const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(adminWalletAdapter));
     const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(nftId) });
     await metaplex.nfts().update({

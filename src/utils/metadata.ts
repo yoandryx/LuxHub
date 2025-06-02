@@ -117,7 +117,7 @@ export const updateNftMetadata = async (
   }>
 ) => {
   const connection = new Connection(
-    process.env.NEXT_PUBLIC_ENDPOINT || "https://api.devnet.solana.com"
+    process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
   );
   const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
 
