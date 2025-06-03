@@ -25,7 +25,7 @@ export const getProgram = (wallet: WalletContextState): Program<Idl> => {
     throw new Error("❌ Wallet is not connected.");
   }
   
-  const connection = new Connection("https://api.devnet.solana.com");
+  const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT!);
   const anchorWallet = {
     publicKey: wallet.publicKey,
     signTransaction: wallet.signTransaction || (async (tx) => tx),
