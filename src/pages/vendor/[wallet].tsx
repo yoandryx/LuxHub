@@ -12,6 +12,8 @@ import {
   createSyncNativeInstruction,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { IoMdInformationCircle } from "react-icons/io";
+import { SiSolana } from "react-icons/si";
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
 const FUNDS_MINT = "So11111111111111111111111111111111111111112";
@@ -211,6 +213,14 @@ const VendorProfilePage = () => {
             <a href={profile.socialLinks.website} target="_blank" rel="noreferrer">Website</a>
           )}
         </div>
+        {wallet.publicKey?.toBase58() === profile.wallet && (
+          <button
+          className={styles.dashboardButton}
+          onClick={() => router.push("/vendor/vendorDashboard")}
+          >
+            Go to Dashboard
+          </button>
+        )}
       </div>
 
       {nftData.length > 0 ? (
@@ -221,15 +231,46 @@ const VendorProfilePage = () => {
               <div key={i} className={styles.cardWrapper}>
                 <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
                 <div className={styles.sellerActions}>
-                  {nft.marketStatus === "active" ? (
-                    <button onClick={() => handlePurchase(nft)} disabled={loadingMint === nft.mintAddress}>
-                      {loadingMint === nft.mintAddress ? "Processing..." : "BUY"}
-                    </button>
-                  ) : (
-                    <button onClick={() => router.push('/vendor/'+profile.wallet+'/messenger')} rel="noreferrer">
+                  {nft.marketStatus === "pending" ? (
+                    <div className={styles.tooltipWrapper} data-tooltip="This NFT is waiting for admin approval before it can be listed">
+                      <p>Awaiting admin approval <IoMdInformationCircle className={styles.infoIcon} /></p>
+                    </div>
+                  ) : nft.marketStatus === "requested" ? (
+                    <div className={styles.tooltipWrapper} data-tooltip="Submit your NFT for admin approval">
+                      <p>Listed in marketplace <IoMdInformationCircle className={styles.infoIcon} /></p>
+                    </div>
+                  ) : nft.marketStatus === "Holding LuxHub" ? (
+                    <button
+                      className={styles.contactButton}
+                      data-tooltip="Reach out to the current owner to make an offer"
+                      onClick={() =>
+                        window.open(`https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`, "_blank")
+                      }
+                    >
                       Contact Owner
                     </button>
+                  ) : (
+                    <button
+                      className={styles.tooltipButton}
+                      data-tooltip="This LuxHub NFT is in escrow ready for purchase"
+                      onClick={() => handlePurchase(nft)}
+                      disabled={loadingMint === nft.mintAddress}
+                    >
+                      {loadingMint === nft.mintAddress ? "Processing..." : "BUY"}
+                    </button>
                   )}
+
+                  <div className={styles.tooltipWrapper} data-tooltip="The price of this NFT">
+                    <p className={styles.priceInfo}>
+                      <SiSolana /> {nft.priceSol}
+                      <IoMdInformationCircle className={styles.infoIcon} />
+                    </p>
+                  </div>
+
+                  <p className={styles.tooltipWrapper} data-tooltip="The current holding status of this NFT in the marketplace">
+                    {nft.marketStatus === "active" ? "Available" : "Offer"}
+                    <IoMdInformationCircle className={styles.infoIcon} />
+                  </p>
                 </div>
               </div>
             ))}

@@ -22,6 +22,7 @@ import { MetadataEditorTab } from "../components/admins/MetadataEditorTab";
 import { MetadataChangeRequestsTab } from "../components/admins/MetadataChangeRequestsTab";
 import { CiSearch } from "react-icons/ci";
 import { VendorProfile } from "../lib/models/VendorProfile";
+import VendorManagementPanel from "../components/vendor/VendorManagementPanel";
 
 interface LogEntry {
   timestamp: string;
@@ -158,12 +159,6 @@ const AdminDashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLastPage, setIsLastPage] = useState(false);
   const [sellerFilter, setSellerFilter] = useState("");
-
-  const [pendingVendors, setPendingVendors] = useState<VendorProfile[]>([]);
-  const [approvedVendors, setApprovedVendors] = useState<VendorProfile[]>([]);
-  const [vendorWalletInput, setVendorWalletInput] = useState("");
-  const [expirationInput, setExpirationInput] = useState("");
-  const [vendorMessage, setVendorMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
 
@@ -358,8 +353,6 @@ const AdminDashboard: React.FC = () => {
     await fetchConfigAndAdmins();
     await fetchActiveEscrowsByMint();
     await fetchSaleRequests();
-    await fetchPendingVendors();
-    await fetchApprovedVendors();
     setLoading(false);
   };
 
@@ -903,158 +896,6 @@ const AdminDashboard: React.FC = () => {
   }, [activeEscrows, program]);
 
   // ------------------------------------------------
-  // Pending Vendor Fetching
-  // ------------------------------------------------
-  const fetchPendingVendors = async () => {
-    try {
-      const res = await fetch("/api/vendor/pending");
-      const data = await res.json();
-      setPendingVendors(data.vendors || []);
-    } catch (err) {
-      console.error("Failed to fetch pending vendors:", err);
-    }
-  };
-
-  // ------------------------------------------------
-  // Approved Vendor Fetching
-  // ------------------------------------------------
-  const fetchApprovedVendors = async () => {
-    try {
-      const res = await fetch("/api/vendor/approved");
-      const data = await res.json();
-      setApprovedVendors(data.vendors || []);
-    } catch (err) {
-      console.error("Failed to fetch approved vendors:", err);
-    }
-  };
-
-  // ------------------------------------------------
-  // Approve Vendor Logic
-  // ------------------------------------------------
-  const approveVendor = async (wallet: string) => {
-    try {
-      const res = await fetch("/api/vendor/approve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        const profileLink = `${window.location.origin}/vendor/${wallet}`;
-        navigator.clipboard.writeText(profileLink);
-
-        setVendorMessage({
-          type: "success",
-          text: `Vendor approved successfully!\nProfile Link: ${profileLink}\n(Link copied to clipboard)`,
-        });
-
-        fetchPendingVendors(); // Refresh list
-      } else {
-        setVendorMessage({ type: "error", text: data.error || "Failed to approve vendor." });
-      }
-    } catch (err) {
-      console.error("Error approving vendor:", err);
-      setVendorMessage({ type: "error", text: "Internal error while approving vendor." });
-    }
-  };
-
-
-
-  // ------------------------------------------------
-  // Reject Vendor Logic
-  // ------------------------------------------------
-  const rejectVendor = async (wallet: string) => {
-    try {
-      const res = await fetch("/api/vendor/reject", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setVendorMessage({ type: "success", text: "Vendor rejected and removed." });
-        fetchPendingVendors(); // Refresh the list
-      } else {
-        setVendorMessage({ type: "error", text: data.error || "Failed to reject vendor." });
-      }
-    } catch (err) {
-      console.error("Error rejecting vendor:", err);
-      setVendorMessage({ type: "error", text: "Internal error while rejecting vendor." });
-    }
-  };
-
-  // ------------------------------------------------
-  // Delete Vendor Logic
-  // ------------------------------------------------
-  const deleteVendor = async (wallet: string) => {
-    try {
-      const res = await fetch("/api/vendor/reject", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setVendorMessage({ type: "success", text: "Vendor profile deleted." });
-        fetchApprovedVendors();
-      } else {
-        setVendorMessage({ type: "error", text: data.error || "Failed to delete vendor." });
-      }
-    } catch (err) {
-      console.error("Error deleting vendor:", err);
-      setVendorMessage({ type: "error", text: "Internal error while deleting vendor." });
-    }
-  };
-
-
-
-  // ------------------------------------------------
-  // Generate Vendor Profile Invite
-  // ------------------------------------------------
-  const handleGenerateInvite = async () => {
-    if (!vendorWalletInput || !wallet?.publicKey) {
-      setVendorMessage({ type: "error", text: "Missing vendor wallet or admin wallet." });
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/vendor/generateInvite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorWallet: vendorWalletInput,
-          expiresAt: expirationInput || null,
-          adminWallet: wallet.publicKey.toBase58(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.code) {
-        const link = `${window.location.origin}/vendor/onboard?v=${data.code}`;
-        navigator.clipboard.writeText(link);
-        setVendorMessage({
-          type: "success",
-          text: `Invite created and copied to clipboard!\n${link}`,
-        });
-      } else {
-        setVendorMessage({ type: "error", text: data.error || "Failed to generate invite." });
-      }
-    } catch (err) {
-      console.error("Invite generation failed:", err);
-      setVendorMessage({ type: "error", text: "Internal error while generating invite." });
-    }
-  };
-
-  
-
-  // ------------------------------------------------
   // Render Admin Tabs
   // ------------------------------------------------
   const renderTabContent = () => {
@@ -1292,173 +1133,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         );
       case 8:
-        return (
-          <div>
-            {/* Notification Banner */}
-            {vendorMessage && (
-              <div
-                style={{
-                  backgroundColor: vendorMessage.type === "success" ? "#e6ffed" : "#ffe6e6",
-                  color: vendorMessage.type === "success" ? "#135e27" : "#8a1f1f",
-                  padding: "12px 16px",
-                  borderRadius: "6px",
-                  marginBottom: "1rem",
-                  whiteSpace: "pre-wrap",
-                  border: `1px solid ${vendorMessage.type === "success" ? "#b2e5c2" : "#f5c2c2"}`,
-                  fontSize: "14px",
-                }}
-              >
-                {vendorMessage.text}
-              </div>
-            )}
-
-            {/* Pending Approvals */}
-            <h2>Pending Vendor Approvals</h2>
-            <ul style={{ paddingLeft: 0, listStyle: "none" }}>
-              {pendingVendors.map((vendor: VendorProfile, idx: number) => (
-                <li
-                  key={idx}
-                  style={{
-                    border: "1px solid #323232",
-                    padding: "12px",
-                    borderRadius: "6px",
-                    marginBottom: "10px",
-                    backgroundColor: "#00000010",
-                  }}
-                >
-                  <div><strong>{vendor.name}</strong> — @{vendor.username}</div>
-                  <div style={{ fontSize: "13px", color: "#555" }}>Wallet: {vendor.wallet}</div>
-                  <div style={{ marginTop: "8px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                      {vendor.avatarUrl && (
-                        <img
-                          src={vendor.avatarUrl}
-                          alt="avatar"
-                          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-                        />
-                      )}
-                      {vendor.bannerUrl && (
-                        <img
-                          src={vendor.bannerUrl}
-                          alt="banner"
-                          style={{ width: 100, height: 40, objectFit: "cover", borderRadius: "4px" }}
-                        />
-                      )}
-                    </div>
-
-                    <button onClick={() => approveVendor(vendor.wallet)} style={{ marginRight: "10px" }}>
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => rejectVendor(vendor.wallet)}
-                      style={{
-                        background: "#e15a5a",
-                        color: "#fff",
-                        border: "none",
-                        padding: "6px 12px",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            {/* Invite Generator */}
-            <div className={styles.card}>
-              <h2>Generate Vendor Invite</h2>
-              <input
-                type="text"
-                placeholder="Vendor wallet address"
-                value={vendorWalletInput}
-                onChange={(e) => setVendorWalletInput(e.target.value)}
-              />
-              <input
-                type="datetime-local"
-                value={expirationInput}
-                onChange={(e) => setExpirationInput(e.target.value)}
-              />
-              <button onClick={handleGenerateInvite} style={{ marginTop: "10px" }}>
-                Generate Invite
-              </button>
-            </div>
-
-            {/* Approved Vendor Profiles */}
-            <h2 style={{ marginTop: "2rem" }}>Approved Vendors</h2>
-            <ul style={{ paddingLeft: 0, listStyle: "none" }}>
-              {approvedVendors.map((vendor: VendorProfile, idx: number) => (
-                <li
-                  key={idx}
-                  style={{
-                    border: "1px solid #444",
-                    padding: "12px",
-                    borderRadius: "6px",
-                    marginBottom: "10px",
-                    backgroundColor: "#10101010",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    {vendor.avatarUrl && (
-                      <img
-                        src={vendor.avatarUrl}
-                        alt="avatar"
-                        style={{ width: 50, height: 50, borderRadius: "50%" }}
-                      />
-                    )}
-                    <div>
-                      <strong>{vendor.name}</strong> — @{vendor.username}
-                      <div style={{ fontSize: "13px", color: "#777" }}>Wallet: {vendor.wallet}</div>
-                    </div>
-                  </div>
-
-                  {vendor.bannerUrl && (
-                    <img
-                      src={vendor.bannerUrl}
-                      alt="banner"
-                      style={{
-                        marginTop: "8px",
-                        width: "100%",
-                        maxHeight: 120,
-                        objectFit: "cover",
-                        borderRadius: "4px",
-                      }}
-                    />
-                  )}
-
-                  <div style={{ marginTop: "8px" }}>
-                    <a
-                      href={`/vendor/${vendor.wallet}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        marginRight: "10px",
-                        textDecoration: "underline",
-                        fontSize: "14px",
-                      }}
-                    >
-                      View Profile
-                    </a>
-                    <button
-                      onClick={() => deleteVendor(vendor.wallet)}
-                      style={{
-                        background: "#b93838",
-                        color: "#fff",
-                        border: "none",
-                        padding: "6px 12px",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-          </div>
-        );
+        return <VendorManagementPanel wallet={wallet} />;
       default:
         return null;
     }
