@@ -1,146 +1,259 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { VendorProfile } from "../../lib/models/VendorProfile";
+import { useEffect, useMemo, useState } from "react";
+import { PublicKey, Connection, SystemProgram, SYSVAR_RENT_PUBKEY, TransactionInstruction } from "@solana/web3.js";
+import styles from "../../styles/VendorProfilePage.module.css";
+import NFTCard from "../../components/marketplace/NFTCard";
+import { NftDetailCard } from "../../components/marketplace/NftDetailCard";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { getProgram } from "../../utils/programUtils";
+import {
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress,
+  createSyncNativeInstruction,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 
-const HeliusEndpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://devnet.helius-rpc.com/";
+const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
+const FUNDS_MINT = "So11111111111111111111111111111111111111112";
+const LAMPORTS_PER_SOL = 1_000_000_000;
+
+interface NFT {
+  title: string;
+  description: string;
+  image: string;
+  priceSol: number;
+  mintAddress: string;
+  metadataUri: string;
+  currentOwner: string;
+  marketStatus: string;
+  nftId: string;
+  fileCid: string;
+  timestamp: number;
+  seller: string;
+  attributes?: { trait_type: string; value: string }[];
+}
 
 const VendorProfilePage = () => {
-  const { query } = useRouter();
-  const [profile, setProfile] = useState<VendorProfile | null>(null);
+  const router = useRouter();
+  const { query } = router;
+  const wallet = useWallet();
+  const [profile, setProfile] = useState<any>(null);
+  const [nftData, setNftData] = useState<NFT[]>([]);
+  const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [nftData, setNftData] = useState<any[]>([]);
+  const [loadingMint, setLoadingMint] = useState<string | null>(null);
+
+  const connection = useMemo(() => new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"), []);
+  const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
 
   useEffect(() => {
     if (!query.wallet) return;
 
     const fetchProfile = async () => {
-      try {
-        const res = await fetch(`/api/vendor/profile?wallet=${query.wallet}`);
-        const data = await res.json();
-        if (data.error) {
-          setError(data.error);
-          setProfile(null);
-        } else {
-          setProfile(data);
-          setError(null);
-        }
-      } catch (err) {
-        setError("Failed to load profile");
-      }
+      const res = await fetch(`/api/vendor/profile?wallet=${query.wallet}`);
+      const data = await res.json();
+      setProfile(data?.error ? null : data);
     };
 
     fetchProfile();
   }, [query.wallet]);
 
   useEffect(() => {
-    if (!profile?.inventory?.length) return;
+    if (!profile?.wallet) return;
 
-    const fetchMetadata = async () => {
-      const results = await Promise.all(
-        profile.inventory.map(async (mint) => {
-          try {
-            const res = await fetch(HeliusEndpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                jsonrpc: "2.0",
-                id: "1",
-                method: "getAsset",
-                params: { id: mint },
-              }),
-            });
+    const fetchNFTs = async () => {
+      const res = await fetch("/api/pinata/nfts");
+      const pins = await res.json();
 
-            const { result } = await res.json();
-            return result || null;
-          } catch (err) {
-            console.error("Helius fetch failed for", mint, err);
-            return null;
-          }
-        })
-      );
+      const grouped: Record<string, { json: any; cid: string; date: string }[]> = {};
 
-      setNftData(results.filter(Boolean));
+      for (const pin of pins) {
+        try {
+          const url = `${GATEWAY}${pin.ipfs_pin_hash}`;
+          const head = await fetch(url, { method: "HEAD" });
+          if (!head.headers.get("Content-Type")?.includes("application/json")) continue;
+
+          const json = await (await fetch(url)).json();
+          const mint = json.mintAddress;
+          const isOwner = json.currentOwner === profile.wallet || json.attributes?.find((a: any) => a.trait_type === "Current Owner")?.value === profile.wallet;
+          const isSeller = json.seller === profile.wallet;
+          if (!mint || (!isOwner && !isSeller)) continue;
+
+          grouped[mint] = grouped[mint] || [];
+          grouped[mint].push({ json, cid: pin.ipfs_pin_hash, date: pin.date_pinned });
+        } catch {}
+      }
+
+      const result: NFT[] = Object.entries(grouped).map(([mint, versions]) => {
+        const latest = versions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].json;
+        return {
+          mintAddress: mint,
+          title: latest.name || "Untitled",
+          description: latest.description || "",
+          image: latest.image || "/fallback-nft.png",
+          priceSol: parseFloat(latest.priceSol || latest.attributes?.find((a: any) => a.trait_type === "Price")?.value || "0"),
+          metadataUri: `${GATEWAY}${versions[0].cid}`,
+          currentOwner: latest.currentOwner || latest.attributes?.find((a: any) => a.trait_type === "Current Owner")?.value || profile.wallet,
+          marketStatus: latest.marketStatus || latest.attributes?.find((a: any) => a.trait_type === "Market Status")?.value || "inactive",
+          nftId: mint,
+          fileCid: latest.image?.split("/").pop() || "",
+          timestamp: Date.now(),
+          seller: latest.seller || profile.wallet,
+          attributes: latest.attributes || [],
+        };
+      });
+
+      setNftData(result);
     };
 
-    fetchMetadata();
+    fetchNFTs();
   }, [profile]);
+
+  const handlePurchase = async (nft: NFT) => {
+    if (!wallet.publicKey || !program) return alert("Connect wallet first.");
+    if (!confirm(`Purchase ${nft.title} for ${nft.priceSol} SOL?`)) return;
+
+    setLoadingMint(nft.mintAddress);
+
+    try {
+      const buyer = wallet.publicKey;
+      const nftMint = new PublicKey(nft.mintAddress);
+      const fundsMint = new PublicKey(FUNDS_MINT);
+      const priceLamports = Math.floor(nft.priceSol * LAMPORTS_PER_SOL);
+
+      const buyerFundsAta = await getAssociatedTokenAddress(fundsMint, buyer);
+      const buyerNftAta = await getAssociatedTokenAddress(nftMint, buyer);
+      const buyerFundsInfo = await connection.getAccountInfo(buyerFundsAta);
+      const buyerNftInfo = await connection.getAccountInfo(buyerNftAta);
+
+      const balance = await connection.getBalance(buyer);
+      if (balance < priceLamports + 1_000_000) throw new Error("Not enough SOL.");
+
+      const preIx: TransactionInstruction[] = [];
+
+      if (!buyerFundsInfo) preIx.push(createAssociatedTokenAccountInstruction(buyer, buyerFundsAta, buyer, fundsMint));
+      if (!buyerNftInfo) preIx.push(createAssociatedTokenAccountInstruction(buyer, buyerNftAta, buyer, nftMint));
+
+      preIx.push(
+        SystemProgram.transfer({ fromPubkey: buyer, toPubkey: buyerFundsAta, lamports: priceLamports }),
+        createSyncNativeInstruction(buyerFundsAta)
+      );
+
+      const escrowAccounts = await (program.account as any).escrow.all([{ memcmp: { offset: 113, bytes: nft.mintAddress } }]);
+      if (escrowAccounts.length !== 1) throw new Error("Escrow not found.");
+      const escrowPda = escrowAccounts[0].publicKey;
+      const vault = await getAssociatedTokenAddress(fundsMint, escrowPda, true);
+
+      if (!(await connection.getAccountInfo(vault))) {
+        preIx.push(createAssociatedTokenAccountInstruction(buyer, vault, escrowPda, fundsMint));
+      }
+
+      await program.methods
+        .exchange()
+        .preInstructions(preIx)
+        .accounts({
+          taker: buyer,
+          mintA: fundsMint,
+          mintB: nftMint,
+          takerFundsAta: buyerFundsAta,
+          takerNftAta: buyerNftAta,
+          vault,
+          escrow: escrowPda,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+          systemProgram: SystemProgram.programId,
+          rent: SYSVAR_RENT_PUBKEY,
+        })
+        .rpc();
+
+      await fetch("/api/nft/updateBuyer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyer: buyer.toBase58(),
+          mintAddress: nft.mintAddress,
+          vaultAta: vault.toBase58(),
+          priceSol: nft.priceSol,
+        }),
+      });
+
+      alert("✅ Success!");
+    } catch (e: any) {
+      alert("❌ Error: " + e.message);
+    } finally {
+      setLoadingMint(null);
+    }
+  };
 
   if (error) return <p>{error}</p>;
   if (!profile) return <p>Loading profile...</p>;
 
   return (
-    <div style={{ padding: 20 }}>
-      {profile.bannerUrl && (
-        <img
-          src={profile.bannerUrl}
-          alt="Banner"
-          style={{ width: "100%", maxHeight: 200, objectFit: "cover" }}
-        />
+    <div className={styles.profileContainer}>
+      {profile?.bannerUrl && (
+        <img src={profile.bannerUrl} className={styles.profileBanner} />
       )}
-
-      {profile.avatarUrl && (
-        <img
-          src={profile.avatarUrl}
-          alt="Avatar"
-          style={{
-            width: 100,
-            height: 100,
-            borderRadius: "50%",
-            marginTop: -50,
-            border: "1px solid white",
-            objectFit: "cover",
-            background: "#00000030",
-          }}
-        />
+      {profile?.avatarUrl && (
+        <img src={profile.avatarUrl} className={styles.profileAvatar} />
       )}
-
-      <h1>
-        {profile.name} {profile.verified && "✅"}
-      </h1>
-      <p>@{profile.username}</p>
-      <p>{profile.bio}</p>
-
-      <div style={{ marginTop: 10 }}>
-        {profile.socialLinks?.instagram && (
-          <a href={profile.socialLinks.instagram} target="_blank" rel="noreferrer" style={{ marginRight: 10 }}>
-            Instagram
-          </a>
-        )}
-        {profile.socialLinks?.website && (
-          <a href={profile.socialLinks.website} target="_blank" rel="noreferrer">
-            Website
-          </a>
-        )}
+      <div className={styles.profileHeader}>
+        <h1>{profile.name} {profile.verified && "✅"}</h1>
+        <p className={styles.profileUsername}>@{profile.username}</p>
+        <p className={styles.profileBio}>{profile.bio}</p>
+        <a href={`https://solscan.io/account/${profile.wallet}`} target="_blank" rel="noopener noreferrer">
+          View on Solscan
+        </a>
+        <div className={styles.socialLinks}>
+          {profile.socialLinks?.instagram && (
+            <a href={profile.socialLinks.instagram} target="_blank" rel="noreferrer">Instagram</a>
+          )}
+          {profile.socialLinks?.website && (
+            <a href={profile.socialLinks.website} target="_blank" rel="noreferrer">Website</a>
+          )}
+        </div>
       </div>
 
       {nftData.length > 0 ? (
-        <div>
-          <h3 style={{ marginTop: 30 }}>Available Watches</h3>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-            {nftData.map((meta, i) => {
-              const image = meta?.content?.links?.image;
-              const name = meta?.content?.metadata?.name;
-              return (
-                <div key={i} style={{ width: 200 }}>
-                  <img
-                    src={image}
-                    alt={name || "NFT"}
-                    style={{ width: "100%", borderRadius: 8 }}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/fallback-nft.png";
-                    }}
-                  />
-                  <p>{name || "Unnamed NFT"}</p>
+        <div className={styles.nftSection}>
+          <h3>Available Watches</h3>
+          <div className={styles.nftGrid}>
+            {nftData.map((nft, i) => (
+              <div key={i} className={styles.cardWrapper}>
+                <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+                <div className={styles.sellerActions}>
+                  {nft.marketStatus === "active" ? (
+                    <button onClick={() => handlePurchase(nft)} disabled={loadingMint === nft.mintAddress}>
+                      {loadingMint === nft.mintAddress ? "Processing..." : "BUY"}
+                    </button>
+                  ) : (
+                    <button onClick={() => router.push('/vendor/'+profile.wallet+'/messenger')} rel="noreferrer">
+                      Contact Owner
+                    </button>
+                  )}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       ) : (
         <p style={{ marginTop: 20 }}>No items listed yet.</p>
       )}
+
+      {selectedNFT && (
+        <div className={styles.overlay}>
+          <div className={styles.detailContainer}>
+            <button onClick={() => setSelectedNFT(null)}>Close</button>
+            <NftDetailCard
+              mintAddress={selectedNFT.mintAddress}
+              metadataUri={selectedNFT.metadataUri}
+              onClose={() => setSelectedNFT(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
+
 };
 
 export default VendorProfilePage;

@@ -1,0 +1,227 @@
+.profileContainer {
+  padding: 20px 20px;
+  background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
+  min-height: 100vh;
+  color: #ffffff;
+}
+
+.profileBanner {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.profileAvatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin-top: -50px;
+  border: 2px solid white;
+  object-fit: cover;
+  background: #00000030;
+}
+
+.profileHeader {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.profileHeader .profileUsername {
+  display: flex;
+}
+
+.profileHeader .profileBio {
+  display: flex;
+  text-align: center;
+  margin: 12px 0px;
+  padding: 8px;
+  line-height: 1.4;
+  font-weight: 400;
+  border: 1px solid var(--border);
+}
+
+.socialLinks {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.socialLinks a {
+  color: #c8a1ff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.socialLinks a:hover {
+  text-decoration: underline;
+}
+
+.nftSection {
+  margin-top: 40px;
+}
+
+.nftGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-start;
+}
+
+.nftCard {
+  width: 200px;
+  background-color: #222;
+  border-radius: 10px;
+  padding: 10px;
+  transition: 0.3s ease;
+  border: 1px solid #333;
+}
+
+.nftCard:hover {
+  transform: translateY(-4px);
+  border-color: #c8a1ff;
+}
+
+.nftCard img {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  height: 200px;
+  background-color: #111;
+}
+
+.nftCard p {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.sellerActions {
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #000000dc;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 0 15px #0000009d;
+  padding: 1px;
+  width: 100%;
+  font-size: x-small;
+}
+
+.sellerActions p {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #c8a1ff33;
+  border: 1px solid #c8a1ff33;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: small;
+  margin: 5px;
+  color: #ffffff;
+}
+
+.sellerActions p:hover {
+  border: 1px solid #c8a1ff;
+}
+
+.sellerActions button {
+  background-color: #c8a1ff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  color: #000000;
+  text-shadow: 0 0 1px #0000006e;
+  box-shadow: 0 0 20px #c8a1ff66;
+  /* font-size: x-small; */
+  cursor: pointer;
+  margin: 5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: background-color 0.3s ease;
+}
+
+.sellerActions button:hover {
+  background-color: #c8a1ff65;
+  box-shadow: 0 0 20px #c8a1ff;
+  border: 1px solid #c8a1ff;
+  color: #ffffff;
+}
+
+.tooltipButton {
+  position: relative;
+}
+
+.tooltipButton::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipButton:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.tooltipWrapper {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tooltipWrapper::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipWrapper:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.infoIcon {
+    display: none;
+  }
+
+@media (max-width: 768px) {
+  .infoIcon {
+    display: flex;
+    margin-left: 6px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: small;
+  }
+}

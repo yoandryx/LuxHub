@@ -2,9 +2,12 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import AvatarBannerUploader from "../../components/vendor/AvatarBannerUploader";
+import styles from "../../styles/VendorDashboard.module.css";
+import { SlArrowDown } from "react-icons/sl";
 
 const OnboardingForm = () => {
-  const { query } = useRouter();
+  const router = useRouter();
+  const { query } = router;
   const { publicKey } = useWallet();
 
   const [formData, setFormData] = useState({
@@ -19,6 +22,7 @@ const OnboardingForm = () => {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
 
   const isFormValid = () => {
     return (
@@ -35,7 +39,8 @@ const OnboardingForm = () => {
 
   const handleSubmit = async () => {
     if (!isFormValid()) {
-      alert("Please complete all fields and upload both images.");
+      console.log("Please complete all fields and upload both images.");
+      setNotification("Please complete all fields and upload both images.");
       return;
     }
 
@@ -62,66 +67,142 @@ const OnboardingForm = () => {
 
       const data = await res.json();
       if (res.ok) {
-        alert("Vendor onboarding submitted successfully!");
+        console.log("Vendor onboarding submitted successfully!");
+        setNotification("Vendor onboarding submitted successfully!");
+        router.push("/vendor/vendorDashboard"); // Redirecting to vendors Dashboard
       } else {
         alert(data?.error || "Something went wrong.");
+        console.log("Something went wrong.");
       }
     } catch (err) {
       console.error("Submission error:", err);
       alert("Failed to submit vendor profile.");
+      setNotification("Failed to submit vendor profile.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: 20 }}>
+    <div className={styles.dashboardContainer}>
       <h1>Vendor Onboarding</h1>
 
-      <AvatarBannerUploader
-        onUploadComplete={(avatarUrl, bannerUrl) => {
-          setFormData((prev) => ({ ...prev, avatarUrl, bannerUrl }));
-        }}
-      />
+      {notification && <p>{notification}</p>}
 
-      <input
-        placeholder="Business Name"
-        value={formData.name}
-        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-      />
-      <input
-        placeholder="@username"
-        value={formData.username}
-        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-      />
-      <textarea
-        placeholder="Bio"
-        value={formData.bio}
-        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-      />
-      <input
-        placeholder="Instagram handle (e.g. luxhubofficial)"
-        value={formData.instagram}
-        onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-      />
-      <input
-        placeholder="Twitter handle (optional)"
-        value={formData.twitter}
-        onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
-      />
-      <input
-        placeholder="Website URL"
-        value={formData.website}
-        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-      />
+      <div className={styles.tabContentColumn}>
+        <div className={styles.tabContent}>
+          <h3>Preview</h3>
+          {formData.bannerUrl && (
+            <img src={formData.bannerUrl} className={styles.bannerPreview} />
+          )}
+          {formData.avatarUrl && (
+            <img src={formData.avatarUrl} className={styles.avatarPreview} />
+          )}
+          <h1>{formData.name || "Name"}</h1>
+          <p>@{formData.username || "username"}</p>
+          <p>{formData.bio || "Your brand story..."}</p>
+          <div className={styles.previewLabel}>
+            <p>
+              {publicKey
+                ? `${publicKey.toBase58().slice(0, 4)}...${publicKey
+                    .toBase58()
+                    .slice(-4)}`
+                : "No wallet"}
+            </p>
+            <p>Wallet Address</p>
+          </div>
+        </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={!isFormValid() || submitting}
-        style={{ marginTop: 20 }}
-      >
-        {submitting ? "Submitting..." : "Submit"}
-      </button>
+        <div className={styles.tabContent}>
+          <div className={styles.tabContentRow}>
+            <div className={styles.tabContentLeft}>
+              <AvatarBannerUploader
+                onUploadComplete={(avatarUrl, bannerUrl) => {
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    avatarUrl: avatarUrl || prev.avatarUrl,
+                    bannerUrl: bannerUrl || prev.bannerUrl,
+                  }));
+                }}
+                onPreviewUpdate={(avatarPreview, bannerPreview) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    avatarUrl: avatarPreview,
+                    bannerUrl: bannerPreview,
+                  }));
+                }}
+              />
+              <h3>Business Info</h3>
+              <p>NAME</p>
+              <input
+                placeholder="Business Name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+              />
+              <p>USERNAME</p>
+              <input
+                placeholder="@username"
+                value={formData.username}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
+              />
+              <p>BIO</p>
+              <textarea
+                placeholder="Your brand story"
+                value={formData.bio}
+                onChange={(e) =>
+                  setFormData({ ...formData, bio: e.target.value })
+                }
+              />
+              <p>INSTAGRAM</p>
+              <input
+                placeholder="Instagram handle"
+                value={formData.instagram}
+                onChange={(e) =>
+                  setFormData({ ...formData, instagram: e.target.value })
+                }
+              />
+              <p>TWITTER (optional)</p>
+              <input
+                placeholder="Twitter handle"
+                value={formData.twitter}
+                onChange={(e) =>
+                  setFormData({ ...formData, twitter: e.target.value })
+                }
+              />
+              <p>WEBSITE</p>
+              <input
+                placeholder="Website URL"
+                value={formData.website}
+                onChange={(e) =>
+                  setFormData({ ...formData, website: e.target.value })
+                }
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={!isFormValid() || submitting}
+              >
+                {submitting ? "Submitting..." : "Submit"}
+              </button>
+            </div>
+
+            <div className={styles.tabContentRight}>
+              <h3>Instructions</h3>
+              <p>Upload your avatar and banner.</p>
+              <SlArrowDown />
+              <p>
+                Then complete your profile info — business name, username, and
+                bio.
+              </p>
+              <SlArrowDown />
+              <p>Submit your onboarding form for admin review.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

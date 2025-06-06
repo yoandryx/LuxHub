@@ -1496,11 +1496,13 @@ const AdminDashboard: React.FC = () => {
             <button className={`${styles.tab} ${tabIndex === 7 ? styles.activeTab : ""}`} onClick={() => setTabIndex(7)}>
               Metadata Change Requests
             </button>
-            <button className={`${styles.tab} ${tabIndex === 0 ? styles.activeTab : ""}`} onClick={() => setTabIndex(0)}>
-              Configuration
-            </button>
+          </div>
+          <div className={styles.subTabWrapper}>
             <button className={`${styles.tab} ${tabIndex === 8 ? styles.activeTab : ""}`} onClick={() => setTabIndex(8)}>
               Vendor Approvals
+            </button>
+            <button className={`${styles.tab} ${tabIndex === 0 ? styles.activeTab : ""}`} onClick={() => setTabIndex(0)}>
+              Configuration
             </button>
           </div>
           <div className={styles.content}>{renderTabContent()}</div>
