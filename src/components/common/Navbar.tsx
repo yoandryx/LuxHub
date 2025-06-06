@@ -78,6 +78,7 @@ export default function Navbar() {
             {isAdmin && <Link href="/adminDashboard" onClick={closeMenu}>Admins</Link>}
             <Link href="/sellerDashboard" onClick={closeMenu}>User Dashboard</Link>
             {!isAdmin && <Link href="/learnMore" onClick={closeMenu}>Learn More</Link>}
+            <Link href="/vendors" onClick={closeMenu}>vendors</Link>  
           </div>
 
           <div className={styles.rightSection}>
@@ -142,6 +143,7 @@ export default function Navbar() {
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>MARKETPLACE</div>
             <Link href="/watchMarket" onClick={closeMenu}>Inventory</Link>
+            <Link href="/vendors" onClick={closeMenu}>vendors</Link>
             {!isAdmin && <Link href="/learnMore" onClick={closeMenu}>Learn More</Link>}
           </div>
 
