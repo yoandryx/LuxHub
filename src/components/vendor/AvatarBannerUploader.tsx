@@ -52,19 +52,35 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
     const file = acceptedFiles[0];
     if (!file || !avatarInputRef.current) return;
 
+    // ✅ iPhone safety check
+    if (!file.name || !file.type) {
+      setUploadErrorAvatar("Invalid file. Please try again.");
+      return;
+    }
+
+    // File size upload limit
+    if (file.size > 30 * 1024 * 1024) {
+      setUploadErrorAvatar("File too large. Max size is 30MB.");
+      return;
+    }
+
     const preview = URL.createObjectURL(file);
     setAvatarPreview(preview);
-    avatarInputRef.current.files = createFileList(file);
     onPreviewUpdate?.(preview, bannerPreview ?? "");
 
     setUploadingAvatar(true);
     setUploadErrorAvatar(null);
     setUploadSuccessAvatar(false);
 
-    const uploadedUrl = await uploadToIBM(file, "avatar");
+    // ✅ Ensure file has fallback name/type
+    const wrappedFile = new File([file], file.name || `avatar-${Date.now()}.png`, {
+      type: file.type || "image/png",
+    });
+
+    const uploadedUrl = await uploadToIBM(wrappedFile, "avatar");
     if (uploadedUrl) {
       setAvatarUrl(uploadedUrl);
-      onUploadComplete(uploadedUrl, bannerUrl); 
+      onUploadComplete(uploadedUrl, bannerUrl);
       setUploadSuccessAvatar(true);
     } else {
       setUploadErrorAvatar("Failed to upload avatar.");
@@ -73,20 +89,37 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
     setUploadingAvatar(false);
   };
 
+
   const onBannerDrop = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file || !bannerInputRef.current) return;
 
+    // ✅ iPhone safety check
+    if (!file.name || !file.type) {
+      setUploadErrorBanner("Invalid file. Please try again.");
+      return;
+    }
+
+    // File size upload limit
+    if (file.size > 30 * 1024 * 1024) {
+      setUploadErrorBanner("File too large. Max size is 30MB.");
+      return;
+    }
+
     const preview = URL.createObjectURL(file);
     setBannerPreview(preview);
-    bannerInputRef.current.files = createFileList(file);
     onPreviewUpdate?.(avatarPreview ?? "", preview);
 
     setUploadingBanner(true);
     setUploadErrorBanner(null);
     setUploadSuccessBanner(false);
 
-    const uploadedUrl = await uploadToIBM(file, "banner");
+    // ✅ Ensure file has fallback name/type
+    const wrappedFile = new File([file], file.name || `banner-${Date.now()}.png`, {
+      type: file.type || "image/png",
+    });
+
+    const uploadedUrl = await uploadToIBM(wrappedFile, "banner");
     if (uploadedUrl) {
       setBannerUrl(uploadedUrl);
       onUploadComplete(avatarUrl, uploadedUrl);

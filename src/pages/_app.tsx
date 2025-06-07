@@ -22,6 +22,12 @@ import "../styles/globals.css";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { SolflareWalletAdapter, PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
+import {
+  RemoteSolanaMobileWalletAdapter,
+  createDefaultAuthorizationResultCache,
+  createDefaultAddressSelector,
+  createDefaultWalletNotFoundHandler,
+} from "@solana-mobile/wallet-adapter-mobile";
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -41,8 +47,20 @@ const App = ({ Component, pageProps }: AppProps) => {
   
   // Memoize wallet adapter setup
   const wallets = useMemo(() => [
-    // new SolflareWalletAdapter(),
-    // new PhantomWalletAdapter(),
+    new RemoteSolanaMobileWalletAdapter({
+      appIdentity: {
+        name: "LuxHub",
+        uri: "https://luxhub-gamma.vercel.appn",
+        icon: "https://luxhub-gamma.vercel.app/purpleLGG.png",
+      },
+      addressSelector: createDefaultAddressSelector(),
+      authorizationResultCache: createDefaultAuthorizationResultCache(),
+      chain: "devnet", 
+      remoteHostAuthority: "luxhub-gamma.vercel.app", 
+      onWalletNotFound: createDefaultWalletNotFoundHandler(),
+    }),
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter(),
   ], []);
 
   const content = (
