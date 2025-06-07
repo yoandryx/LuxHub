@@ -73,8 +73,8 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
     setUploadSuccessAvatar(false);
 
     // ✅ Ensure file has fallback name/type
-    const wrappedFile = new File([file], file.name || `avatar-${Date.now()}.png`, {
-      type: file.type || "image/png",
+    const wrappedFile = new File([file], file.name || `avatar-${Date.now()}`, {
+      type: file.type || "application/octet-stream",
     });
 
     const uploadedUrl = await uploadToIBM(wrappedFile, "avatar");
@@ -115,8 +115,8 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
     setUploadSuccessBanner(false);
 
     // ✅ Ensure file has fallback name/type
-    const wrappedFile = new File([file], file.name || `banner-${Date.now()}.png`, {
-      type: file.type || "image/png",
+    const wrappedFile = new File([file], file.name || `avatar-${Date.now()}`, {
+      type: file.type || "application/octet-stream",
     });
 
     const uploadedUrl = await uploadToIBM(wrappedFile, "banner");
