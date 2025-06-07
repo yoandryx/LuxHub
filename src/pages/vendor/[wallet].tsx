@@ -14,6 +14,8 @@ import {
 } from "@solana/spl-token";
 import { IoMdInformationCircle } from "react-icons/io";
 import { SiSolana } from "react-icons/si";
+import { FaCircleCheck, FaGlobe, FaInstagram, FaRegCircleCheck, FaXTwitter } from "react-icons/fa6";
+import Link from "next/link";
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
 const FUNDS_MINT = "So11111111111111111111111111111111111111112";
@@ -199,18 +201,49 @@ const VendorProfilePage = () => {
         <img src={profile.avatarUrl} className={styles.profileAvatar} />
       )}
       <div className={styles.profileHeader}>
-        <h1>{profile.name} {profile.verified && "✅"}</h1>
+        <h1 className={styles.nameHeader}>
+          {profile.name}
+          {profile.verified && <FaRegCircleCheck  className={styles.verifiedIcon} />}
+        </h1>
         <p className={styles.profileUsername}>@{profile.username}</p>
+        <div className={styles.profileWallet}>
+          <a className={styles.tooltipButton} data-tooltip="View on Solscan" href={`https://solscan.io/account/${profile.wallet}`} target="_blank" rel="noopener noreferrer">
+            {profile.wallet.slice(0,4)}...{profile.wallet.slice(-4)}
+          </a>
+          <p>wallet</p>
+        </div>
         <p className={styles.profileBio}>{profile.bio}</p>
-        <a href={`https://solscan.io/account/${profile.wallet}`} target="_blank" rel="noopener noreferrer">
-          View on Solscan
-        </a>
         <div className={styles.socialLinks}>
-          {profile.socialLinks?.instagram && (
-            <a href={profile.socialLinks.instagram} target="_blank" rel="noreferrer">Instagram</a>
+          {profile.socialLinks?.x && (
+            <a
+              href={profile.socialLinks.x}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.iconLink}
+            >
+              <FaXTwitter />
+            </a>
           )}
+          {profile.socialLinks?.instagram && (
+            <a
+              href={profile.socialLinks.instagram}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.iconLink}
+            >
+              <FaInstagram />
+            </a>
+          )}
+
           {profile.socialLinks?.website && (
-            <a href={profile.socialLinks.website} target="_blank" rel="noreferrer">Website</a>
+            <a
+              href={profile.socialLinks.website}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.iconLink}
+            >
+              <FaGlobe />
+            </a>
           )}
         </div>
         {wallet.publicKey?.toBase58() === profile.wallet && (
@@ -232,19 +265,34 @@ const VendorProfilePage = () => {
                 <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
                 <div className={styles.sellerActions}>
                   {nft.marketStatus === "pending" ? (
-                    <div className={styles.tooltipWrapper} data-tooltip="This NFT is waiting for admin approval before it can be listed">
-                      <p>Awaiting admin approval <IoMdInformationCircle className={styles.infoIcon} /></p>
+                    <div
+                      className={styles.tooltipWrapper}
+                      data-tooltip="This NFT is waiting for admin approval before it can be listed"
+                    >
+                      <p>
+                        Awaiting admin approval
+                        <IoMdInformationCircle className={styles.infoIcon} />
+                      </p>
                     </div>
                   ) : nft.marketStatus === "requested" ? (
-                    <div className={styles.tooltipWrapper} data-tooltip="Submit your NFT for admin approval">
-                      <p>Listed in marketplace <IoMdInformationCircle className={styles.infoIcon} /></p>
+                    <div
+                      className={styles.tooltipWrapper}
+                      data-tooltip="This NFT has been submitted and is pending verification"
+                    >
+                      <p>
+                        Listed in marketplace
+                        <IoMdInformationCircle className={styles.infoIcon} />
+                      </p>
                     </div>
                   ) : nft.marketStatus === "Holding LuxHub" ? (
                     <button
                       className={styles.contactButton}
                       data-tooltip="Reach out to the current owner to make an offer"
                       onClick={() =>
-                        window.open(`https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`, "_blank")
+                        window.open(
+                          `https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`,
+                          "_blank"
+                        )
                       }
                     >
                       Contact Owner
@@ -267,11 +315,15 @@ const VendorProfilePage = () => {
                     </p>
                   </div>
 
-                  <p className={styles.tooltipWrapper} data-tooltip="The current holding status of this NFT in the marketplace">
+                  <p
+                    className={styles.tooltipWrapper}
+                    data-tooltip="The current holding status of this NFT in the marketplace"
+                  >
                     {nft.marketStatus === "active" ? "Available" : "Offer"}
                     <IoMdInformationCircle className={styles.infoIcon} />
                   </p>
                 </div>
+
               </div>
             ))}
           </div>

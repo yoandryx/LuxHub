@@ -5,6 +5,7 @@
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #f1f1f1;
+  letter-spacing: 1px;
 }
 
 .sectionTitle {
@@ -12,12 +13,15 @@
   margin-bottom: 2rem;
   color: #fff;
   text-align: center;
+  text-transform: uppercase;
+  border-bottom: 1px solid #b991ff;
+
 }
 
 .subTitle {
-  margin-top: 2rem;
+  text-transform: uppercase;
+  margin: 20px 0;
   font-size: 1.4rem;
-  color: #b991ff;
   font-weight: 600;
   text-align: center;
 }
@@ -92,7 +96,8 @@
   padding: 6px 12px;
   border-radius: 6px;
   background-color: #b991ff;
-  color: black;
+  color: white;
+  text-shadow: #1a1a1a 0px 0px 5px;
   font-weight: bold;
   border: none;
   cursor: pointer;
@@ -109,11 +114,31 @@
 }
 
 .inviteCard {
-  margin-top: 2rem;
   padding: 1.5rem;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.inviteCard h3 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 500;
+  text-transform: uppercase;
+  border-bottom: 1px solid #b991ff;
+}
+
+.inviteCard button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: #b991ff;
+  color: white;
+  text-shadow: #1a1a1a 0px 0px 5px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
 }
 
 .inputGroup {
@@ -130,4 +155,17 @@
   background: #1a1a1a;
   color: #fff;
   font-size: 14px;
+}
+
+.latestInvite {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+  border-radius: 12px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  word-break: break-all;
+}
+.latestInvite:hover {
+  background: rgba(255, 255, 255, 0.1);
 }

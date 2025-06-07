@@ -10,7 +10,7 @@ const VendorProfileSchema = new mongoose.Schema({
   verified: { type: Boolean, default: false },
   socialLinks: {
     instagram: { type: String, default: "" },
-    twitter: { type: String, default: "" },
+    x: { type: String, default: "" },
     website: { type: String, default: "" },
   },
   inventory: [{ type: String }],
@@ -33,7 +33,7 @@ export type VendorProfile = {
   verified?: boolean;
   socialLinks: {
     instagram?: string;
-    twitter?: string;
+    x?: string;
     website?: string;
   };
   inventory: string[];

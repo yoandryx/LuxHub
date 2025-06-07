@@ -3,6 +3,8 @@
   background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
   min-height: 100vh;
   color: #ffffff;
+  overflow: hidden;
+  /* letter-spacing: 1px; */
 }
 
 .profileBanner {
@@ -27,10 +29,16 @@
   flex-direction: column;
   text-align: center;
   margin-top: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
 }
 
 .profileHeader .profileUsername {
   display: flex;
+  letter-spacing: 1px;
+  font-weight: 500;
+  margin: 0;
 }
 
 .profileHeader .profileBio {
@@ -41,17 +49,30 @@
   line-height: 1.4;
   font-weight: 400;
   border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.profileWallet {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
 }
 
 .socialLinks {
   display: flex;
   gap: 12px;
-  justify-content: center;
+  justify-content: end;
+  align-items: center;
   margin-top: 10px;
 }
 
-.socialLinks a {
+.iconLink {
+  font-size: 24px;
   color: #c8a1ff;
+}
+
+.socialLinks a {
   text-decoration: none;
   font-weight: 500;
 }
@@ -62,6 +83,14 @@
 
 .nftSection {
   margin-top: 40px;
+}
+
+.nftSection h3 {
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #c8a1ff;
+  margin: 50px 0;
 }
 
 .nftGrid {
@@ -249,4 +278,15 @@
 
 .dashboardButton:hover {
   background: #a377f5;
+}
+
+.nameHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verifiedIcon {
+  color: #fab4ff; /* green checkmark or use #b991ff for LuxHub purple */
+  font-size: 1.3rem;
 }

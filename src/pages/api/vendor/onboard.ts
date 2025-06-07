@@ -4,6 +4,16 @@ import dbConnect from "../../../lib/database/mongodb";
 import VendorProfileModel from "../../../lib/models/VendorProfile";
 import InviteCodeModel from "../../../lib/models/InviteCode";
 
+function formatSocialLinks(instagram?: string, x?: string, website?: string) {
+  const clean = (handle: string) => handle.replace(/^@/, "").trim();
+
+  return {
+    instagram: instagram ? `https://instagram.com/${clean(instagram)}` : "",
+    x: x ? `https://x.com/${clean(x)}` : "",
+    website: website?.trim() || "",
+  };
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -16,11 +26,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     bio,
     avatarUrl,
     bannerUrl,
-    instagram,
-    twitter,
-    website,
     inviteCode,
+    socialLinks,
   } = req.body;
+
+  const { instagram, x, website } = formatSocialLinks(
+    socialLinks?.instagram,
+    socialLinks?.x,
+    socialLinks?.website
+  );
+
 
   if (!wallet || !name || !username || !inviteCode || !avatarUrl || !bannerUrl) {
     return res.status(400).json({ error: "Missing required fields" });
@@ -48,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bannerUrl,
       socialLinks: {
         instagram,
-        twitter,
+        x,
         website,
       },
       approved: false,

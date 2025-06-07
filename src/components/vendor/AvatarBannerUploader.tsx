@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useDropzone } from "react-dropzone";
-import styles from "../../styles/VendorDashboard.module.css"
+import styles from "../../styles/VendorDashboard.module.css";
+import { IoCloudUploadOutline } from "react-icons/io5";
 
 interface Props {
   onUploadComplete: (avatarUrl: string, bannerUrl: string) => void;
@@ -15,9 +16,20 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
+
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  const [uploadErrorAvatar, setUploadErrorAvatar] = useState<string | null>(null);
+  const [uploadErrorBanner, setUploadErrorBanner] = useState<string | null>(null);
+
+  const [uploadSuccessAvatar, setUploadSuccessAvatar] = useState(false);
+  const [uploadSuccessBanner, setUploadSuccessBanner] = useState(false);
 
   const uploadToIBM = async (file: File, type: "avatar" | "banner"): Promise<string | null> => {
     const formData = new FormData();
@@ -36,106 +48,141 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
     }
   };
 
-  const handleFiles = async () => {
-    if (!avatarInputRef.current?.files?.[0] && !bannerInputRef.current?.files?.[0]) return;
-    setUploading(true);
+  const onAvatarDrop = async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file || !avatarInputRef.current) return;
 
-    let avatarUrl = null;
-    let bannerUrl = null;
+    const preview = URL.createObjectURL(file);
+    setAvatarPreview(preview);
+    avatarInputRef.current.files = createFileList(file);
+    onPreviewUpdate?.(preview, bannerPreview ?? "");
 
-    if (avatarInputRef.current?.files?.[0]) {
-      avatarUrl = await uploadToIBM(avatarInputRef.current.files[0], "avatar");
+    setUploadingAvatar(true);
+    setUploadErrorAvatar(null);
+    setUploadSuccessAvatar(false);
+
+    const uploadedUrl = await uploadToIBM(file, "avatar");
+    if (uploadedUrl) {
+      setAvatarUrl(uploadedUrl);
+      onUploadComplete(uploadedUrl, bannerUrl); 
+      setUploadSuccessAvatar(true);
+    } else {
+      setUploadErrorAvatar("Failed to upload avatar.");
     }
 
-    if (bannerInputRef.current?.files?.[0]) {
-      bannerUrl = await uploadToIBM(bannerInputRef.current.files[0], "banner");
-    }
-
-    onUploadComplete?.(avatarUrl ?? "", bannerUrl ?? "");
-    setUploading(false);
+    setUploadingAvatar(false);
   };
 
-  const onAvatarDrop = (acceptedFiles: File[]) => {
+  const onBannerDrop = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (file && avatarInputRef.current) {
-      const preview = URL.createObjectURL(file);
-      setAvatarPreview(preview);
-      avatarInputRef.current.files = createFileList(file);
-      if (onPreviewUpdate) onPreviewUpdate(preview, bannerPreview ?? "");
-    }
-  };
+    if (!file || !bannerInputRef.current) return;
 
-  const onBannerDrop = (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file && bannerInputRef.current) {
-      const preview = URL.createObjectURL(file);
-      setBannerPreview(preview);
-      bannerInputRef.current.files = createFileList(file);
-      if (onPreviewUpdate) onPreviewUpdate(avatarPreview ?? "", preview);
+    const preview = URL.createObjectURL(file);
+    setBannerPreview(preview);
+    bannerInputRef.current.files = createFileList(file);
+    onPreviewUpdate?.(avatarPreview ?? "", preview);
+
+    setUploadingBanner(true);
+    setUploadErrorBanner(null);
+    setUploadSuccessBanner(false);
+
+    const uploadedUrl = await uploadToIBM(file, "banner");
+    if (uploadedUrl) {
+      setBannerUrl(uploadedUrl);
+      onUploadComplete(avatarUrl, uploadedUrl);
+      setUploadSuccessBanner(true);
+    } else {
+      setUploadErrorBanner("Failed to upload banner.");
     }
+
+    setUploadingBanner(false);
   };
 
   const { getRootProps: getAvatarRootProps, getInputProps: getAvatarInputProps } = useDropzone({
     onDrop: onAvatarDrop,
-    accept: { 'image/*': [] },
-    multiple: false
+    accept: { "image/*": [] },
+    multiple: false,
   });
 
   const { getRootProps: getBannerRootProps, getInputProps: getBannerInputProps } = useDropzone({
     onDrop: onBannerDrop,
-    accept: { 'image/*': [] },
-    multiple: false
+    accept: { "image/*": [] },
+    multiple: false,
   });
 
   return (
     <div>
       <h3>Upload Profile Images</h3>
 
+      <p>Click below to insert image or Drag and drop</p>
+
+      {/* Avatar Upload */}
       <div {...getAvatarRootProps()} className={styles.dropZoneStyle}>
-        <p>Avatar Image</p>
+        <h3>Profile Image</h3>
         <input {...getAvatarInputProps()} />
         <input
           type="file"
           accept="image/*"
           ref={avatarInputRef}
           style={{ display: "none" }}
-          onChange={(e) => {
+          onChange={async (e) => {
             const file = e.target.files?.[0];
-            if (file) {
-              const preview = URL.createObjectURL(file);
-              setAvatarPreview(preview);
-              if (onPreviewUpdate) onPreviewUpdate(preview, bannerPreview ?? "");
-            }
+            if (file) await onAvatarDrop([file]);
           }}
         />
-        {avatarPreview && <img src={avatarPreview} className={styles.previewImageStyle} />}
-        {!avatarPreview && <p>Drop or click to select avatar</p>}
+        <div className={styles.previewWrapper}>
+          {uploadSuccessAvatar && <p>Successfuly Uploaded✅ </p>}
+          {uploadSuccessAvatar && <p className={styles.comment}>Click your image or Drop a new one to change</p>}
+          {uploadingAvatar && <p>Uploading...</p>}
+          {uploadErrorAvatar && <p>❌ {uploadErrorAvatar}</p>}
+          {!avatarPreview ? (
+            <div className={styles.cloudUploadSection}>
+              <IoCloudUploadOutline size={48} />
+              <p>Insert Image or Drag & Drop</p>
+            </div>
+          ) : (
+            <img
+              src={avatarPreview}
+              className={styles.previewImageStyle}
+              alt="banner preview"
+            />
+          )}
+        </div>
       </div>
 
+      {/* Banner Upload */}
       <div {...getBannerRootProps()} className={styles.dropZoneStyle}>
-        <p>Banner Image</p>
+        <h3>Banner Image</h3>
         <input {...getBannerInputProps()} />
         <input
           type="file"
           accept="image/*"
           ref={bannerInputRef}
           style={{ display: "none" }}
-          onChange={(e) => {
+          onChange={async (e) => {
             const file = e.target.files?.[0];
-            if (file) {
-              const preview = URL.createObjectURL(file);
-              setBannerPreview(preview);
-              if (onPreviewUpdate) onPreviewUpdate(avatarPreview ?? "", preview);
-            }
+            if (file) await onBannerDrop([file]);
           }}
         />
-        {bannerPreview && <img src={bannerPreview} className={styles.previewImageStyle} />}
-        {!bannerPreview && <p>Drop or click to select banner</p>}
+        <div className={styles.previewWrapper}>
+          {uploadSuccessBanner && <p>Successfuly Uploaded✅</p>}
+          {uploadSuccessBanner && <p className={styles.comment}>Click your image or Drop a new one to change</p>}
+          {uploadingBanner && <p>Uploading banner...</p>}
+          {uploadErrorBanner && <p style={{ color: "red" }}>❌ {uploadErrorBanner}</p>}
+          {!bannerPreview ? (
+            <div className={styles.cloudUploadSection}>
+              <IoCloudUploadOutline size={48} />
+              <p>Insert Image</p>
+            </div>
+          ) : (
+            <img
+              src={bannerPreview}
+              className={styles.previewImageStyle}
+              alt="banner preview"
+            />
+          )}
+        </div>
       </div>
-
-      <button onClick={handleFiles} disabled={uploading}>
-        {uploading ? "Uploading..." : "SET"}
-      </button>
     </div>
   );
 };

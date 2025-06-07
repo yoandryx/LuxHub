@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "../styles/ExploreVendors.module.css";
+import { FaRegCircleCheck } from "react-icons/fa6";
 
 interface VendorProfile {
   wallet: string;
@@ -68,16 +69,18 @@ const ExploreVendors = () => {
               ) : null}
 
               <div>
-                <strong>
-                  {vendor.name} {vendor.verified && "✅"}
-                </strong>{" "}
+                <strong className={styles.nameWrapper}>
+                  {vendor.name}
+                  {vendor.verified && <FaRegCircleCheck className={styles.verifiedIcon} />}
+                </strong>
+                {" "}
                 — @{vendor.username}
-                <div className={styles.wallet}>Wallet: {vendor.wallet}</div>
+                <div className={styles.wallet}>{vendor.wallet.slice(0,4)}...{vendor.wallet.slice(-4)}</div>
               </div>
             </div>
 
             <div className={styles.actions}>
-              <Link href={`/vendors/${vendor.wallet}`} className={styles.viewLink}>
+              <Link href={`/vendor/${vendor.wallet}`} className={styles.viewLink}>
                 View Profile
               </Link>
             </div>

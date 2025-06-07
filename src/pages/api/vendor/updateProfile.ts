@@ -24,7 +24,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     profile.bio = bio || profile.bio;
     profile.avatarUrl = avatarUrl || profile.avatarUrl;
     profile.bannerUrl = bannerUrl || profile.bannerUrl;
-    profile.socialLinks = { ...profile.socialLinks, ...socialLinks };
+    const defaultLinks = { instagram: "", x: "", website: "" };
+    profile.socialLinks = { ...defaultLinks, ...profile.socialLinks, ...socialLinks };
+
 
     if (!profile.approved && username) {
       profile.username = username;

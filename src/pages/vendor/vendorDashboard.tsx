@@ -6,6 +6,20 @@ import styles from "../../styles/VendorDashboard.module.css";
 import AvatarBannerUploader from "../../components/vendor/AvatarBannerUploader";
 import { SlArrowDown, SlArrowRight } from "react-icons/sl";
 
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const isSocialHandleValid = (handle: string) => /^[a-zA-Z0-9._]{2,30}$/.test(handle);
+
+const cleanHandle = (handle: string) => handle?.replace(/^@/, "").trim();
+
+
 const VendorDashboard = () => {
   const { publicKey } = useWallet();
   const [profile, setProfile] = useState<VendorProfile | null>(null);
@@ -30,11 +44,57 @@ const VendorDashboard = () => {
   }, [publicKey]);
 
   const handleUpdate = async () => {
+    const cleanedInstagram = formData.socialLinks?.instagram
+      ? isValidUrl(formData.socialLinks.instagram)
+        ? formData.socialLinks.instagram
+        : `https://instagram.com/${cleanHandle(formData.socialLinks.instagram)}`
+      : "";
+
+    const cleanedX = formData.socialLinks?.x
+      ? isValidUrl(formData.socialLinks.x)
+        ? formData.socialLinks.x
+        : `https://x.com/${cleanHandle(formData.socialLinks.x)}`
+      : "";
+
+    const cleanedWebsite = formData.socialLinks?.website?.trim() || "";
+    const finalWebsite = cleanedWebsite && !/^https?:\/\//i.test(cleanedWebsite)
+      ? "https://" + cleanedWebsite
+      : cleanedWebsite;
+
+
+    if (!formData.name.trim() || !formData.bio.trim()) {
+      alert("Name and bio are required.");
+      return;
+    }
+
+    const isValidSocialInput = (input: string) =>
+      isValidUrl(input) || isSocialHandleValid(cleanHandle(input));
+
+    if (
+      (formData.socialLinks?.instagram && !isValidSocialInput(formData.socialLinks.instagram)) ||
+      (formData.socialLinks?.x && !isValidSocialInput(formData.socialLinks.x)) ||
+      (formData.socialLinks?.website && !isValidUrl(finalWebsite))
+    ) {
+      alert("Please check your social handles or website URL.");
+      return;
+    }
+
+    const updatedProfile = {
+      ...formData,
+      socialLinks: {
+        instagram: cleanedInstagram,
+        x: cleanedX,
+        website: finalWebsite,
+      },
+      wallet: publicKey?.toBase58(),
+    };
+
     const res = await fetch("/api/vendor/updateProfile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...formData, wallet: publicKey?.toBase58() }),
+      body: JSON.stringify(updatedProfile),
     });
+
     const data = await res.json();
     if (data.error) alert(data.error);
     else alert("Profile updated!");
@@ -160,9 +220,9 @@ const VendorDashboard = () => {
                   value={formData.bio || ""}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 />
-                <p>INSTAGRAM LINK</p>
+                <p>INSTAGRAM</p>
                 <input
-                  placeholder="Instagram URL"
+                  placeholder="Instagram"
                   value={formData.socialLinks?.instagram || ""}
                   onChange={(e) =>
                     setFormData({
@@ -174,7 +234,21 @@ const VendorDashboard = () => {
                     })
                   }
                 />
-                <p>WEBSITE LINK</p>
+                <p>X ACCOUNT</p>
+                <input
+                  placeholder="X username or full link"
+                  value={formData.socialLinks?.x || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      socialLinks: {
+                        ...formData.socialLinks,
+                        x: e.target.value,
+                      },
+                    })
+                  }
+                />
+                <p>WEBSITE</p>
                 <input
                   placeholder="Website URL"
                   value={formData.socialLinks?.website || ""}
