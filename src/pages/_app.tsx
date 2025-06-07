@@ -50,7 +50,7 @@ const App = ({ Component, pageProps }: AppProps) => {
     new RemoteSolanaMobileWalletAdapter({
       appIdentity: {
         name: "LuxHub",
-        uri: "https://luxhub-gamma.vercel.appn",
+        uri: "https://luxhub-gamma.vercel.app",
         icon: "https://luxhub-gamma.vercel.app/purpleLGG.png",
       },
       addressSelector: createDefaultAddressSelector(),
