@@ -1,0 +1,317 @@
+.dashboardContainer {
+  padding: 100px 20px;
+  background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
+  min-height: 100vh;
+  color: #ffffff;
+}
+
+.dashboardContainer h1 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  letter-spacing: 1px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.tabButtons {
+  position: fixed;
+  top: 51px;
+  left: 0;
+  display: flex;
+  width: 100%;
+  height: 50px;
+  z-index: 100;
+  transition: ease-in-out 0.3s;
+}
+
+.tabButtons button {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #3c3c3c32;
+
+  color: var(--primary);
+  text-shadow: #000000 0px 1px 3px;
+
+  border: 1px groove var(--border);
+  backdrop-filter: blur(25px);
+  --webkit-backdrop-filter: blur(25px);
+  transition: ease-in-out 0.3s;
+}
+
+.tabButtons button:hover {
+  background-color: #1b191d7a;
+  cursor: pointer;
+  border-bottom: 1px solid #c8a1ff;
+}
+
+.tabButtons .activeTab {
+  background-color: #1b191da5;
+  border-bottom: 2px solid #c8a1ff;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* Notification styles */
+.notificationSuccess {
+  background-color: #1e7e34;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px auto;
+  width: 80%;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.notificationError {
+  background-color: #dc3545;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px auto;
+  width: 80%;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.notificationInfo {
+  background-color: #17a2b8;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px auto;
+  width: 80%;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  padding: 24px;
+  border-radius: 10px;
+  border: 1px solid #c8a1ff3f;
+}
+
+.tabContent input,
+.tabContent textarea {
+  display: flex;
+  max-width: 600px;
+  /* margin-top: 14px; */
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 14px;
+}
+
+.tabContent textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.tabContent img {
+  border-radius: 8px;
+  margin-top: 12px;
+  max-width: 100%;
+}
+
+.tabContent button {
+  width: 200px;
+  margin-top: 20px;
+  background: #b991ff;
+  color: #000;
+  font-weight: bold;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabContent button:hover {
+  background: #d6b4ff;
+}
+
+.tabContentColumn{
+  display: flex;
+  flex-direction: column;
+  justify-content:space-around;
+  gap: 32px;
+}
+
+.tabContentRow {
+  display: flex;
+  flex-direction: row;
+  justify-content:space-between;
+  gap: 32px;
+}
+
+.tabContentLeft {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 300px;
+}
+
+.tabContentRight {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .tabContentRight {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+}
+
+.tabContent h3 {
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #c8a1ff;
+}
+
+.tabContent p {
+  font-size: large;
+  font-weight: 500;
+  margin: 8px 0;
+}
+
+.tabContent .avatarPreview {
+  position:relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50px;
+  border: 1px solid #1a1a1a;
+  object-fit: cover;
+  background-color: rgba(0, 0, 0, 0.19);
+  margin-top: -50px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.tabContent .bannerPreview {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.previewLabel {
+  display: flex;
+  justify-content: space-between;
+}
+
+.dropZoneStyle {
+  border: 2px solid #c8a1ff;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+  background-color: #c8a1ff17;
+  cursor: pointer;
+}
+
+.previewImageStyle {
+  width: 90%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.cloudUploadSection {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.cloudUploadSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  border: 2px dashed #c8a1ff;
+  border-radius: 12px;
+  color: #c8a1ff;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cloudUploadSection:hover {
+  opacity: 1;
+  border-color: #e3d0ff;
+  color: #e3d0ff;
+}
+
+.cloudUploadSection svg {
+  margin-bottom: 0.5rem;
+}
+
+.tabContent .comment {
+  font-size: 16px;
+  color: #aaa;
+  font-weight: 400;
+}
+
+.skeleton {
+  background-color: #3d3d3d;
+  border-radius: 8px;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.skeletonText {
+  height: 20px;
+  width: 70%;
+  margin: 8px;
+}
+
+.skeletonImgBanner {
+  width: 100%;
+  height: 200px;
+  margin-bottom: 1rem;
+}
+
+.skeletonImgAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-top: -50px;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.buttonDisabled {
+  background: #555 !important;
+  color: #aaa !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
+.inputError {
+  border: 1px solid #ff4d4f !important;
+  background-color: #2e1a1a;
+}
+
+.inputErrorMsg {
+  color: red;
+  font-size: small !important;
+}

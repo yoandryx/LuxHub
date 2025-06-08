@@ -1,0 +1,128 @@
+/* src/styles/LuxuryAssistant.module.css */
+.chatContainer {
+  border-radius: 8px;
+  padding: 10px 25px;
+  width: 100%;
+  max-width: 400px;
+  background-color: #3333335a;
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  transition: all 0.5s ease;
+}
+
+.messages {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.user {
+  text-align: right;
+  margin: 8px 0;
+  color: #ffffff;
+  text-shadow: #000000 0px 1px 4px;
+  font-size: x-small;
+  letter-spacing: 0.5px;
+}
+
+.bot {
+  text-align: left;
+  margin: 8px 0;
+  color: #e2ceff;
+  text-shadow: #000000 0px 1px 4px;
+  letter-spacing: 0.5px;
+}
+
+.inputArea {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.inputArea input {
+  flex: 1;
+  padding: 5px;
+  border-radius: 8px;
+  border: 1px solid #3c3c3c;
+  background-color: #333;
+  height: 20px;
+  font-size: 16px;
+  /* box-shadow: #c8a1ff 0px 0px 2px; */
+  color: #fff;  
+}
+
+.inputArea input::placeholder {
+  color: #b9b9b9;
+}
+
+.inputArea input:focus {
+  outline: none;
+  box-shadow: #c8a1ff 0px 0px 4px;
+}
+
+.inputArea button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #00000081;
+  border: 1px solid #c8a1ff36;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: x-small;
+  margin: 5px;
+  color: #ffffff;
+}
+
+.inputArea button:hover {
+  border: 1px solid #c8a1ff;
+}
+
+.floatingButton {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 40px;
+  bottom: 50px;
+  right: 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: white;
+  padding: 1px;
+  border-radius: 50px;
+  cursor: pointer;
+  z-index: 9999;
+}
+
+.floatingButton:hover {
+  background-color: #c8a1ff;
+  box-shadow: #000000 0px 0px 4px;
+}
+
+.floatingButton p {
+  position: absolute;
+  left: 50%;
+  /* bottom: 50px; */
+  transform: translateX(-50%);
+  font-size: xx-small;
+  font-weight: 500;
+  text-shadow: #000000 0px 2px 4px;
+  margin: 0;
+  padding: 0;
+  color: #ffffff;
+}
+
+.floatingChat {
+  position: fixed;
+  bottom: 100px;
+  right: 80px;
+  z-index: 9998;
+}
+
+.logo {
+    width: auto;
+    height: 25px;
+    /* margin-right: 8px; */
+}

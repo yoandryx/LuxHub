@@ -1,0 +1,116 @@
+.pageContainer {
+  padding: 100px 20px;
+  margin: auto;
+  letter-spacing: 1px;
+}
+
+.title {
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 500;
+  text-align: center;
+}
+
+.vendorList {
+  display: flex;
+  list-style: none;
+  padding-left: 0;
+  gap: 10px;
+}
+
+.vendorCard {
+  width: 250px;
+  border: 1px solid #c8a1ff88;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  background: #c8a1ff0f;
+  transition: all 0.2s ease;
+}
+
+.vendorCard:hover {
+  box-shadow: 0 0px 8px #c8a1ff3d;
+  border-color: #c8a1ffa5;
+  background-color: #a386cb38;
+}
+
+.vendorInfo {
+  /* display: flex; */
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 100%;
+  margin-top: -20%;
+  object-fit: cover;
+  border: 2px solid #ccc;
+}
+
+.banner {
+  width: 100%;
+  max-height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.wallet {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: x-small;
+  cursor: pointer;
+}
+
+
+.actions {
+  margin-top: 10px;
+}
+
+.viewLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: medium;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: white;
+  border-radius: 0px 0px 3px 3px;
+  /* border: 1px solid #c8a1ff; */
+  /* background-color: #c8a1ff3f; */
+  padding: 5px 5px;
+}
+
+/* .viewLink:hover {
+  background-color: #a386cb7c;
+  text-shadow: white 0 0 2px;
+  box-shadow: 0 0px 8px #c8a1ff8a;
+} */
+
+.nameWrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 5px 0;
+}
+
+.verifiedIcon {
+  color: #fab4ff;
+  font-size: large;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  font-size: x-large;
+  font-weight: 400;
+  /* text-transform: uppercase; */
+  margin: 30px 0 10px;
+  border-bottom: 1px solid #c8a1ff;
+  padding-bottom: 4px;
+}
+

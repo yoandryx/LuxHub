@@ -1,0 +1,476 @@
+/* AdminDashboard.module.css */
+.container {
+  width: auto;
+  padding: 100px 20px;
+  background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
+  color: var(--primary);
+}
+
+.container h1 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
+  width: 100%;
+  font-weight: 500;
+  margin: 10px 0;
+}
+
+.container h2 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
+  width: 100%;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+  
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: groove 1px #c8a1ff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 50px 0;
+}
+
+.sectionTitle {
+  color: var(--primary);
+  margin: 50px 0;
+  letter-spacing: 1px;
+}
+  
+.logoutButton {
+  background-color: var(--accent);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s;
+}
+  
+.logoutButton:hover {
+  background-color: var(--border);
+  border-color: var(--accent);
+}
+
+.luxhubWallet {
+  display: flex;
+  justify-content: center;
+  background-color: #4d4d4d6d;
+  color: rgb(255, 255, 255);
+  border: groove 2px #1b191d;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 10px;
+}
+
+
+.listItem {
+  display: flex;
+  justify-content: center;
+  background-color: #4d4d4d6d;
+  color: rgb(255, 255, 255);
+  border: groove 2px #1b191d;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 10px;
+}
+
+.tabContainer {
+  /* position: fixed;
+  top: 51px;
+  left: 0;
+  display: flex;
+  width: 100%;
+  height: 50px;
+  z-index: 100;
+  background-color: #3c3c3c7b;
+  backdrop-filter: blur(8px); */
+  position: fixed;
+  top: 51px;
+  left: 0;
+  display: flex;
+  width: 100%;
+  height: 50px;
+  z-index: 100;
+  transition: ease-in-out 0.3s;
+}
+
+.tab {
+  /* width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #3c3c3c32;
+  color: var(--primary);
+  border-style: groove;
+  backdrop-filter: blur(8px);
+  --webkit-backdrop-filter: blur(8px); */
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #3c3c3c32;
+
+  color: var(--primary);
+  text-shadow: #000000 0px 1px 3px;
+
+  border: 1px groove var(--border);
+  backdrop-filter: blur(25px);
+  --webkit-backdrop-filter: blur(25px);
+  transition: ease-in-out 0.3s;
+}
+
+.tabContainer button:hover {
+  background-color: #1b191d7a;
+  cursor: pointer;
+}
+
+.tab.activeTab {
+  background-color: #1b191da5;
+  border-bottom: 2px solid #c8a1ff;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.configInputGroupContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  margin: 20px 0;
+}
+
+.configInputGroup {
+  display: flex;
+  /* justify-content: space-between; */
+  align-items: center;
+  width: 100%;
+  height: 35px;
+  margin: 20px 0;
+  flex-direction: row;
+  background-color: #3c3c3c7b;  
+  padding: 20px 5px;
+  border-radius: 5px;
+}
+
+.configInputGroup input {
+  background-color: var(--accent);
+  color: var(--primary);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  width: 300px;
+  padding-left: 40px; 
+  outline: none;
+  font-size: small;
+  height: 35px;
+  margin: 0 10px;
+}
+
+.configInputGroup button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #c8a1ff;
+  margin-left: 10px;
+  border: none;
+  color: #000;
+  border-radius: 8px;
+  height: 35px;
+  width: 100px;
+  transition: background 0.3s ease;
+}
+
+.inputGroupContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 20px 0;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: #3c3c3c7b;
+  border: solid 1px var(--accent);
+  border-radius: 8px;
+  width: 700px;
+}
+
+.inputGroup button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3c3c3c;
+  margin-right: 10px;
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  font-size: x-large;
+  transition: background 0.3s ease;
+}
+  
+.inputGroup button:hover {
+  background: #59595900;
+  cursor: pointer;
+}
+
+.inputGroup label {
+  color: #c8a1ff;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+.inputGroup input {
+  background-color: var(--accent);
+  color: var(--primary);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  width: 100%;
+  padding-left: 40px; 
+  outline: none;
+  font-size: small;
+  height: 35px;
+  margin: 10px 10;
+}
+
+.searchContainer {
+  display: flex;
+  margin: 10px;
+}
+
+.searchBar {
+  background-color: var(--accent);
+  color: var(--primary);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  width: 100%;
+  padding-left: 40px; 
+  outline: none;
+  font-size: small;
+  height: 35px;
+}
+  
+.listingsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+  
+.listingCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: #3c3c3c7b;
+  border: solid 1px var(--accent);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  color: #fff;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+  
+.listingCard:hover {
+  transform: translateY(-1px);
+  transition: all 0.2s ease-in-out;
+}
+  
+.listingCardInfo p{
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #eaeaea;
+}
+  
+.listingCard strong {
+  color: #c8a1ff;
+  font-size: large;
+  font-weight: 500;
+}
+  
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+  
+.cardDescription {
+  font-size: 0.9rem;
+  color: var(--secondary);
+  margin-bottom: 10px;
+}
+  
+.cardOwner,
+.cardStatus {
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+  
+.actions {
+  gap: 10px;
+  display: flex;
+}
+
+.actions button {
+  background: #8e6bff26;
+  border: 1px solid #b991ff;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(6px);
+  transition: background 0.3s ease;
+}
+  
+.actions button:hover {
+  background: rgba(200, 161, 255, 0.2);
+  box-shadow: 0 0 12px rgba(180, 130, 255, 0.4);
+}
+
+.statusBadge {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100px;
+  padding: 5px 5px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #c8a1ff;
+  background: #c8a1ff1f;
+  border: 1px solid #c8a1ff4d;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.paginationControls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+  
+.paginationControls button {
+  padding: 6px 14px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  color: #c8a1ff;
+  font-weight: 600;
+  border-radius: 8px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  backdrop-filter: blur(10px);
+}
+  
+.paginationControls button:hover {
+  background: rgba(200, 161, 255, 0.2);
+  box-shadow: 0 0 10px rgba(200, 161, 255, 0.3);
+  transform: translateY(-1px);
+}
+  
+.paginationControls button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.paginationControls span {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  color: #fff;
+  font-size: 16px;
+}
+  
+  .rejectBtn {
+  background-color: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.rejectBtn:hover {
+  background-color: #ff7875;
+}
+
+.subTabWrapper {
+  position: fixed;
+  top: 101px;
+  left: 0;
+  display: flex;
+  width: 100%;
+  height: 35px;
+  z-index: 100;
+  transition: ease-in-out 0.3s;
+}
+
+.subTab {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #c8a1ff31;
+  color: var(--primary);
+  border: 1px groove #c8a1ff66;
+  backdrop-filter: blur(25px);
+  --webkit-backdrop-filter: blur(25px);
+  transition: ease-in-out 0.3s;
+}
+
+.subTab:hover {
+  cursor: pointer;
+  /* background: #c8a1ff33; */
+  border-bottom: 1px solid #c8a1ff;
+}
+
+.subTabActive {
+  background: #c8a1ff74;
+  border-bottom: 2px solid #c8a1ff;
+  font-weight: 600;
+  text-shadow: #000000 0px 1px 3px;
+}
+
+.ownerBadge {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #c8a1ff;
+  background: rgba(200, 161, 255, 0.12);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 2px 0;
+  
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 100px 15px;
+  }
+
+  .searchContainer {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+}
+  

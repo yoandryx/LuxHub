@@ -1,0 +1,554 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 100vh;
+  color: white;
+  text-align: center;
+  padding: 20% 0;
+  overflow: hidden;
+}
+
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 200px 0;
+  }
+  
+}
+
+.waveBackground {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.hero {
+  max-width: 1200px;
+  width: 100%;
+  padding: 40px 20px 0;
+  z-index: 2;
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 40px;
+  position: relative;
+  z-index: 2;
+}
+
+.title {
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin: 0;
+  z-index: 2;
+}
+
+.subtitle {
+  font-size: small;
+  color: #aaa;
+  font-weight: 400;
+  margin-top: 6px;
+  letter-spacing: 1px;
+}
+
+.subtitle span {
+  font-weight: 500;
+  color: #fff;
+}
+
+.logo {
+  position: absolute;
+  top: -150px;
+  width: 200px;
+  margin-bottom: 8px;
+  z-index: 0;
+}
+
+/* Featured NFTs Scroll */
+.featuredNFTs {
+  position: relative;
+  width: 100%;
+  margin-top: 60px;
+  /* padding: 60px 0 30px; */
+  text-align: center;
+  overflow: visible;
+}
+
+.featuredNFTs h2 {
+  font-size: large;
+  letter-spacing: 1px;
+  margin: 50px 0 0 0;
+}
+
+.nftScrollWrapper {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 30px 0;
+  margin-inline: auto;
+  max-width: 100vw;
+  position: relative;
+}
+
+.nftScrollWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.nftScrollWrapper.nosnap {
+  scroll-snap-type: none;
+}
+
+.nftScrollRow {
+  display: flex;
+  gap: 32px;
+  padding-inline: 10vw;
+}
+
+.nftCardWrapper {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+  transform: scale(0.88);
+  transition: all 0.4s ease;
+  opacity: 0;
+  animation: fadePop 0.5s ease forwards;
+  animation-delay: calc(var(--i) * 0.1s);
+  position: relative;
+}
+
+.nftCardWrapper:hover {
+  transform: scale(1.05);
+}
+
+.activeNFT {
+  transform: scale(1.15); /* active NFT will scale bigger! */
+  z-index: 2;
+}
+
+
+
+/* Fading Edges */
+.fadeLeft,
+.fadeRight {
+  position: absolute;
+  top: 0;
+  width: 60px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.fadeLeft {
+  left: 0;
+  /* background: linear-gradient(to right, #1a1a1ac9 0%, #00000000 100%); */
+  /* backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px); */
+}
+
+.fadeRight {
+  right: 0;
+  /* background: linear-gradient(to left, #1a1a1a19 0%, transparent 100%); */
+  /* backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px); */
+}
+
+/* Chevrons */
+.chevronLeft,
+.chevronRight {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  color: white;
+  font-size: small;
+  height: 40px;
+  width: 40px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  opacity: 0; 
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  pointer-events: none; 
+}
+
+.scrollAreaWrapper:hover .chevronLeft,
+.scrollAreaWrapper:hover .chevronRight {
+  opacity: 1;
+  pointer-events: auto; /* Enable clicks only when hovered */
+}
+
+.chevronLeft {
+  left: 20px;
+}
+
+.chevronRight {
+  right: 20px;
+}
+
+.chevronLeft:hover,
+.chevronRight:hover {
+  background: #00000092;
+}
+
+
+/* Fade in Animation */
+@keyframes fadePop {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Other sections (Comparison + CTA) */
+.comparisonFlex {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+  padding: 60px 20px;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.column {
+  flex: 1;
+  min-width: 280px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  text-align: left;
+}
+
+.column h4 {
+  color: #b991ff;
+  margin-bottom: 20px;
+}
+
+.column ul {
+  list-style: none;
+  padding: 0;
+}
+
+.column li {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  color: #ccc;
+}
+
+.ctaContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  /* padding: 60px 20px; */
+  margin-top: 100px;
+}
+
+.ctaContainer h2 {
+  font-size: x-large;
+  color: #fff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  /* margin-top: 30px; */
+}
+
+.cta {
+  margin-top: 80px;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 18px;
+  max-width: 800px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.cta h2 {
+  font-size: 2rem;
+  color: #fff;
+  margin-bottom: 30px;
+}
+
+.buttonGroup {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.createButton {
+  background: transparent;
+  border: 2px solid #b991ff;
+  color: #b991ff;
+  padding: 10px 20px;
+  font-size: 1rem;
+  border-radius: 10px;
+  transition: 0.3s ease;
+}
+
+.createButton:hover {
+  background: #b991ff;
+  color: white;
+}
+
+.scrollStepsWrapper {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.scrollWrapper {
+  height: 130vh;
+  display: flex;
+  position: sticky;
+  top: 25px;
+  margin-top: 100px;
+  width: 100%;
+  /* overflow:visible; */
+}
+
+
+.scrollContainer {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.canvasWrapper {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.overlaySteps {
+  position: relative;
+  /* height: 100vh; */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+.overlaySteps h2 {
+  font-size: large;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #c8a1ff;
+}
+
+.overlaySteps p {
+  font-size: small;
+  color: #d2d2d2;
+  letter-spacing: 1px;
+  font-weight: 400;
+  margin-top: 6px;
+}
+
+.stepCard {
+  background: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 32px;
+  max-width: 800px;
+  margin: 0 10px 10px;
+  /* box-shadow: 0 0 20px rgba(185, 145, 255, 0.1); */
+  color: white;
+  pointer-events: auto;
+  text-align: center;
+}
+
+.scrollSpacer {
+  position: absolute;
+  /* top: 100px; */
+  height: 150vh !important;
+  width: 100%;
+  /* overflow: hidden; */
+  z-index: 0;
+}
+
+.detailOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.detailContainer {
+  max-width: 900px;
+  width: 100%;
+  padding: 20px;
+  background: #111;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(185, 145, 255, 0.3);
+}
+
+.closeButton {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  background: transparent;
+  color: #fff;
+  font-size: 1.5rem;
+  border: none;
+  cursor: pointer;
+}
+.roadmapTitle {
+  font-size: xx-large;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #c8a1ff;
+}
+
+.roadmapGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px;
+  padding: 60px 20px;
+  width: 100%;
+  /* display: grid; */
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  /* gap: 28px; */
+  margin-top: 40px;
+}
+
+.roadmapCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 24px 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(185, 145, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.roadmapCard::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(185,145,255,0.2), transparent 70%);
+  transform: rotate(30deg);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.roadmapCard h3 {
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+  font-weight: 500;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.stepCard ul {
+  padding-left: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.stepCard li {
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+  color: #e0e0e0;
+  font-weight: 300;
+  line-height: 1.5;
+  list-style: none;
+}
+
+.buttonGroup {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.primaryButton {
+  padding: 12px 24px;
+  background-color: #b991ff;
+  color: black;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.primaryButton:hover {
+  background-color: #a57cf5;
+}
+
+.secondaryButton {
+  padding: 12px 24px;
+  border: 1px solid #b991ff;
+  background-color: transparent;
+  color: #b991ff;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.secondaryButton:hover {
+  background-color: #b991ff;
+  color: black;
+}
+
+
+/* .phase1 { border-left: 5px solid #2ecc71; }
+.phase2 { border-left: 5px solid #9b59b6; }
+.phase3 { border-left: 5px solid #f39c12; }
+.phase4 { border-left: 5px solid #e67e22; }
+.phase5 { border-left: 5px solid #3498db; } */

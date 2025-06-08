@@ -1,0 +1,54 @@
+/* ListingDetails.module.css */
+
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  text-align: center;
+  background: var(--foreground);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.title {
+  color: var(--primary);
+  font-size: 28px;
+  font-weight: bold;
+  margin-top: 15px;
+}
+
+.description {
+  color: var(--secondary);
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
+.price {
+  color: var(--accent);
+  font-size: 22px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-top: 20px;
+}
+
+.button:hover {
+  background: #4f46e5;
+}

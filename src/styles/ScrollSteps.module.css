@@ -1,0 +1,50 @@
+/* .scrollContainer {
+    position: relative;
+    height: 300vh;
+    width: 100%;
+  }
+  
+  .stickyLayer {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    z-index: 1;
+  }
+  
+  .canvasWrapper {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .overlaySteps {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    pointer-events: none;
+  }
+  
+  .stepCard {
+    background: rgba(20, 20, 20, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 800px;
+    margin: 0 auto 32px;
+    box-shadow: 0 0 20px rgba(185, 145, 255, 0.1);
+    color: white;
+    pointer-events: auto;
+    text-align: center;
+  }
+   */

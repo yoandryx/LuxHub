@@ -1,0 +1,123 @@
+.panel {
+  position: fixed; /* or relative if you want it scroll with page */
+  top: 50px;
+  left: 0;
+  /* width: 320px; */
+  height: 100%;
+  overflow-y: auto;
+  background-color: #111; 
+  padding: 10px;
+  border-right: 1px solid #333;
+  /* box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4); */
+  z-index: 1000;
+  /* display: none; */
+}
+
+.open {
+  transform: translateX(0);
+  transition: 0.3s ease;
+}
+
+.panel h3 {
+    letter-spacing: 1px;
+    font-size: x-large;
+    font-weight: 500;
+}
+
+.toggleButton {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: #b991ff;
+  color: black;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  z-index: 1010;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  cursor: pointer;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.section label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.options button {
+  background: #222;
+  border: 1px solid #444;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.options button:hover {
+  background: #b991ff;
+  color: black;
+}
+
+.resetSection {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.resetButton {
+  background-color: #444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.resetButton:hover {
+  background-color: #666;
+}
+
+/* In FilterSortPanel.module.css */
+.filterButton {
+  background: #222;
+  border: 1px solid #444;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterButton:hover {
+  background-color: #b991ff;
+  color: black;
+}
+
+.active {
+  background-color: #b991ff !important;
+  color: black !important;
+  border: 2px solid #8e63e3;
+  box-shadow: #b991ff7c 0 0 8px;
+  font-weight: bold;
+}

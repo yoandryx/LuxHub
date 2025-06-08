@@ -1,0 +1,102 @@
+/* styles/globals.css */
+:root {
+  --background: linear-gradient(180deg, #0d0d0d, #1a1a1a);
+  --foreground: #0d0d0d;
+  --primary: #ffffff;
+  --secondary: #a1a1a1;
+  --links: #bcb5de;
+  --accent: #323232;
+  --border: #222222;
+  --glass: #0d0d0d5f;
+}
+
+body {
+  /* background: var(--border); */
+  color: var(--primary);
+  /* background: radial-gradient(circle at top left, #0f0f0f, #000); */
+  z-index: -100;
+  font-family: 'Inter', sans-serif;
+  font-family: 'Clash Display', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+html {
+  background-color: var(--foreground);
+  /* background-color: #c8a1ff; */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--accent);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+/* This affects all WalletMultiButton buttons */
+.wallet-adapter-modal-wrapper {
+  background-color: var(--border) !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: var(--foreground) !important;
+}
+
+.wallet-adapter-button {
+  background-color: #c8a1ff !important;
+  border-radius: 5px !important;
+  font-weight: bold !important;
+  color: rgb(0, 0, 0) !important;
+  box-shadow: 0px 0px 8px #00000080;
+  padding: 0px 10px !important;
+  font-size: 12px !important;
+  height: 35px !important;
+  line-height: 15px !important;
+  width: 100% !important;
+}
+
+.wallet-adapter-button-start-icon {
+  display: none !important;
+}
+
+.wallet-adapter-button:hover {
+  background-color: #c8a1ff00 !important;
+  border: 1px solid #c8a1ff !important;
+  color: #c8a1ff !important;
+  /* transform: scale(1.03); */
+}
+
+.wallet-adapter-button-trigger {
+  background-color: #00000000;
+  border: 1px;
+  border-style:solid;
+  border-color: var(--border);
+  border-radius: 5px;
+  padding: 0px 0px;
+  width: 100px !important;
+}
+
+.wallet-adapter-dropdown-list-active {
+  /* background-color: #eee !important; */
+  z-index: 2000 !important;
+}
+
+.wallet-adapter-modal-list {
+  display: flex !important;
+  justify-content: space-between !important;
+  flex-direction: column !important;
+  width: 90% !important;
+  gap: 10px !important;
+}
+
+.wallet-adapter-dropdown-list-item {
+  background-color: #c8a1ff !important;
+  color: #0d0d0d !important;
+}
+
+.wallet-adapter-dropdown-list-item:hover {
+  background-color: #c8a1ff11 !important;
+  color: #c8a1ff !important;
+}
+

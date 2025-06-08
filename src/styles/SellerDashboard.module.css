@@ -1,0 +1,489 @@
+/* SellerDashboard.module.css */
+
+.container {
+  padding: 100px 20px;
+  background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
+  min-height: 100vh;
+  color: #ffffff;
+  font-family: sans-serif;
+}
+
+/* h1 {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 2rem;
+  font-weight: 600;
+} */
+
+.status {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* Notification styles */
+.notificationSuccess {
+  background-color: #1e7e34;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px auto;
+  width: 80%;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.notificationError {
+  background-color: #dc3545;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px auto;
+  width: 80%;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.notificationInfo {
+  background-color: #17a2b8;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px auto;
+  width: 80%;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+/* NFT grid styles */
+
+/* Grid for all NFT cards */
+.nftGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* NFT Card Container */
+.nftCard {
+  width: 100%;
+  max-width: 300px;
+  background-color: #222;
+  border-radius: 10px;
+  padding: 10px;
+  transition: 0.3s ease;
+  border: 1px solid #333;
+}
+
+.nftCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.nftImageWrapper {
+  width: 100%;
+  height: 200px;
+  background-color: #1b1b1b;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.nftImageWrapper img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.nftDetails {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.nftDetails h3 {
+  margin: 5px 0;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.nftDetails p {
+  margin: 3px 0;
+  color: #cccccc;
+}
+
+.buttonGroup {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+}
+
+.buttonGroup button {
+  background-color: #c8a1ff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  color: #000000;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.buttonGroup button:hover {
+  background-color: #c8a1ffb2;
+}
+
+.escrowStatus {
+  background-color: #343434;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-weight: bold;
+  text-align: center;
+  color: #a1ffa1;
+}
+
+.cardWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  /* background-color: #00000030; */
+  padding: 10px;
+  border-radius: 15px;
+}
+
+.sellerActions {
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #000000dc;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 0 15px #0000009d;
+  padding: 1px;
+  width: 100%;
+  font-size: x-small;
+}
+
+.sellerActions p {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #c8a1ff33;
+  border: 1px solid #c8a1ff33;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: small;
+  margin: 5px;
+  color: #ffffff;
+}
+
+.sellerActions p:hover {
+  border: 1px solid #c8a1ff;
+}
+
+.sellerActions button {
+  background-color: #c8a1ff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  color: #000000;
+  text-shadow: 0 0 1px #0000006e;
+  /* font-size: x-small; */
+  cursor: pointer;
+  margin: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.sellerActions button:hover {
+  background-color: #c8a1ff65;
+  border: 1px solid #c8a1ff;
+  color: #ffffff;
+}
+
+.escrowStatus {
+  color: #a1ffa1;
+  font-weight: bold;
+}
+
+.nftGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px; 
+  max-width: 1200px;
+}
+
+.tooltipButton {
+  position: relative;
+}
+
+.tooltipButton::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipButton:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.tooltipWrapper {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tooltipWrapper::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipWrapper:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.infoIcon {
+    display: none;
+  }
+
+@media (max-width: 768px) {
+  .infoIcon {
+    display: flex;
+    margin-left: 6px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: small;
+  }
+}
+
+.tabContainer {
+  position: fixed;
+  top: 51px;
+  left: 0;
+  display: flex;
+  width: 100%;
+  height: 50px;
+  z-index: 100;
+  transition: ease-in-out 0.3s;
+}
+
+.tabContainer button {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #3c3c3c32;
+
+  color: var(--primary);
+  text-shadow: #000000 0px 1px 3px;
+
+  border: 1px groove var(--border);
+  backdrop-filter: blur(25px);
+  --webkit-backdrop-filter: blur(25px);
+  transition: ease-in-out 0.3s;
+}
+
+.tabContainer button:hover {
+  background-color: #1b191d7a;
+  cursor: pointer;
+  border-bottom: 1px solid #c8a1ff;
+}
+
+.tabContainer .activeTab {
+  background-color: #1b191da5;
+  border-bottom: 2px solid #c8a1ff;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.previewContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.prevWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.formSection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.formTitle {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 20px;
+}
+
+.formSectionTitle {
+  grid-column: 1 / -1;
+  font-weight: 500;
+  font-size: 1.25rem;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+}
+
+.formSectionTitle img {
+  width: 20px;
+  height: 20px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  max-width: 100%;
+}
+
+.formGrid h3 {
+  grid-column: 1 / -1;
+  font-size: 1rem;
+  margin: 0.5rem 0;
+  color: #c8a1ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formGrid input,
+.formGrid textarea {
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.85rem;
+  resize: none;
+}
+
+.inlineSolInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formFieldWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px; /* Add this */
+  width: 100%;
+}
+
+.formLabel {
+  font-size: 0.9rem;
+  color: #ffffff;
+} 
+
+.formHint {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.solPriceWrapper {
+  display: inline-block;
+  position: relative;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  min-width: 70px;
+  text-align: center;
+  transition: background 0.3s ease;
+}
+
+.formFieldWrapper input,
+.formFieldWrapper textarea {
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.85rem;
+  resize: none;
+}
+
+.formFieldWrapper textarea:focus,
+.formFieldWrapper input:focus{
+  border-color: #c8a1ff;
+  box-shadow: 0 0 5px rgba(200, 161, 255, 0.4);
+  outline: none;
+}
+
+.submitButton {
+  background-color: #c8a1ff;
+  color: #1a1a1a;
+  font-weight: bold;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 10px rgba(200, 161, 255, 0.3);
+}
+
+.submitButton:hover {
+  background-color: #d8bcff;
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.5);
+}
+
+.successMsg {
+  background-color: #1e7e34;
+  color: #ffffff;
+  padding: 10px;
+  margin: 10px auto;
+  width: 80%;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+}
+

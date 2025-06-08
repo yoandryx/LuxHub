@@ -1,0 +1,171 @@
+.panelWrapper {
+  padding: 2rem;
+  border-radius: 12px;
+  background: rgba(25, 25, 30, 0.45);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f1f1f1;
+  letter-spacing: 1px;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  border-bottom: 1px solid #b991ff;
+
+}
+
+.subTitle {
+  text-transform: uppercase;
+  margin: 20px 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.notification {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  white-space: pre-wrap;
+  margin-bottom: 1rem;
+  border: 1px solid;
+}
+
+.notification.success {
+  background-color: #e6ffed;
+  border-color: #b2e5c2;
+  color: #135e27;
+}
+
+.notification.error {
+  background-color: #ffe6e6;
+  border-color: #f5c2c2;
+  color: #8a1f1f;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.banner {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.cardInfo {
+  margin-bottom: 12px;
+}
+
+.username {
+  font-size: 0.9rem;
+  color: #b991ff;
+  font-weight: 500;
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.buttonGroup {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.buttonGroup button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: #b991ff;
+  color: white;
+  text-shadow: #1a1a1a 0px 0px 5px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.buttonGroup button:hover {
+  background-color: #a67cf8;
+}
+
+.rejectButton {
+  background-color: #e15a5a;
+  color: white;
+}
+
+.inviteCard {
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.inviteCard h3 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 500;
+  text-transform: uppercase;
+  border-bottom: 1px solid #b991ff;
+}
+
+.inviteCard button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: #b991ff;
+  color: white;
+  text-shadow: #1a1a1a 0px 0px 5px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.inputGroup input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #5a3a85;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 14px;
+}
+
+.latestInvite {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+  border-radius: 12px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  word-break: break-all;
+}
+.latestInvite:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

@@ -1,0 +1,320 @@
+.profileContainer {
+  padding: 20px 20px;
+  background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
+  min-height: 100vh;
+  color: #ffffff;
+  overflow: hidden;
+  /* letter-spacing: 1px; */
+}
+
+.profileBanner {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.profileAvatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin-top: -50px;
+  border: 2px solid white;
+  object-fit: cover;
+  background: #00000030;
+}
+
+.profileHeader {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  margin-top: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.profileHeader .profileUsername {
+  display: flex;
+  letter-spacing: 1px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.profileHeader .profileBio {
+  display: flex;
+  text-align: center;
+  margin: 12px 0px;
+  padding: 8px;
+  line-height: 1.4;
+  font-weight: 400;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.profileWallet {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.walletActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.solscanLink,
+.copyIcon {
+  font-size: small;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.solscanLink:hover,
+.copyIcon:hover {
+  color: #fff;
+}
+
+.socialLinks {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.iconLink {
+  font-size: 24px;
+  color: #c8a1ff7d;
+}
+
+.socialLinks a {
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.socialLinks a:hover {
+  text-decoration: underline;
+}
+
+.nftSection {
+  margin-top: 40px;
+}
+
+.nftSection h3 {
+  display: flex;
+  justify-content: center;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #c8a1ff;
+  margin: 50px 0;
+}
+
+.nftGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 20px;
+  width: 100%;
+  min-width: 100px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.nftCard {
+  width: 100%;
+  max-width: 300px;
+  background-color: #222;
+  border-radius: 10px;
+  padding: 10px;
+  transition: 0.3s ease;
+  border: 1px solid #333;
+}
+
+.nftCard:hover {
+  transform: translateY(-4px);
+  border-color: #c8a1ff;
+}
+
+.nftCard img {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  height: 200px;
+  background-color: #111;
+}
+
+.nftCard p {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+
+.sellerActions {
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-evenly;
+  background-color: #000000dc;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 0 15px #0000009d;
+  padding: 1px;
+  width: 100%;
+  max-width: 300px;
+  font-size: x-small;
+  margin-top: 8px;
+}
+
+.sellerActions p {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #c8a1ff33;
+  border: 1px solid #c8a1ff33;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: small;
+  margin: 5px;
+  color: #ffffff;
+}
+
+.sellerActions p:hover {
+  border: 1px solid #c8a1ff;
+}
+
+.sellerActions button {
+  background-color: #c8a1ff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  color: #000000;
+  text-shadow: 0 0 1px #0000006e;
+  box-shadow: 0 0 20px #c8a1ff66;
+  /* font-size: x-small; */
+  cursor: pointer;
+  margin: 5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: background-color 0.3s ease;
+}
+
+.sellerActions button:hover {
+  background-color: #c8a1ff65;
+  box-shadow: 0 0 20px #c8a1ff;
+  border: 1px solid #c8a1ff;
+  color: #ffffff;
+}
+
+.priceInfo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tooltipButton {
+  position: relative;
+}
+
+.tooltipButton::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipButton:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.tooltipWrapper {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tooltipWrapper::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipWrapper:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.infoIcon {
+    display: none;
+  }
+
+@media (max-width: 768px) {
+  .infoIcon {
+    display: flex;
+    margin-left: 6px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: small;
+  }
+}
+
+.dashboardButton {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: #b991ff;
+  color: #000;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.dashboardButton:hover {
+  background: #a377f5;
+}
+
+.nameHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verifiedIcon {
+  color: #fab4ff; /* green checkmark or use #b991ff for LuxHub purple */
+  font-size: 1.3rem;
+}
