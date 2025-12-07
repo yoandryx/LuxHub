@@ -12,6 +12,21 @@
   display: none;
 }
 
+.walletContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: auto;
+  height: auto;
+  margin-left: 10px;
+  background-color: #c8a1ff63;
+  border-radius: 5px;
+}
+
+.icon {
+  padding: 0px 5px;
+}
+
 .navbar {
   justify-content: space-between;
   height: 50px;
@@ -20,7 +35,7 @@
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   /* border-bottom: 1px solid transparent; */
-  border-bottom: 1px solid var(--accent);
+  /* border-bottom: 1px solid var(--accent); */
   /* border-image: linear-gradient(160deg, #00fff792, #dd1fff70) 1; */
   position: fixed;
   top:0px;
@@ -28,6 +43,7 @@
   align-items: center;
   gap: 20px;
   z-index: 1000;
+  box-shadow: #00000097 1px 1px 2px;
 }
 
 .navMenuContainer {
@@ -86,14 +102,12 @@
 .leftSection {
   display: flex;
   align-items: center;
-  padding-left: 20px;
   gap: 20px;
 }
 
 .mobileLeftSection {
   display: flex;
   align-items: center;
-  padding-left: 20px;
   gap: 20px;
 }
 
@@ -151,9 +165,11 @@
   font-weight: 500;
   background-color: #3c3c3c32;
   color: var(--primary);
-  border: groove 2px var(--foreground);
+  /* border: groove 2px var(--foreground); */
+  margin-right: 1px;
   backdrop-filter: blur(8px);
   --webkit-backdrop-filter: blur(8px);
+  box-shadow: #00000097 1px 1px 2px;
 }
 
 .links a:hover {
@@ -273,8 +289,8 @@
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
     border-width: 1px;
-    border-style: solid;
-    border-color: var(--accent);
+    /* border-style: solid; */
+    /* border-color: var(--accent); */
     position: fixed;
     top:0px;
     z-index: 1000;

@@ -33,7 +33,7 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const SCROLL_SPEED = 1;
+  const SCROLL_SPEED = 0.5;
   const CARD_WIDTH = 340;
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function Home() {
         const enriched = await Promise.all(
           data.slice(0, 6).map(async (nft: any) => {
             try {
-              const meta = await fetch(`https://gateway.pinata.cloud/ipfs/${nft.fileCid}`);
+              const meta = await fetch(`https://ipfs.io/ipfs/${nft.fileCid}`);
               const metaData = await meta.json();
               return {
                 ...nft,
@@ -88,7 +88,7 @@ export default function Home() {
 
         const total = scrollRef.current.scrollWidth;
         const visible = scrollRef.current.clientWidth;
-        const loopWidth = total / 3;
+        const loopWidth = total / 5;
 
         if (scrollRef.current.scrollLeft >= loopWidth * 2) {
           scrollRef.current.scrollLeft = loopWidth;
@@ -141,13 +141,13 @@ export default function Home() {
           <div className={styles.heroContent}>
             <img src="/images/purpleLGG.png" alt="LuxHub Logo" className={styles.logo} />
             <h1 className={styles.title}>LUXHUB</h1>
-            <p className={styles.subtitle}><span>VERIFY. BUY. SELL.</span> Timepieces on the blockchain. <span>Solana</span>.</p>
+            <p className={styles.subtitle}><span>VERIFY. BUY. SELL. Timpieces on solana</span>.</p>
           </div>
         </section>
 
         {/* FEATURED NFTS */}
         <section className={styles.featuredNFTs}>
-          <h2>INVENTORY</h2>
+          <h2>COLLECTIONS</h2>
           <div
             className={styles.scrollAreaWrapper}
             ref={wrapperRef}
@@ -177,8 +177,8 @@ export default function Home() {
 
         <section>
           <div className={styles.ctaContainer}>
-            <h2>Built on Trust. Secured by Code</h2>
-            <p className={styles.subtitle}>LuxHub is a decentralized marketplace for luxury items. <span>BUY, SELL, and TRADE</span> your assets with <span>CONFIDENCE.</span></p>
+            <h2>Real world luxury — powered by Solana</h2>
+            <p className={styles.subtitle}><span>On-chain security. Multisig escrow. Real-world luxury — powered by Solana.</span></p>
           </div>
           <ScrollSteps />
         </section>

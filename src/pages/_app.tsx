@@ -33,6 +33,7 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import LuxuryAssistant from '../components/user/LuxuryAssistant';
+import { Toaster } from 'react-hot-toast';
 
 // Network URL
 const network = WalletAdapterNetwork.Devnet;
@@ -79,6 +80,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             {/* <EscrowProvider> */}
               <Navbar />
               <ToastContainer position="top-right" autoClose={4000} />
+              <Toaster position="top-right" />
               <WalletNavbar />
               <Component {...pageProps} />
               <LuxuryAssistant />

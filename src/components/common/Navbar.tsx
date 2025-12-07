@@ -8,6 +8,7 @@ import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-r
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { getProgram } from "../../utils/programUtils";
+import { FaWallet } from "react-icons/fa6";
 
 export default function Navbar() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function Navbar() {
               <img src="/images/purpleLGG.png" alt="logo" className={styles.nwlogo} />
             </Link>
             <Link href="/">
-              <div className={styles.title}>LUXHUB.FUN</div>
+              <div className={styles.title}>LUXHUB</div>
             </Link>
           </div>
 
@@ -89,7 +90,7 @@ export default function Navbar() {
 
             <div className={styles.walletContainer}>
               <WalletModalProvider>
-                <WalletMultiButton />
+                <FaWallet className={styles.icon}/><WalletMultiButton />
               </WalletModalProvider>
             </div>
           </div>
@@ -106,7 +107,7 @@ export default function Navbar() {
                   <img src="/images/purpleLGG.png" alt="logo" className={styles.nwlogo} />
                 </Link>
               </div>
-              <Link href="/"><div className={styles.title}>LUXHUB.FUN</div></Link>
+              <Link href="/"><div className={styles.title}>LUXHUB</div></Link>
             </div>
 
             <div className={styles.mobileRightSection}>
@@ -116,7 +117,7 @@ export default function Navbar() {
 
               <div className={styles.walletContainer}>
                 <WalletModalProvider>
-                  <WalletMultiButton />
+                  <FaWallet className={styles.icon}/><WalletMultiButton />
                 </WalletModalProvider>
               </div>
 

@@ -147,42 +147,6 @@ const VendorDashboard = () => {
         <div className={styles.tabContentColumn}>
 
           <div className={styles.tabContent}>
-            <h3>Profile Preview</h3>
-            {formData.bannerUrl && (
-              <>
-                <img
-                  src={formData.bannerUrl}
-                  className={styles.bannerPreview}
-                />
-              </>
-            )}
-            {formData.avatarUrl && (
-              <>
-                <img
-                  src={formData.avatarUrl}
-                  className={styles.avatarPreview}
-                />
-              </>
-            )}
-            <h1>{profile?.username}</h1>
-            <p>@{profile?.username}</p>
-            <p>{profile?.bio}</p>
-            <div className={styles.previewLabel}>
-              <p>{profile?.wallet.slice(0,4)}...{profile?.wallet.slice(-4)}</p>
-              <p>Wallet</p>
-            </div>
-            <div className={styles.previewLabel}>
-              <p> {profile?.approved ? "Approved" : "Pending"}</p><p>Status</p>
-            </div>
-            {profile?.verified && <p><strong>Verified:</strong> ✅ LuxHub Verified</p>}
-            <button
-              onClick={redirect}
-            >
-              Profile Link
-            </button>
-          </div>
-
-          <div className={styles.tabContent}>
             <div className={styles.tabContentRow}>
               <div className={styles.tabContentLeft}>
                 <AvatarBannerUploader

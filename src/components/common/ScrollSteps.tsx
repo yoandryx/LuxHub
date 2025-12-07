@@ -24,15 +24,18 @@ import styles from "../../styles/Home.module.css";
 const steps = [
   {
     title: "Authenticity Verification",
-    desc: "Each timepiece is verified by LuxHub admins and paired with a blockchain-anchored NFT containing provenance and specs.",
+    desc: "Each timepiece is verified by LuxHub and partnered experts. Paired with a blockchain-anchored NFT containing provenance and important details conserving each timepieces authenticity and value by ensuring all information is accurate and tamper-proof. Details for each watch are stored on-chain for transparency using metadata stored on IPFS.",
+    image: "images/block.png",
   },
   {
     title: "Secure Escrow",
     desc: "Funds and NFTs are held in a Solana smart contract escrow until the sale is approved, ensuring full protection for both parties.",
+    image: "images/block.png",
   },
   {
     title: "Immutable Ownership Transfer",
     desc: "Upon admin approval, ownership of the NFT is immutably transferred on-chain, completing the transaction securely and transparently.",
+    image: "images/block.png",
   },
 ];
 
@@ -87,6 +90,13 @@ const ScrollSteps = () => {
               >
                 <h2>{step.title}</h2>
                 <p>{step.desc}</p>
+                {step.image && (
+                  <img 
+                    alt={step.title} 
+                    className={styles.stepImage} 
+                    src={step.image} 
+                  />
+                )}
               </motion.div>
             );
           })}
@@ -96,7 +106,7 @@ const ScrollSteps = () => {
       {/* Dynamic ghost scroll area based on step count */}
       <div
         className={styles.scrollSpacer}
-        style={{ height: `${(steps.length - 1) * 100}vh` }}
+        style={{ height: `${(steps.length - 1) * 20}vh` }}
       />
     </div>
   );
@@ -113,7 +123,7 @@ const RotatingRolex = ({ rotationY }: { rotationY: any }) => {
   });
   return (
     <group ref={ref}>
-      <RolexScene />
+      {/* <RolexScene /> */}
     </group>
   );
 };
