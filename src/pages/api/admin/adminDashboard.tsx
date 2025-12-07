@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
-import styles from "../../styles/AdminDashboard.module.css";
+import styles from "../../../styles/AdminDashboard.module.css";
 
 interface Listing {
   _id: string;
