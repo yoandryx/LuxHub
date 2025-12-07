@@ -18,7 +18,7 @@ import {
   createAssociatedTokenAccountInstruction,
   AccountLayout,
 } from "@solana/spl-token";
-import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
+import { Metaplex, walletAdapterIdentity, toBigNumber } from "@metaplex-foundation/js";
 import { uploadToPinata } from "../utils/pinata";
 import { createMetadata, updateNftMetadata } from "../utils/metadata";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
@@ -346,7 +346,7 @@ const CreateNFT = () => {
             share: 100,
           },
         ],
-        maxSupply: 0,
+        maxSupply: toBigNumber(0),
         mintTokens: false,
       });
       setProgress(80);
