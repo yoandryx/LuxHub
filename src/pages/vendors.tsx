@@ -17,81 +17,88 @@ interface VendorProfile {
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
 
-const ExploreVendors = () => {
+export default function ExploreVendors() {
   const [approvedVendors, setApprovedVendors] = useState<VendorProfile[]>([]);
   const [verifiedVendors, setVerifiedVendors] = useState<VendorProfile[]>([]);
 
   useEffect(() => {
-    const fetchVendors = async () => {
-      const res = await fetch("/api/vendor/vendorList");
-      const data = await res.json();
-      setApprovedVendors(data.vendors || []);
-      setVerifiedVendors(data.verifiedVendors || []);
-    };
-
-    fetchVendors();
+    fetch("/api/vendor/vendorList")
+      .then((res) => res.json())
+      .then((data) => {
+        setApprovedVendors(data.vendors || []);
+        setVerifiedVendors(data.verifiedVendors || []);
+      });
   }, []);
 
-  const renderVendorCard = (vendor: VendorProfile, idx: number) => (
-    <Link key={idx} className={styles.vendorCard} href={`/vendor/${vendor.wallet}`}>
-      <strong className={styles.nameWrapper}>
-        {vendor.name}
-        {vendor.verified && <FaRegCircleCheck className={styles.verifiedIcon} />}
-      </strong>
-      {vendor.bannerUrl ? (
-        <img src={vendor.bannerUrl} alt="banner" className={styles.banner} />
-      ) : vendor.bannerCid ? (
-        <img src={`${GATEWAY}${vendor.bannerCid}`} alt="banner" className={styles.banner} />
-      ) : null}
+  const VendorCard = ({ vendor }: { vendor: VendorProfile }) => (
+    <Link href={`/vendor/${vendor.wallet}`} className={styles.vendorCard}>
+      {/* Banner */}
+      {vendor.bannerUrl || vendor.bannerCid ? (
+        <img
+          src={vendor.bannerUrl || `${GATEWAY}${vendor.bannerCid}`}
+          alt="banner"
+          className={styles.banner}
+        />
+      ) : (
+        <div className="h-32 bg-gradient-to-br from-purple-900/50 to-black" />
+      )}
 
-      <div className={styles.vendorInfo}>
-        {vendor.avatarUrl ? (
-          <img src={vendor.avatarUrl} alt="avatar" className={styles.avatar} />
-        ) : vendor.avatarCid ? (
-          <img src={`${GATEWAY}${vendor.avatarCid}`} alt="avatar" className={styles.avatar} />
-        ) : null}
+      <div className={styles.rowItems}>
+        {/* Avatar */}
+        {(vendor.avatarUrl || vendor.avatarCid) && (
+          <img
+            src={vendor.avatarUrl || `${GATEWAY}${vendor.avatarCid}`}
+            alt={vendor.name}
+            className={styles.avatar}
+          />
+        )}
 
-        <div>
-            @{vendor.username}
-          <div className={styles.wallet} onClick={() => navigator.clipboard.writeText(vendor.wallet)}>
-            {vendor.wallet.slice(0, 4)}...{vendor.wallet.slice(-4)}
+        {/* Info */}
+        <div className={styles.vendorInfo}>
+          <div className={styles.nameWrapper}>
+            {vendor.name}
+            {vendor.verified && <FaRegCircleCheck className={styles.verifiedIcon} />}
           </div>
+          <div className="text-purple-300">@{vendor.username}</div>
         </div>
       </div>
 
       <div className={styles.actions}>
-        <div className={styles.viewLink}>
-          Visit Profile
-        </div>
+        <div className={styles.viewLink}>Enter Shop</div>
       </div>
     </Link>
   );
 
   return (
     <div className={styles.pageContainer}>
-      <h1 className={styles.title}>LuxHub Vendors</h1>
+      <h1 className={styles.title}>LuxHub Dealers</h1>
 
-      <h2 className={styles.sectionHeading}>Verified Vendors</h2>
-      <ul className={styles.vendorList}>
-        {verifiedVendors.length === 0 ? (
-          <p>No verified vendors yet.</p>
-        ) : (
-          verifiedVendors.map(renderVendorCard)
-        )}
-      </ul>
+      {!!verifiedVendors.length && (
+        <>
+          <h2 className={styles.sectionHeading}>Verified Dealers</h2>
+          <div className={styles.vendorList}>
+            {verifiedVendors.map((v) => (
+              <VendorCard key={v.wallet} vendor={v} />
+            ))}
+          </div>
+        </>
+      )}
 
-      <h2 className={styles.sectionHeading}>User Profiles</h2>
-      <ul className={styles.vendorList}>
-        {approvedVendors.length === 0 ? (
-          <p>No approved vendors available.</p>
-        ) : (
-          approvedVendors
-            .filter(v => !v.verified) // Avoid duplicate display
-            .map(renderVendorCard)
+      <h2 className={styles.sectionHeading}>
+        {verifiedVendors.length ? "All Creators" : "Creators"}
+      </h2>
+      <div className={styles.vendorList}>
+        {approvedVendors
+          .filter((v) => !v.verified)
+          .map((v) => (
+            <VendorCard key={v.wallet} vendor={v} />
+          ))}
+        {approvedVendors.length === verifiedVendors.length && (
+          <p className="col-span-full text-center text-gray-500 py-12">
+            Coming soon!
+          </p>
         )}
-      </ul>
+      </div>
     </div>
   );
-};
-
-export default ExploreVendors;
+}
