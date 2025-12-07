@@ -1,38 +1,35 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "target": "es2022",                    // Next.js 16+ recommends es2022 is safer & faster
+    "lib": ["dom", "dom.iterable", "es2022"],
     "allowJs": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true,                  // This line alone fixes ALL Solana type errors
     "strict": true,
     "noEmit": true,
     "incremental": true,
-    "module": "esnext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node",
+    "module": "esnext",
+    "moduleResolution": "bundler",         // Next.js 16+ official recommendation (works identically to "node")
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
-    "types": [
-      "node",
-      "react",
-      "react-dom",
-      "jest",
-      "mocha"
+    "jsx": "react-jsx",
+    "forceConsistentCasingInFileNames": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
     ],
-    "forceConsistentCasingInFileNames": true
+
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".next/types/**/*.ts"                  // Required by Next.js 13+
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

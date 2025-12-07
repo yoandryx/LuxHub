@@ -12,7 +12,7 @@ import {
   createSyncNativeInstruction,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { IoMdInformationCircle } from "react-icons/io";
+import { IoIosArrowDown } from "react-icons/io";
 import { SiSolana } from "react-icons/si";
 import { FaCopy, FaGlobe, FaInstagram, FaRegCircleCheck, FaXTwitter } from "react-icons/fa6";
 
@@ -188,93 +188,97 @@ const VendorProfilePage = () => {
     }
   };
 
+  const [openInterest, setOpenInterest] = useState<number | null>(null);
+
+  const toggleInterest = (index: number) => {
+    setOpenInterest(openInterest === index ? null : index);
+  };
+
   if (error) return <p>{error}</p>;
   if (!profile) return <p>Loading profile...</p>;
 
   return (
     <div className={styles.profileContainer}>
+
       {profile?.bannerUrl && (
         <img src={profile.bannerUrl} className={styles.profileBanner} />
       )}
-      {profile?.avatarUrl && (
-        <img src={profile.avatarUrl} className={styles.profileAvatar} />
-      )}
+
       <div className={styles.profileHeader}>
+
         <h1 className={styles.nameHeader}>
+          {profile?.avatarUrl && (<img src={profile.avatarUrl} className={styles.profileAvatar} />)}
           {profile.name}
-          {profile.verified && <FaRegCircleCheck  className={styles.verifiedIcon} />}
         </h1>
-        <p className={styles.profileUsername}>@{profile.username}</p>
-        <div className={styles.profileWallet}>
-          <a className={styles.tooltipButton} data-tooltip="View on Solscan" href={`https://solscan.io/account/${profile.wallet}`} target="_blank" rel="noopener noreferrer">
-            {profile.wallet.slice(0,4)}...{profile.wallet.slice(-4)}
-          </a>
-          <div className={styles.walletActions}>
+
+        <p className={styles.profileUsername}>
+          {profile.verified && <FaRegCircleCheck className={styles.verifiedIcon} />}
+          {profile.username} 
+          {wallet.publicKey?.toBase58() === profile.wallet && (
+            <button
+              className={styles.dashboardButton}
+              onClick={() => router.push("/vendor/vendorDashboard")}
+            >
+              Edit Profile
+            </button>
+          )}
+        </p>
+
+        <div className={styles.profileInfo}>
+
+          <div className={styles.infoDetails}>
+            <p className={styles.profileBio}>{profile.bio} </p>
+          </div>
+
+          <div className={styles.socialLinks}>
+            {profile.socialLinks?.x && (
               <a
-                href={`https://solscan.io/account/${profile.wallet}?cluster=devnet`} // use `?cluster=mainnet-beta` if you're on mainnet
+                href={profile.socialLinks.x}
                 target="_blank"
-                rel="noopener noreferrer"
-                className={styles.solscanLink}
-                title="Visit on Solscan"
+                rel="noreferrer"
+                className={styles.iconLink}
+              >
+                <FaXTwitter />
+              </a>
+            )}
+            {profile.socialLinks?.instagram && (
+              <a
+                href={profile.socialLinks.instagram}
+                target="_blank"
+                rel="noreferrer"
+                className={styles.iconLink}
+              >
+                <FaInstagram />
+              </a>
+            )}
+
+            {profile.socialLinks?.website && (
+              <a
+                href={profile.socialLinks.website}
+                target="_blank"
+                rel="noreferrer"
+                className={styles.iconLink}
               >
                 <FaGlobe />
               </a>
-              <div
-                className={styles.copyIcon}
-                onClick={() => navigator.clipboard.writeText(profile.wallet)}
-                title="Copy Address to clipboard"
-              >
-                <FaCopy/>
-              </div>
-           </div>
-        </div>
-        <p className={styles.profileBio}>{profile.bio}</p>
-        <div className={styles.socialLinks}>
-          {profile.socialLinks?.x && (
-            <a
-              href={profile.socialLinks.x}
-              target="_blank"
-              rel="noreferrer"
-              className={styles.iconLink}
-            >
-              <FaXTwitter />
-            </a>
-          )}
-          {profile.socialLinks?.instagram && (
-            <a
-              href={profile.socialLinks.instagram}
-              target="_blank"
-              rel="noreferrer"
-              className={styles.iconLink}
-            >
-              <FaInstagram />
-            </a>
-          )}
+            )}
+          </div>
 
-          {profile.socialLinks?.website && (
-            <a
-              href={profile.socialLinks.website}
-              target="_blank"
-              rel="noreferrer"
-              className={styles.iconLink}
-            >
-              <FaGlobe />
-            </a>
-          )}
         </div>
-        {wallet.publicKey?.toBase58() === profile.wallet && (
+
+        {/* {wallet.publicKey?.toBase58() === profile.wallet && (
           <button
           className={styles.dashboardButton}
           onClick={() => router.push("/vendor/vendorDashboard")}
           >
             Go to Dashboard
           </button>
-        )}
+        )} */}
       </div>
 
-      {nftData.length > 0 ? (
+      {/* {nftData.length > 0 ? (
         <div className={styles.nftSection}>
-          <h3>Available Watches</h3>
+          <h2>Inventory</h2>
           <div className={styles.nftGrid}>
             {nftData.map((nft, index) => (
               <div key={index} className={styles.cardWrapper}>
@@ -319,6 +323,70 @@ const VendorProfilePage = () => {
                     {nft.marketStatus === "active" ? "Available" : "Holding"}
                     <IoMdInformationCircle className={styles.infoIcon} />
                   </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p style={{ marginTop: 20 }}>No items listed yet.</p>
+      )} */}
+
+      {nftData.length > 0 ? (
+        <div className={styles.nftSection}>
+          <h2>Inventory</h2>
+          <div className={styles.nftGrid}>
+            {nftData.map((nft, index) => (
+              <div key={index} className={styles.cardWrapper}>
+                <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+
+                {/* NEW: Collapsed Actions Dropdown */}
+                <div className={styles.sellerActionsCollapsed}>
+                  <button
+                    className={styles.interestToggle}
+                    onClick={() => toggleInterest(index)}
+                  >
+                    <IoIosArrowDown />
+                  </button>
+
+                  {openInterest === index && (
+                    <div className={styles.dropdownMenu}>
+                      {/* Buy Button */}
+                      {nft.marketStatus === "active" ? (
+                        <button
+                          className={styles.buyButton}
+                          onClick={() => handlePurchase(nft)}
+                          disabled={loadingMint === nft.mintAddress}
+                        >
+                          {loadingMint === nft.mintAddress ? "Processing..." : "BUY NOW"}
+                        </button>
+                      ) : nft.marketStatus === "pending" ? (
+                        <p className={styles.statusPending}>
+                          Awaiting Approval
+                        </p>
+                      ) : nft.marketStatus === "Holding LuxHub" ? (
+                        <button
+                          className={styles.contactButton}
+                          onClick={() => window.open(`https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`, "_blank")}
+                        >
+                          Make Offer
+                        </button>
+                      ) : (
+                        <p className={styles.statusInactive}>Not Listed</p>
+                      )}
+
+                      {/* Price */}
+                      <div className={styles.priceRow}>
+                        <SiSolana className={styles.solIcon} />
+                        <span>{nft.priceSol} SOL</span>
+                      </div>
+
+                      {/* Status */}
+                      <p className={styles.statusRow}>
+                        Status: <strong>{nft.marketStatus === "active" ? "Available" : nft.marketStatus}</strong>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

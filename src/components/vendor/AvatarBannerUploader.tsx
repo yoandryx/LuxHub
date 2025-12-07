@@ -83,7 +83,7 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
       onUploadComplete(uploadedUrl, bannerUrl);
       setUploadSuccessAvatar(true);
     } else {
-      setUploadErrorAvatar("Failed to upload avatar.");
+      setUploadErrorAvatar("Invalid Upload. Try Again");
     }
 
     setUploadingAvatar(false);
@@ -125,7 +125,7 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
       onUploadComplete(avatarUrl, uploadedUrl);
       setUploadSuccessBanner(true);
     } else {
-      setUploadErrorBanner("Failed to upload banner.");
+      setUploadErrorBanner("Invalid Upload. Try Again");
     }
 
     setUploadingBanner(false);
@@ -145,77 +145,80 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
 
   return (
     <div>
-      <h3>Upload Profile Images</h3>
 
-      <p>Click below to insert image or Drag and drop</p>
+      {/* <h1>Click below to insert image or Drag and drop</h1> */}
 
-      {/* Avatar Upload */}
-      <div {...getAvatarRootProps()} className={styles.dropZoneStyle}>
-        <h3>Profile Image</h3>
-        <input {...getAvatarInputProps()} />
-        <input
-          type="file"
-          accept="image/*"
-          ref={avatarInputRef}
-          style={{ display: "none" }}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (file) await onAvatarDrop([file]);
-          }}
-        />
-        <div className={styles.previewWrapper}>
-          {uploadSuccessAvatar && <p>Successfuly Uploaded✅ </p>}
-          {uploadSuccessAvatar && <p className={styles.comment}>Click your image or Drop a new one to change</p>}
-          {uploadingAvatar && <p>Uploading...</p>}
-          {uploadErrorAvatar && <p>❌ {uploadErrorAvatar}</p>}
-          {!avatarPreview ? (
-            <div className={styles.cloudUploadSection}>
-              <IoCloudUploadOutline size={48} />
-              <p>Insert Image or Drag & Drop</p>
-            </div>
-          ) : (
-            <img
-              src={avatarPreview}
-              className={styles.previewImageStyle}
-              alt="banner preview"
-            />
-          )}
+      <div className={styles.uploadContainer}>
+        {/* Avatar Upload */}
+        <div {...getAvatarRootProps()} className={styles.dropZoneStyle}>
+          <h2>Profile Image</h2>
+          <input {...getAvatarInputProps()} />
+          <input
+            type="file"
+            accept="image/*"
+            ref={avatarInputRef}
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) await onAvatarDrop([file]);
+            }}
+          />
+          <div className={styles.previewWrapper}>
+            {uploadSuccessAvatar && <p className={styles.succUpload}>Uploaded</p>}
+            {uploadSuccessAvatar && <p className={styles.comment}>Change Here</p>}
+            {uploadingAvatar && <p>Uploading...</p>}
+            {uploadErrorAvatar && <p>{uploadErrorAvatar}</p>}
+            {!avatarPreview ? (
+              <div className={styles.cloudUploadSection}>
+                <IoCloudUploadOutline size={48} />
+                <p>Upload Image</p>
+              </div>
+            ) : (
+              <img
+                src={avatarPreview}
+                className={styles.previewImageStyle}
+                alt="banner preview"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Banner Upload */}
+        <div {...getBannerRootProps()} className={styles.dropZoneStyle}>
+          <h2>Banner Image</h2>
+          <input {...getBannerInputProps()} />
+          <input
+            type="file"
+            accept="image/*"
+            ref={bannerInputRef}
+            style={{ display: "none" }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) await onBannerDrop([file]);
+            }}
+          />
+          <div className={styles.previewWrapper}>
+            {uploadSuccessBanner && <p className={styles.succUpload}>Uploaded </p>}
+            {uploadSuccessBanner && <p className={styles.comment}>Change Here</p>}
+            {uploadingBanner && <p>Uploading...</p>}
+            {uploadErrorBanner && <p style={{ color: "red" }}>{uploadErrorBanner}</p>}
+            {!bannerPreview ? (
+              <div className={styles.cloudUploadSection}>
+                <IoCloudUploadOutline size={48} />
+                <p>Upload Image</p>
+              </div>
+            ) : (
+              <img
+                src={bannerPreview}
+                className={styles.previewImageStyle}
+                alt="banner preview"
+              />
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Banner Upload */}
-      <div {...getBannerRootProps()} className={styles.dropZoneStyle}>
-        <h3>Banner Image</h3>
-        <input {...getBannerInputProps()} />
-        <input
-          type="file"
-          accept="image/*"
-          ref={bannerInputRef}
-          style={{ display: "none" }}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (file) await onBannerDrop([file]);
-          }}
-        />
-        <div className={styles.previewWrapper}>
-          {uploadSuccessBanner && <p>Successfuly Uploaded✅</p>}
-          {uploadSuccessBanner && <p className={styles.comment}>Click your image or Drop a new one to change</p>}
-          {uploadingBanner && <p>Uploading banner...</p>}
-          {uploadErrorBanner && <p style={{ color: "red" }}>❌ {uploadErrorBanner}</p>}
-          {!bannerPreview ? (
-            <div className={styles.cloudUploadSection}>
-              <IoCloudUploadOutline size={48} />
-              <p>Insert Image</p>
-            </div>
-          ) : (
-            <img
-              src={bannerPreview}
-              className={styles.previewImageStyle}
-              alt="banner preview"
-            />
-          )}
-        </div>
-      </div>
+      
     </div>
   );
 };

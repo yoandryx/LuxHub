@@ -4,8 +4,8 @@ import * as THREE from "three";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 
 function WavePoints() {
-  const [deviceCount, setDeviceCount] = useState(28);
-  const separation = 2;
+  const [deviceCount, setDeviceCount] = useState(60);
+  const separation = 1.5;
   const shaderRef = useRef<any>(null);
   const groupRef = useRef<THREE.Group>(null);
   const [visible, setVisible] = useState(true);
@@ -16,7 +16,7 @@ function WavePoints() {
 
   useEffect(() => {
     const isHardwareAccelerated = !navigator.userAgent.includes("SwiftShader");
-    if (!isHardwareAccelerated || window.innerWidth < 768) setDeviceCount(18);
+    if (!isHardwareAccelerated || window.innerWidth < 768) setDeviceCount(60);
   }, []);
 
   useEffect(() => {
@@ -171,7 +171,7 @@ export default function WaveScene() {
       <ambientLight intensity={0.4} />
       <WavePoints />
       <EffectComposer>
-        <Bloom luminanceThreshold={0.3} luminanceSmoothing={0.2} intensity={1.5} />
+        <Bloom luminanceThreshold={0.3} luminanceSmoothing={0.2} intensity={0.25} />
       </EffectComposer>
     </Canvas>
   );

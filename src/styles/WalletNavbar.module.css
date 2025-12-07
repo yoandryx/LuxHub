@@ -10,12 +10,17 @@
     display: inherit;
     position: fixed;
     align-items: center;
-    justify-content: space-between;
-    bottom:0px;
+    justify-content: left;
+    bottom: 25px;
+    left: 10px;
     z-index: 1000;
-    height: 15px;
-    width: 100%;
-    padding: 10px;
+    height: 25px;
+    width: 150px;
+    padding: 5px;
+    /* margin-bottom: 15%; */
+    border-radius: 10px;
+    box-shadow: 0px 2px 10px #1b1b1bdb;
+    transition: 0.3s ease-in-out;
     background: #43434352;
     backdrop-filter: blur(25px);
 }
@@ -127,11 +132,12 @@
   .walletAddress {
     display: flex;
     align-items: center;
+    left: 10px;
     gap: 4px;
     font-size: 14px;
     font-weight: 500;
     color: #ffffff;
-    margin-left: 30px;
+    margin-left: 10px;
   }
   
   .solIcon {

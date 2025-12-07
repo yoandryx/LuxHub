@@ -7,6 +7,7 @@ import { SiSolana } from "react-icons/si";
 import { IoFingerPrint } from "react-icons/io5";
 import { Connection, Keypair } from "@solana/web3.js";
 import WalletComponent from "./WalletConnect";
+import { FaWallet } from "react-icons/fa6";
 
 const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? "https://api.devnet.solana.com";  // Default to Devnet
 const secretKey = process.env.DEVNET_KEYPAIR ? JSON.parse(process.env.DEVNET_KEYPAIR) : [];  // Default to empty array
@@ -137,19 +138,21 @@ export default function WalletNavbar() {
           )}
           
         </div> */}
+        {/* <FaWallet className={styles.solIcon} /> */}
+        <FaWallet/>
 
         {connected && publicKey && (
-            <div className={styles.walletAddress}>
-              <span>{`${publicKey.toBase58().slice(0, 5)}...${publicKey.toBase58().slice(-5)}`}</span>
-            </div>
-          )}
+          <div className={styles.walletAddress}>
+            <span>{`${publicKey.toBase58().slice(0, 5)}...${publicKey.toBase58().slice(-5)}`}</span>
+          </div>
+        )}
 
-        {solPrice && (
+        {/* {solPrice && (
             <div className={`${styles.solPriceTag} ${shimmer ? styles.shimmer : ""}`}>
               <SiSolana className={styles.solIcon} />
               <span>${solPrice.toFixed(2)}</span>
             </div>
-          )}
+          )} */}
 
         {/* <div className={styles.walletContainer}>
           <WalletModalProvider>

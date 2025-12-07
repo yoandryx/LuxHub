@@ -1,5 +1,7 @@
 .profileContainer {
-  padding: 20px 20px;
+  display: flex;
+  flex-direction: column;
+  /* padding: 20px 20px; */
   background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
   min-height: 100vh;
   color: #ffffff;
@@ -9,29 +11,35 @@
 
 .profileBanner {
   width: 100%;
-  max-height: 200px;
+  max-height: 250px;
   object-fit: cover;
   border-radius: 10px;
 }
 
 .profileAvatar {
-  width: 100px;
-  height: 100px;
+  width: 75px;
+  height: 75px;
   border-radius: 50%;
-  margin-top: -50px;
-  border: 2px solid white;
+  /* margin-top: -150px; */
+  border: 2px solid #55555555;
   object-fit: cover;
   background: #00000030;
 }
 
 .profileHeader {
   display: flex;
+  position: absolute;
+  top: 150px;
+  width: 100%;
   flex-direction: column;
   text-align: center;
-  margin-top: 20px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px;
+  backdrop-filter: blur(10px);
+  --webkit-backdrop-filter: blur(10px);
+  /* margin-top: 20px; */
+  /* border: 1px solid var(--border); */
+  /* border-radius: 8px; */
+  /* box-shadow: #0000009b 1px 1px 2px;; */
+  /* padding: 8px; */
 }
 
 .profileHeader .profileUsername {
@@ -39,12 +47,17 @@
   letter-spacing: 1px;
   font-weight: 500;
   margin: 0;
+  padding: 0px 10px;
+  gap: 5px;
+  align-items: center;
 }
 
 .profileHeader .profileBio {
   display: flex;
-  text-align: center;
-  margin: 12px 0px;
+  text-align: start;
+  font-size: small;
+  /* margin: 12px 12px; */
+  margin-right: 10px;
   padding: 8px;
   line-height: 1.4;
   font-weight: 400;
@@ -52,16 +65,16 @@
   border-radius: 8px;
 }
 
-.profileWallet {
+.profileInfo {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0px 10px;
 }
 
-.walletActions {
+.infoDetails {
   display: flex;
   gap: 10px;
-  margin-top: 4px;
   align-items: center;
 }
 
@@ -79,15 +92,15 @@
 
 .socialLinks {
   display: flex;
-  gap: 12px;
+  gap: 5px;
   justify-content: flex-start;
   align-items: center;
   margin-top: 10px;
 }
 
 .iconLink {
-  font-size: 24px;
-  color: #c8a1ff7d;
+  font-size: 16px;
+  color: #e3cfff;
 }
 
 .socialLinks a {
@@ -100,7 +113,12 @@
 }
 
 .nftSection {
-  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  margin: 125px 0px;
+  z-index: 1;
+  background-color: #111;
+  width: 100%;
 }
 
 .nftSection h3 {
@@ -113,14 +131,27 @@
   margin: 50px 0;
 }
 
+.nftSection h2 {
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: #000000 0px 1px 3px;
+  background-color: #c8a1ff17;
+  padding: 8px;
+  border-radius: 5px;
+  margin: 10px;
+  /* border-bottom: 1px solid #c8a1ff3f; */
+  /* border-bottom: 2px solid #c8a1ff; */
+}
+
 .nftGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-  gap: 20px;
-  width: 100%;
+  gap: 10px;
+  /* width: 100%; */
   min-width: 100px;
   max-width: 1600px;
-  margin: 0 auto;
+  margin: 0px 10px;
 }
 
 .nftCard {
@@ -153,7 +184,6 @@
   text-align: center;
 }
 
-
 .sellerActions {
   text-align: center;
   display: flex;
@@ -169,7 +199,7 @@
   width: 100%;
   max-width: 300px;
   font-size: x-small;
-  margin-top: 8px;
+  /* margin-top: 8px; */
 }
 
 .sellerActions p {
@@ -293,10 +323,11 @@
 }
 
 .dashboardButton {
-  margin-top: 12px;
-  padding: 10px 16px;
-  background: #b991ff;
-  color: #000;
+  /* margin-top: 12px; */
+  /* padding: 10px 16px; */
+  background: #c8a1ff17;
+  color: #ffffff;
+  text-shadow: #0000009b 1px 1px 2px;
   font-weight: 600;
   border: none;
   border-radius: 6px;
@@ -311,10 +342,133 @@
 .nameHeader {
   display: flex;
   align-items: center;
+  text-align: start;
   gap: 8px;
+  text-transform: uppercase;
+  text-shadow: #0000009b 1px 1px 2px;
+  padding: 0px 8px;
+  margin: 10px 0px;
 }
 
 .verifiedIcon {
   color: #fab4ff; /* green checkmark or use #b991ff for LuxHub purple */
   font-size: 1.3rem;
+}
+
+
+.sellerActionsCollapsed {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 300px;
+  border: 1px solid #c8a1ff;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 0 20px #000000c0;
+  margin: 5px 0px;
+}
+
+.interestToggle {
+  width: 100%;
+  background: #c8a1ff17;
+  color: #e0c3ff;
+  border: none;
+  /* border-radius: 10px; */
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.interestToggle:hover {
+  background: #c8a1ff44;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px #c8a1ff44;
+}
+
+.dropdownMenu {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.buyButton {
+  background: #c8a1ff;
+  color: #000;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 20px #c8a1ff88;
+  transition: all 0.3s;
+}
+
+.buyButton:hover:not(:disabled) {
+  background: #d0b3ff;
+  transform: scale(1.02);
+}
+
+.buyButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contactButton {
+  background: #4a00e0;
+  color: white;
+  padding: 9px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fbf9ff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.solIcon {
+  font-size: 18px;
+}
+
+.statusRow {
+  text-align: center;
+  color: #aaa;
+  font-size: 14px;
+  margin: 0;
+}
+
+.statusPending {
+  color: #ffaa00;
+  font-style: italic;
+  text-align: center;
+  margin: 0;
+}
+
+.statusInactive {
+  color: #ff9797;
+  font-style: italic;
+  text-align: center;
+  margin: 0;
+}
+
+.cardWrapper {
+  display: flex;
+  flex-direction: column;
+  /* justify-content: center; */
+  align-items: center;
+  width: 100%;
+  margin-bottom: 50px;
 }
