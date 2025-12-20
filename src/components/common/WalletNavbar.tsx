@@ -26,25 +26,25 @@ export default function WalletNavbar() {
 
   useEffect(() => setIsClient(true), []);
 
-  useEffect(() => {
-    const fetchSolPrice = async () => {
-      try {
-        const res = await fetch("/api/users/sol-price");
-        const data = await res.json();
-        if (data.price && data.price !== solPrice) {
-          setSolPrice(data.price);
-          setShimmer(true);
-          setTimeout(() => setShimmer(false), 500);
-        }
-      } catch (err) {
-        console.error("Failed to fetch SOL price:", err);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchSolPrice = async () => {
+  //     try {
+  //       const res = await fetch("/api/users/sol-price");
+  //       const data = await res.json();
+  //       if (data.price && data.price !== solPrice) {
+  //         setSolPrice(data.price);
+  //         setShimmer(true);
+  //         setTimeout(() => setShimmer(false), 500);
+  //       }
+  //     } catch (err) {
+  //       console.error("Failed to fetch SOL price:", err);
+  //     }
+  //   };
   
-    fetchSolPrice();
-    const interval = setInterval(fetchSolPrice, 60000); // every 60s
-    return () => clearInterval(interval);
-  }, []);
+  //   fetchSolPrice();
+  //   const interval = setInterval(fetchSolPrice, 60000); // every 60s
+  //   return () => clearInterval(interval);
+  // }, []);
 
   // useEffect(() => {
   //   const fetchWalletBalance = async () => {
@@ -143,7 +143,7 @@ export default function WalletNavbar() {
 
         {connected && publicKey && (
           <div className={styles.walletAddress}>
-            <span>{`${publicKey.toBase58().slice(0, 5)}...${publicKey.toBase58().slice(-5)}`}</span>
+            <span>{`${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`}</span>
           </div>
         )}
 

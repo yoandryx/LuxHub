@@ -1,7 +1,7 @@
 .profileContainer {
   display: flex;
   flex-direction: column;
-  /* padding: 20px 20px; */
+  padding: 0px 20px;
   background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
   min-height: 100vh;
   color: #ffffff;
@@ -30,6 +30,7 @@
   display: flex;
   position: absolute;
   top: 150px;
+  left: 0px;
   width: 100%;
   flex-direction: column;
   text-align: center;
@@ -116,8 +117,8 @@
   display: flex;
   flex-direction: column;
   margin: 125px 0px;
+  /* padding: 0px 5px; */
   z-index: 1;
-  background-color: #111;
   width: 100%;
 }
 
@@ -131,17 +132,24 @@
   margin: 50px 0;
 }
 
-.nftSection h2 {
+.sectionHeading {
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
-  text-shadow: #000000 0px 1px 3px;
-  background-color: #c8a1ff17;
-  padding: 8px;
+  background-color: #57575717;
   border-radius: 5px;
-  margin: 10px;
-  /* border-bottom: 1px solid #c8a1ff3f; */
-  /* border-bottom: 2px solid #c8a1ff; */
+  margin: 5px 5px;
+  width: 100%;
+  box-shadow: 0 5px 0px 0px #3f3a46;
+}
+
+.nftSection h2 {
+  font-size: 1.5rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 5px 0;
+  padding: 0px 10px;
 }
 
 .nftGrid {
@@ -151,7 +159,7 @@
   /* width: 100%; */
   min-width: 100px;
   max-width: 1600px;
-  margin: 0px 10px;
+  margin: 15px 10px;
 }
 
 .nftCard {

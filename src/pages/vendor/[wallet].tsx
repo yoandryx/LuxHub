@@ -334,7 +334,7 @@ const VendorProfilePage = () => {
 
       {nftData.length > 0 ? (
         <div className={styles.nftSection}>
-          <h2>Inventory</h2>
+          <div className={styles.sectionHeading}><h2>Inventory</h2></div>
           <div className={styles.nftGrid}>
             {nftData.map((nft, index) => (
               <div key={index} className={styles.cardWrapper}>

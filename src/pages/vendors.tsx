@@ -33,7 +33,7 @@ export default function ExploreVendors() {
   const VendorCard = ({ vendor }: { vendor: VendorProfile }) => (
     <Link href={`/vendor/${vendor.wallet}`} className={styles.vendorCard}>
       {/* Banner */}
-      {vendor.bannerUrl || vendor.bannerCid ? (
+      {/* {vendor.bannerUrl || vendor.bannerCid ? (
         <img
           src={vendor.bannerUrl || `${GATEWAY}${vendor.bannerCid}`}
           alt="banner"
@@ -41,10 +41,30 @@ export default function ExploreVendors() {
         />
       ) : (
         <div className="h-32 bg-gradient-to-br from-purple-900/50 to-black" />
-      )}
+      )} */}
 
       <div className={styles.rowItems}>
         {/* Avatar */}
+        {/* {(vendor.avatarUrl || vendor.avatarCid) && (
+          <img
+            src={vendor.avatarUrl || `${GATEWAY}${vendor.avatarCid}`}
+            alt={vendor.name}
+            className={styles.avatar}
+          />
+        )} */}
+
+        {/* Info */}
+        {/* <div className={styles.vendorInfo}>
+          <div className={styles.nameWrapper}>
+            {vendor.name}
+            {vendor.verified && <FaRegCircleCheck className={styles.verifiedIcon} />}
+          </div>
+          <div className="text-purple-300">@{vendor.username}</div>
+        </div> */}
+      </div>
+
+      <div className={styles.actions}>
+
         {(vendor.avatarUrl || vendor.avatarCid) && (
           <img
             src={vendor.avatarUrl || `${GATEWAY}${vendor.avatarCid}`}
@@ -53,29 +73,32 @@ export default function ExploreVendors() {
           />
         )}
 
-        {/* Info */}
-        <div className={styles.vendorInfo}>
+        <div className={styles.viewLink}>
+        
           <div className={styles.nameWrapper}>
             {vendor.name}
             {vendor.verified && <FaRegCircleCheck className={styles.verifiedIcon} />}
           </div>
-          <div className="text-purple-300">@{vendor.username}</div>
-        </div>
-      </div>
 
-      <div className={styles.actions}>
-        <div className={styles.viewLink}>Enter Shop</div>
+          <div className={styles.username}>@{vendor.username}</div>
+
+          {/* View */}
+
+        </div>
+
+        
+
       </div>
     </Link>
   );
 
   return (
     <div className={styles.pageContainer}>
-      <h1 className={styles.title}>LuxHub Dealers</h1>
+      <h2 className={styles.title}>LuxHub Dealers</h2>
 
       {!!verifiedVendors.length && (
         <>
-          <h2 className={styles.sectionHeading}>Verified Dealers</h2>
+        <div className={styles.sectionHeading}><h2>Verified Dealers</h2></div>
           <div className={styles.vendorList}>
             {verifiedVendors.map((v) => (
               <VendorCard key={v.wallet} vendor={v} />
@@ -84,9 +107,8 @@ export default function ExploreVendors() {
         </>
       )}
 
-      <h2 className={styles.sectionHeading}>
-        {verifiedVendors.length ? "All Creators" : "Creators"}
-      </h2>
+      <div className={styles.sectionHeading}><h2>All Creators</h2></div>
+
       <div className={styles.vendorList}>
         {approvedVendors
           .filter((v) => !v.verified)

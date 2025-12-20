@@ -111,8 +111,7 @@ const VendorDashboard = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      <h1>Vendor Dashboard</h1>
-
+      
       {/* Tabs */}
       <div className={styles.tabButtons}>
         <button
@@ -147,6 +146,8 @@ const VendorDashboard = () => {
         <div className={styles.tabContentColumn}>
 
           <div className={styles.tabContent}>
+            <div className={styles.sectionHeading}><h2 className={styles.editHeading}>Vendor Dashboard</h2></div>
+
             <div className={styles.tabContentRow}>
               <div className={styles.tabContentLeft}>
                 <AvatarBannerUploader
@@ -165,7 +166,7 @@ const VendorDashboard = () => {
                     }));
                   }}
                 />
-                <h3>Profile Info Form</h3>
+                <div className={styles.sectionHeading}><h2>Profile Info Form</h2></div>
                 <p>NAME</p>
                 <input
                   placeholder="Name"

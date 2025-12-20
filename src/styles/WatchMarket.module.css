@@ -18,9 +18,42 @@
   letter-spacing: 1px;
 }
 
+.title {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  height: 50px;
+  margin: 20px 0;
+  /* gap: 5px; */
+}
+
+.titleSeparator {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+  height: 50px;
+}
+
+.title h2 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0px 0;
+  padding: 0px 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
 /* Grid for all NFT cards */
 .nftGrid {
   display: grid;
+  justify-items: center;
   grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
   gap: 8px;
   width: 100%;
@@ -324,14 +357,16 @@
 }
 
 .filterToggle {
-  position: fixed;
+  /* position: fixed; */
   display: flex;
   align-items: center;
   justify-content: center;
+  align-items: center;
   top: 80px;
   left: -65px;
-  padding: 8px 12px;
-  gap: 22px;
+  padding: 8px 10px;
+  height: 50%;
+  gap: 5px;
   background-color: #b991ff;
   color: black;
   border: none;
@@ -341,9 +376,25 @@
   transition: 0.3s;
   z-index: 10;
 }
+
+@media (max-width: 768px) {
+  /* .filterToggle {
+    position: fixed;
+    top: 50px;
+    left: 25px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  } */
+
+  .title {
+    margin: 80px 0;
+    flex-direction: column !important;
+  }
+}
+
 .filterToggle:hover {
   background-color: #c8a1ff;
-  translate: 70px 0;
+  translate: 0px -3px;
 }
 
 .modalOverlay {
@@ -378,7 +429,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
+  width: 250px;
   margin: 20px 0;
 }
 
@@ -393,16 +444,16 @@
 
 .searchContainer {
   display: flex;
-  padding: 5px
+  /* padding: 5px */
 }
 
 .searchBar {
-  background-color: #0000006e;
+  background-color: #00000000;
   color: var(--primary);
-  border: 1px solid var(--accent);
+  border: none;
   border-radius: 4px;
   width: 100%;
-  padding-left: 40px; 
+  padding-left: 0px; 
   outline: none;
   font-size: small;
   height: 35px;
@@ -412,7 +463,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #3c3c3c;
+  background: #59595900;
   margin-right: 10px;
   border: none;
   color: #fff;
@@ -422,7 +473,7 @@
 }
   
 .inputGroup button:hover {
-  background: #59595900;
+  background: #3c3c3c;
   cursor: pointer;
 }
 

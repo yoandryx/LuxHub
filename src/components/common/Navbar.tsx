@@ -74,12 +74,12 @@ export default function Navbar() {
 
           <div className={styles.links}>
             <Link href="/watchMarket" onClick={closeMenu}>Marketplace</Link>
+            <Link href="/vendors" onClick={closeMenu}>Vendors</Link> 
+            <Link href="/luxhubHolders" onClick={closeMenu}>Holders</Link> 
             {isAdmin && <Link href="/createNFT" onClick={closeMenu}>Mint NFT</Link>}
-            <Link href="/luxhubHolders" onClick={closeMenu}>Holders</Link>
             {isAdmin && <Link href="/adminDashboard" onClick={closeMenu}>Admins</Link>}
             <Link href="/sellerDashboard" onClick={closeMenu}>User</Link>
             {!isAdmin && <Link href="/learnMore" onClick={closeMenu}>Learn More</Link>}
-            <Link href="/vendors" onClick={closeMenu}>Vendors</Link>  
           </div>
 
           <div className={styles.rightSection}>
@@ -149,8 +149,8 @@ export default function Navbar() {
 
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>LUXHUB</div>
-            <Link href="/luxhubHolders" onClick={closeMenu}>Holders</Link>
             <Link href="/vendors" onClick={closeMenu}>vendors</Link>
+            <Link href="/luxhubHolders" onClick={closeMenu}>Holders</Link>
             {isAdmin && <Link href="/adminDashboard" onClick={closeMenu}>Admins</Link>}
             {isAdmin && <Link href="/createNFT" onClick={closeMenu}>Mint</Link>}
           </div>
@@ -158,7 +158,6 @@ export default function Navbar() {
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>ACCOUNT</div>
             <Link href="/sellerDashboard" onClick={closeMenu}>Profile</Link>
-            <Link href="/sellerDashboard" onClick={closeMenu}>User</Link>
             <Link href="/" onClick={closeMenu}>Home</Link>
           </div>
         </div>

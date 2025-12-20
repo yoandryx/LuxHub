@@ -446,14 +446,14 @@ export default function OnboardingForm() {
       {/* <h2>Vendor Account</h2> */}
 
       {/* Progress Bar */}
-      <div className={styles.progressBarContainer}>
+      {/* <div className={styles.progressBarContainer}>
         <div className={styles.progressBar}>
           <div
             className={styles.progress}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-      </div>
+      </div> */}
 
       <div className={styles.tabContentColumn}>
         <div className={styles.tabContentMain}>
@@ -463,7 +463,7 @@ export default function OnboardingForm() {
               {/* Step 1: Business Info */}
               {currentStep === 0 && (
                 <>
-                  <h2>Account Info</h2>
+                  <div className={styles.sectionHeading}><h2>Account Info</h2></div>
 
                   <p>NAME</p>
                   <input
@@ -570,7 +570,8 @@ export default function OnboardingForm() {
                     onPreviewUpdate={() => {}}
                   /> */}
 
-                  <h2>Preview</h2>
+                  <div className={styles.sectionHeading}><h2>Preview</h2></div>
+
                   {formData.bannerUrl ? (
                     <img src={formData.bannerUrl} className={` ${styles.skeletonImgBanner}`} alt="Banner" />
                   ) : (
@@ -593,7 +594,7 @@ export default function OnboardingForm() {
                     {formData.bio ? <p className={styles.bioContent}>{formData.bio}</p> : <div className={`${styles.skeleton} ${styles.skeletonText}`} />}
                   </div> */}
 
-                  <h2>Upload Profile Images</h2>
+                  <div className={styles.sectionHeading}><h2>Upload Profile Images</h2></div>
                   
                   <AvatarBannerUploader
                     onUploadComplete={(avatar, banner) => {
@@ -607,7 +608,7 @@ export default function OnboardingForm() {
                   />
 
                   {!isImagesStepValid && (
-                    <p style={{ color: "#ff6b6b", marginTop: "0.5rem" }}>
+                    <p style={{ color: "#ff6b6b", margin:"0px"}}>
                       Upload both avatar and banner images.
                     </p>
                   )}
@@ -617,7 +618,7 @@ export default function OnboardingForm() {
               {/* Step 2: Multisig */}
               {currentStep === 2 && (
                 <>
-                  <h2>Create Vendor Treasurary</h2>
+                  <div className={styles.sectionHeading}><h2>Create Vendor Treasurary</h2></div>
                   {/* <p>
                     Your vault starts as a 1/1 multisig meaning you control it fully. <br />
                     You can add team members later from your dashboard.
