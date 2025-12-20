@@ -336,7 +336,7 @@ const scrollVertical = (direction: number) => {
 
         <section className={styles.sectBlur}>
           <div className={styles.ctaContainer}>
-            <h2>Real world luxury — powered by Solana</h2>
+            <h2>Timeless craftsmanship — now on chain</h2>
             <p className={styles.subtitle}><span>On-chain security. Multisig escrow. Real-world luxury — powered by Solana.</span></p>
           </div>
           <ScrollSteps />

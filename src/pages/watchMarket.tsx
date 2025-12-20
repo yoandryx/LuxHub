@@ -17,6 +17,8 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
+import Link from "next/link";
+import { FaRegCircleCheck, FaAngleRight } from "react-icons/fa6";
 import { NftDetailCard } from "../components/marketplace/NftDetailCard";
 import styles from "../styles/WatchMarket.module.css";
 import { IoMdInformationCircle } from "react-icons/io";
@@ -24,8 +26,8 @@ import { SiSolana } from "react-icons/si";
 import NFTCard from "../components/marketplace/NFTCard";
 import FilterSortPanel from "../components/marketplace/FilterSortPanel";
 import { CiSearch } from "react-icons/ci";
-import { FaAngleRight } from "react-icons/fa6";
 import Loader from "../components/common/Loader";
+import { VendorProfile } from "@/lib/models/VendorProfile";
 
 interface NFT {
   title: string;
@@ -81,6 +83,9 @@ const Marketplace = () => {
     categories: []
   });
 
+  const [vendors, setVendors] = useState<VendorProfile[]>([]);
+  const [verifiedVendors, setVerifiedVendors] = useState<VendorProfile[]>([]);
+  
   const filteredNfts = useMemo(() => {
     return nfts
       .filter((nft) => {
@@ -122,6 +127,33 @@ const Marketplace = () => {
       ),
     []
   );
+
+  const VendorSliderCard = ({ vendor }: { vendor: VendorProfile }) => {
+    const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
+
+    return (
+      <Link href={`/vendor/${vendor.wallet}`} className={styles.vendorSliderCard}>
+        <div className={styles.vendorSliderAvatarWrapper}>
+          {vendor.avatarUrl ? (
+            <img
+              src={vendor.avatarUrl}
+              alt={vendor.name}
+              className={styles.vendorSliderAvatar}
+            />
+          ) : (
+            <div className={styles.vendorSliderAvatarPlaceholder} />
+          )}
+        </div>
+        <div className={styles.vendorSliderInfo}>
+          <p className={styles.vendorSliderName}>
+            {vendor.name}
+            {vendor.verified && <FaRegCircleCheck className={styles.verifiedIconSmall} />}
+          </p>
+          <p className={styles.vendorSliderUsername}>@{vendor.username}</p>
+        </div>
+      </Link>
+    );
+  };
 
   const metaplex = useMemo(() => {
     if (wallet.publicKey) {
@@ -244,9 +276,22 @@ const Marketplace = () => {
     }
   };
 
+
   useEffect(() => {
     fetchNFTs();
+    const interval = setInterval(fetchNFTs, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [metaplex]);
+
+  useEffect(() => {
+    fetch("/api/vendor/vendorList")
+      .then((res) => res.json())
+      .then((data) => {
+        setVendors(data.vendors || []);
+        setVerifiedVendors(data.verifiedVendors || []);
+      })
+      .catch((err) => console.error("Failed to load vendors:", err));
+  }, []);
 
   // ------------------------------------------------
   // 2. Purchase Handler
@@ -449,6 +494,54 @@ const Marketplace = () => {
         </button> */}
 
       </div>
+
+      {/* === VENDOR SLIDER SECTION === */}
+      <div className={styles.vendorSliderSection}>
+        <div className={styles.vendorSliderHeader}>
+          <h3>LuxHub Dealers</h3>
+          <Link href="/vendors" className={styles.viewAllButton}>
+            View All <FaAngleRight />
+          </Link>
+        </div>
+
+        <div className={styles.vendorSlider}>
+          {/* Verified dealers first */}
+          {verifiedVendors.map((vendor) => (
+            <VendorSliderCard key={`verified-${vendor.wallet}`} vendor={vendor} />
+          ))}
+
+          {/* Then other approved dealers (avoid duplicates) */}
+          {vendors
+            .filter((v) => !verifiedVendors.some((vv) => vv.wallet === v.wallet))
+            .slice(0, 12)
+            .map((vendor) => (
+              <VendorSliderCard key={vendor.wallet} vendor={vendor} />
+            ))}
+
+          {/* Loading/skeleton fallback */}
+          {vendors.length === 0 && verifiedVendors.length === 0 && (
+            <>
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className={styles.vendorSliderCardSkeleton}>
+                  <div className={styles.vendorSliderAvatarPlaceholder} />
+                  <div className={styles.vendorSliderInfo}>
+                    <p>Loading...</p>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+      {/* === END VENDOR SLIDER === */}
+
+      <div className={styles.vendorSliderHeader}>
+          <h3>Timepieces</h3>
+          <Link href="/vendors" className={styles.viewAllButton}>
+            View Collections <FaAngleRight />
+          </Link>
+        </div>
+      
 
       <div className={`${styles.filterPanelWrapper} ${showFilters ? styles.open : styles.closed}`}>
         <FilterSortPanel

@@ -57,10 +57,10 @@ const NFTCard = ({ nft, onClick }: NFTCardProps) => {
       </div>
 
       {/* Badges */}
-      <div className={styles.badge}>
+      {/* <div className={styles.badge}>
         <img src="/images/purpleLGG.png" alt="Verified" className={styles.badgeIcon} />
         {nft.marketStatus === "invalid" ? "Unverified" : "Verified"}
-      </div>
+      </div> */}
 
       <div className={styles.collectionTag}>{nft.title}</div>
     </div>

@@ -369,19 +369,25 @@
   flex-direction: column;
   width: 100%;
   max-width: 300px;
-  border: 1px solid #c8a1ff;
+  border: 1px solid #c8a1ff17;
   border-radius: 5px;
   overflow: hidden;
-  box-shadow: 0 0 20px #000000c0;
+  box-shadow: 0 3px 0px 0px #3f3a46;
   margin: 5px 0px;
+  transition: all 0.2s ease;
 }
+
+.sellerActionsCollapsed:hover {
+  box-shadow: 0 5px 0px 0px #c8a1ff;
+}
+
 
 .interestToggle {
   width: 100%;
-  background: #c8a1ff17;
+  background: #57575717;
   color: #e0c3ff;
-  border: none;
-  /* border-radius: 10px; */
+  border: 1px solid transparent;
+  border-radius: 5px;
   font-weight: 600;
   font-size: 15px;
   cursor: pointer;
@@ -389,15 +395,15 @@
 }
 
 .interestToggle:hover {
-  background: #c8a1ff44;
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px #c8a1ff44;
 }
 
 .dropdownMenu {
   padding: 12px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 10px;
   animation: slideDown 0.3s ease-out;
 }
@@ -408,19 +414,22 @@
 }
 
 .buyButton {
-  background: #c8a1ff;
-  color: #000;
+  width: 90%;
+  background: #c8a1ff88;
+  color: #ffffff;
+  text-shadow: #0000009b 0px 0px 5px;
   font-weight: 700;
   padding: 10px;
   border-radius: 8px;
-  border: none;
+  border: transparent;
   cursor: pointer;
   box-shadow: 0 0 20px #c8a1ff88;
-  transition: all 0.3s;
+  box-shadow: -5px 0px 0px 0px #c8a1ff;
+  transition: all 0.2s;
 }
 
 .buyButton:hover:not(:disabled) {
-  background: #d0b3ff;
+  background: #c8a1ff;
   transform: scale(1.02);
 }
 
