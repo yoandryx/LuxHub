@@ -384,37 +384,71 @@ const Marketplace = () => {
 
   return (
     <div className={styles.container}>
-      <h1>Marketplace</h1>
+      <div className={styles.title}>
 
-      <div className={styles.inputGroupContainer}>
-        <div className={styles.inputGroup}>
-          <div className={styles.searchContainer}>
-            <button><CiSearch className={styles.searchIcon} /></button>
-            <input
-              type="text"
-              placeholder="Search by brand or mint address"
-              className={styles.searchBar}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className={styles.clearButton}>
-                ×
-              </button>
+        <h2>Marketplace</h2>
+
+        <div className={styles.titleSeparator}>
+          <div className={styles.inputGroupContainer}>
+            <div className={styles.inputGroup}>
+              <div className={styles.searchContainer}>
+                <button><CiSearch className={styles.searchIcon} /></button>
+                <input
+                  type="text"
+                  placeholder="Search by brand or mint address"
+                  className={styles.searchBar}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} className={styles.clearButton}>
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <button className={styles.filterToggle} onClick={() => setShowFilters(true)}>
+            Filters{" "}
+            {totalSelected > 0 ? (
+              <span className={styles.filterCount}>({totalSelected})</span>
+            ) : (
+              <FaAngleRight />
             )}
+          </button>
+        </div>
+
+        {/* <div className={styles.inputGroupContainer}>
+          <div className={styles.inputGroup}>
+            <div className={styles.searchContainer}>
+              <button><CiSearch className={styles.searchIcon} /></button>
+              <input
+                type="text"
+                placeholder="Search by brand or mint address"
+                className={styles.searchBar}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className={styles.clearButton}>
+                  ×
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        <button className={styles.filterToggle} onClick={() => setShowFilters(true)}>
+          Filters{" "}
+          {totalSelected > 0 ? (
+            <span className={styles.filterCount}>({totalSelected})</span>
+          ) : (
+            <FaAngleRight />
+          )}
+        </button> */}
+
       </div>
-
-
-      <button className={styles.filterToggle} onClick={() => setShowFilters(true)}>
-        Filters{" "}
-        {totalSelected > 0 ? (
-          <span className={styles.filterCount}>({totalSelected})</span>
-        ) : (
-          <FaAngleRight />
-        )}
-      </button>
 
       <div className={`${styles.filterPanelWrapper} ${showFilters ? styles.open : styles.closed}`}>
         <FilterSortPanel
@@ -437,7 +471,9 @@ const Marketplace = () => {
 
 
       {nfts.length === 0 ? (
-        <Loader />
+        <>
+        ...
+        </>
       ) : (
         <div className={styles.nftGrid}>
           {filteredNfts.map((nft, index) => (

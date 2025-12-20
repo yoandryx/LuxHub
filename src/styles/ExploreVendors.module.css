@@ -4,20 +4,23 @@
   margin: 0 auto;
 }
 
-.title {
-  font-size: 24px;
+.pageContainer h2  {
   letter-spacing: 0.1rem;
   text-align: center;
   text-transform: uppercase;
-  text-shadow: 0 0 50px #c8a1ffda;
+  font-size: 2rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 20px 0;
 }
 
 .sectionHeading {
   font-size: 18px;
   text-transform: uppercase;
   letter-spacing: 0.2rem;
+  padding: 5px 0px;
   margin: 4rem 0 2rem;
-  padding-bottom: 0.75rem;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -29,56 +32,58 @@
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
-  text-shadow: 0 0 50px #c8a1ffda;
-  background-color: #c8a1ff17;
-  padding: 8px;
+  background-color: #57575717;
   border-radius: 5px;
   margin: 0px;
-  width: 99%;
+  width: 100%;
+  box-shadow: 0 5px 0px 0px #3f3a46;
 }
 
-/* .sectionHeading::after {
-  content: "";
-  width: 80px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #c8a1ff);
-} */
+.sectionHeading h2 {
+  font-size: 1.5rem;
+  padding: 0px 10px;
+  margin: 0;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
 .vendorList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 15px;
   list-style: none;
-  padding: 0;
-  margin: 0;
+  padding: 0px 5px;
+  margin: 0px;
+  margin: 50px 0px;
 }
 
 .vendorCard {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
-  margin: 25px 0px;
   border: 1px solid rgba(200, 161, 255, 0.2);
   backdrop-filter: blur(16px);
-  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-  max-height: 150px;
+  max-height: 100px;
+  box-shadow: -5px 0px 0px 0px #c8a1ff63;
 }
 
 .vendorCard:hover {
-  transform: translateY(-5px) scale(1.02);
-  /* box-shadow: 0 5px 25px #c8a1ff40; */
+  transform: translateY(-5px) scale(1.0);
   border-color: #c8a1ff;
+  box-shadow: 0 0px 0px 0px #c8a1ff;
 }
 
 .banner {
-  position: absolute;
   width: 100%;
   height: 140px;
   object-fit: cover;
   transition: transform 0.8s ease;
   z-index: -1;
+  background-color: #000000;
 }
 
 .vendorCard:hover .banner {
@@ -95,15 +100,22 @@
   backdrop-filter: blur(5px);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background-color: var(--foreground);
+}
+
 .avatar {
   width: 75px;
   height: 75px;
   margin: 5px 5px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #000;
-  /* box-shadow: 0 0 30px #68686899; */
   z-index: 10;
+  border: 1px solid rgba(0, 0, 0, 0.5);
 }
 
 .vendorInfo {
@@ -118,11 +130,10 @@
 .nameWrapper {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 8px;
-  font-size: 1.2rem;
+  letter-spacing: 1px;
   font-weight: 500;
-  margin-bottom: 0.5rem;
   color: #fff;
 }
 
@@ -132,9 +143,14 @@
 }
 
 .username {
-  color: #c8a1ff;
-  font-size: 1.1rem;
-  margin-bottom: 0.75rem;
+   display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-weight: 400;
+  color: #f3eaff;
+  font-size: 12px;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
 }
 
 .wallet {
@@ -144,7 +160,6 @@
   letter-spacing: 1px;
   padding: 6px 12px;
   background: #c8a1ff17;
-  /* border-radius: 8px; */
   transition: all 0.3s ease;
 }
 
@@ -154,46 +169,25 @@
 }
 
 
-
-/* Bottom CTA – now truly luxurious */
-/* .viewLink {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  padding: 18px;
-  text-align: center;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.25rem;
-  text-transform: uppercase;
-  color: #fff;
-  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.9));
-  backdrop-filter: blur(12px);
-  transition: all 0.6s ease;
-  z-index: 10;
-} */
-
 .viewLink {
   display: flex;
   justify-content: center;
   text-align: center;
+  flex-direction: column;
+  align-items: flex-end;
   padding: 10px;
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.15rem;
   text-transform: uppercase;
-  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.9));
   backdrop-filter: blur(12px);
   color: white;
   border-radius: 0 0 20px 20px;
-  transition: all 0.6s ease;
+  /* transition: all 0.6s ease; */
 }
 
 .vendorCard:hover .viewLink {
-  background: linear-gradient(180deg, transparent, #000000);
-  letter-spacing: 0.35rem;
-  text-shadow: 0 0 20px #c8a1ff;
+  text-shadow: 0 0 1px #ffffff;
 }
 
 /* Empty state */
