@@ -56,6 +56,7 @@
     "stripe": "^17.7.0",
     "three": "^0.174.0",
     "typescript": "^5.8.2",
+    "vanilla-tilt": "^1.8.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {

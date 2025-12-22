@@ -4,13 +4,13 @@
     left: 0;
     width: 100%;
     height: 100vh;
-    background-color: #22222237;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background-color: #00000090;
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 1000;
   }
   
   .modalWrapper {
@@ -116,6 +116,12 @@
     position: relative; /* ✅ Required for tooltip */
   }
 
+  .metaDetails {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
   .metaCode {
     display: flex;
     align-items: center;
@@ -162,7 +168,7 @@
     align-items: center;
     justify-content: center;
     /* background: #222; */
-    margin-top: 24px;
+    margin: 0;
     border-radius: 5px;
     text-shadow: #222 0px 0px 2px;
   }
@@ -192,11 +198,11 @@
     font-size: 0.95rem;
     margin-bottom: 6px;
     color: #ffffff;
+    border-bottom: #c8a1ff 1px dashed;
   }
   
   .chatButton,
   .overlayButton {
-    margin: 20px;
     padding: 10px 20px;
     background: #222;
     color: white;
@@ -215,6 +221,7 @@
   .closeButton {
     display: flex;
     position: absolute;
+    top: 10px;
     right: 5%;
     margin: 1%;
     padding: 10px 10px;
@@ -271,7 +278,7 @@
     }
   
     .metaRow {
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
       gap: 4px;
     }
@@ -290,7 +297,238 @@
     .chatButton,
     .overlayButton {
       width: 100%;
-      margin-top: 12px;
+      /* margin-top: 12px; */
+      margin: 0px;
     }
   }
+
+/* 3D Flip Card */
+.flipCard {
+  position: relative;
+  width: 90%;
+  max-width: 500px;
+  height: 80vh;
+  margin: 0 auto;
+  perspective: 1000px;
+  cursor: pointer;
+  margin-top: 50px;
+}
+
+.flipCardInner {
+  position: relative;
+  width: 100%;
+  height: 90%;
+  transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transform-style: preserve-3d;
+  border-radius: 24px;
+  box-shadow: 0px 0px 5px #000000cc;
+  /* background-color: #c8a1ff63; */
+}
+
+.flipCard.flipped .flipCardInner {
+  transform: rotateY(180deg);
+}
+
+.flipCardFront,
+.flipCardBack {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  /* margin: 0px -5px; */
+  backface-visibility: hidden;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  /* padding: 30px; */
+  box-sizing: border-box;
+  /* background: linear-gradient(145deg, #1a1a1a, #0f0f0f); */
+  /* background-color: var(--foreground); */
+  background: radial-gradient(#4a4a4a90, #1e1a2290);
+  border: #c8a1ff solid 1px;
+  border: #c8a1ff43 solid 1px;
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  padding: 20px;
+}
+
+.flipCardFront:hover,
+.flipCardBack:hover {
+  border: #c8a1ff solid 1px;
+  box-shadow: #c8a1ff3f 0px 0px 50px 0px;
+}
+
+.flipCardBack {
+  transform: rotateY(180deg);
+  overflow-y: auto;
+}
+
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  /* max-width: 460px; */
+  /* margin: 20px 0; */
+  border-radius: 20px;
+  overflow: hidden;
+  /* box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6); */
+}
+
+.cardImage {
+  /* width: 100%; */
+  /* margin: 5px; */
+  /* max-height: 500px; */
+  /* height: auto; */
+  height: 100%;
+  border-radius: 20px;
+  display: block;
+}
+
+.flipCardInner h2 {
+  /* position: absolute; */
+  font-size: 2rem;
+  margin: 5px 0;
+  text-align: center;
+  color: white;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 5px 0;
+  padding: 0px 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.backContent {
+  width: 100%;
+  max-width: 660px;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* padding-right: 10px; */
+}
+
+.flipHint,
+.flipHintBack {
+  /* margin-top: 30px; */
+  margin: 5px 0;
+  /* position: absolute; */
+  bottom: 10px;
+  font-size: 0.95rem;
+  color: #797979;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 400;
+}
+
+/* Reuse your existing styles for metaRow, metaCode, attributesSection, etc. */
+
+/* Mobile */
+@media (max-width: 768px) {
+  .flipCard {
+    width: 90%;
+    height: 88vh;
+  }
+  .flipCardFront,
+  .flipCardBack {
+    padding: 10px;
+  }
+  .cardTitle {
+    font-size: 1.7rem;
+  }
+  .imageContainer {
+    max-width: 100%;
+  }
+}
   
+.attributesSection {
+  /* margin-top: 40px; */
+  width: 100%;
+}
+
+.attributesTitle {
+  font-size: 1.8rem;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.attributesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 5px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.attrCard {
+  background-color: #22222274;
+  border: 1px solid #c8a1ff;
+  border-radius: 10px;
+  padding: 18px 16px;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  max-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.attrCard:hover {
+  transform: translateY(-6px);
+  border-color: #c8a1ff; /* Dark gold */
+  background: linear-gradient(145deg, #333, #333);
+}
+
+.attrLabel {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-weight: 500;
+}
+
+.attrValue {
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .attributesGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  
+  .attrCard {
+    padding: 16px 12px;
+    min-height: 90px;
+  }
+  
+  .attrLabel {
+    font-size: 0.8rem;
+  }
+  
+  .attrValue {
+    font-size: 1rem;
+  }
+  
+  .attributesTitle {
+    font-size: 1.6rem;
+  }
+}

@@ -357,7 +357,6 @@ const scrollVertical = (direction: number) => {
         {selectedNFT && (
           <div className={styles.detailOverlay}>
             <div className={styles.detailContainer}>
-              <button className={styles.closeButton} onClick={() => setSelectedNFT(null)}>Close</button>
               <NftDetailCard
                 mintAddress={selectedNFT.nftId}
                 onClose={() => setSelectedNFT(null)}
