@@ -31,7 +31,7 @@
 .titleSeparator {
   display: flex;
   flex-direction: row;
-  gap: 5px;
+  gap: 10px;
   align-items: center;
   height: 50px;
 }
@@ -362,14 +362,17 @@
   align-items: center;
   justify-content: center;
   align-items: center;
-  top: 80px;
-  left: -65px;
+
   padding: 8px 10px;
   height: 50%;
   gap: 5px;
-  background-color: #b991ff;
-  color: black;
-  border: none;
+
+  background-color: #c8a1ff88;
+  text-shadow: #00000066 0px 0px 8px;
+  color: #ffffff;
+  box-shadow: #c8a1ff 3px 0px 0px;
+
+  border: transparent 1px solid;
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
@@ -393,8 +396,10 @@
 }
 
 .filterToggle:hover {
-  background-color: #c8a1ff;
-  translate: 0px -3px;
+  /* background-color: #c8a1ff; */
+  border: #c8a1ff 1px solid;
+  translate: 3px 0px;
+  box-shadow: #000000 0px 0px 0px;
 }
 
 .modalOverlay {
@@ -536,6 +541,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
+  margin: 0;
 }
 
 .viewAllButton {
@@ -546,7 +552,7 @@
   font-size: 0.95rem;
   font-weight: 600;
   text-transform: uppercase;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   text-decoration: none;
 }
 
@@ -577,11 +583,11 @@
   transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-  max-height: 100px;
-  min-width: 250px;
-  box-shadow: -5px 0px 0px 0px #c8a1ff63;
+  max-height: 60px;
+  min-width: 200px;
+  box-shadow: 5px 0px 0px 0px #c8a1ff63;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   flex-direction: row;
   padding: 5px;
@@ -589,19 +595,19 @@
 }
 
 .vendorSliderCard:hover {
-  transform: translateY(-2px);
+  transform: translateX(5px);
   border-color: #c8a1ff;
   box-shadow: 0 0px 0px 0px #c8a1ff;
 }
 
 .vendorSliderAvatarWrapper {
-  margin-bottom: 12px;
+  margin-bottom: 0px;
   
 }
 
 .vendorSliderAvatar {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #c8a1ff44;
@@ -639,6 +645,8 @@
 }
 
 .vendorSliderUsername {
+  display: flex;
+  justify-content: flex-end;
   font-size: 0.85rem;
   color: #d1b3ff;
   opacity: 0.9;
