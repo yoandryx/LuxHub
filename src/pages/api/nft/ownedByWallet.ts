@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import dbConnect from "../../../lib/database/mongodb";
 import SaleRequestModel from "../../../lib/models/SaleRequest";
+import type { LeanDocument } from "../../../types/mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { wallet } = req.query;
@@ -15,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const owned = await SaleRequestModel.find({
       buyer: wallet,
       marketStatus: "Holding",
-    }).lean();
+    }).lean<LeanDocument>();
 
     res.status(200).json(owned);
   } catch (e: any) {

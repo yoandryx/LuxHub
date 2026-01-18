@@ -1,3 +1,4 @@
+import type { LeanDocument } from "../../../types/mongoose";
 // /pages/api/vendor/offers.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
@@ -19,12 +20,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
 
     // Find the vendor by wallet (through User relationship)
-    const user = await User.findOne({ wallet }).lean();
+    const user = await User.findOne({ wallet }).lean<LeanDocument>();
     if (!user) {
       return res.status(200).json({ offers: [] });
     }
 
-    const vendor = await Vendor.findOne({ user: user._id }).lean();
+    const vendor = await Vendor.findOne({ user: user._id }).lean<LeanDocument>();
     if (!vendor) {
       return res.status(200).json({ offers: [] });
     }
@@ -54,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .lean();
 
     // Transform offers for frontend
-    const offers = offerDocs.map((offer: any) => ({
+    const offers = (offerDocs as any[]).map((offer: any) => ({
       _id: offer._id,
       assetId: offer.asset?._id,
       assetTitle: offer.asset?.model || 'Asset',

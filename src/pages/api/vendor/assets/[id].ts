@@ -4,6 +4,7 @@ import dbConnect from '../../../../lib/database/mongodb';
 import { Asset } from '../../../../lib/models/Assets';
 import { Vendor } from '../../../../lib/models/Vendor';
 import { User } from '../../../../lib/models/User';
+import type { LeanDocument, AssetDocument } from '../../../../types/mongoose';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;
@@ -29,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 // GET: Fetch single asset
 async function handleGet(req: NextApiRequest, res: NextApiResponse, assetId: string) {
   try {
-    const asset = await Asset.findById(assetId).lean();
+    const asset = await Asset.findById(assetId).lean<AssetDocument>();
     if (!asset || asset.deleted) {
       return res.status(404).json({ error: 'Asset not found' });
     }
@@ -50,12 +51,12 @@ async function handleDelete(req: NextApiRequest, res: NextApiResponse, assetId: 
     }
 
     // Find the vendor by wallet
-    const user = await User.findOne({ wallet }).lean();
+    const user = await User.findOne({ wallet }).lean<LeanDocument>();
     if (!user) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    const vendor = await Vendor.findOne({ user: user._id }).lean();
+    const vendor = await Vendor.findOne({ user: user._id }).lean<LeanDocument>();
     if (!vendor) {
       return res.status(403).json({ error: 'Unauthorized - vendor not found' });
     }
@@ -99,12 +100,12 @@ async function handleUpdate(req: NextApiRequest, res: NextApiResponse, assetId: 
     }
 
     // Find the vendor by wallet
-    const user = await User.findOne({ wallet }).lean();
+    const user = await User.findOne({ wallet }).lean<LeanDocument>();
     if (!user) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    const vendor = await Vendor.findOne({ user: user._id }).lean();
+    const vendor = await Vendor.findOne({ user: user._id }).lean<LeanDocument>();
     if (!vendor) {
       return res.status(403).json({ error: 'Unauthorized - vendor not found' });
     }

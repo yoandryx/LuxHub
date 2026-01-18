@@ -1,3 +1,4 @@
+import type { LeanDocument } from "../../../types/mongoose";
 // /pages/api/vendor/orders.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
@@ -19,19 +20,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
 
     // Find the vendor by wallet (through User relationship)
-    const user = await User.findOne({ wallet }).lean();
+    const user = (await User.findOne({ wallet }).lean()) as any;
     if (!user) {
       // Return empty orders if user not found
       return res.status(200).json({ orders: [] });
     }
 
-    const vendor = await Vendor.findOne({ user: user._id }).lean();
+    const vendor = (await Vendor.findOne({ user: user._id }).lean()) as any;
     if (!vendor) {
       return res.status(200).json({ orders: [] });
     }
 
     // Fetch escrows where this vendor is the seller
-    const escrows = await Escrow.find({
+    const escrows = (await Escrow.find({
       seller: vendor._id,
       deleted: { $ne: true },
     })
@@ -44,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         select: 'wallet username',
       })
       .sort({ createdAt: -1 })
-      .lean();
+      .lean()) as any[];
 
     // Transform escrows to order format for frontend
     const orders = escrows.map((escrow: any) => ({

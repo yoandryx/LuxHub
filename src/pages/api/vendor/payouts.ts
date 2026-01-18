@@ -1,3 +1,4 @@
+import type { LeanDocument } from "../../../types/mongoose";
 // /pages/api/vendor/payouts.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
@@ -19,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
 
     // Find the vendor by wallet (through User relationship)
-    const user = await User.findOne({ wallet }).lean();
+    const user = (await User.findOne({ wallet }).lean()) as any;
     if (!user) {
       return res.status(200).json({
         payouts: [],
@@ -28,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const vendor = await Vendor.findOne({ user: user._id }).lean();
+    const vendor = (await Vendor.findOne({ user: user._id }).lean()) as any;
     if (!vendor) {
       return res.status(200).json({
         payouts: [],
