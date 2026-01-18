@@ -26,7 +26,12 @@ const nextConfig = {
         crypto: require.resolve("crypto-browserify"), // ✅ fixed
       };
     }
-    console.log("MONGODB_URI:", process.env.MONGODB_URI);
+    // console.log("MONGODB_URI:", process.env.MONGODB_URI);
+    config.externals = config.externals || {};
+    config.externals['@solana/kit'] = 'commonjs @solana/kit';
+    config.externals['@solana-program/memo'] = 'commonjs @solana-program/memo';
+    config.externals['@solana-program/system'] = 'commonjs @solana-program/system';
+    config.externals['@solana-program/token'] = 'commonjs @solana-program/token';
     return config;
   },
 };

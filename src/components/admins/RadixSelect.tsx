@@ -1,7 +1,8 @@
+// src/components/common/RadixSelect.tsx
 "use client";
 import * as Select from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
-import styles from "../../styles/CreateNFT.module.css"; // Adjust if needed
+import styles from "../../styles/RadixSelect.module.css"; // New dedicated module
 
 interface RadixSelectProps {
   value: string;
@@ -19,9 +20,7 @@ export default function RadixSelect({
   return (
     <Select.Root value={value} onValueChange={onValueChange}>
       <Select.Trigger className={styles.selectTrigger}>
-        <Select.Value placeholder={placeholder}>
-          <Select.Value />
-        </Select.Value>
+        <Select.Value placeholder={placeholder} />
         <Select.Icon className={styles.selectIcon}>
           <ChevronDown size={16} />
         </Select.Icon>

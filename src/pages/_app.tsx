@@ -1,6 +1,3 @@
-
-
-
 // Polyfill for global crypto and nodeCrypto (needed by noble-ed25519 used in Metaplex)
 if (typeof (globalThis as any).crypto === 'undefined') {
   (globalThis as any).crypto = window.crypto;
@@ -34,6 +31,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import LuxuryAssistant from '../components/user/LuxuryAssistant';
 import { Toaster } from 'react-hot-toast';
+import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
 
 // Network URL
 const network = WalletAdapterNetwork.Devnet;
@@ -74,21 +72,24 @@ const App = ({ Component, pageProps }: AppProps) => {
           rel="stylesheet"
         />
       </Head>
-      <ConnectionProvider endpoint={endpoint}>
-        <WalletProvider wallets={wallets} autoConnect>
-          <WalletModalProvider>
-            {/* <EscrowProvider> */}
-              <Navbar />
-              <ToastContainer position="top-right" autoClose={4000} />
-              <Toaster position="top-right" />
-              <WalletNavbar />
-              <Component {...pageProps} />
-              <LuxuryAssistant />
-              <Footer />
-            {/* </EscrowProvider> */}
-          </WalletModalProvider>
-        </WalletProvider>
-      </ConnectionProvider>
+
+      <PriceDisplayProvider>
+        <ConnectionProvider endpoint={endpoint}>
+          <WalletProvider wallets={wallets} autoConnect>
+            <WalletModalProvider>
+              {/* <EscrowProvider> */}
+                <Navbar />
+                <ToastContainer position="top-right" autoClose={4000} />
+                <Toaster position="top-right" />
+                <WalletNavbar />
+                <Component {...pageProps} />
+                <LuxuryAssistant />
+                <Footer />
+              {/* </EscrowProvider> */}
+            </WalletModalProvider>
+          </WalletProvider>
+        </ConnectionProvider>
+      </PriceDisplayProvider>
     </ErrorBoundary>
   );
 
@@ -96,6 +97,3 @@ const App = ({ Component, pageProps }: AppProps) => {
 };
 
 export default App;
-
-
-
