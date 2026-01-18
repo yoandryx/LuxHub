@@ -1,0 +1,168 @@
+name: Security Scans
+
+on:
+  schedule:
+    # Run every Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Solana-Anchor/**/*.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  npm-audit:
+    name: NPM Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Generate audit report
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          echo "## NPM Audit Report" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat npm-audit-report.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  cargo-audit:
+    name: Cargo Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run cargo audit
+        working-directory: Solana-Anchor
+        run: cargo audit
+        continue-on-error: true
+
+  anchor-security-check:
+    name: Anchor Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Install cargo-clippy
+        run: rustup component add clippy
+
+      - name: Run Clippy on Anchor programs
+        working-directory: Solana-Anchor
+        run: |
+          cargo clippy --all-targets --all-features -- \
+            -D warnings \
+            -D clippy::arithmetic_side_effects \
+            -D clippy::integer_division \
+            -W clippy::unwrap_used \
+            -W clippy::expect_used \
+            2>&1 | tee clippy-report.txt
+        continue-on-error: true
+
+      - name: Upload Clippy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: clippy-report
+          path: Solana-Anchor/clippy-report.txt
+
+      - name: Security pattern check
+        working-directory: Solana-Anchor
+        run: |
+          echo "## Anchor Security Analysis" >> $GITHUB_STEP_SUMMARY
+
+          # Check for unchecked arithmetic
+          echo "### Unchecked Arithmetic" >> $GITHUB_STEP_SUMMARY
+          if grep -rn "overflow" programs/ --include="*.rs" | grep -v "checked_" | grep -v "saturating_"; then
+            echo "⚠️ Potential unchecked arithmetic found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No obvious unchecked arithmetic" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check for proper account constraints
+          echo "### Account Constraints" >> $GITHUB_STEP_SUMMARY
+          if grep -rn "#\[account(" programs/ --include="*.rs" | wc -l; then
+            echo "Account constraints found in programs" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check for signer verification
+          echo "### Signer Verification" >> $GITHUB_STEP_SUMMARY
+          signer_count=$(grep -rn "Signer\|has_one\|constraint" programs/ --include="*.rs" | wc -l)
+          echo "Found $signer_count signer/constraint declarations" >> $GITHUB_STEP_SUMMARY
+
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Custom secret patterns check
+        run: |
+          echo "## Secret Detection Results" >> $GITHUB_STEP_SUMMARY
+
+          # Check for potential secrets (excluding common false positives)
+          patterns=(
+            "api[_-]?key.*['\"][a-zA-Z0-9]{20,}['\"]"
+            "secret.*['\"][a-zA-Z0-9]{20,}['\"]"
+            "password.*['\"][^'\"]+['\"]"
+            "mongodb\+srv://[^:]+:[^@]+@"
+          )
+
+          found_secrets=false
+          for pattern in "${patterns[@]}"; do
+            if grep -rniE "$pattern" src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v ".env" | grep -v "example"; then
+              found_secrets=true
+              echo "⚠️ Potential hardcoded secret pattern found" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          if [ "$found_secrets" = false ]; then
+            echo "✅ No obvious hardcoded secrets detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
