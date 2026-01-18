@@ -1,0 +1,12 @@
+<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="20" y="60" width="160" height="120" rx="20" fill="url(#bags-grad)"/>
+  <rect x="60" y="30" width="80" height="50" rx="10" fill="none" stroke="url(#bags-grad)" stroke-width="8"/>
+  <circle cx="70" cy="120" r="15" fill="#000" opacity="0.3"/>
+  <circle cx="130" cy="120" r="15" fill="#000" opacity="0.3"/>
+  <defs>
+    <linearGradient id="bags-grad" x1="20" y1="30" x2="180" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+</svg>
