@@ -111,7 +111,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin: 10px 0;
+    margin: 10px 5px;
     flex-wrap: wrap;
     position: relative; /* ✅ Required for tooltip */
   }
@@ -120,6 +120,15 @@
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .metaLabel {
+    font-weight: 500;
+    font-size: 12px;
+    color: #ccc;
+    text-transform: capitalize;
   }
 
   .metaCode {
@@ -129,7 +138,7 @@
     background: #222;
     padding: 4px 8px;
     border-radius: 4px;
-    font-size: 0.85rem;
+    font-size: 10px;
     color: #ccc;
     max-width: 100%;
     overflow-wrap: break-word;
@@ -210,6 +219,7 @@
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.95rem;
+    max-height: 40px;
   }
   
   .chatButton:hover,
@@ -281,6 +291,7 @@
       flex-direction: row;
       align-items: center;
       gap: 4px;
+      max-width: 150px;
     }
   
     .metaCode {
@@ -418,12 +429,16 @@
 
 .flipHint,
 .flipHintBack {
+  display: flex;
+  justify-content: flex-end;
   /* margin-top: 30px; */
   margin: 5px 0;
   /* position: absolute; */
   bottom: 10px;
-  font-size: 0.95rem;
-  color: #797979;
+  font-size: 12px;
+  text-transform: uppercase;
+  /* color: #797979; */
+  color: #c8a1ff;
   display: flex;
   align-items: center;
   gap: 10px;

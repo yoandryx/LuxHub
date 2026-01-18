@@ -16,30 +16,46 @@
   margin: 10px 0;
 }
 
-.container h2 {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 5px;
-  width: 100%;
-  font-weight: 500;
-  letter-spacing: 1px;
+.title {
+  letter-spacing: 0.1rem;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 2rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 20px 0;
 }
   
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: groove 1px #c8a1ff;
+  font-weight: 500;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  margin: 50px 0;
+  background-color: #57575717;
+  border-radius: 5px;
+  margin: 50px 5px;
+  width: 100%;
+  box-shadow: 0 5px 0px 0px #3f3a46;
+}
+
+.header h2 {
+  font-size: 1.5rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 5px 0;
+  padding: 0px 10px;
 }
 
 .sectionTitle {
-  color: var(--primary);
-  margin: 50px 0;
+  font-weight: 500;
   letter-spacing: 1px;
+  text-transform: uppercase;
+  background-color: #57575717;
+  border-radius: 5px;
+  margin: 50px 5px;
+  width: 100%;
+  box-shadow: 0 5px 0px 0px #3f3a46;
 }
   
 .logoutButton {

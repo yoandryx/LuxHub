@@ -1,50 +1,365 @@
-/* .scrollContainer {
-    position: relative;
-    height: 300vh;
-    width: 100%;
+/* ===== LUXHUB SCROLL STEPS - GLASSMORPHIC LUXURY ===== */
+
+.wrapper {
+  position: relative;
+  min-height: 250vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* ===== AMBIENT BACKGROUND ORBS ===== */
+.ambientOrb {
+  position: fixed;
+  top: 20%;
+  left: -10%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(185, 145, 255, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: floatOrb 20s ease-in-out infinite;
+}
+
+.ambientOrb2 {
+  position: fixed;
+  bottom: 10%;
+  right: -15%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(139, 108, 231, 0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: 0;
+  animation: floatOrb 25s ease-in-out infinite reverse;
+}
+
+@keyframes floatOrb {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(50px, -30px); }
+}
+
+/* ===== PROGRESS INDICATOR ===== */
+.progressContainer {
+  position: fixed;
+  top: 50%;
+  right: 40px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  z-index: 100;
+}
+
+.progressTrack {
+  width: 2px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progressBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(180deg, #b991ff 0%, #8b6ce7 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 20px rgba(185, 145, 255, 0.5);
+}
+
+.progressSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.progressDot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progressDot span {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  letter-spacing: 0.5px;
+}
+
+/* ===== STEPS CONTAINER ===== */
+.stepsContainer {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* ===== STEP CARD - GLASSMORPHIC LUXURY ===== */
+.stepCard {
+  position: absolute;
+  width: 100%;
+  max-width: 480px;
+  padding: 0 20px;
+}
+
+.cardInner {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  padding: 48px 40px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cardInner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+}
+
+.cardInner:hover {
+  border-color: rgba(185, 145, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Card glow effect */
+.cardGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle at center,
+    rgba(185, 145, 255, 0.04) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ===== STEP BADGE ===== */
+.stepBadge {
+  position: absolute;
+  top: -1px;
+  right: 32px;
+  background: linear-gradient(135deg, #b991ff 0%, #8b6ce7 100%);
+  padding: 8px 16px 12px;
+  border-radius: 0 0 12px 12px;
+}
+
+.stepNumber {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: 1px;
+}
+
+/* ===== ICON ===== */
+.iconWrapper {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.12) 0%,
+    rgba(185, 145, 255, 0.04) 100%
+  );
+  border: 1px solid rgba(185, 145, 255, 0.15);
+  border-radius: 16px;
+  margin-bottom: 28px;
+  font-size: 1.4rem;
+  color: #b991ff;
+  transition: all 0.3s ease;
+}
+
+.cardInner:hover .iconWrapper {
+  transform: scale(1.05);
+  box-shadow: 0 8px 32px rgba(185, 145, 255, 0.15);
+}
+
+/* ===== CONTENT ===== */
+.cardContent {
+  text-align: left;
+}
+
+.stepTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stepSubtitle {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #b991ff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.stepDesc {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 400;
+  margin: 0;
+}
+
+/* ===== DECORATIVE LINE ===== */
+.decorLine {
+  position: absolute;
+  bottom: 0;
+  left: 40px;
+  right: 40px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(185, 145, 255, 0.2) 50%,
+    transparent 100%
+  );
+}
+
+/* ===== SCROLL SPACER ===== */
+.scrollSpacer {
+  height: 150vh;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media screen and (max-width: 768px) {
+  .progressContainer {
+    right: 16px;
   }
-  
-  .stickyLayer {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    width: 100%;
-    overflow: hidden;
-    z-index: 1;
+
+  .progressTrack {
+    height: 80px;
   }
-  
-  .canvasWrapper {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 100%;
-    pointer-events: none;
-    z-index: 0;
+
+  .progressDot {
+    width: 28px;
+    height: 28px;
+    font-size: 0.6rem;
   }
-  
-  .overlaySteps {
-    position: relative;
-    height: 100vh;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 2;
-    pointer-events: none;
+
+  .progressSteps {
+    gap: 16px;
   }
-  
+
   .stepCard {
-    background: rgba(20, 20, 20, 0.7);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 32px;
-    max-width: 800px;
-    margin: 0 auto 32px;
-    box-shadow: 0 0 20px rgba(185, 145, 255, 0.1);
-    color: white;
-    pointer-events: auto;
-    text-align: center;
+    max-width: 100%;
+    padding: 0 16px;
   }
-   */
+
+  .cardInner {
+    padding: 40px 28px;
+    border-radius: 20px;
+  }
+
+  .stepBadge {
+    right: 24px;
+    padding: 6px 12px 10px;
+  }
+
+  .stepNumber {
+    font-size: 0.6rem;
+  }
+
+  .iconWrapper {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    border-radius: 14px;
+    margin-bottom: 24px;
+  }
+
+  .stepTitle {
+    font-size: 1.6rem;
+  }
+
+  .stepSubtitle {
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+  }
+
+  .stepDesc {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .ambientOrb {
+    width: 300px;
+    height: 300px;
+  }
+
+  .ambientOrb2 {
+    width: 250px;
+    height: 250px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .progressContainer {
+    display: none;
+  }
+
+  .cardInner {
+    padding: 36px 24px;
+  }
+
+  .stepTitle {
+    font-size: 1.4rem;
+  }
+}

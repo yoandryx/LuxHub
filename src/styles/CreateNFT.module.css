@@ -582,3 +582,49 @@
     max-width: 320px;
   }
 }
+
+
+/* AddInventoryForm organization – safe additions to shared module */
+.modeTabs {
+  display: flex;
+  margin-bottom: 3rem;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px groove var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.modeTabs button {
+  flex: 1;
+  padding: 1.2rem;
+  background: #3c3c3c32;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modeTabs button:hover {
+  background: #4c4c4c50;
+}
+
+.modeTabs button.active {
+  background: linear-gradient(90deg, #c8a1ff40, #b991ff40);
+  color: #c8a1ff;
+  box-shadow: 0 0 20px rgba(200, 161, 255, 0.4);
+}
+
+.formContainer {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 3rem;
+}
+
+.pageTitle {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  letter-spacing: 1px;
+}

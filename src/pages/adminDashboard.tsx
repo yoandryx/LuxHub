@@ -23,6 +23,10 @@ import { MetadataChangeRequestsTab } from "../components/admins/MetadataChangeRe
 import { CiSearch } from "react-icons/ci";
 import { VendorProfile } from "../lib/models/VendorProfile";
 import VendorManagementPanel from "../components/vendor/VendorManagementPanel";
+// NEW
+import * as multisig from "@sqds/multisig";
+import { Buffer } from "buffer"; // for base64 encoding in browser
+
 
 interface LogEntry {
   timestamp: string;
@@ -69,6 +73,27 @@ interface EscrowAccount {
   vaultATA?: string;
   attributes?: { trait_type: string; value: string }[];
 }
+
+async function proposeToSquads(ix: {
+  programId: string;
+  keys: { pubkey: string; isSigner: boolean; isWritable: boolean }[];
+  dataBase64: string;
+  vaultIndex?: number;
+  transactionIndex?: string | number;
+}) {
+  const resp = await fetch("/api/squads/propose", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...ix,
+      vaultIndex: ix.vaultIndex ?? 0,
+    }),
+  });
+  const json = await resp.json();
+  if (!resp.ok || !json.ok) throw new Error(json.error || "Failed to propose tx");
+  return json as { ok: true; multisigPda: string; vaultIndex: number; transactionIndex: string };
+}
+
 
 const FUNDS_MINT = "So11111111111111111111111111111111111111112";
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -500,149 +525,136 @@ const AdminDashboard: React.FC = () => {
   // Escrow Confirmation
   // ------------------------------------------------
   const confirmDelivery = async (escrow: EscrowAccount) => {
-
     const confirm = window.confirm(
       `Approve delivery?\n\nBuyer paid ${(Number(escrow.salePrice) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nSeller will receive ${(Number(escrow.salePrice) * 0.95 / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nLuxHub earns 5%.`
     );
     if (!confirm) return;
-  
+
     if (!wallet.publicKey || !program || !currentEscrowConfig) {
       toast.error("Wallet not connected or program not ready.");
       return;
     }
-  
+
     setLoading(true);
-    const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com");
-  
+    const connection = new Connection(
+      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
+    );
+
     try {
-
+      // ---------- resolve buyer & escrow pda ----------
       const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
-      const [escrowPda] = PublicKey.findProgramAddressSync([Buffer.from("state"), seedBuffer], program.programId);
+      const [escrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("state"), seedBuffer],
+        program.programId
+      );
       const onchainEscrow = await (program.account as any).escrow.fetch(escrowPda);
-
       const buyerPubkey = onchainEscrow.buyer?.toBase58?.();
       if (!buyerPubkey || buyerPubkey === PublicKey.default.toBase58()) {
         toast.error("Buyer not set. Purchase must occur before delivery.");
         return;
       }
-  
+
+      // ---------- derive all accounts ----------
       const nftMint = new PublicKey(escrow.mintB);
-      const vault = await getAssociatedTokenAddress(nftMint, escrowPda, true);
+
+      // IMPORTANT: luxhub must be the **Squads Vault PDA**, not your wallet
+      const msig = new PublicKey(process.env.NEXT_PUBLIC_SQUADS_MSIG!);
+      const [vaultPda] = multisig.getVaultPda({ multisigPda: msig, index: 0 });
+
+      const nftVault = await getAssociatedTokenAddress(nftMint, escrowPda, true);
+      const wsolVault = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
+
       const sellerNftAta = await getAssociatedTokenAddress(nftMint, new PublicKey(escrow.initializer));
       const buyerNftAta = await getAssociatedTokenAddress(nftMint, new PublicKey(buyerPubkey));
-  
+
       const sellerFundsAta = await getAssociatedTokenAddress(
         new PublicKey(FUNDS_MINT),
         new PublicKey(escrow.initializer)
       );
-      const info = await connection.getAccountInfo(sellerFundsAta);
-      console.log("👀 Seller wSOL ATA exists?", !!info);
       const luxhubFeeAta = await getAssociatedTokenAddress(
         new PublicKey(FUNDS_MINT),
-        new PublicKey(currentEscrowConfig)
+        new PublicKey(currentEscrowConfig) // your treasury where 5% goes
       );
 
-      const nftVault = await getAssociatedTokenAddress(new PublicKey(escrow.mintB), escrowPda, true);
-      const wsolVault = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
-      
+      // ---------- preflight checks ----------
       const nftVaultInfo = await connection.getAccountInfo(nftVault);
       const wsolVaultInfo = await connection.getAccountInfo(wsolVault);
-      
       if (!nftVaultInfo) {
-        console.warn("❌ NFT vault account does not exist:", nftVault.toBase58());
         toast.error("NFT vault does not exist. Cannot confirm delivery.");
         return;
       }
-      
       if (!wsolVaultInfo) {
-        console.warn("❌ wSOL vault account does not exist:", wsolVault.toBase58());
         toast.error("wSOL vault does not exist. Cannot confirm delivery.");
         return;
       }
-      
       const nftAmount = await connection.getTokenAccountBalance(nftVault);
       const wsolAmount = await connection.getTokenAccountBalance(wsolVault);
-      
-      console.log("📦 NFT Vault Amount:", nftAmount.value.amount);
-      console.log("💰 wSOL Vault Amount:", wsolAmount.value.amount);
-      
-      // Convert balances to numbers for comparison
       const nftAvailable = Number(nftAmount.value.amount);
       const wsolAvailable = Number(wsolAmount.value.amount);
-      const expectedWsol = Number(escrow.salePrice); // already in lamports
-
+      const expectedWsol = Number(escrow.salePrice);
       if (nftAvailable < 1) {
-        toast.error("Vault NFT balance is insufficient. Cannot transfer.");
+        toast.error("Vault NFT balance is insufficient.");
         return;
       }
-
       if (wsolAvailable < expectedWsol) {
-        toast.error(`Vault does not have enough wSOL. Expected: ${expectedWsol}, Found: ${wsolAvailable}`);
+        toast.error(`Vault wSOL insufficient. Need ${expectedWsol}, found ${wsolAvailable}`);
         return;
       }
 
-      console.warn("🔍 NFT Vault:", nftVault.toBase58(), "Amount:", nftAvailable);
-      console.warn("🔍 wSOL Vault:", wsolVault.toBase58(), "Amount:", wsolAvailable);
-  
-      const tx = await program.methods
-      .confirmDelivery()
-      .accounts({
-        luxhub: wallet.publicKey,
-        escrow: escrowPda,
-        nftVault: nftVault,
-        wsolVault: wsolVault,
-        mintA: new PublicKey(FUNDS_MINT),
-        mintB: nftMint,
-        sellerFundsAta,
-        luxhubFeeAta,
-        sellerNftAta,
-        buyerNftAta,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
+      // ---------- build Anchor instruction (NO .rpc()) ----------
+      const ix = await program.methods
+        .confirmDelivery()
+        .accounts({
+          luxhub: vaultPda,                 // signer when executed by Squads
+          escrow: escrowPda,
+          nftVault,
+          wsolVault,
+          mintA: new PublicKey(FUNDS_MINT), // wSOL mint
+          mintB: nftMint,
+          sellerFundsAta,
+          luxhubFeeAta,
+          sellerNftAta,
+          buyerNftAta,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .instruction();
 
-  
-      toast.success("✅ Delivery confirmed!");
-      setStatus("Delivery confirmed. Tx: " + tx);
-      addLog("Confirm Delivery", tx, `Escrow ${escrow.seed}`);
-  
-      // === METADATA UPDATE ===
-      const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
-      const nft = await metaplex.nfts().findByMint({ mintAddress: nftMint });
-      const res = await fetch(nft.uri);
-      const metadata = await res.json();
-  
-      metadata.attributes = metadata.attributes || [];
-  
-      const updateAttr = (key: string, val: string) => {
-        const found = metadata.attributes.find((a: any) => a.trait_type === key);
-        if (found) found.value = val;
-        else metadata.attributes.push({ trait_type: key, value: val });
-      };
-  
-      updateAttr("Provenance", escrow.initializer);
-      updateAttr("Owner", buyerPubkey);
-      updateAttr("Market Status", "Holding LuxHub");
-      metadata.updatedAt = new Date().toISOString();
-  
-      const newUri = await uploadToPinata(metadata, metadata.name || "Updated Metadata");
-      await updateNftMetadata(wallet as any, escrow.mintB, { uri: newUri });
-  
-      await fetch("/api/nft/updateStatus", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mintAddress: escrow.mintB, marketStatus: "Holding" }),
+      // ---------- shape for API ----------
+      const keys = ix.keys.map(k => ({
+        pubkey: k.pubkey.toBase58(),
+        isSigner: k.isSigner,
+        isWritable: k.isWritable,
+      }));
+      const dataBase64 = Buffer.from(ix.data).toString("base64");
+
+      // ---------- create a Squads proposal ----------
+      const result = await proposeToSquads({
+        programId: ix.programId.toBase58(),
+        keys,
+        dataBase64,
+        vaultIndex: 0,
+        // transactionIndex: Date.now().toString(), // optional custom index
       });
-  
+
+      toast.success(
+        `✅ Proposal created in Squads (vault ${result.vaultIndex}, index ${result.transactionIndex}). Approve & Execute in Squads.`
+      );
+      setStatus(`Squads proposal created. Index: ${result.transactionIndex}`);
+      addLog("Confirm Delivery (proposed)", "N/A", `Escrow ${escrow.seed}`);
+
+      // NOTE: Do your metadata/DB updates after the proposal is actually executed.
+      // You can listen webhooks or add an "Execute" button that calls /api/squads/execute.
+
       await fetchActiveEscrowsByMint();
     } catch (err: any) {
       console.error("[confirmDelivery] error:", err);
-      setStatus("Confirm delivery failed: " + err.message);
-      toast.error("❌ Delivery failed: " + err.message);
+      setStatus("Confirm delivery (proposal) failed: " + err.message);
+      toast.error("❌ Proposal failed: " + err.message);
     } finally {
       setLoading(false);
     }
   };
+
   
   // ------------------------------------------------
   // Escrow Cancellation
@@ -709,6 +721,7 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   // Approve Sale -> Escrow creation (with automatic NFT deposit)
   // ------------------------------------------------
+  // --- replace your entire handleApproveSale with this version ---
   const handleApproveSale = async (req: SaleRequest) => {
     console.log("[handleApproveSale] Sale request data:", req);
     if (!req.seller) {
@@ -716,24 +729,23 @@ const AdminDashboard: React.FC = () => {
       setStatus("Error: Missing seller field");
       return;
     }
-  
-    try {
 
+    try {
       const connection = new Connection(
         process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
       );
-  
-      const sellerPk = new PublicKey(req.seller);
 
+      const sellerPk = new PublicKey(req.seller);
       const buyerPk = new PublicKey(
         typeof req.buyer === "string" ? req.buyer : PLACEHOLDER_BUYER.toBase58()
       );
-      console.log("[handleApproveSale] Raw buyer field:", req.buyer);
-
-      const luxhubPk = new PublicKey(
-        typeof req.luxhubWallet === "string" ? req.luxhubWallet : currentEscrowConfig
-      );
-      
+      const resolvedLuxhubWallet = req.luxhubWallet || currentEscrowConfig;
+      if (!resolvedLuxhubWallet) {
+        console.error("[handleApproveSale] LuxHub wallet is missing from request and config.");
+        setStatus("Error: Missing LuxHub Wallet");
+        return;
+      }
+      const luxhubPk = new PublicKey(resolvedLuxhubWallet);
       const nftMint = new PublicKey(req.nftId);
 
       if (
@@ -742,11 +754,12 @@ const AdminDashboard: React.FC = () => {
         req.takerAmount === undefined ||
         req.salePrice === undefined
       ) {
-        console.error("[handleApproveSale] Invalid BN input:", req);
+        console.error("[handleApproveSale] Invalid numeric input:", req);
         setStatus("Error: Missing required numeric fields");
         return;
       }
 
+      // ---------- derive escrow PDA & check if already exists ----------
       const seed = Number(req.seed);
       const seedBuffer = new BN(seed).toArrayLike(Buffer, "le", 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
@@ -754,51 +767,38 @@ const AdminDashboard: React.FC = () => {
         program!.programId
       );
       console.log("[handleApproveSale] Escrow PDA:", escrowPda.toBase58());
-      
-      // 🛑 Prevent re-initializing if PDA already exists
+
       const escrowInfo = await connection.getAccountInfo(escrowPda);
       if (escrowInfo !== null) {
-        // alert("Escrow PDA already exists. Proceeding to update metadata...");
+        // Already initialized: do not re-initialize via Squads.
         setStatus("Escrow already initialized — updating metadata and cleaning up.");
-        // console.warn("[handleApproveSale] PDA exists. Updating metadata...");
-      
         await updateNFTMarketStatus(req.nftId, "active", wallet);
         await fetch("/api/nft/updateStatus", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mintAddress: req.nftId,
-            marketStatus: "active"
-          }),
+          body: JSON.stringify({ mintAddress: req.nftId, marketStatus: "active" }),
         });
-      
         setSaleRequests((prev) => prev.filter((r) => r.nftId !== req.nftId));
         await refreshData();
         return;
       }
-      
-      console.log("[handleApproveSale] Escrow PDA:", escrowPda.toBase58());
-  
+
+      // ---------- vault ATA must exist and be funded with seller’s NFT ----------
       const vaultAta = await getAssociatedTokenAddress(nftMint, escrowPda, true);
       const vaultInfo = await connection.getAccountInfo(vaultAta);
-  
       if (!vaultInfo) {
         alert("Vault ATA does not exist yet. Please wait for the seller to deposit the NFT.");
         return;
       }
-  
       const vaultBalance = await connection.getTokenAccountBalance(vaultAta);
       const vaultAmount = Number(vaultBalance.value.uiAmount || 0);
-  
       if (vaultAmount < req.initializerAmount) {
         alert("Vault ATA balance is insufficient. Please wait for the seller to deposit the NFT.");
         return;
       }
-  
-      console.log("[handleApproveSale] Vault ATA validated.");
-  
-      setStatus("Approving listing...");
-      addLog("Approve Sale", "N/A", `Vault validated. Seed: ${seed}`);
+
+      setStatus("Approving listing (proposing via Squads)...");
+      addLog("Approve Sale (proposed)", "N/A", `Vault validated. Seed: ${seed}`);
       console.log("[DEBUG] BN inputs:", {
         seed: req.seed,
         initializerAmount: req.initializerAmount,
@@ -806,33 +806,24 @@ const AdminDashboard: React.FC = () => {
         salePrice: req.salePrice,
       });
 
-      const resolvedLuxhubWallet = req.luxhubWallet || currentEscrowConfig;
+      // ---------- derive Squads vault PDA (admin signer) ----------
+      const msig = new PublicKey(process.env.NEXT_PUBLIC_SQUADS_MSIG!);
+      const [vaultPda] = multisig.getVaultPda({ multisigPda: msig, index: 0 });
 
-      if (!resolvedLuxhubWallet) {
-        console.error("[handleApproveSale] LuxHub wallet is missing from request and config.");
-        setStatus("Error: Missing LuxHub Wallet");
-        return;
-      }
-
-      console.log("[handleApproveSale] Using LuxHub Wallet:", resolvedLuxhubWallet);
-      console.log("[handleApproveSale] Using buyer wallet:", buyerPk.toBase58());
-      console.log("[handleApproveSale] Using seller wallet:", sellerPk.toBase58());
-      console.log("[handleApproveSale] Using NFT mint:", nftMint.toBase58());
-      console.log("[handleApproveSale] Using luxhubPk:", luxhubPk.toBase58());
-  
-      // ⬇️ Initialize escrow on-chain
-      const tx = await program!.methods
+      // ---------- build Anchor instruction (NO .rpc()) ----------
+      const ix = await program!.methods
         .initialize(
           new BN(seed),
-          new BN(req.initializerAmount),
-          new BN(req.takerAmount),
+          new BN(req.initializerAmount), // lamports
+          new BN(req.takerAmount),       // lamports
           req.fileCid,
           luxhubPk,
-          new BN(req.salePrice),
+          new BN(req.salePrice),         // lamports
           buyerPk
         )
         .accounts({
-          admin: wallet.publicKey!,
+          // IMPORTANT: your program’s `admin` signer must be the Squads vault PDA
+          admin: vaultPda,
           seller: sellerPk,
           mintA: new PublicKey(FUNDS_MINT),
           mintB: nftMint,
@@ -845,23 +836,45 @@ const AdminDashboard: React.FC = () => {
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
-        .rpc();
-  
-      console.log("✅ initialize tx:", tx);
-  
-      // Update metadata in your DB
-      await updateNFTMarketStatus(req.nftId, "active", wallet);
-  
-      setSaleRequests((prev) => prev.filter((r) => r.nftId !== req.nftId));
+        .instruction();
+
+      // ---------- shape for API ----------
+      const keys = ix.keys.map((k) => ({
+        pubkey: k.pubkey.toBase58(),
+        isSigner: k.isSigner,
+        isWritable: k.isWritable,
+      }));
+      const dataBase64 = Buffer.from(ix.data).toString("base64");
+
+      // ---------- create a Squads proposal ----------
+      const result = await proposeToSquads({
+        programId: ix.programId.toBase58(),
+        keys,
+        dataBase64,
+        vaultIndex: 0,
+        // transactionIndex: Date.now().toString(), // optional custom index
+      });
+
+      toast.success(
+        `✅ Proposal created in Squads (vault ${result.vaultIndex}, index ${result.transactionIndex}). Approve & Execute in Squads.`
+      );
+      setStatus(`Squads proposal created. Index: ${result.transactionIndex}`);
+      addLog("Approve Sale (proposed)", "N/A", `Escrow ${seed}`);
+
+      // ⚠️ Defer metadata/DB updates until proposal EXECUTED (webhook/poll).
+      // After execution:
+      // await updateNFTMarketStatus(req.nftId, "active", wallet);
+      // await fetch("/api/nft/updateStatus", { ... });
+
       await refreshData();
-      setStatus("NFT approved and escrow initialized ✅");
-  
     } catch (error: any) {
       console.error("[handleApproveSale] error:", error);
-      setStatus("Approve sale failed: " + error.message);
+      setStatus("Approve sale (proposal) failed: " + error.message);
       addLog("Approve Sale", "N/A", "Error: " + error.message);
+      toast.error(`❌ Proposal failed: ${error.message}`);
     }
   };
+
 
   // ------------------------------------------------
   // Vault Address Fetching
@@ -903,7 +916,8 @@ const AdminDashboard: React.FC = () => {
       case 2:
         return (
           <div>
-            <h2>Active Escrows</h2>
+            
+            <div className={styles.header}><h2>Active Escrows</h2></div>
             {activeEscrows.length === 0 ? (
               <p>No active escrows found.</p>
             ) : (
@@ -995,7 +1009,7 @@ const AdminDashboard: React.FC = () => {
       case 5:
         return (
           <div>
-            <h2>Marketplace Listing Requests</h2>
+            <div className={styles.header}><h2>Marketplace Listing Requests</h2></div>
 
             <div className={styles.inputGroupContainer}>
               <div className={styles.inputGroup}>
@@ -1141,8 +1155,8 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>Admin Dashboard</h1>
+      <div className={styles.title}>
+        <h2>Admin Dashboard</h2>
       </div>
       {!wallet.publicKey ? (
         <p>Please connect your wallet.</p>

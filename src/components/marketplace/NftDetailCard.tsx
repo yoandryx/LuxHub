@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import styles from "../../styles/NFTDetailCard.module.css";
 import { FaTimes, FaCopy, FaArrowsAltH } from "react-icons/fa";
+import { LuRotate3D } from "react-icons/lu";
 import { Metaplex } from "@metaplex-foundation/js";
 import { Connection, PublicKey } from "@solana/web3.js";
 import VanillaTilt from "vanilla-tilt";
+import { usePriceDisplay } from '../marketplace/PriceDisplay';
 
 export interface NFTMetadata {
   name: string;
@@ -59,6 +61,9 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
   const [loading, setLoading] = useState<boolean>(!!metadataUri && !previewData);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
+
+  const { formatPrice } = usePriceDisplay();
+  const { displayInUSD, toggleDisplay } = usePriceDisplay();
 
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -189,19 +194,105 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
         <div className={styles.flipCardInner}>
           {/* FRONT SIDE - NFT Image */}
           <div className={styles.flipCardFront}>
-            <h2>{metadata.name}</h2>
+            {/* <h2>{metadata.name}</h2> */}
             <div className={styles.imageContainer}>
               <img src={metadata.image} alt={metadata.name} className={styles.cardImage} />
             </div>
-            <div className={styles.flipHint}>
+
+            <h2>{metadata.name}</h2>
+
+              <div className={styles.metaDetails}>
+
+                {metadata.mintAddress && (
+                  <div className={styles.metaRow}>
+                    <div className={styles.metaLabel}>mint: </div>
+                    <span
+                      className={`${styles.metaCode} ${copiedField === "mint" ? styles.copied : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy("mint", metadata.mintAddress ?? "");
+                      }}
+                      data-tooltip="tite"
+                    >
+                      <FaCopy style={{ marginRight: "6px" }} />
+                      {truncate(metadata.mintAddress)}
+                    </span>
+                  </div>
+                )}
+
+                {metadata.owner && (
+                  <div className={styles.metaRow}>
+                    <div className={styles.metaLabel}>Owner: </div>
+                    <span
+                      className={`${styles.metaCode} ${copiedField === "owner" ? styles.copied : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy("owner", metadata.owner ?? "");
+                      }}
+                    >
+                      <FaCopy style={{ marginRight: "6px" }} />
+                      {truncate(metadata.owner)}
+                    </span>
+                  </div>
+                )}
+
+                <div className={styles.metaDetails}>
+
+                  {/* {metadata.priceSol !== undefined && (
+                    <div className={styles.metaRow}>
+                      <h2>{metadata.priceSol}</h2>
+                      <strong>Price:</strong>{metadata.priceSol}
+                    </div>
+                  )} */}
+
+                  {metadata.priceSol !== undefined && (
+                    <div className={styles.metaRow}>
+                      <h2>{formatPrice(metadata.priceSol)}</h2>
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDisplay();
+                    }}
+                    className={styles.priceToggleBtn}
+                  >
+                    {displayInUSD ? 'SOL' : 'USD'}
+                  </button>
+
+                  {showContactButton && (
+                    <button
+                      className={styles.chatButton}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Contact Owner
+                    </button>
+                  )}
+
+                </div>
+
+                
+              </div>
+
+              {/* {showContactButton && (
+                <button
+                  className={styles.chatButton}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Contact Owner
+                </button>
+              )} */}
+              
+            {/* <div className={styles.flipHint}>
               Tap to view details<FaArrowsAltH />
-            </div>
+            </div> */}
           </div>
 
           {/* BACK SIDE - All Details */}
           <div className={styles.flipCardBack}>
             <div className={styles.backContent}>
-              <h2>{metadata.name}</h2>
+              {/* <h2>{metadata.name}</h2> */}
 
               {/* {metadata.priceSol !== undefined && (
                 <div className={styles.metaRow}>
@@ -241,7 +332,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
                 </div>
               )} */}
 
-              <div className={styles.metaDetails}>
+              {/* <div className={styles.metaDetails}>
                 {metadata.priceSol !== undefined && (
                   <div className={styles.metaRow}>
                     <strong>Price:</strong> ◎ {metadata.priceSol}
@@ -288,7 +379,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
                 >
                   Contact Owner
                 </button>
-              )}
+              )} */}
 
               {metadata.marketStatus && (
                 <div className={styles.metaRow}>
@@ -404,6 +495,11 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
               </div>
             </div>
           </div>
+        </div>
+
+        <div className={styles.flipHint}>
+          Tap to view details<LuRotate3D />
+          {/* <FaArrowsAltH /> */}
         </div>
       </div>
 

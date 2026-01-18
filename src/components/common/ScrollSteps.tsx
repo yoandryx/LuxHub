@@ -1,129 +1,144 @@
-import { useRef, Suspense } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useRef } from "react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
-import { Environment } from "@react-three/drei";
-import * as THREE from "three";
-import RolexScene from "../marketplace/RolexScene";
-import styles from "../../styles/Home.module.css";
-
-// const steps = [
-//   {
-//     title: "Verification",
-//     desc: "Every luxury watch uploaded is verified using blockchain-anchored authenticity records.",
-//   },
-//   {
-//     title: "Escrow Protection",
-//     desc: "Smart contract escrow protects buyers and sellers by locking funds and NFTs.",
-//   },
-//   {
-//     title: "Ownership Transfer",
-//     desc: "Once approved, NFT ownership transfers and is stored on-chain immutably.",
-//   },
-// ];
+import styles from "../../styles/ScrollSteps.module.css";
+import { FaShieldAlt, FaLock, FaExchangeAlt } from "react-icons/fa";
 
 const steps = [
   {
-    title: "Authenticity Verification",
-    desc: "Each timepiece is verified by LuxHub and partnered experts. Paired with a blockchain-anchored NFT containing provenance and important details conserving each timepieces authenticity and value by ensuring all information is accurate and tamper-proof. Details for each watch are stored on-chain for transparency using metadata stored on IPFS.",
-    image: "images/block.png",
+    number: "01",
+    title: "Verify",
+    subtitle: "Authenticity Guaranteed",
+    desc: "Each timepiece is verified by LuxHub experts. Blockchain-anchored NFT ensures provenance is tamper-proof and transparent.",
+    icon: FaShieldAlt,
   },
   {
-    title: "Secure Escrow",
-    desc: "Funds and NFTs are held in a Solana smart contract escrow until the sale is approved, ensuring full protection for both parties.",
-    image: "images/block.png",
+    number: "02",
+    title: "Escrow",
+    subtitle: "Protected Transaction",
+    desc: "Funds and NFTs held in Solana smart contract until sale approval. Full protection for both parties.",
+    icon: FaLock,
   },
   {
-    title: "Immutable Ownership Transfer",
-    desc: "Upon admin approval, ownership of the NFT is immutably transferred on-chain, completing the transaction securely and transparently.",
-    image: "images/block.png",
+    number: "03",
+    title: "Transfer",
+    subtitle: "Immutable Ownership",
+    desc: "Upon approval, NFT ownership transfers on-chain instantly. Your asset, permanently recorded.",
+    icon: FaExchangeAlt,
   },
 ];
 
-
 const ScrollSteps = () => {
-  const wrapperRef = useRef(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll({
     target: wrapperRef,
     offset: ["start start", "end end"],
   });
 
-  const rotationY = useTransform(scrollYProgress, [0, 1], [0, Math.PI * 2]);
-  const smoothRotation = useSpring(rotationY, { stiffness: 50, damping: 20 });
+  // Progress bar animation
+  const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+  const smoothProgress = useSpring(progressWidth, { stiffness: 100, damping: 30 });
 
   return (
-    <div ref={wrapperRef} className={styles.scrollWrapper}>
-      <section className={styles.scrollContainer}>
-        {/* 3D Rolex Canvas */}
-        <div className={styles.canvasWrapper}>
-          <Canvas shadows camera={{ position: [0, 0, 4], fov: 45 }}>
-            <ambientLight intensity={0.4} />
-            <directionalLight intensity={1} position={[3, 5, 5]} castShadow />
-            <Environment preset="studio" />
-            <Suspense fallback={null}>
-              <RotatingRolex rotationY={smoothRotation} />
-            </Suspense>
-          </Canvas>
+    <div ref={wrapperRef} className={styles.wrapper}>
+      {/* Floating ambient orbs */}
+      <div className={styles.ambientOrb} />
+      <div className={styles.ambientOrb2} />
+
+      {/* Progress indicator */}
+      <div className={styles.progressContainer}>
+        <div className={styles.progressTrack}>
+          <motion.div className={styles.progressBar} style={{ width: smoothProgress }} />
         </div>
-
-        {/* Scroll-over Steps */}
-        <div className={styles.overlaySteps}>
+        <div className={styles.progressSteps}>
           {steps.map((step, i) => {
-            const start = i / steps.length;
-            const end = (i + 1) / steps.length;
-
-            const rawOpacity = useTransform(
-              scrollYProgress,
-              [start - 0.05, start, end, end + 0.05],
-              [0, 1, 1, 0]
-            );
-            const rawTranslateY = useTransform(scrollYProgress, [start, end], [60, 0]);
-
-            const opacity = useSpring(rawOpacity, { stiffness: 60, damping: 20 });
-            const translateY = useSpring(rawTranslateY, { stiffness: 60, damping: 20 });
+            const stepProgress = (i + 1) / steps.length;
+            const isActive = useTransform(scrollYProgress, (v) => v >= (i / steps.length) - 0.1);
 
             return (
               <motion.div
                 key={i}
-                className={styles.stepCard}
-                style={{ opacity, y: translateY }}
+                className={styles.progressDot}
+                animate={{
+                  scale: 1,
+                  backgroundColor: "rgba(185, 145, 255, 0.3)",
+                }}
+                whileInView={{
+                  scale: 1.2,
+                  backgroundColor: "#b991ff",
+                }}
               >
-                <h2>{step.title}</h2>
-                <p>{step.desc}</p>
-                {step.image && (
-                  <img 
-                    alt={step.title} 
-                    className={styles.stepImage} 
-                    src={step.image} 
-                  />
-                )}
+                <span>{step.number}</span>
               </motion.div>
             );
           })}
         </div>
-      </section>
+      </div>
 
-      {/* Dynamic ghost scroll area based on step count */}
-      <div
-        className={styles.scrollSpacer}
-        style={{ height: `${(steps.length - 1) * 20}vh` }}
-      />
+      {/* Step cards */}
+      <div className={styles.stepsContainer}>
+        {steps.map((step, i) => {
+          const start = i / steps.length;
+          const end = (i + 1) / steps.length;
+
+          const rawOpacity = useTransform(
+            scrollYProgress,
+            [start - 0.05, start + 0.05, end - 0.05, end + 0.05],
+            [0, 1, 1, 0]
+          );
+          const rawScale = useTransform(
+            scrollYProgress,
+            [start - 0.05, start + 0.05, end - 0.05, end + 0.05],
+            [0.9, 1, 1, 0.9]
+          );
+          const rawY = useTransform(scrollYProgress, [start, end], [40, -20]);
+
+          const opacity = useSpring(rawOpacity, { stiffness: 80, damping: 20 });
+          const scale = useSpring(rawScale, { stiffness: 80, damping: 20 });
+          const y = useSpring(rawY, { stiffness: 80, damping: 20 });
+
+          const IconComponent = step.icon;
+
+          return (
+            <motion.div
+              key={i}
+              className={styles.stepCard}
+              style={{ opacity, scale, y }}
+            >
+              {/* Glass card inner */}
+              <div className={styles.cardInner}>
+                {/* Step number badge */}
+                <div className={styles.stepBadge}>
+                  <span className={styles.stepNumber}>{step.number}</span>
+                </div>
+
+                {/* Icon */}
+                <div className={styles.iconWrapper}>
+                  <IconComponent />
+                </div>
+
+                {/* Content */}
+                <div className={styles.cardContent}>
+                  <h3 className={styles.stepTitle}>{step.title}</h3>
+                  <span className={styles.stepSubtitle}>{step.subtitle}</span>
+                  <p className={styles.stepDesc}>{step.desc}</p>
+                </div>
+
+                {/* Decorative line */}
+                <div className={styles.decorLine} />
+              </div>
+
+              {/* Glow effect */}
+              <div className={styles.cardGlow} />
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Scroll spacer */}
+      <div className={styles.scrollSpacer} />
     </div>
   );
 };
 
 export default ScrollSteps;
-
-const RotatingRolex = ({ rotationY }: { rotationY: any }) => {
-  const ref = useRef<THREE.Group>(null);
-  useFrame(() => {
-    if (ref.current) {
-      ref.current.rotation.y = rotationY.get();
-    }
-  });
-  return (
-    <group ref={ref}>
-      {/* <RolexScene /> */}
-    </group>
-  );
-};

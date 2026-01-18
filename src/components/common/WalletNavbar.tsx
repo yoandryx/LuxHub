@@ -1,188 +1,134 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "../../styles/WalletNavbar.module.css";
 import { useRouter } from "next/router";
-import { WalletMultiButton, WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { SiSolana } from "react-icons/si";
-import { IoFingerPrint } from "react-icons/io5";
-import { Connection, Keypair } from "@solana/web3.js";
-import WalletComponent from "./WalletConnect";
-import { FaWallet } from "react-icons/fa6";
-
-const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? "https://api.devnet.solana.com";  // Default to Devnet
-const secretKey = process.env.DEVNET_KEYPAIR ? JSON.parse(process.env.DEVNET_KEYPAIR) : [];  // Default to empty array
-const keypair = secretKey.length > 0 ? Keypair.fromSecretKey(new Uint8Array(secretKey)) : null;
+import { FaWallet, FaSync, FaCopy, FaHandHoldingUsd, FaCalculator, FaChartBar, FaUsers } from "react-icons/fa";
+import { Connection } from "@solana/web3.js";
+import { usePriceDisplay } from '../marketplace/PriceDisplay';
 
 export default function WalletNavbar() {
-
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
   const { connected, publicKey, disconnect } = useWallet();
-  const [solPrice, setSolPrice] = useState<number | null>(null);
-  const [shimmer, setShimmer] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const { formatPrice } = usePriceDisplay();
 
-  useEffect(() => setIsClient(true), []);
+  const [isOpen, setIsOpen] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+  const widgetRef = useRef<HTMLDivElement>(null);
 
-  // useEffect(() => {
-  //   const fetchSolPrice = async () => {
-  //     try {
-  //       const res = await fetch("/api/users/sol-price");
-  //       const data = await res.json();
-  //       if (data.price && data.price !== solPrice) {
-  //         setSolPrice(data.price);
-  //         setShimmer(true);
-  //         setTimeout(() => setShimmer(false), 500);
-  //       }
-  //     } catch (err) {
-  //       console.error("Failed to fetch SOL price:", err);
-  //     }
-  //   };
-  
-  //   fetchSolPrice();
-  //   const interval = setInterval(fetchSolPrice, 60000); // every 60s
-  //   return () => clearInterval(interval);
-  // }, []);
+  const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.mainnet-beta.solana.com");
 
-  // useEffect(() => {
-  //   const fetchWalletBalance = async () => {
-  //     if (publicKey) {
-  //       try {
-  //         const connection = new Connection(endpoint, "confirmed");
-  //         const lamports = await connection.getBalance(publicKey);
-  //         setWalletBalance(lamports / 10 ** 9); // convert to SOL
-  //       } catch (err) {
-  //         console.error("Failed to fetch wallet balance:", err);
-  //       }
-  //     } else {
-  //       setWalletBalance(null);
-  //     }
-  //   };
-  
-  //   fetchWalletBalance();
-  
-  //   const interval = setInterval(fetchWalletBalance, 30000); // update every 30s
-  //   return () => clearInterval(interval);
-  // }, [publicKey]);
-  
-  
-
-  // Toggle menu open/close state
-  const toggleMenu = () => setMenuOpen((prev) => !prev);
-  const closeMenu = () => setMenuOpen(false);
-
-  // Handle wallet disconnect and redirect to login
-  const handleLogout = () => {
-    disconnect();
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
-  // Handle login navigation
-  const handleLogin = () => {
-    router.push("/login");
-    closeMenu();
-  };
-  
-  // Handle signup navigation
-  const handleSignup = () => {
-    router.push("/signup");
-    closeMenu();
-  };
-
-  // Fetch balance from Devnet wallet
   const fetchBalance = async () => {
-    if (!keypair) {
-        console.error("Keypair not found. Check .env.local configuration.");
-        return;
-    }
+    if (!publicKey) return;
     try {
-        const connection = new Connection(endpoint, "confirmed");
-        const walletBalance = await connection.getBalance(keypair.publicKey);
-        setBalance(walletBalance / 10 ** 9);  // Convert to SOL
-    } catch (error) {
-        console.error("Failed to fetch balance:", error);
+      const lamports = await connection.getBalance(publicKey);
+      setBalance(lamports / 1e9);
+    } catch (err) {
+      console.error("Balance fetch error:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (connected && publicKey) fetchBalance();
+  }, [connected, publicKey]);
+
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  const copyAddress = () => {
+    if (publicKey) {
+      navigator.clipboard.writeText(publicKey.toBase58());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
     }
   };
 
   return (
-    <div className={styles.walletNavContainer}>
-      <nav className={`${styles.walletNavbar} ${menuOpen ? styles.open : ""}`}>
-        {/* <div className={styles.leftSide}>
-          <SiSolana className={styles.icons} />
-        </div> */}
-
-        {/* <div className={styles.rightSide} onClick={toggleMenu}>
-          <IoFingerPrint className={styles.icons} />
-          {connected && publicKey && (
-            <div className={styles.walletAddress}>
-              <span>{`${publicKey.toBase58().slice(0, 5)}...`}</span>
-            </div>
-          )}
-
-          {solPrice && (
-            <div className={`${styles.solPriceTag} ${shimmer ? styles.shimmer : ""}`}>
-              <SiSolana className={styles.solIcon} />
-              <span>${solPrice.toFixed(2)}</span>
-            </div>
-          )}
-
-          {walletBalance !== null && (
-            <div className={styles.solPriceTag}>
-              <SiSolana className={styles.solIcon} />
-              <span>{walletBalance.toFixed(2)} SOL</span>
-            </div>
-          )}
-          
-        </div> */}
-        {/* <FaWallet className={styles.solIcon} /> */}
-        <FaWallet/>
-
+    <div
+      ref={widgetRef}
+      className={`${styles.luxWalletOrb} ${isOpen ? styles.open : ""}`}
+    >
+      {/* Trigger */}
+      <div
+        className={styles.trigger}
+        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+      >
+        <FaWallet className={styles.walletIcon} />
         {connected && publicKey && (
-          <div className={styles.walletAddress}>
-            <span>{`${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`}</span>
+          <span className={styles.shortAddress}>
+            {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
+          </span>
+        )}
+      </div>
+
+      {/* Compact Panel */}
+      <div className={styles.panel}>
+        <div className={styles.header}>
+          <h3>LuxHub Wallet</h3>
+          <button onClick={(e) => { e.stopPropagation(); fetchBalance(); }} className={styles.refresh}>
+            <FaSync />
+          </button>
+        </div>
+
+        {connected && publicKey ? (
+          <>
+            <div className={styles.infoRow}>
+              <span className={styles.label}>Address</span>
+              <span className={styles.address} onClick={copyAddress}>
+                {publicKey.toBase58().slice(0, 6)}...{publicKey.toBase58().slice(-4)}
+                <FaCopy />
+                {copied && <span className={styles.copied}>Copied</span>}
+              </span>
+            </div>
+
+            <div className={styles.infoRow}>
+              <span className={styles.label}>Balance</span>
+              <span className={styles.balance}>
+                <SiSolana /> {balance !== null ? formatPrice(balance) : "—"}
+              </span>
+            </div>
+
+            {/* Future Action Buttons (Compact Grid) */}
+            <div className={styles.actionsGrid}>
+              <button className={styles.actionBtn} disabled>
+                <FaHandHoldingUsd /> Get Loan
+              </button>
+              <button className={styles.actionBtn} disabled>
+                <FaUsers /> Join Pool
+              </button>
+              <button className={styles.actionBtn} disabled>
+                <FaCalculator /> Trade Calc
+              </button>
+              <button className={styles.actionBtn} disabled>
+                <FaChartBar /> Compare
+              </button>
+            </div>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); disconnect(); router.push("/login"); }}
+              className={styles.disconnectBtn}
+            >
+              Disconnect
+            </button>
+          </>
+        ) : (
+          <div className={styles.connectPrompt}>
+            <p>Connect to unlock loans, pools & insights</p>
+            <button onClick={() => router.push("/connect")} className={styles.connectBtn}>
+              Connect Wallet
+            </button>
           </div>
         )}
-
-        {/* {solPrice && (
-            <div className={`${styles.solPriceTag} ${shimmer ? styles.shimmer : ""}`}>
-              <SiSolana className={styles.solIcon} />
-              <span>${solPrice.toFixed(2)}</span>
-            </div>
-          )} */}
-
-        {/* <div className={styles.walletContainer}>
-          <WalletModalProvider>
-            <WalletMultiButton />
-          </WalletModalProvider>
-        </div> */}
-
-        {/* <div className={styles.rightSide} onClick={toggleMenu}>
-          <IoFingerPrint className={styles.icons} />
-          {connected && publicKey && (
-            <div className={styles.walletAddress}>
-              <span>{`${publicKey.toBase58().slice(0, 5)}...`}</span>
-            </div>
-          )}
-        </div> */}
-
-        {/* <div className={`${styles.walletMenuContainer} ${menuOpen ? styles.open : ""}`}>
-          {connected ? (
-            <button onClick={handleLogout}>Log Out</button>
-          ) : (
-            <>
-              <button onClick={handleLogin}>Login</button>
-              <button onClick={handleSignup}>Signup</button>
-            </>
-          )}
-          <button onClick={fetchBalance}>Check Balance</button>
-          {balance !== null && <p>Balance: {balance.toFixed(2)} SOL</p>}
-        </div> */}
-        
-      </nav>
+      </div>
     </div>
   );
 }
