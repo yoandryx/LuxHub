@@ -1,3 +1,4 @@
+import type { LeanDocument } from "../../../types/mongoose";
 import type { NextApiRequest, NextApiResponse } from "next";
 import dbConnect from "../../../lib/database/mongodb";
 import VendorProfileModel from "../../../lib/models/VendorProfile";

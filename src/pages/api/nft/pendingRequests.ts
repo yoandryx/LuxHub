@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import dbConnect from "../../../lib/database/mongodb";
 import SaleRequestModel from "../../../lib/models/SaleRequest";
+import type { LeanDocument } from "../../../types/mongoose";
 
 // Optional interface update
 export interface SaleRequest {
@@ -39,9 +40,9 @@ export default async function handler(
       .sort({ timestamp: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .lean();
+      .lean<LeanDocument[]>();
 
-    const saleRequests: SaleRequest[] = docs.map((doc) => ({
+    const saleRequests: SaleRequest[] = (docs as any[]).map((doc) => ({
       nftId: doc.nftId,
       seller: doc.seller,
       seed: Number(doc.seed),

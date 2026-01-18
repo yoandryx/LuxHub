@@ -4,6 +4,7 @@ import dbConnect from '../../../../lib/database/mongodb';
 import { Asset } from '../../../../lib/models/Assets';
 import { Vendor } from '../../../../lib/models/Vendor';
 import { User } from '../../../../lib/models/User';
+import type { LeanDocument } from '../../../../types/mongoose';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -19,12 +20,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
 
     // Find the vendor by wallet (through User relationship)
-    const user = await User.findOne({ wallet }).lean();
+    const user = await User.findOne({ wallet }).lean<LeanDocument>();
     if (!user) {
       return res.status(200).json({ assets: [] });
     }
 
-    const vendor = await Vendor.findOne({ user: user._id }).lean();
+    const vendor = await Vendor.findOne({ user: user._id }).lean<LeanDocument>();
     if (!vendor) {
       return res.status(200).json({ assets: [] });
     }
