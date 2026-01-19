@@ -163,10 +163,62 @@ Detailed documentation is organized in `.claude/docs/`:
 
 | Partner | Status | Integration |
 |---------|--------|-------------|
-| **Squads Protocol** | In Development | Multisig treasury/pool vaults for institutional-grade security |
+| **Squads Protocol** | Active | Multisig treasury/pool vaults for institutional-grade security |
 | **Backpack (Bags API)** | Planned | Wallet linking, session management, xNFT support |
 | **Helius** | Active | RPC infrastructure, enhanced Solana APIs |
 | **Pinata** | Active | IPFS gateway for NFT metadata and asset storage |
+
+## Squads Protocol Integration
+
+LuxHub uses Squads Protocol v4 for multisig security on treasury operations and escrow confirmations.
+
+### Architecture
+
+1. **Multisig Vault**: All treasury fees (5%) are collected into a Squads vault PDA
+2. **Proposal Flow**: Admin actions (confirm_delivery, initialize escrow) create Squads proposals
+3. **Approval Threshold**: Proposals require multisig member approvals before execution
+4. **On-Chain Gating**: The Anchor program's `confirm_delivery` instruction validates Squads CPI origin
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/squads/propose` | POST | Create a new Squads vault transaction proposal |
+| `/api/squads/status` | GET | Check proposal status (approvals, threshold, state) |
+| `/api/squads/execute` | POST | Execute an approved proposal on-chain |
+| `/api/squads/proposals` | GET | List all proposals with optional status filter |
+| `/api/squads/sync` | POST | Sync on-chain escrow state to MongoDB after execution |
+
+### Escrow Lifecycle with Squads
+
+```
+1. Seller lists NFT → Sale Request created in MongoDB
+2. Admin approves → Proposal created in Squads (initialize escrow)
+3. Multisig members approve in Squads UI
+4. Admin executes proposal → Escrow PDA created on-chain
+5. Buyer purchases → Funds deposited to escrow vault
+6. Admin confirms delivery → Proposal created in Squads (confirm_delivery)
+7. Multisig members approve
+8. Admin executes → NFT transferred to buyer, funds split (95% seller, 5% treasury)
+9. Admin syncs → MongoDB updated with execution status
+```
+
+### Environment Variables
+
+```env
+NEXT_PUBLIC_SQUADS_MSIG=<multisig_pda>           # Squads multisig account address
+SQUADS_MEMBER_KEYPAIR_PATH=<path_to_keypair>    # OR
+SQUADS_MEMBER_KEYPAIR_JSON=<json_string>        # Member keypair for signing proposals
+```
+
+### Treasury Configuration
+
+The `currentEscrowConfig` (set via `initialize_config`) should point to the Squads vault PDA:
+
+```typescript
+const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: 0 });
+// Use vaultPda.toBase58() as the luxhubWallet in escrow config
+```
 
 ## Recent Development Progress
 
@@ -190,7 +242,7 @@ Detailed documentation is organized in `.claude/docs/`:
 - [x] 6-agent automation system
 
 ### In Progress
-- [ ] Squads Protocol multisig integration
+- [x] Squads Protocol multisig integration (proposal, execute, sync, status APIs complete)
 - [ ] Backpack Bags API wallet sessions
 - [ ] Enhanced vendor KYC flow
 - [ ] Pool distribution mechanics

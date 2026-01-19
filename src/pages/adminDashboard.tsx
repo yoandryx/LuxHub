@@ -1,38 +1,40 @@
 // src/pages/AdminDashboard.tsx
-import React, { useState, useEffect, useMemo } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import {
-  PublicKey,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
-  Connection,
-} from "@solana/web3.js";
-import { BN } from "@coral-xyz/anchor";
-import { getProgram } from "../utils/programUtils";
-import {
-  getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
-import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
-import { uploadToPinata } from "../utils/pinata";
-import { updateNftMetadata } from "../utils/metadata";
-import styles from "../styles/AdminDashboard.module.css";
-import { toast } from "react-toastify";
-import { MetadataEditorTab } from "../components/admins/MetadataEditorTab";
-import { MetadataChangeRequestsTab } from "../components/admins/MetadataChangeRequestsTab";
-import { CiSearch } from "react-icons/ci";
-import { VendorProfile } from "../lib/models/VendorProfile";
-import VendorManagementPanel from "../components/vendor/VendorManagementPanel";
+import React, { useState, useEffect, useMemo } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Connection } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
+import { getProgram } from '../utils/programUtils';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js';
+import { uploadToPinata } from '../utils/pinata';
+import { updateNftMetadata } from '../utils/metadata';
+import styles from '../styles/AdminDashboard.module.css';
+import { toast } from 'react-toastify';
+import { MetadataEditorTab } from '../components/admins/MetadataEditorTab';
+import { MetadataChangeRequestsTab } from '../components/admins/MetadataChangeRequestsTab';
+import { ShipmentVerificationTab } from '../components/admins/ShipmentVerificationTab';
+import { CiSearch } from 'react-icons/ci';
+import { VendorProfile } from '../lib/models/VendorProfile';
+import VendorManagementPanel from '../components/vendor/VendorManagementPanel';
 // NEW
-import * as multisig from "@sqds/multisig";
-import { Buffer } from "buffer"; // for base64 encoding in browser
-
+import * as multisig from '@sqds/multisig';
+import { Buffer } from 'buffer'; // for base64 encoding in browser
 
 interface LogEntry {
   timestamp: string;
   action: string;
   tx: string;
   message: string;
+}
+
+interface SquadsProposal {
+  transactionIndex: string;
+  status: 'active' | 'executed' | 'rejected' | 'cancelled' | 'approved' | 'draft';
+  approvals: number;
+  rejections: number;
+  threshold: number;
+  proposalPda: string;
+  vaultTransactionPda: string;
 }
 
 interface SaleRequest {
@@ -74,63 +76,78 @@ interface EscrowAccount {
   attributes?: { trait_type: string; value: string }[];
 }
 
+interface ProposeResponse {
+  ok: true;
+  signature: string;
+  multisigPda: string;
+  vaultPda: string;
+  vaultIndex: number;
+  transactionIndex: string;
+  proposalPda: string;
+  vaultTransactionPda: string;
+  autoApproved: boolean;
+  threshold: number;
+  squadsDeepLink: string;
+}
+
 async function proposeToSquads(ix: {
   programId: string;
   keys: { pubkey: string; isSigner: boolean; isWritable: boolean }[];
   dataBase64: string;
   vaultIndex?: number;
-  transactionIndex?: string | number;
-}) {
-  const resp = await fetch("/api/squads/propose", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  autoApprove?: boolean;
+}): Promise<ProposeResponse> {
+  const resp = await fetch('/api/squads/propose', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       ...ix,
       vaultIndex: ix.vaultIndex ?? 0,
+      autoApprove: ix.autoApprove ?? true,
     }),
   });
   const json = await resp.json();
-  if (!resp.ok || !json.ok) throw new Error(json.error || "Failed to propose tx");
-  return json as { ok: true; multisigPda: string; vaultIndex: number; transactionIndex: string };
+  if (!resp.ok || !json.ok) throw new Error(json.error || 'Failed to propose tx');
+  return json as ProposeResponse;
 }
 
-
-const FUNDS_MINT = "So11111111111111111111111111111111111111112";
+const FUNDS_MINT = 'So11111111111111111111111111111111111111112';
 const LAMPORTS_PER_SOL = 1_000_000_000;
-const PLACEHOLDER_BUYER = new PublicKey("11111111111111111111111111111111");
+const PLACEHOLDER_BUYER = new PublicKey('11111111111111111111111111111111');
 
 // ------------------------------------------------
 // Update NFT Market Status
 // ------------------------------------------------
-const updateNFTMarketStatus = async (
-  mintAddress: string,
-  newMarketStatus: string,
-  wallet: any
-) => {
+const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: string, wallet: any) => {
   try {
-    console.log("[updateNFTMarketStatus] Connecting to Solana endpoint...");
+    console.log('[updateNFTMarketStatus] Connecting to Solana endpoint...');
     const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
+      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
     );
     const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
 
-    console.log("[updateNFTMarketStatus] Fetching on-chain NFT for mint:", mintAddress);
+    console.log('[updateNFTMarketStatus] Fetching on-chain NFT for mint:', mintAddress);
     const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mintAddress) });
-    console.log("[updateNFTMarketStatus] Retrieved NFT data:", nft);
+    console.log('[updateNFTMarketStatus] Retrieved NFT data:', nft);
 
-    console.log("[updateNFTMarketStatus] Fetching current metadata JSON from:", nft.uri);
+    console.log('[updateNFTMarketStatus] Fetching current metadata JSON from:', nft.uri);
     const res = await fetch(nft.uri);
-    if (!res.ok) throw new Error("Failed to fetch current metadata");
+    if (!res.ok) throw new Error('Failed to fetch current metadata');
     const metadata = await res.json();
-    console.log("[updateNFTMarketStatus] Current metadata JSON:", metadata);
+    console.log('[updateNFTMarketStatus] Current metadata JSON:', metadata);
 
     if (!metadata.attributes || !Array.isArray(metadata.attributes)) {
       metadata.attributes = [];
     }
     let updated = false;
     metadata.attributes = metadata.attributes.map((attr: any) => {
-      if (attr.trait_type === "Market Status") {
-        console.log("[updateNFTMarketStatus] Changing Market Status from", attr.value, "to", newMarketStatus);
+      if (attr.trait_type === 'Market Status') {
+        console.log(
+          '[updateNFTMarketStatus] Changing Market Status from',
+          attr.value,
+          'to',
+          newMarketStatus
+        );
         updated = true;
         return { ...attr, value: newMarketStatus };
       }
@@ -138,41 +155,45 @@ const updateNFTMarketStatus = async (
     });
     if (!updated) {
       console.log("[updateNFTMarketStatus] 'Market Status' not found. Adding it...");
-      metadata.attributes.push({ trait_type: "Market Status", value: newMarketStatus });
+      metadata.attributes.push({ trait_type: 'Market Status', value: newMarketStatus });
     }
 
     metadata.updatedAt = new Date().toISOString();
-    console.log("[updateNFTMarketStatus] Final metadata JSON with updatedAt:", metadata);
+    console.log('[updateNFTMarketStatus] Final metadata JSON with updatedAt:', metadata);
 
-    console.log("[updateNFTMarketStatus] Uploading updated metadata JSON to Pinata...");
-    const newUri = await uploadToPinata(metadata, metadata.name || "Updated NFT Metadata");
-    console.log("[updateNFTMarketStatus] New metadata URI:", newUri);
+    console.log('[updateNFTMarketStatus] Uploading updated metadata JSON to Pinata...');
+    const newUri = await uploadToPinata(metadata, metadata.name || 'Updated NFT Metadata');
+    console.log('[updateNFTMarketStatus] New metadata URI:', newUri);
 
-    const newName = nft.name.endsWith("(Active)") ? nft.name : nft.name + " (Active)";
-    console.log("[updateNFTMarketStatus] New name to update:", newName);
+    const newName = nft.name.endsWith('(Active)') ? nft.name : nft.name + ' (Active)';
+    console.log('[updateNFTMarketStatus] New name to update:', newName);
 
-    console.log("[updateNFTMarketStatus] Sending updateNftMetadata transaction with {uri, name}...");
+    console.log(
+      '[updateNFTMarketStatus] Sending updateNftMetadata transaction with {uri, name}...'
+    );
     await updateNftMetadata(wallet as any, mintAddress, { uri: newUri, name: newName } as any);
-    console.log("[updateNFTMarketStatus] On-chain NFT metadata update complete. Market Status set to:", newMarketStatus);
+    console.log(
+      '[updateNFTMarketStatus] On-chain NFT metadata update complete. Market Status set to:',
+      newMarketStatus
+    );
   } catch (error) {
-    console.error("[updateNFTMarketStatus] Failed to update NFT market status:", error);
+    console.error('[updateNFTMarketStatus] Failed to update NFT market status:', error);
   }
 };
 
 const AdminDashboard: React.FC = () => {
-
   const wallet = useWallet();
   const [tabIndex, setTabIndex] = useState<number>(5);
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  const [luxhubWallet, setLuxhubWallet] = useState<string>("");
-  const [newLuxhubWallet, setNewLuxhubWallet] = useState<string>("");
-  const [currentEscrowConfig, setCurrentEscrowConfig] = useState<string>("");
+  const [luxhubWallet, setLuxhubWallet] = useState<string>('');
+  const [newLuxhubWallet, setNewLuxhubWallet] = useState<string>('');
+  const [currentEscrowConfig, setCurrentEscrowConfig] = useState<string>('');
 
   const [adminList, setAdminList] = useState<string[]>([]);
-  const [newAdmin, setNewAdmin] = useState<string>("");
-  const [removeAdminAddr, setRemoveAdminAddr] = useState<string>("");
+  const [newAdmin, setNewAdmin] = useState<string>('');
+  const [removeAdminAddr, setRemoveAdminAddr] = useState<string>('');
 
   const [saleRequests, setSaleRequests] = useState<SaleRequest[]>([]);
   const [activeEscrows, setActiveEscrows] = useState<EscrowAccount[]>([]);
@@ -183,19 +204,35 @@ const AdminDashboard: React.FC = () => {
   const [vaultAddresses, setVaultAddresses] = useState<{ [seed: string]: string }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [isLastPage, setIsLastPage] = useState(false);
-  const [sellerFilter, setSellerFilter] = useState("");
+  const [sellerFilter, setSellerFilter] = useState('');
+
+  // Squads Protocol state
+  const [squadsProposals, setSquadsProposals] = useState<SquadsProposal[]>([]);
+  const [squadsLoading, setSquadsLoading] = useState(false);
+  const [squadsFilter, setSquadsFilter] = useState<string>('pending');
+  const [squadsMultisigInfo, setSquadsMultisigInfo] = useState<{
+    multisigPda?: string;
+    threshold?: number;
+    transactionIndex?: number;
+    members?: {
+      pubkey: string;
+      permissions: { initiate: boolean; vote: boolean; execute: boolean };
+    }[];
+    vaults?: { index: number; pda: string; balance?: number }[];
+    squadsUrl?: string;
+  } | null>(null);
 
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
 
   const escrowConfigPda = useMemo(() => {
     return program
-      ? PublicKey.findProgramAddressSync([Buffer.from("escrow_config")], program.programId)[0]
+      ? PublicKey.findProgramAddressSync([Buffer.from('escrow_config')], program.programId)[0]
       : null;
   }, [program]);
 
   const adminListPda = useMemo(() => {
     return program
-      ? PublicKey.findProgramAddressSync([Buffer.from("admin_list")], program.programId)[0]
+      ? PublicKey.findProgramAddressSync([Buffer.from('admin_list')], program.programId)[0]
       : null;
   }, [program]);
 
@@ -218,7 +255,7 @@ const AdminDashboard: React.FC = () => {
       try {
         return await fetchFunc();
       } catch (error: any) {
-        if (error?.message?.includes("Too many requests") && attempt < retries - 1) {
+        if (error?.message?.includes('Too many requests') && attempt < retries - 1) {
           console.warn(`Rate limited. Retrying in ${delayMs * (attempt + 1)} ms...`);
           await new Promise((res) => setTimeout(res, delayMs * (attempt + 1)));
         } else {
@@ -237,7 +274,7 @@ const AdminDashboard: React.FC = () => {
       const configAccount = await fetchWithRetry(() =>
         (program.account as any).escrowConfig.fetch(escrowConfigPda)
       );
-      console.log("[fetchConfigAndAdmins] Fetched escrow config:", configAccount);
+      console.log('[fetchConfigAndAdmins] Fetched escrow config:', configAccount);
       const luxhubWalletStr =
         configAccount.luxhubWallet?.toBase58?.() ||
         configAccount.luxhub_wallet?.toBase58?.() ||
@@ -245,27 +282,27 @@ const AdminDashboard: React.FC = () => {
       if (luxhubWalletStr) {
         setCurrentEscrowConfig(luxhubWalletStr);
       } else {
-        console.warn("[fetchConfigAndAdmins] Escrow config not initialized", configAccount);
-        setCurrentEscrowConfig("Not initialized");
+        console.warn('[fetchConfigAndAdmins] Escrow config not initialized', configAccount);
+        setCurrentEscrowConfig('Not initialized');
       }
     } catch (e) {
-      console.error("[fetchConfigAndAdmins] Failed to fetch escrow config", e);
+      console.error('[fetchConfigAndAdmins] Failed to fetch escrow config', e);
     }
     try {
       const adminAccountRaw = await fetchWithRetry(() =>
         (program.account as any).adminList.fetch(adminListPda)
       );
-      console.log("[fetchConfigAndAdmins] Fetched admin account:", adminAccountRaw);
+      console.log('[fetchConfigAndAdmins] Fetched admin account:', adminAccountRaw);
       if (adminAccountRaw?.admins) {
         const adminListStr: string[] = adminAccountRaw.admins
-          .map((admin: any) => admin?.toBase58?.() || "")
-          .filter((adminStr: string) => adminStr !== "");
+          .map((admin: any) => admin?.toBase58?.() || '')
+          .filter((adminStr: string) => adminStr !== '');
         setAdminList(adminListStr);
       } else {
         console.error("[fetchConfigAndAdmins] No 'admins' property found:", adminAccountRaw);
       }
     } catch (e) {
-      console.error("[fetchConfigAndAdmins] Failed to fetch admin list", e);
+      console.error('[fetchConfigAndAdmins] Failed to fetch admin list', e);
     }
   };
 
@@ -274,99 +311,306 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const fetchActiveEscrowsByMint = async () => {
     try {
-      const res = await fetch("/api/nft/activeEscrowsByMint");
+      const res = await fetch('/api/nft/activeEscrowsByMint');
       const escrows = await res.json();
-  
+
       const enriched = await Promise.all(
         escrows.map(async (escrow: any) => {
           const seed = escrow.seed;
           const mintB = escrow.nftId;
           const pinataGateway =
-            process.env.NEXT_PUBLIC_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/";
+            process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
           const metadataUri = pinataGateway + escrow.fileCid;
-  
+
           let metadata: any = {};
           try {
             const metaRes = await fetch(metadataUri);
             metadata = metaRes.ok
               ? await metaRes.json()
               : {
-                  name: "Pending NFT",
-                  description: "Awaiting metadata",
+                  name: 'Pending NFT',
+                  description: 'Awaiting metadata',
                   attributes: [],
                 };
           } catch (err) {
-            console.warn("[fetchActiveEscrowsByMint] Failed metadata fetch", mintB, err);
+            console.warn('[fetchActiveEscrowsByMint] Failed metadata fetch', mintB, err);
             metadata = {
-              name: "Unfetched NFT",
-              description: "Error fetching metadata",
+              name: 'Unfetched NFT',
+              description: 'Error fetching metadata',
               attributes: [],
             };
           }
-  
+
           // 🔐 Generate PDA & Vault ATA (based on seed and mintB)
-          let vaultATA = "";
+          let vaultATA = '';
           try {
             if (!program) return null;
 
             const [escrowPda] = PublicKey.findProgramAddressSync(
-              [Buffer.from("state"), new BN(seed).toArrayLike(Buffer, "le", 8)],
+              [Buffer.from('state'), new BN(seed).toArrayLike(Buffer, 'le', 8)],
               program.programId
             );
 
-            const vault = await getAssociatedTokenAddress(
-              new PublicKey(mintB),
-              escrowPda,
-              true
-            );
+            const vault = await getAssociatedTokenAddress(new PublicKey(mintB), escrowPda, true);
             vaultATA = vault.toBase58();
           } catch (e) {
-            console.warn("[fetchActiveEscrowsByMint] Vault ATA generation failed", e);
+            console.warn('[fetchActiveEscrowsByMint] Vault ATA generation failed', e);
           }
-  
+
           return {
             seed,
             initializer: escrow.seller,
             mintB,
             file_cid: escrow.fileCid,
-            initializer_amount: escrow.initializerAmount?.toString() || "0",
-            taker_amount: escrow.takerAmount?.toString() || "0",
-            salePrice: escrow.salePrice?.toString() || "0",
-            name: metadata.name || "Unknown NFT",
-            image: metadata.image || "",
-            description: metadata.description || "",
+            initializer_amount: escrow.initializerAmount?.toString() || '0',
+            taker_amount: escrow.takerAmount?.toString() || '0',
+            salePrice: escrow.salePrice?.toString() || '0',
+            name: metadata.name || 'Unknown NFT',
+            image: metadata.image || '',
+            description: metadata.description || '',
             attributes: metadata.attributes || [],
             vaultATA,
           };
         })
       );
-  
+
       setActiveEscrows(enriched.filter(Boolean));
-      console.log("[fetchActiveEscrowsByMint] Enriched:", enriched);
+      console.log('[fetchActiveEscrowsByMint] Enriched:', enriched);
     } catch (err) {
-      console.error("[fetchActiveEscrowsByMint] Error:", err);
+      console.error('[fetchActiveEscrowsByMint] Error:', err);
     }
   };
 
   // ------------------------------------------------
   // Fetch Sale Requests
   // ------------------------------------------------
-  const fetchSaleRequests = async (page = 1, seller = "") => {
+  const fetchSaleRequests = async (page = 1, seller = '') => {
     try {
       const res = await fetch(`/api/nft/pendingRequests?page=${page}&seller=${seller}`);
       const data: SaleRequestsResponse = await res.json();
-  
+
       if (!data || !Array.isArray(data.saleRequests)) {
-        console.error("Invalid response format:", data);
+        console.error('Invalid response format:', data);
         return;
       }
-  
+
       setSaleRequests(data.saleRequests);
       setCurrentPage(data.page || page);
       setIsLastPage(data.page >= data.totalPages); // 🔍 accurate last page check
     } catch (err) {
-      console.error("❌ Error fetching sale requests:", err);
+      console.error('❌ Error fetching sale requests:', err);
       setSaleRequests([]);
+    }
+  };
+
+  // ------------------------------------------------
+  // Squads Protocol Functions
+  // ------------------------------------------------
+  const fetchSquadsMultisigInfo = async () => {
+    try {
+      const res = await fetch('/api/squads/members');
+      const data = await res.json();
+      if (data.ok) {
+        setSquadsMultisigInfo(data);
+      }
+    } catch (err) {
+      console.error('Error fetching Squads multisig info:', err);
+    }
+  };
+
+  const fetchSquadsProposals = async (statusFilter = 'pending') => {
+    setSquadsLoading(true);
+    try {
+      const res = await fetch(`/api/squads/proposals?status=${statusFilter}&limit=50`);
+      const data = await res.json();
+      if (data.proposals) {
+        setSquadsProposals(data.proposals);
+      }
+    } catch (err) {
+      console.error('Error fetching Squads proposals:', err);
+      toast.error('Failed to fetch Squads proposals');
+    } finally {
+      setSquadsLoading(false);
+    }
+  };
+
+  const executeSquadsProposal = async (transactionIndex: string) => {
+    const confirm = window.confirm(
+      `Execute proposal #${transactionIndex}?\n\nThis will execute the approved Squads transaction on-chain.`
+    );
+    if (!confirm) return;
+
+    setSquadsLoading(true);
+    try {
+      const res = await fetch('/api/squads/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionIndex }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Execution failed');
+      }
+
+      toast.success(`✅ Proposal executed! Signature: ${data.signature?.slice(0, 8)}...`);
+      addLog('Squads Execute', data.signature || 'N/A', `Executed proposal #${transactionIndex}`);
+
+      // Refresh proposals list
+      await fetchSquadsProposals(squadsFilter);
+    } catch (err: any) {
+      console.error('Error executing Squads proposal:', err);
+      toast.error(`❌ Execution failed: ${err.message}`);
+    } finally {
+      setSquadsLoading(false);
+    }
+  };
+
+  const syncEscrowState = async (escrowSeed: string, transactionSignature?: string) => {
+    setSquadsLoading(true);
+    try {
+      const res = await fetch('/api/squads/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ escrowSeed, transactionSignature }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Sync failed');
+      }
+
+      toast.success(`✅ Escrow synced! On-chain completed: ${data.onChainCompleted}`);
+      addLog('Squads Sync', 'N/A', `Synced escrow seed ${escrowSeed}`);
+
+      // Refresh escrows and proposals
+      await fetchActiveEscrowsByMint();
+      await fetchSquadsProposals(squadsFilter);
+    } catch (err: any) {
+      console.error('Error syncing escrow state:', err);
+      toast.error(`❌ Sync failed: ${err.message}`);
+    } finally {
+      setSquadsLoading(false);
+    }
+  };
+
+  const refreshProposalStatus = async (transactionIndex: string) => {
+    try {
+      const res = await fetch(`/api/squads/status?transactionIndex=${transactionIndex}`);
+      const data = await res.json();
+
+      if (res.ok) {
+        // Update the specific proposal in state
+        setSquadsProposals((prev) =>
+          prev.map((p) =>
+            p.transactionIndex === transactionIndex
+              ? {
+                  ...p,
+                  status: data.status,
+                  approvals: data.approvals,
+                  rejections: data.rejections,
+                }
+              : p
+          )
+        );
+        toast.success(`Status: ${data.status} (${data.approvals}/${data.threshold} approvals)`);
+      }
+    } catch (err) {
+      console.error('Error refreshing proposal status:', err);
+    }
+  };
+
+  const approveSquadsProposal = async (transactionIndex: string) => {
+    const confirm = window.confirm(
+      `Approve proposal #${transactionIndex}?\n\nThis will add your approval vote.`
+    );
+    if (!confirm) return;
+
+    setSquadsLoading(true);
+    try {
+      const res = await fetch('/api/squads/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionIndex, action: 'approve' }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Approval failed');
+      }
+
+      toast.success(`✅ Approved! (${data.approvals}/${data.threshold})`);
+      addLog('Squads Approve', data.signature || 'N/A', `Approved proposal #${transactionIndex}`);
+
+      // Refresh proposals list
+      await fetchSquadsProposals(squadsFilter);
+    } catch (err: any) {
+      console.error('Error approving Squads proposal:', err);
+      toast.error(`❌ Approval failed: ${err.message}`);
+    } finally {
+      setSquadsLoading(false);
+    }
+  };
+
+  const rejectSquadsProposal = async (transactionIndex: string) => {
+    const confirm = window.confirm(
+      `Reject proposal #${transactionIndex}?\n\nThis will add your rejection vote.`
+    );
+    if (!confirm) return;
+
+    setSquadsLoading(true);
+    try {
+      const res = await fetch('/api/squads/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionIndex, action: 'reject' }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Rejection failed');
+      }
+
+      toast.success(`✅ Rejected! (${data.rejections} rejections)`);
+      addLog('Squads Reject', data.signature || 'N/A', `Rejected proposal #${transactionIndex}`);
+
+      await fetchSquadsProposals(squadsFilter);
+    } catch (err: any) {
+      console.error('Error rejecting Squads proposal:', err);
+      toast.error(`❌ Rejection failed: ${err.message}`);
+    } finally {
+      setSquadsLoading(false);
+    }
+  };
+
+  const cancelSquadsProposal = async (transactionIndex: string) => {
+    const confirm = window.confirm(
+      `Cancel proposal #${transactionIndex}?\n\nThis will permanently cancel the proposal.`
+    );
+    if (!confirm) return;
+
+    setSquadsLoading(true);
+    try {
+      const res = await fetch('/api/squads/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionIndex }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Cancellation failed');
+      }
+
+      toast.success(`✅ Proposal cancelled!`);
+      addLog('Squads Cancel', data.signature || 'N/A', `Cancelled proposal #${transactionIndex}`);
+
+      await fetchSquadsProposals(squadsFilter);
+    } catch (err: any) {
+      console.error('Error cancelling Squads proposal:', err);
+      toast.error(`❌ Cancellation failed: ${err.message}`);
+    } finally {
+      setSquadsLoading(false);
     }
   };
 
@@ -378,6 +622,8 @@ const AdminDashboard: React.FC = () => {
     await fetchConfigAndAdmins();
     await fetchActiveEscrowsByMint();
     await fetchSaleRequests();
+    await fetchSquadsProposals(squadsFilter);
+    await fetchSquadsMultisigInfo();
     setLoading(false);
   };
 
@@ -395,11 +641,9 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   useEffect(() => {
     if (wallet.publicKey && adminList.length > 0) {
-      const isUserAdmin = adminList.some(
-        (adminStr) => adminStr === wallet.publicKey!.toBase58()
-      );
+      const isUserAdmin = adminList.some((adminStr) => adminStr === wallet.publicKey!.toBase58());
       setIsAdmin(isUserAdmin);
-      console.log("[Admin Check] Is user admin?", isUserAdmin);
+      console.log('[Admin Check] Is user admin?', isUserAdmin);
     }
   }, [wallet.publicKey, adminList]);
 
@@ -408,11 +652,14 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const initializeEscrowConfig = async () => {
     if (!wallet.publicKey || !program || !escrowConfigPda) {
-      alert("Wallet not connected or program not ready.");
+      alert('Wallet not connected or program not ready.');
       return;
     }
     try {
-      console.log("[initializeEscrowConfig] Initializing escrow config with LuxHub wallet:", luxhubWallet);
+      console.log(
+        '[initializeEscrowConfig] Initializing escrow config with LuxHub wallet:',
+        luxhubWallet
+      );
       const luxhubPk = new PublicKey(luxhubWallet);
       const tx = await program.methods
         .initializeEscrowConfig(luxhubPk)
@@ -422,13 +669,13 @@ const AdminDashboard: React.FC = () => {
           systemProgram: SystemProgram.programId,
         })
         .rpc();
-      setStatus("Escrow config initialized. Tx: " + tx);
-      addLog("Initialize Config", tx, "Set LuxHub wallet: " + luxhubWallet);
+      setStatus('Escrow config initialized. Tx: ' + tx);
+      addLog('Initialize Config', tx, 'Set LuxHub wallet: ' + luxhubWallet);
       refreshData();
     } catch (error: any) {
-      console.error("[initializeEscrowConfig] error:", error);
-      setStatus("Initialization failed: " + error.message);
-      addLog("Initialize Config", "N/A", "Error: " + error.message);
+      console.error('[initializeEscrowConfig] error:', error);
+      setStatus('Initialization failed: ' + error.message);
+      addLog('Initialize Config', 'N/A', 'Error: ' + error.message);
     }
   };
 
@@ -437,11 +684,11 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const updateEscrowConfig = async () => {
     if (!wallet.publicKey || !program || !escrowConfigPda || !adminListPda) {
-      alert("Wallet not connected or program not ready.");
+      alert('Wallet not connected or program not ready.');
       return;
     }
     try {
-      console.log("[updateEscrowConfig] Updating escrow config to new wallet:", newLuxhubWallet);
+      console.log('[updateEscrowConfig] Updating escrow config to new wallet:', newLuxhubWallet);
       const newLuxhubPk = new PublicKey(newLuxhubWallet);
       const tx = await program.methods
         .updateEscrowConfig(newLuxhubPk)
@@ -451,13 +698,13 @@ const AdminDashboard: React.FC = () => {
           adminList: adminListPda,
         })
         .rpc();
-      setStatus("Escrow config updated. Tx: " + tx);
-      addLog("Update Config", tx, "New LuxHub wallet: " + newLuxhubWallet);
+      setStatus('Escrow config updated. Tx: ' + tx);
+      addLog('Update Config', tx, 'New LuxHub wallet: ' + newLuxhubWallet);
       refreshData();
     } catch (error: any) {
-      console.error("[updateEscrowConfig] error:", error);
-      setStatus("Update failed: " + error.message);
-      addLog("Update Config", "N/A", "Error: " + error.message);
+      console.error('[updateEscrowConfig] error:', error);
+      setStatus('Update failed: ' + error.message);
+      addLog('Update Config', 'N/A', 'Error: ' + error.message);
     }
   };
 
@@ -466,11 +713,11 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const addAdmin = async () => {
     if (!wallet.publicKey || !program || !adminListPda) {
-      alert("Wallet not connected or program not ready.");
+      alert('Wallet not connected or program not ready.');
       return;
     }
     try {
-      console.log("[addAdmin] Adding new admin:", newAdmin);
+      console.log('[addAdmin] Adding new admin:', newAdmin);
       const newAdminPk = new PublicKey(newAdmin);
       const tx = await program.methods
         .addAdmin()
@@ -480,14 +727,14 @@ const AdminDashboard: React.FC = () => {
           newAdmin: newAdminPk,
         })
         .rpc();
-      setStatus("Admin added. Tx: " + tx);
-      addLog("Add Admin", tx, "New admin: " + newAdmin);
-      setNewAdmin("");
+      setStatus('Admin added. Tx: ' + tx);
+      addLog('Add Admin', tx, 'New admin: ' + newAdmin);
+      setNewAdmin('');
       refreshData();
     } catch (error: any) {
-      console.error("[addAdmin] error:", error);
-      setStatus("Add admin failed: " + error.message);
-      addLog("Add Admin", "N/A", "Error: " + error.message);
+      console.error('[addAdmin] error:', error);
+      setStatus('Add admin failed: ' + error.message);
+      addLog('Add Admin', 'N/A', 'Error: ' + error.message);
     }
   };
 
@@ -496,11 +743,11 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const removeAdmin = async () => {
     if (!wallet.publicKey || !program || !adminListPda) {
-      alert("Wallet not connected or program not ready.");
+      alert('Wallet not connected or program not ready.');
       return;
     }
     try {
-      console.log("[removeAdmin] Removing admin:", removeAdminAddr);
+      console.log('[removeAdmin] Removing admin:', removeAdminAddr);
       const removeAdminPk = new PublicKey(removeAdminAddr);
       const tx = await program.methods
         .removeAdmin()
@@ -510,14 +757,14 @@ const AdminDashboard: React.FC = () => {
           removeAdmin: removeAdminPk,
         })
         .rpc();
-      setStatus("Admin removed. Tx: " + tx);
-      addLog("Remove Admin", tx, "Removed admin: " + removeAdminAddr);
-      setRemoveAdminAddr("");
+      setStatus('Admin removed. Tx: ' + tx);
+      addLog('Remove Admin', tx, 'Removed admin: ' + removeAdminAddr);
+      setRemoveAdminAddr('');
       refreshData();
     } catch (error: any) {
-      console.error("[removeAdmin] error:", error);
-      setStatus("Remove admin failed: " + error.message);
-      addLog("Remove Admin", "N/A", "Error: " + error.message);
+      console.error('[removeAdmin] error:', error);
+      setStatus('Remove admin failed: ' + error.message);
+      addLog('Remove Admin', 'N/A', 'Error: ' + error.message);
     }
   };
 
@@ -526,31 +773,31 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const confirmDelivery = async (escrow: EscrowAccount) => {
     const confirm = window.confirm(
-      `Approve delivery?\n\nBuyer paid ${(Number(escrow.salePrice) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nSeller will receive ${(Number(escrow.salePrice) * 0.95 / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nLuxHub earns 5%.`
+      `Approve delivery?\n\nBuyer paid ${(Number(escrow.salePrice) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nSeller will receive ${((Number(escrow.salePrice) * 0.95) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nLuxHub earns 5%.`
     );
     if (!confirm) return;
 
     if (!wallet.publicKey || !program || !currentEscrowConfig) {
-      toast.error("Wallet not connected or program not ready.");
+      toast.error('Wallet not connected or program not ready.');
       return;
     }
 
     setLoading(true);
     const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
+      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
     );
 
     try {
       // ---------- resolve buyer & escrow pda ----------
-      const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
+      const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("state"), seedBuffer],
+        [Buffer.from('state'), seedBuffer],
         program.programId
       );
       const onchainEscrow = await (program.account as any).escrow.fetch(escrowPda);
       const buyerPubkey = onchainEscrow.buyer?.toBase58?.();
       if (!buyerPubkey || buyerPubkey === PublicKey.default.toBase58()) {
-        toast.error("Buyer not set. Purchase must occur before delivery.");
+        toast.error('Buyer not set. Purchase must occur before delivery.');
         return;
       }
 
@@ -564,7 +811,10 @@ const AdminDashboard: React.FC = () => {
       const nftVault = await getAssociatedTokenAddress(nftMint, escrowPda, true);
       const wsolVault = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
 
-      const sellerNftAta = await getAssociatedTokenAddress(nftMint, new PublicKey(escrow.initializer));
+      const sellerNftAta = await getAssociatedTokenAddress(
+        nftMint,
+        new PublicKey(escrow.initializer)
+      );
       const buyerNftAta = await getAssociatedTokenAddress(nftMint, new PublicKey(buyerPubkey));
 
       const sellerFundsAta = await getAssociatedTokenAddress(
@@ -580,11 +830,11 @@ const AdminDashboard: React.FC = () => {
       const nftVaultInfo = await connection.getAccountInfo(nftVault);
       const wsolVaultInfo = await connection.getAccountInfo(wsolVault);
       if (!nftVaultInfo) {
-        toast.error("NFT vault does not exist. Cannot confirm delivery.");
+        toast.error('NFT vault does not exist. Cannot confirm delivery.');
         return;
       }
       if (!wsolVaultInfo) {
-        toast.error("wSOL vault does not exist. Cannot confirm delivery.");
+        toast.error('wSOL vault does not exist. Cannot confirm delivery.');
         return;
       }
       const nftAmount = await connection.getTokenAccountBalance(nftVault);
@@ -593,7 +843,7 @@ const AdminDashboard: React.FC = () => {
       const wsolAvailable = Number(wsolAmount.value.amount);
       const expectedWsol = Number(escrow.salePrice);
       if (nftAvailable < 1) {
-        toast.error("Vault NFT balance is insufficient.");
+        toast.error('Vault NFT balance is insufficient.');
         return;
       }
       if (wsolAvailable < expectedWsol) {
@@ -605,7 +855,7 @@ const AdminDashboard: React.FC = () => {
       const ix = await program.methods
         .confirmDelivery()
         .accounts({
-          luxhub: vaultPda,                 // signer when executed by Squads
+          luxhub: vaultPda, // signer when executed by Squads
           escrow: escrowPda,
           nftVault,
           wsolVault,
@@ -620,12 +870,12 @@ const AdminDashboard: React.FC = () => {
         .instruction();
 
       // ---------- shape for API ----------
-      const keys = ix.keys.map(k => ({
+      const keys = ix.keys.map((k) => ({
         pubkey: k.pubkey.toBase58(),
         isSigner: k.isSigner,
         isWritable: k.isWritable,
       }));
-      const dataBase64 = Buffer.from(ix.data).toString("base64");
+      const dataBase64 = Buffer.from(ix.data).toString('base64');
 
       // ---------- create a Squads proposal ----------
       const result = await proposeToSquads({
@@ -640,47 +890,40 @@ const AdminDashboard: React.FC = () => {
         `✅ Proposal created in Squads (vault ${result.vaultIndex}, index ${result.transactionIndex}). Approve & Execute in Squads.`
       );
       setStatus(`Squads proposal created. Index: ${result.transactionIndex}`);
-      addLog("Confirm Delivery (proposed)", "N/A", `Escrow ${escrow.seed}`);
+      addLog('Confirm Delivery (proposed)', 'N/A', `Escrow ${escrow.seed}`);
 
       // NOTE: Do your metadata/DB updates after the proposal is actually executed.
       // You can listen webhooks or add an "Execute" button that calls /api/squads/execute.
 
       await fetchActiveEscrowsByMint();
     } catch (err: any) {
-      console.error("[confirmDelivery] error:", err);
-      setStatus("Confirm delivery (proposal) failed: " + err.message);
-      toast.error("❌ Proposal failed: " + err.message);
+      console.error('[confirmDelivery] error:', err);
+      setStatus('Confirm delivery (proposal) failed: ' + err.message);
+      toast.error('❌ Proposal failed: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  
   // ------------------------------------------------
   // Escrow Cancellation
   // ------------------------------------------------
   const cancelEscrow = async (escrow: EscrowAccount) => {
-
     if (!wallet.publicKey || !program) {
-      alert("Wallet not connected or program not ready.");
+      alert('Wallet not connected or program not ready.');
       return;
     }
-  
-    try {
 
-      console.log("[cancelEscrow] Cancelling escrow with seed:", escrow.seed);
-      const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
+    try {
+      console.log('[cancelEscrow] Cancelling escrow with seed:', escrow.seed);
+      const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("state"), seedBuffer],
+        [Buffer.from('state'), seedBuffer],
         program.programId
       );
-  
-      const vault = await getAssociatedTokenAddress(
-        new PublicKey(FUNDS_MINT),
-        escrowPda,
-        true
-      );
-  
+
+      const vault = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
+
       const tx = await program.methods
         .cancel()
         .accounts({
@@ -689,31 +932,30 @@ const AdminDashboard: React.FC = () => {
           initializerAta: await getAssociatedTokenAddress(
             new PublicKey(FUNDS_MINT),
             new PublicKey(escrow.initializer)
-          ),          
+          ),
           escrow: escrowPda,
           vault: vault,
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+          tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
         })
         .rpc();
-  
-      setStatus("Escrow canceled. Tx: " + tx);
-      addLog("Cancel Escrow", tx, "For escrow seed: " + escrow.seed);
-  
-      await fetch("/api/nft/updateStatus", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+
+      setStatus('Escrow canceled. Tx: ' + tx);
+      addLog('Cancel Escrow', tx, 'For escrow seed: ' + escrow.seed);
+
+      await fetch('/api/nft/updateStatus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mintAddress: escrow.mintB,
-          marketStatus: "active",
+          marketStatus: 'active',
         }),
       });
-  
-      fetchActiveEscrowsByMint();
 
+      fetchActiveEscrowsByMint();
     } catch (error: any) {
-      console.error("[cancelEscrow] error:", error);
-      setStatus("Cancel escrow failed: " + error.message);
-      addLog("Cancel Escrow", "N/A", "Error: " + error.message);
+      console.error('[cancelEscrow] error:', error);
+      setStatus('Cancel escrow failed: ' + error.message);
+      addLog('Cancel Escrow', 'N/A', 'Error: ' + error.message);
       toast.error(`❌ Cancel failed: ${error.message}`);
     }
   };
@@ -723,26 +965,26 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   // --- replace your entire handleApproveSale with this version ---
   const handleApproveSale = async (req: SaleRequest) => {
-    console.log("[handleApproveSale] Sale request data:", req);
+    console.log('[handleApproveSale] Sale request data:', req);
     if (!req.seller) {
-      console.error("[handleApproveSale] Missing seller:", req);
-      setStatus("Error: Missing seller field");
+      console.error('[handleApproveSale] Missing seller:', req);
+      setStatus('Error: Missing seller field');
       return;
     }
 
     try {
       const connection = new Connection(
-        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
+        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
       );
 
       const sellerPk = new PublicKey(req.seller);
       const buyerPk = new PublicKey(
-        typeof req.buyer === "string" ? req.buyer : PLACEHOLDER_BUYER.toBase58()
+        typeof req.buyer === 'string' ? req.buyer : PLACEHOLDER_BUYER.toBase58()
       );
       const resolvedLuxhubWallet = req.luxhubWallet || currentEscrowConfig;
       if (!resolvedLuxhubWallet) {
-        console.error("[handleApproveSale] LuxHub wallet is missing from request and config.");
-        setStatus("Error: Missing LuxHub Wallet");
+        console.error('[handleApproveSale] LuxHub wallet is missing from request and config.');
+        setStatus('Error: Missing LuxHub Wallet');
         return;
       }
       const luxhubPk = new PublicKey(resolvedLuxhubWallet);
@@ -754,29 +996,29 @@ const AdminDashboard: React.FC = () => {
         req.takerAmount === undefined ||
         req.salePrice === undefined
       ) {
-        console.error("[handleApproveSale] Invalid numeric input:", req);
-        setStatus("Error: Missing required numeric fields");
+        console.error('[handleApproveSale] Invalid numeric input:', req);
+        setStatus('Error: Missing required numeric fields');
         return;
       }
 
       // ---------- derive escrow PDA & check if already exists ----------
       const seed = Number(req.seed);
-      const seedBuffer = new BN(seed).toArrayLike(Buffer, "le", 8);
+      const seedBuffer = new BN(seed).toArrayLike(Buffer, 'le', 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("state"), seedBuffer],
+        [Buffer.from('state'), seedBuffer],
         program!.programId
       );
-      console.log("[handleApproveSale] Escrow PDA:", escrowPda.toBase58());
+      console.log('[handleApproveSale] Escrow PDA:', escrowPda.toBase58());
 
       const escrowInfo = await connection.getAccountInfo(escrowPda);
       if (escrowInfo !== null) {
         // Already initialized: do not re-initialize via Squads.
-        setStatus("Escrow already initialized — updating metadata and cleaning up.");
-        await updateNFTMarketStatus(req.nftId, "active", wallet);
-        await fetch("/api/nft/updateStatus", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mintAddress: req.nftId, marketStatus: "active" }),
+        setStatus('Escrow already initialized — updating metadata and cleaning up.');
+        await updateNFTMarketStatus(req.nftId, 'active', wallet);
+        await fetch('/api/nft/updateStatus', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mintAddress: req.nftId, marketStatus: 'active' }),
         });
         setSaleRequests((prev) => prev.filter((r) => r.nftId !== req.nftId));
         await refreshData();
@@ -787,19 +1029,19 @@ const AdminDashboard: React.FC = () => {
       const vaultAta = await getAssociatedTokenAddress(nftMint, escrowPda, true);
       const vaultInfo = await connection.getAccountInfo(vaultAta);
       if (!vaultInfo) {
-        alert("Vault ATA does not exist yet. Please wait for the seller to deposit the NFT.");
+        alert('Vault ATA does not exist yet. Please wait for the seller to deposit the NFT.');
         return;
       }
       const vaultBalance = await connection.getTokenAccountBalance(vaultAta);
       const vaultAmount = Number(vaultBalance.value.uiAmount || 0);
       if (vaultAmount < req.initializerAmount) {
-        alert("Vault ATA balance is insufficient. Please wait for the seller to deposit the NFT.");
+        alert('Vault ATA balance is insufficient. Please wait for the seller to deposit the NFT.');
         return;
       }
 
-      setStatus("Approving listing (proposing via Squads)...");
-      addLog("Approve Sale (proposed)", "N/A", `Vault validated. Seed: ${seed}`);
-      console.log("[DEBUG] BN inputs:", {
+      setStatus('Approving listing (proposing via Squads)...');
+      addLog('Approve Sale (proposed)', 'N/A', `Vault validated. Seed: ${seed}`);
+      console.log('[DEBUG] BN inputs:', {
         seed: req.seed,
         initializerAmount: req.initializerAmount,
         takerAmount: req.takerAmount,
@@ -815,10 +1057,10 @@ const AdminDashboard: React.FC = () => {
         .initialize(
           new BN(seed),
           new BN(req.initializerAmount), // lamports
-          new BN(req.takerAmount),       // lamports
+          new BN(req.takerAmount), // lamports
           req.fileCid,
           luxhubPk,
-          new BN(req.salePrice),         // lamports
+          new BN(req.salePrice), // lamports
           buyerPk
         )
         .accounts({
@@ -831,8 +1073,8 @@ const AdminDashboard: React.FC = () => {
           sellerAtaB: await getAssociatedTokenAddress(nftMint, sellerPk),
           escrow: escrowPda,
           vault: vaultAta,
-          associatedTokenProgram: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+          associatedTokenProgram: new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
+          tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
@@ -844,7 +1086,7 @@ const AdminDashboard: React.FC = () => {
         isSigner: k.isSigner,
         isWritable: k.isWritable,
       }));
-      const dataBase64 = Buffer.from(ix.data).toString("base64");
+      const dataBase64 = Buffer.from(ix.data).toString('base64');
 
       // ---------- create a Squads proposal ----------
       const result = await proposeToSquads({
@@ -859,7 +1101,7 @@ const AdminDashboard: React.FC = () => {
         `✅ Proposal created in Squads (vault ${result.vaultIndex}, index ${result.transactionIndex}). Approve & Execute in Squads.`
       );
       setStatus(`Squads proposal created. Index: ${result.transactionIndex}`);
-      addLog("Approve Sale (proposed)", "N/A", `Escrow ${seed}`);
+      addLog('Approve Sale (proposed)', 'N/A', `Escrow ${seed}`);
 
       // ⚠️ Defer metadata/DB updates until proposal EXECUTED (webhook/poll).
       // After execution:
@@ -868,13 +1110,12 @@ const AdminDashboard: React.FC = () => {
 
       await refreshData();
     } catch (error: any) {
-      console.error("[handleApproveSale] error:", error);
-      setStatus("Approve sale (proposal) failed: " + error.message);
-      addLog("Approve Sale", "N/A", "Error: " + error.message);
+      console.error('[handleApproveSale] error:', error);
+      setStatus('Approve sale (proposal) failed: ' + error.message);
+      addLog('Approve Sale', 'N/A', 'Error: ' + error.message);
       toast.error(`❌ Proposal failed: ${error.message}`);
     }
   };
-
 
   // ------------------------------------------------
   // Vault Address Fetching
@@ -883,12 +1124,12 @@ const AdminDashboard: React.FC = () => {
     const fetchVaults = async () => {
       if (!program) return;
       const result: { [seed: string]: string } = {};
-  
+
       for (const escrow of activeEscrows) {
         try {
-          const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
+          const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
           const [escrowPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("state"), seedBuffer],
+            [Buffer.from('state'), seedBuffer],
             program.programId
           );
           const vault = await getAssociatedTokenAddress(
@@ -898,13 +1139,13 @@ const AdminDashboard: React.FC = () => {
           );
           result[escrow.seed.toString()] = vault.toBase58();
         } catch (e) {
-          console.error("Vault fetch failed for seed", escrow.seed, e);
+          console.error('Vault fetch failed for seed', escrow.seed, e);
         }
       }
-  
+
       setVaultAddresses(result);
     };
-  
+
     fetchVaults();
   }, [activeEscrows, program]);
 
@@ -916,8 +1157,9 @@ const AdminDashboard: React.FC = () => {
       case 2:
         return (
           <div>
-            
-            <div className={styles.header}><h2>Active Escrows</h2></div>
+            <div className={styles.header}>
+              <h2>Active Escrows</h2>
+            </div>
             {activeEscrows.length === 0 ? (
               <p>No active escrows found.</p>
             ) : (
@@ -930,15 +1172,15 @@ const AdminDashboard: React.FC = () => {
 
                 if (!program) return null;
 
-                const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, "le", 8);
+                const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
                 const [escrowPda] = PublicKey.findProgramAddressSync(
-                  [Buffer.from("state"), seedBuffer],
+                  [Buffer.from('state'), seedBuffer],
                   program.programId
                 );
 
                 return (
                   <div key={idx} className={styles.listingCard}>
-                    <h3>{escrow.name || "Unnamed NFT"}</h3>
+                    <h3>{escrow.name || 'Unnamed NFT'}</h3>
 
                     <div className={styles.listingCardInfo}>
                       {escrow.image && (
@@ -947,19 +1189,21 @@ const AdminDashboard: React.FC = () => {
                             src={escrow.image}
                             alt={escrow.name}
                             className={styles.nftImage}
-                            style={{ maxWidth: "200px", borderRadius: "10px" }}
+                            style={{ maxWidth: '200px', borderRadius: '10px' }}
                           />
                         </div>
                       )}
 
                       <p className={styles.nftDescription}>
-                        {escrow.description || "No description available."}
+                        {escrow.description || 'No description available.'}
                       </p>
 
-                      <p><strong>Seed:</strong> {escrow.seed.toString()}</p>
+                      <p>
+                        <strong>Seed:</strong> {escrow.seed.toString()}
+                      </p>
 
                       <p>
-                        <strong>Escrow PDA:</strong>{" "}
+                        <strong>Escrow PDA:</strong>{' '}
                         <a
                           href={`https://solscan.io/account/${escrowPda.toBase58()}?cluster=devnet`}
                           target="_blank"
@@ -970,17 +1214,37 @@ const AdminDashboard: React.FC = () => {
                       </p>
 
                       <p>
-                        <strong>Vault ATA:</strong>{" "}
-                        <code>{escrow.vaultATA?.slice(0, 4) || "Loading..."} . . . {escrow.vaultATA?.slice(-4)}</code>
+                        <strong>Vault ATA:</strong>{' '}
+                        <code>
+                          {escrow.vaultATA?.slice(0, 4) || 'Loading...'} . . .{' '}
+                          {escrow.vaultATA?.slice(-4)}
+                        </code>
                       </p>
 
-                      <p><strong>Mint Address:</strong> {escrow.mintB.slice(0,4)} . . . {escrow.mintB.slice(-4)}</p>
-                      <p><strong>Initializer Wallet:</strong> {escrow.initializer.slice(0,4)} . . . {escrow.initializer.slice(-4)}</p>
-                      <p><strong>Initializer Amount:</strong> {initializerAmountSol.toFixed(2)} SOL</p>
-                      <p><strong>Taker Amount:</strong> {takerAmountSol.toFixed(2)} SOL</p>
-                      <p><strong>Sale Price:</strong> {salePriceSol.toFixed(2)} SOL</p>
-                      <p><strong>Royalty (3%):</strong> {(salePriceSol * 0.03).toFixed(2)} SOL</p>
-                      <p><strong>File CID:</strong> {escrow.file_cid.slice(0,4)} . . . {escrow.file_cid.slice(-4)}</p>
+                      <p>
+                        <strong>Mint Address:</strong> {escrow.mintB.slice(0, 4)} . . .{' '}
+                        {escrow.mintB.slice(-4)}
+                      </p>
+                      <p>
+                        <strong>Initializer Wallet:</strong> {escrow.initializer.slice(0, 4)} . . .{' '}
+                        {escrow.initializer.slice(-4)}
+                      </p>
+                      <p>
+                        <strong>Initializer Amount:</strong> {initializerAmountSol.toFixed(2)} SOL
+                      </p>
+                      <p>
+                        <strong>Taker Amount:</strong> {takerAmountSol.toFixed(2)} SOL
+                      </p>
+                      <p>
+                        <strong>Sale Price:</strong> {salePriceSol.toFixed(2)} SOL
+                      </p>
+                      <p>
+                        <strong>Royalty (3%):</strong> {(salePriceSol * 0.03).toFixed(2)} SOL
+                      </p>
+                      <p>
+                        <strong>File CID:</strong> {escrow.file_cid.slice(0, 4)} . . .{' '}
+                        {escrow.file_cid.slice(-4)}
+                      </p>
 
                       {escrow.attributes && escrow.attributes.length > 0 && (
                         <div className={styles.attributesSection}>
@@ -1009,16 +1273,24 @@ const AdminDashboard: React.FC = () => {
       case 5:
         return (
           <div>
-            <div className={styles.header}><h2>Marketplace Listing Requests</h2></div>
+            <div className={styles.header}>
+              <h2>Marketplace Listing Requests</h2>
+            </div>
 
             <div className={styles.inputGroupContainer}>
               <div className={styles.inputGroup}>
-
                 <div className={styles.searchContainer}>
-                  <button onClick={() => fetchSaleRequests(1, sellerFilter)}><CiSearch className={styles.searchIcon} /></button>
-                  <input type="text" placeholder="Filter by Seller Wallet" value={sellerFilter} className={styles.searchBar} onChange={(e) => setSellerFilter(e.target.value)} />
+                  <button onClick={() => fetchSaleRequests(1, sellerFilter)}>
+                    <CiSearch className={styles.searchIcon} />
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Filter by Seller Wallet"
+                    value={sellerFilter}
+                    className={styles.searchBar}
+                    onChange={(e) => setSellerFilter(e.target.value)}
+                  />
                 </div>
-
               </div>
             </div>
 
@@ -1050,20 +1322,41 @@ const AdminDashboard: React.FC = () => {
                     updated.set(req.nftId, newSeed); // override the seed for this NFT
                     return updated;
                   });
-                 };
-                
+                };
+
                 return (
                   <div key={idx} className={styles.listingCard}>
-                    <div className={styles.statusBadge}><div>PENDING</div></div>
+                    <div className={styles.statusBadge}>
+                      <div>PENDING</div>
+                    </div>
                     <div className={styles.listingCardInfo}>
-                      <p><strong>NFT Mint:</strong> {req.nftId.slice(0,4)} . . . {req.nftId.slice(-4)}</p>
-                      <p><strong>Seller:</strong> {req.seller.slice(0,4)} . . . {req.seller.slice(-4)}</p>
-                      <p><strong>Seed:</strong> {currentSeed}</p>
-                      <p><strong>Initializer Amount (SOL):</strong> {req.initializerAmount}</p>
-                      <p><strong>Taker Amount (SOL):</strong> {req.takerAmount}</p>
-                      <p><strong>Sale Price (SOL):</strong> {req.salePrice}</p>
-                      <p><strong>File CID:</strong> {req.fileCid.slice(0,4)} . . . {req.fileCid.slice(-4)}</p>
-                      <p><strong>Requested at:</strong> {new Date(req.timestamp).toLocaleString()}</p>
+                      <p>
+                        <strong>NFT Mint:</strong> {req.nftId.slice(0, 4)} . . .{' '}
+                        {req.nftId.slice(-4)}
+                      </p>
+                      <p>
+                        <strong>Seller:</strong> {req.seller.slice(0, 4)} . . .{' '}
+                        {req.seller.slice(-4)}
+                      </p>
+                      <p>
+                        <strong>Seed:</strong> {currentSeed}
+                      </p>
+                      <p>
+                        <strong>Initializer Amount (SOL):</strong> {req.initializerAmount}
+                      </p>
+                      <p>
+                        <strong>Taker Amount (SOL):</strong> {req.takerAmount}
+                      </p>
+                      <p>
+                        <strong>Sale Price (SOL):</strong> {req.salePrice}
+                      </p>
+                      <p>
+                        <strong>File CID:</strong> {req.fileCid.slice(0, 4)} . . .{' '}
+                        {req.fileCid.slice(-4)}
+                      </p>
+                      <p>
+                        <strong>Requested at:</strong> {new Date(req.timestamp).toLocaleString()}
+                      </p>
                       <div className={styles.actions}>
                         <button
                           disabled={!req.seller}
@@ -1091,7 +1384,9 @@ const AdminDashboard: React.FC = () => {
             <div className={styles.configInputGroupContainer}>
               <div className={styles.configInputGroup}>
                 <label>Current LuxHub Wallet:</label>
-                <div className={styles.luxhubWallet}>{currentEscrowConfig.slice(0, 4)}...{currentEscrowConfig.slice(-4)}</div>
+                <div className={styles.luxhubWallet}>
+                  {currentEscrowConfig.slice(0, 4)}...{currentEscrowConfig.slice(-4)}
+                </div>
               </div>
               <div className={styles.configInputGroup}>
                 <label>Set LuxHub Wallet:</label>
@@ -1119,7 +1414,9 @@ const AdminDashboard: React.FC = () => {
                   <p>No admins found.</p>
                 ) : (
                   adminList.map((adminStr, idx) => (
-                    <div key={idx} className={styles.listItem}>{adminStr.slice(0, 4)}...{adminStr.slice(-4)}</div>
+                    <div key={idx} className={styles.listItem}>
+                      {adminStr.slice(0, 4)}...{adminStr.slice(-4)}
+                    </div>
                   ))
                 )}
               </div>
@@ -1148,6 +1445,239 @@ const AdminDashboard: React.FC = () => {
         );
       case 8:
         return <VendorManagementPanel wallet={wallet} />;
+      case 9:
+        return (
+          <div>
+            <div className={styles.header}>
+              <h2>Squads Multisig Proposals</h2>
+            </div>
+
+            {/* Multisig Info Card */}
+            {squadsMultisigInfo && (
+              <div
+                className={styles.listingCard}
+                style={{ marginBottom: '20px', backgroundColor: '#1a1a2e' }}
+              >
+                <div className={styles.listingCardInfo}>
+                  <h3 style={{ margin: '0 0 10px 0' }}>Multisig Configuration</h3>
+                  <p>
+                    <strong>Address:</strong>{' '}
+                    <a
+                      href={squadsMultisigInfo.squadsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {squadsMultisigInfo.multisigPda?.slice(0, 8)}...
+                      {squadsMultisigInfo.multisigPda?.slice(-8)}
+                    </a>
+                  </p>
+                  <p>
+                    <strong>Threshold:</strong> {squadsMultisigInfo.threshold} of{' '}
+                    {squadsMultisigInfo.members?.length} members
+                  </p>
+                  <p>
+                    <strong>Total Proposals:</strong> {squadsMultisigInfo.transactionIndex}
+                  </p>
+
+                  <details style={{ marginTop: '10px' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                      Members ({squadsMultisigInfo.members?.length})
+                    </summary>
+                    <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
+                      {squadsMultisigInfo.members?.map((m, i) => (
+                        <li key={i} style={{ fontSize: '12px', marginBottom: '4px' }}>
+                          <code>
+                            {m.pubkey.slice(0, 6)}...{m.pubkey.slice(-6)}
+                          </code>{' '}
+                          <span style={{ color: '#888' }}>
+                            [{m.permissions.initiate && 'I'}
+                            {m.permissions.vote && 'V'}
+                            {m.permissions.execute && 'E'}]
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+
+                  {squadsMultisigInfo.vaults && squadsMultisigInfo.vaults.length > 0 && (
+                    <details style={{ marginTop: '10px' }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                        Vaults ({squadsMultisigInfo.vaults.length})
+                      </summary>
+                      <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
+                        {squadsMultisigInfo.vaults.map((v, i) => (
+                          <li key={i} style={{ fontSize: '12px', marginBottom: '4px' }}>
+                            <strong>Vault {v.index}:</strong>{' '}
+                            <code>
+                              {v.pda.slice(0, 6)}...{v.pda.slice(-6)}
+                            </code>
+                            {v.balance !== undefined && (
+                              <span style={{ marginLeft: '10px', color: '#10b981' }}>
+                                {(v.balance / 1e9).toFixed(4)} SOL
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className={styles.inputGroupContainer}>
+              <div className={styles.inputGroup}>
+                <select
+                  value={squadsFilter}
+                  onChange={(e) => {
+                    setSquadsFilter(e.target.value);
+                    fetchSquadsProposals(e.target.value);
+                  }}
+                  className={styles.searchBar}
+                  style={{ width: 'auto', padding: '8px 12px' }}
+                >
+                  <option value="pending">Pending (Active/Approved)</option>
+                  <option value="active">Active Only</option>
+                  <option value="approved">Approved Only</option>
+                  <option value="executed">Executed</option>
+                  <option value="all">All Proposals</option>
+                </select>
+                <button
+                  onClick={() => fetchSquadsProposals(squadsFilter)}
+                  disabled={squadsLoading}
+                  style={{ marginLeft: '10px' }}
+                >
+                  {squadsLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+
+            {squadsLoading && <p>Loading proposals...</p>}
+
+            {!squadsLoading && squadsProposals.length === 0 ? (
+              <p>No proposals found for the selected filter.</p>
+            ) : (
+              squadsProposals.map((proposal, idx) => {
+                const canExecute =
+                  proposal.status === 'approved' ||
+                  (proposal.status === 'active' && proposal.approvals >= proposal.threshold);
+                const isExecuted = proposal.status === 'executed';
+
+                return (
+                  <div key={idx} className={styles.listingCard}>
+                    <div className={styles.statusBadge}>
+                      <div
+                        style={{
+                          backgroundColor:
+                            proposal.status === 'executed'
+                              ? '#10b981'
+                              : proposal.status === 'approved'
+                                ? '#3b82f6'
+                                : proposal.status === 'rejected'
+                                  ? '#ef4444'
+                                  : proposal.status === 'cancelled'
+                                    ? '#6b7280'
+                                    : '#f59e0b',
+                        }}
+                      >
+                        {proposal.status.toUpperCase()}
+                      </div>
+                    </div>
+                    <div className={styles.listingCardInfo}>
+                      <p>
+                        <strong>Transaction Index:</strong> {proposal.transactionIndex}
+                      </p>
+                      <p>
+                        <strong>Approvals:</strong> {proposal.approvals} / {proposal.threshold}
+                      </p>
+                      <p>
+                        <strong>Rejections:</strong> {proposal.rejections}
+                      </p>
+                      <p>
+                        <strong>Proposal PDA:</strong>{' '}
+                        <a
+                          href={`https://solscan.io/account/${proposal.proposalPda}?cluster=devnet`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {proposal.proposalPda.slice(0, 4)}...{proposal.proposalPda.slice(-4)}
+                        </a>
+                      </p>
+                      <p>
+                        <strong>Squads UI:</strong>{' '}
+                        <a
+                          href={`https://v4.squads.so/squads/${process.env.NEXT_PUBLIC_SQUADS_MSIG}/tx/${proposal.transactionIndex}?cluster=devnet`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View in Squads
+                        </a>
+                      </p>
+
+                      <div className={styles.actions}>
+                        <button
+                          onClick={() => refreshProposalStatus(proposal.transactionIndex)}
+                          disabled={squadsLoading}
+                        >
+                          Refresh Status
+                        </button>
+                        {/* Approve/Reject buttons for active proposals */}
+                        {(proposal.status === 'active' || proposal.status === 'draft') && (
+                          <>
+                            <button
+                              onClick={() => approveSquadsProposal(proposal.transactionIndex)}
+                              disabled={squadsLoading}
+                              style={{ backgroundColor: '#10b981' }}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => rejectSquadsProposal(proposal.transactionIndex)}
+                              disabled={squadsLoading}
+                              style={{ backgroundColor: '#ef4444' }}
+                            >
+                              Reject
+                            </button>
+                            <button
+                              onClick={() => cancelSquadsProposal(proposal.transactionIndex)}
+                              disabled={squadsLoading}
+                              style={{ backgroundColor: '#6b7280' }}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {canExecute && !isExecuted && (
+                          <button
+                            onClick={() => executeSquadsProposal(proposal.transactionIndex)}
+                            disabled={squadsLoading}
+                            style={{ backgroundColor: '#3b82f6' }}
+                          >
+                            Execute Proposal
+                          </button>
+                        )}
+                        {isExecuted && (
+                          <button
+                            onClick={() => {
+                              const seed = prompt('Enter escrow seed to sync:');
+                              if (seed) syncEscrowState(seed);
+                            }}
+                            disabled={squadsLoading}
+                            style={{ backgroundColor: '#10b981' }}
+                          >
+                            Sync to MongoDB
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        );
+      case 10:
+        return <ShipmentVerificationTab onStatusChange={refreshData} />;
       default:
         return null;
     }
@@ -1173,24 +1703,54 @@ const AdminDashboard: React.FC = () => {
       ) : (
         <>
           <div className={styles.tabContainer}>
-            <button className={`${styles.tab} ${tabIndex === 5 ? styles.activeTab : ""}`} onClick={() => setTabIndex(5)}>
+            <button
+              className={`${styles.tab} ${tabIndex === 5 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(5)}
+            >
               Sale Requests
             </button>
-            <button className={`${styles.tab} ${tabIndex === 2 ? styles.activeTab : ""}`} onClick={() => setTabIndex(2)}>
+            <button
+              className={`${styles.tab} ${tabIndex === 2 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(2)}
+            >
               Escrow Management
             </button>
-            <button className={`${styles.tab} ${tabIndex === 6 ? styles.activeTab : ""}`} onClick={() => setTabIndex(6)}>
+            <button
+              className={`${styles.tab} ${tabIndex === 10 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(10)}
+            >
+              Shipment Verification
+            </button>
+            <button
+              className={`${styles.tab} ${tabIndex === 6 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(6)}
+            >
               NFT Metadata Editor
             </button>
-            <button className={`${styles.tab} ${tabIndex === 7 ? styles.activeTab : ""}`} onClick={() => setTabIndex(7)}>
+            <button
+              className={`${styles.tab} ${tabIndex === 7 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(7)}
+            >
               Metadata Change Requests
             </button>
           </div>
           <div className={styles.subTabWrapper}>
-            <button className={`${styles.tab} ${tabIndex === 8 ? styles.activeTab : ""}`} onClick={() => setTabIndex(8)}>
+            <button
+              className={`${styles.tab} ${tabIndex === 9 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(9)}
+            >
+              Squads Proposals
+            </button>
+            <button
+              className={`${styles.tab} ${tabIndex === 8 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(8)}
+            >
               Vendor Approvals
             </button>
-            <button className={`${styles.tab} ${tabIndex === 0 ? styles.activeTab : ""}`} onClick={() => setTabIndex(0)}>
+            <button
+              className={`${styles.tab} ${tabIndex === 0 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(0)}
+            >
               Configuration
             </button>
           </div>

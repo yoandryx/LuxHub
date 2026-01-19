@@ -6,13 +6,66 @@ const EscrowSchema = new Schema(
     asset: { type: Schema.Types.ObjectId, ref: 'Asset', required: true },
     buyer: { type: Schema.Types.ObjectId, ref: 'User' },
     seller: { type: Schema.Types.ObjectId, ref: 'Vendor' },
+    sellerWallet: { type: String }, // Vendor wallet address for quick lookup
     escrowPda: { type: String, required: true, unique: true }, // Solana PDA for on-chain escrow
+    nftMint: { type: String, index: true }, // NFT mint address
     amountUSD: Number,
     royaltyAmount: Number,
-    trackingNumber: String,
+
+    // ========== SALE MODE (NEW) ==========
+    saleMode: {
+      type: String,
+      enum: ['fixed_price', 'accepting_offers', 'crowdfunded'],
+      default: 'fixed_price',
+      index: true,
+    },
+
+    // ========== FLEXIBLE PRICING (NEW) ==========
+    listingPrice: { type: Number }, // Current listing price in lamports
+    listingPriceUSD: { type: Number }, // Price in USD for display
+    minimumOffer: { type: Number }, // For accepting_offers mode (lamports)
+    minimumOfferUSD: { type: Number }, // Min offer in USD
+    acceptingOffers: { type: Boolean, default: false }, // Toggle for offer mode
+
+    // ========== SHIPMENT TRACKING (ENHANCED) ==========
+    shipmentStatus: {
+      type: String,
+      enum: ['pending', 'shipped', 'in_transit', 'delivered', 'proof_submitted', 'verified'],
+      default: 'pending',
+      index: true,
+    },
+    trackingCarrier: { type: String }, // FedEx, UPS, DHL, etc.
+    trackingNumber: { type: String },
+    shipmentProofUrls: [{ type: String }], // Photo proof uploaded to IPFS
+    shipmentSubmittedAt: { type: Date },
+    shipmentVerifiedAt: { type: Date },
+    shipmentVerifiedBy: { type: String }, // Admin wallet who verified
+
+    // ========== POOL CONVERSION (NEW) ==========
+    convertedToPool: { type: Boolean, default: false },
+    poolId: { type: Schema.Types.ObjectId, ref: 'Pool' },
+    poolConvertedAt: { type: Date },
+
+    // ========== OFFER TRACKING (NEW) ==========
+    activeOfferCount: { type: Number, default: 0 },
+    highestOffer: { type: Number }, // Highest pending offer amount
+    acceptedOfferId: { type: Schema.Types.ObjectId, ref: 'Offer' },
+
+    // ========== ESCROW STATUS ==========
     status: {
       type: String,
-      enum: ['initiated', 'funded', 'shipped', 'delivered', 'released', 'cancelled', 'failed'],
+      enum: [
+        'initiated', // Escrow PDA created
+        'listed', // Active on marketplace
+        'offer_accepted', // Vendor accepted an offer, awaiting buyer deposit
+        'funded', // Buyer deposited funds
+        'shipped', // Vendor shipped item
+        'delivered', // Item delivered (tracking shows delivered)
+        'released', // Funds released to seller
+        'cancelled', // Escrow cancelled
+        'failed', // Transaction failed
+        'converted', // Converted to pool
+      ],
       default: 'initiated',
       index: true,
     },
@@ -20,10 +73,46 @@ const EscrowSchema = new Schema(
     txSignature: String,
     expiresAt: Date,
     deleted: { type: Boolean, default: false },
+
+    // ========== SQUADS PROTOCOL MULTISIG ==========
+    squadsTransactionIndex: { type: String, index: true }, // Squads vault transaction index
+    squadsExecutionSignature: String, // Transaction signature after Squads execution
+    squadsProposedAt: Date, // When the proposal was created
+    squadsExecutedAt: Date, // When the proposal was executed
+
+    // ========== CONFIRM DELIVERY SQUADS TRACKING (NEW) ==========
+    confirmDeliveryProposalIndex: { type: String }, // Squads proposal for confirm_delivery
+    confirmDeliveryProposedAt: { type: Date },
+    confirmDeliveryExecutedAt: { type: Date },
   },
   { timestamps: true }
 );
 
+// ========== INDEXES ==========
 EscrowSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+EscrowSchema.index({ saleMode: 1, status: 1 }); // Query by sale mode + status
+EscrowSchema.index({ sellerWallet: 1, status: 1 }); // Vendor queries
+EscrowSchema.index({ shipmentStatus: 1 }); // Shipment verification queries
+EscrowSchema.index({ convertedToPool: 1 }); // Pool conversion queries
+
+// ========== PRE-SAVE HOOKS ==========
+EscrowSchema.pre('save', function (next) {
+  // Calculate royalty (3% of listing price)
+  if (this.isModified('listingPriceUSD') && this.listingPriceUSD) {
+    this.royaltyAmount = this.listingPriceUSD * 0.03;
+  }
+
+  // Auto-set acceptingOffers based on saleMode
+  if (this.isModified('saleMode')) {
+    this.acceptingOffers = this.saleMode === 'accepting_offers';
+  }
+
+  // Update status to 'listed' when escrow is initialized and has price
+  if (this.status === 'initiated' && this.listingPrice) {
+    this.status = 'listed';
+  }
+
+  next();
+});
 
 export const Escrow = models.Escrow || model('Escrow', EscrowSchema);
