@@ -1,13 +1,20 @@
 // src/pages/api/squads/propose.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, Keypair, PublicKey, TransactionMessage } from '@solana/web3.js';
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  Transaction,
+  TransactionMessage,
+  VersionedTransaction,
+} from '@solana/web3.js';
 import * as multisig from '@sqds/multisig';
 import { readFileSync } from 'fs';
 
 type IxKey = { pubkey: string; isSigner: boolean; isWritable: boolean };
 
 export const config = {
-  runtime: 'nodejs', // ensure we’re not on Edge (fs needed)
+  runtime: 'nodejs', // ensure we're not on Edge (fs needed)
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -21,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       keys,
       dataBase64,
       vaultIndex = 0,
-      transactionIndex,
+      autoApprove = true, // Auto-approve by the creator (recommended)
       rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT,
       multisigPda = process.env.NEXT_PUBLIC_SQUADS_MSIG,
     } = req.body as {
@@ -29,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       keys?: IxKey[];
       dataBase64?: string;
       vaultIndex?: number;
-      transactionIndex?: string | number;
+      autoApprove?: boolean;
       rpc?: string;
       multisigPda?: string;
     };
@@ -61,13 +68,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const programPk = new PublicKey(programId);
     const msigPk = new PublicKey(multisigPda);
 
-    // Basic existence check on the multisig account
-    const msigInfo = await connection.getAccountInfo(msigPk);
-    if (!msigInfo) {
-      return res
-        .status(400)
-        .json({ error: `Multisig account ${msigPk.toBase58()} not found on this cluster` });
-    }
+    // Fetch multisig account to get next transaction index
+    const multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msigPk);
+
+    const currentIndex = Number(multisigAccount.transactionIndex);
+    const transactionIndex = BigInt(currentIndex + 1);
 
     const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: vaultIndex });
 
@@ -84,68 +89,91 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { blockhash } = await connection.getLatestBlockhash();
 
-    // IMPORTANT: pass the TransactionMessage (builder), NOT a compiled MessageV0
+    // Build the TransactionMessage for the vault transaction
     const message = new TransactionMessage({
       payerKey: vaultPda, // Squads vault pays fees when executed
       recentBlockhash: blockhash,
       instructions: [ix],
     });
 
-    // Choose a transaction index (unique per (vaultIndex, index))
-    let indexBig = BigInt(transactionIndex ?? (await connection.getSlot()));
+    // Step 1: Create vault transaction instruction
+    const vaultTxCreateIx = multisig.instructions.vaultTransactionCreate({
+      multisigPda: msigPk,
+      creator: payer.publicKey,
+      transactionIndex,
+      vaultIndex,
+      ephemeralSigners: 0,
+      transactionMessage: message,
+      rentPayer: payer.publicKey,
+    });
 
-    const tryCreate = async (idx: bigint) => {
-      return multisig.rpc.vaultTransactionCreate({
-        connection,
-        feePayer: payer, // payer for proposal creation
+    // Step 2: Create proposal instruction (CRITICAL - was missing before!)
+    const proposalCreateIx = multisig.instructions.proposalCreate({
+      multisigPda: msigPk,
+      creator: payer.publicKey,
+      transactionIndex,
+      isDraft: false, // Active proposal, ready for voting
+      rentPayer: payer.publicKey,
+    });
+
+    // Build the transaction with both instructions
+    const instructions = [vaultTxCreateIx, proposalCreateIx];
+
+    // Step 3: Auto-approve if enabled (creator votes yes)
+    if (autoApprove) {
+      const approveIx = multisig.instructions.proposalApprove({
         multisigPda: msigPk,
-        transactionIndex: idx,
-        creator: payer.publicKey,
-        vaultIndex,
-        ephemeralSigners: 0,
-        transactionMessage: message, // <-- pass the builder
+        member: payer.publicKey,
+        transactionIndex,
       });
-    };
-
-    try {
-      await tryCreate(indexBig);
-    } catch (e: any) {
-      const msg = String(e?.message ?? '');
-      // If the same (vaultIndex, transactionIndex) already exists, bump and retry a few times
-      if (/already|exists|duplicate/i.test(msg)) {
-        let attempts = 0;
-        while (attempts < 5) {
-          attempts++;
-          indexBig = BigInt(await connection.getSlot()) + BigInt(attempts);
-          try {
-            await tryCreate(indexBig);
-            break;
-          } catch (inner: any) {
-            if (!/already|exists|duplicate/i.test(String(inner?.message ?? ''))) throw inner;
-            if (attempts === 5) throw inner;
-          }
-        }
-      } else {
-        throw e;
-      }
+      instructions.push(approveIx);
     }
 
-    // Optional: you could also compute the vault transaction PDA here for deep links
-    // const [vaultTxPda] = multisig.getVaultTransactionPda({
-    //   multisigPda: msigPk,
-    //   index: indexBig,
-    //   vaultIndex,
-    // });
+    // Create and sign the transaction
+    const txMessage = new TransactionMessage({
+      payerKey: payer.publicKey,
+      recentBlockhash: blockhash,
+      instructions,
+    }).compileToV0Message();
+
+    const transaction = new VersionedTransaction(txMessage);
+    transaction.sign([payer]);
+
+    // Send and confirm
+    const signature = await connection.sendTransaction(transaction, {
+      skipPreflight: false,
+    });
+    await connection.confirmTransaction(signature, 'confirmed');
+
+    // Compute PDAs for response
+    const [proposalPda] = multisig.getProposalPda({
+      multisigPda: msigPk,
+      transactionIndex,
+    });
+
+    const [vaultTxPda] = multisig.getTransactionPda({
+      multisigPda: msigPk,
+      index: transactionIndex,
+    });
+
+    // Generate deep link to Squads UI for additional approvals
+    const squadsDeepLink = `https://v4.squads.so/squads/${msigPk.toBase58()}/tx/${transactionIndex.toString()}`;
 
     return res.status(200).json({
       ok: true,
+      signature,
       multisigPda: msigPk.toBase58(),
+      vaultPda: vaultPda.toBase58(),
       vaultIndex,
-      transactionIndex: indexBig.toString(),
-      // vaultTransactionPda: vaultTxPda.toBase58(),
+      transactionIndex: transactionIndex.toString(),
+      proposalPda: proposalPda.toBase58(),
+      vaultTransactionPda: vaultTxPda.toBase58(),
+      autoApproved: autoApprove,
+      threshold: multisigAccount.threshold,
+      squadsDeepLink,
     });
   } catch (e: any) {
-    console.error(e);
+    console.error('[/api/squads/propose] error:', e);
     return res.status(500).json({ error: e?.message ?? 'Unknown error' });
   }
 }

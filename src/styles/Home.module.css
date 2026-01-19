@@ -6,13 +6,12 @@
   min-height: 100vh;
   color: white;
   text-align: center;
-  /* padding: 75px 10px; */
   overflow: hidden;
 }
 
 @media screen and (max-width: 768px) {
   .container {
-    padding: 150px 0px;
+    padding: 100px 0px;
   }
 
   .rowContent {
@@ -21,7 +20,35 @@
     width: 100%;
   }
 
-  .verticalClockWrapper{
+  .hero {
+    padding: 20px 20px 0;
+  }
+
+  .heroContent {
+    align-items: center;
+    text-align: center;
+    margin-top: 80px;
+    padding-left: 0;
+  }
+
+  .logo {
+    position: relative;
+    top: 0;
+    left: auto;
+    width: 120px;
+    margin-bottom: 16px;
+  }
+
+  .title {
+    font-size: 2.5rem;
+    letter-spacing: -1px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .verticalClockWrapper {
     position: relative;
     top: 0;
     max-width: 800px;
@@ -30,7 +57,6 @@
     overflow: hidden;
     height: 50vh !important;
   }
-  
 }
 
 .rowContent {
@@ -38,7 +64,6 @@
   flex-direction: row;
   align-items: center;
   top: 0;
-
 }
 
 .waveBackground {
@@ -164,8 +189,6 @@
   z-index: 2;
 }
 
-
-
 /* Fading Edges */
 .fadeLeft,
 .fadeRight {
@@ -210,10 +233,10 @@
   cursor: pointer;
   border-radius: 50%;
   transition: all 0.3s ease;
-  opacity: 0; 
+  opacity: 0;
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  pointer-events: none; 
+  pointer-events: none;
 }
 
 .scrollAreaWrapper:hover .chevronLeft,
@@ -234,7 +257,6 @@
 .chevronRight:hover {
   background: #00000092;
 }
-
 
 /* Fade in Animation */
 @keyframes fadePop {
@@ -368,7 +390,6 @@
   /* overflow:visible; */
 }
 
-
 .scrollContainer {
   position: sticky;
   top: 0;
@@ -453,8 +474,6 @@
   z-index: 1000;
 }
 
-
-
 .closeButton {
   position: absolute;
   top: 30px;
@@ -501,13 +520,13 @@
 }
 
 .roadmapCard::before {
-  content: "";
+  content: '';
   position: absolute;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at center, rgba(185,145,255,0.2), transparent 70%);
+  background: radial-gradient(circle at center, rgba(185, 145, 255, 0.2), transparent 70%);
   transform: rotate(30deg);
   z-index: 0;
   pointer-events: none;
@@ -566,7 +585,9 @@
   border-radius: 8px;
   font-weight: 600;
   text-decoration: none;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 .secondaryButton:hover {
@@ -581,15 +602,11 @@
   object-fit: contain;
 }
 
-
-
 /* .phase1 { border-left: 5px solid #2ecc71; }
 .phase2 { border-left: 5px solid #9b59b6; }
 .phase3 { border-left: 5px solid #f39c12; }
 .phase4 { border-left: 5px solid #e67e22; }
 .phase5 { border-left: 5px solid #3498db; } */
-
-
 
 /* Floating particles */
 .particles {
@@ -605,16 +622,54 @@
   filter: blur(40px);
   animation: float 20s infinite linear;
 }
-.particle:nth-child(1) { width: 400px; height: 400px; top: 10%; left: 10%; animation-delay: 0s; }
-.particle:nth-child(2) { width: 600px; height: 600px; top: 60%; left: 70%; animation-delay: 5s; opacity: 0.6; }
-.particle:nth-child(3) { width: 300px; height: 300px; top: 80%; left: 20%; animation-delay: 10s; }
-.particle:nth-child(4) { width: 500px; height: 500px; top: 30%; left: 80%; animation-delay: 15s; opacity: 0.4; }
-.particle:nth-child(5) { width: 450px; height: 450px; top: 50%; left: -10%; animation-delay: 8s; }
+.particle:nth-child(1) {
+  width: 400px;
+  height: 400px;
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+.particle:nth-child(2) {
+  width: 600px;
+  height: 600px;
+  top: 60%;
+  left: 70%;
+  animation-delay: 5s;
+  opacity: 0.6;
+}
+.particle:nth-child(3) {
+  width: 300px;
+  height: 300px;
+  top: 80%;
+  left: 20%;
+  animation-delay: 10s;
+}
+.particle:nth-child(4) {
+  width: 500px;
+  height: 500px;
+  top: 30%;
+  left: 80%;
+  animation-delay: 15s;
+  opacity: 0.4;
+}
+.particle:nth-child(5) {
+  width: 450px;
+  height: 450px;
+  top: 50%;
+  left: -10%;
+  animation-delay: 8s;
+}
 
 @keyframes float {
-  0% { transform: translateY(0) translateX(0); }
-  50% { transform: translateY(-100px) translateX(100px); }
-  100% { transform: translateY(0) translateX(0); }
+  0% {
+    transform: translateY(0) translateX(0);
+  }
+  50% {
+    transform: translateY(-100px) translateX(100px);
+  }
+  100% {
+    transform: translateY(0) translateX(0);
+  }
 }
 
 /* HERO — Sheikh Level */
@@ -630,8 +685,8 @@
 
 .heroContent {
   z-index: 2;
-  max-width: 900px;
-  padding-left: 10px;
+  max-width: 400px;
+  /* padding-left: 10px; */
 }
 
 .logoDubai {
@@ -640,7 +695,7 @@
   margin-bottom: 40px;
 }
 
-.title{
+.title {
   font-size: 4.5rem;
   font-weight: 900;
   letter-spacing: -3px;
@@ -654,17 +709,25 @@
 }
 
 .glowText {
-  text-shadow: 0 0 60px #b991ff, 0 0 120px #8b6ce7;
+  text-shadow:
+    0 0 60px #b991ff,
+    0 0 120px #8b6ce7;
   animation: glow 4s ease-in-out infinite alternate;
 }
 
 @keyframes glow {
-  from { text-shadow: 0 0 60px hsl(262, 100%, 78%); }
-  to { text-shadow: 0 0 100px #b991ff, 0 0 150px #8b6ce7; }
+  from {
+    text-shadow: 0 0 60px hsl(262, 100%, 78%);
+  }
+  to {
+    text-shadow:
+      0 0 100px #b991ff,
+      0 0 150px #8b6ce7;
+  }
 }
 
-.subtitle{
-  font-size:16px;
+.subtitle {
+  font-size: 16px;
   text-transform: uppercase;
   color: #e1ccff;
   font-weight: 500;
@@ -713,7 +776,6 @@
   padding: 2rem 0;
   width: 100%;
   margin-bottom: 100px;
-
 }
 
 .nftCardWrapper {
@@ -766,8 +828,12 @@
   z-index: 20;
   transition: all 0.3s;
 }
-.chevronUp { top: 10px; }
-.chevronDown { bottom: 10px; }
+.chevronUp {
+  top: 10px;
+}
+.chevronDown {
+  bottom: 10px;
+}
 .chevronUp:hover,
 .chevronDown:hover {
   background: rgba(255, 255, 255, 0.3);
@@ -828,11 +894,7 @@
 
 .escrowCardInner {
   position: relative;
-  background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.01) 100%
-  );
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -886,11 +948,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    rgba(185, 145, 255, 0.15) 0%,
-    rgba(185, 145, 255, 0.05) 100%
-  );
+  background: linear-gradient(135deg, rgba(185, 145, 255, 0.15) 0%, rgba(185, 145, 255, 0.05) 100%);
   border: 1px solid rgba(185, 145, 255, 0.12);
   border-radius: 14px;
   margin-bottom: 24px;
@@ -1016,8 +1074,13 @@
 }
 
 @keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* SECONDARY BUTTON - Animated border gradient */
@@ -1099,9 +1162,15 @@
 }
 
 @keyframes borderRotate {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Legacy ghost button (for footer etc) */
@@ -1175,11 +1244,7 @@
 }
 
 .poolsCard {
-  background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.01) 100%
-  );
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border: 1px solid rgba(255, 255, 255, 0.06);
