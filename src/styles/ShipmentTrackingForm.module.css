@@ -1,0 +1,435 @@
+/* src/styles/ShipmentTrackingForm.module.css */
+
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.headerIcon {
+  font-size: 1.5rem;
+  color: #c8a1ff;
+}
+
+.connectPrompt {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 40px;
+}
+
+/* Loading & Empty States */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 16px;
+}
+
+.emptyState p {
+  font-size: 1.1rem;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.emptyState span {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Notifications */
+.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.success {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* Escrow List */
+.escrowList {
+  margin-bottom: 30px;
+}
+
+.escrowList h3 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 16px 0;
+}
+
+.escrowGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.escrowCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.escrowCard:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(200, 161, 255, 0.2);
+}
+
+.escrowCard.selected {
+  background: rgba(200, 161, 255, 0.1);
+  border-color: #c8a1ff;
+  box-shadow: 0 0 20px rgba(200, 161, 255, 0.15);
+}
+
+.escrowImage {
+  width: 100%;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.escrowImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.noImage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.85rem;
+}
+
+.escrowInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.escrowInfo h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.escrowInfo .price {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #c8a1ff;
+  margin: 0;
+}
+
+.statusBadge,
+.shipmentBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.statusBadge {
+  background: rgba(200, 161, 255, 0.15);
+  color: #c8a1ff;
+}
+
+.statusBadge.funded {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.statusBadge.shipped {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.shipmentBadge {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  margin-top: 4px;
+}
+
+.shipmentBadge.verified {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.existingTracking {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.existingTracking strong {
+  color: #c8a1ff;
+}
+
+.existingTracking span {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: monospace;
+}
+
+.existingTracking a {
+  color: #c8a1ff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.existingTracking a:hover {
+  text-decoration: underline;
+}
+
+/* Form */
+.form {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.form h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.formDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  margin: 0 0 20px 0;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.formGroup label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formGroup input,
+.formGroup select {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: #c8a1ff;
+  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.1);
+}
+
+.formGroup select {
+  cursor: pointer;
+}
+
+.formGroup select option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.fileInput {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(200, 161, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fileInput:hover {
+  border-color: rgba(200, 161, 255, 0.4);
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.fileList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fileName {
+  background: rgba(200, 161, 255, 0.15);
+  color: #c8a1ff;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+}
+
+.submitButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #9366d2 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(200, 161, 255, 0.3);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Pending Verification State */
+.pendingVerification {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+}
+
+.pendingIcon {
+  font-size: 3rem;
+  color: #3b82f6;
+  margin-bottom: 16px;
+}
+
+.pendingVerification h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 12px 0;
+}
+
+.pendingVerification p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .escrowGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 16px;
+  }
+
+  .form {
+    padding: 16px;
+  }
+
+  .submitButton {
+    width: 100%;
+    justify-content: center;
+  }
+}

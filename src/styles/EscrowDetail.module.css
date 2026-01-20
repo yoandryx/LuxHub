@@ -1,0 +1,506 @@
+/* src/styles/EscrowDetail.module.css */
+
+.pageContainer {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0a0612 0%, #140f1a 50%, #0a0612 100%);
+  padding: 100px 20px 60px;
+  color: #fff;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #c8a1ff;
+  text-decoration: none;
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+  transition: opacity 0.2s ease;
+}
+
+.backLink:hover {
+  opacity: 0.8;
+}
+
+/* Content Grid */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Left Column */
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.imageCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.assetImage {
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.thumbnails {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.thumbnail {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.thumbnail:hover {
+  border-color: #c8a1ff;
+}
+
+/* Right Column */
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Cards */
+.detailCard,
+.headerCard,
+.priceCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.headerCard h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #fff 0%, #c8a1ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.vendorName {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verifiedBadge {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.modeBadge {
+  background: rgba(200, 161, 255, 0.15);
+  color: #c8a1ff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Price Card */
+.priceCard {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1) 0%, rgba(147, 102, 210, 0.1) 100%);
+  border-color: rgba(200, 161, 255, 0.2);
+}
+
+.priceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.priceRow:last-of-type {
+  border-bottom: none;
+}
+
+.priceLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+}
+
+.priceValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #c8a1ff;
+}
+
+.priceMinOffer,
+.priceHighOffer,
+.priceFee {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.priceMinOffer {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.priceHighOffer {
+  color: #22c55e;
+}
+
+.priceFee {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Action Buttons */
+.actionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.primaryButton {
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #9366d2 100%);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.primaryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(200, 161, 255, 0.3);
+}
+
+.poolButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 24px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  color: #8b5cf6;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.poolButton:hover {
+  background: rgba(139, 92, 246, 0.25);
+}
+
+/* Detail Card */
+.detailCard h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px 0;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detailLabel {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detailValue {
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.description {
+  margin-top: 16px;
+}
+
+.description p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 8px 0 0 0;
+}
+
+/* Info List */
+.infoList {
+  display: flex;
+  flex-direction: column;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(200, 161, 255, 0.08);
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoRow span:first-child {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.addressLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #c8a1ff;
+  text-decoration: none;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.addressLink:hover {
+  text-decoration: underline;
+}
+
+.address {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.shipmentStatus {
+  text-transform: capitalize;
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+.trackingLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.trackingLink:hover {
+  text-decoration: underline;
+}
+
+/* Proof Section */
+.proofSection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.proofGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.proofImage {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.proofImage:hover {
+  transform: scale(1.1);
+}
+
+/* Loading & Error States */
+.loadingContainer,
+.errorContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0a0612 0%, #140f1a 50%, #0a0612 100%);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 20px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(200, 161, 255, 0.2);
+  border-top-color: #c8a1ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorIcon {
+  font-size: 3rem;
+  color: #ef4444;
+  margin-bottom: 16px;
+}
+
+.errorContainer h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.errorContainer p {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 24px 0;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.modalClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalMessage {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .leftColumn {
+    order: 1;
+  }
+
+  .rightColumn {
+    order: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 80px 16px 40px;
+  }
+
+  .headerCard h1 {
+    font-size: 1.5rem;
+  }
+
+  .priceValue {
+    font-size: 1.5rem;
+  }
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+}
