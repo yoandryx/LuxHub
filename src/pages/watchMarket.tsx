@@ -28,6 +28,7 @@ import NFTCard from '../components/marketplace/NFTCard';
 import FilterSortPanel from '../components/marketplace/FilterSortPanel';
 import { CiSearch } from 'react-icons/ci';
 import Loader from '../components/common/Loader';
+import MakeOfferModal from '../components/marketplace/MakeOfferModal';
 import { VendorProfile } from '@/lib/models/VendorProfile';
 
 interface NFT {
@@ -50,6 +51,11 @@ interface NFT {
     value: string;
   }[];
   salePrice?: number;
+  // Escrow data for offers
+  escrowPda?: string;
+  acceptingOffers?: boolean;
+  minimumOfferUSD?: number;
+  vendorName?: string;
 }
 
 type FilterOptions = {
@@ -70,6 +76,7 @@ const Marketplace = () => {
   const [loadingMint, setLoadingMint] = useState<string | null>(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [pendingPurchaseNft, setPendingPurchaseNft] = useState<NFT | null>(null);
+  const [offerNft, setOfferNft] = useState<NFT | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -191,7 +198,7 @@ const Marketplace = () => {
               mintAddress: listing.nftMint,
               metadataUri: '',
               currentOwner: listing.sellerWallet || 'Unknown',
-              marketStatus: 'active',
+              marketStatus: listing.acceptingOffers ? 'accepting_offers' : 'active',
               nftId: listing._id,
               fileCid: '',
               timestamp: new Date(listing.createdAt).getTime(),
@@ -199,9 +206,17 @@ const Marketplace = () => {
               attributes: [
                 { trait_type: 'Brand', value: listing.asset?.model?.split(' ')[0] || '' },
                 { trait_type: 'Price', value: String((listing.listingPrice || 0) / 1e9) },
-                { trait_type: 'Market Status', value: 'active' },
+                {
+                  trait_type: 'Market Status',
+                  value: listing.acceptingOffers ? 'accepting_offers' : 'active',
+                },
               ],
               salePrice: listing.listingPriceUSD,
+              // Escrow offer data
+              escrowPda: listing.escrowPda,
+              acceptingOffers: listing.acceptingOffers,
+              minimumOfferUSD: listing.minimumOfferUSD,
+              vendorName: listing.vendor?.businessName,
             });
           }
         }
@@ -355,6 +370,15 @@ const Marketplace = () => {
       setPendingPurchaseNft(null);
     }
   }, [pendingPurchaseNft, wallet.publicKey]);
+
+  // Handle making an offer
+  const handleMakeOffer = (nft: NFT) => {
+    if (!wallet.connected) {
+      setShowWalletModal(true);
+      return;
+    }
+    setOfferNft(nft);
+  };
 
   // ------------------------------------------------
   // 2. Purchase Handler
@@ -674,8 +698,26 @@ const Marketplace = () => {
                       )
                     }
                   >
-                    Make Offer
+                    Contact Owner
                   </button>
+                ) : nft.acceptingOffers && nft.escrowPda ? (
+                  <>
+                    <button
+                      className={styles.offerButton}
+                      data-tooltip="Submit an offer for this NFT"
+                      onClick={() => handleMakeOffer(nft)}
+                    >
+                      Make Offer
+                    </button>
+                    <button
+                      className={styles.tooltipButton}
+                      data-tooltip="Buy at the list price"
+                      onClick={() => handlePurchase(nft)}
+                      disabled={loadingMint === nft.mintAddress}
+                    >
+                      {loadingMint === nft.mintAddress ? 'Processing...' : 'BUY'}
+                    </button>
+                  </>
                 ) : (
                   <button
                     className={styles.tooltipButton}
@@ -699,7 +741,11 @@ const Marketplace = () => {
                   className={styles.tooltipWrapper}
                   data-tooltip="The current holding status of this NFT in the marketplace"
                 >
-                  {nft.marketStatus === 'active' ? 'Available' : 'Holding'}
+                  {nft.acceptingOffers
+                    ? 'Accepting Offers'
+                    : nft.marketStatus === 'active'
+                      ? 'Available'
+                      : 'Holding'}
                   <IoMdInformationCircle className={styles.infoIcon} />
                 </p>
               </div>
@@ -741,6 +787,29 @@ const Marketplace = () => {
             <WalletGuide onConnected={handleWalletConnected} showSteps={false} />
           </div>
         </div>
+      )}
+
+      {/* Make Offer Modal */}
+      {offerNft && offerNft.escrowPda && (
+        <MakeOfferModal
+          escrow={{
+            escrowPda: offerNft.escrowPda,
+            listingPriceUSD: offerNft.salePrice || offerNft.priceSol * 100,
+            minimumOfferUSD: offerNft.minimumOfferUSD,
+            asset: {
+              model: offerNft.title,
+              imageUrl: offerNft.image,
+            },
+            vendor: {
+              businessName: offerNft.vendorName || offerNft.seller,
+            },
+          }}
+          onClose={() => setOfferNft(null)}
+          onSuccess={() => {
+            setOfferNft(null);
+            fetchNFTs(); // Refresh listings
+          }}
+        />
       )}
     </div>
   );

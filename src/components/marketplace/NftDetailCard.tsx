@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
-import styles from "../../styles/NFTDetailCard.module.css";
-import { FaTimes, FaCopy, FaArrowsAltH } from "react-icons/fa";
-import { LuRotate3D } from "react-icons/lu";
-import { Metaplex } from "@metaplex-foundation/js";
-import { Connection, PublicKey } from "@solana/web3.js";
-import VanillaTilt from "vanilla-tilt";
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import styles from '../../styles/NFTDetailCard.module.css';
+import { FaTimes, FaCopy, FaArrowsAltH } from 'react-icons/fa';
+import { LuRotate3D, LuShield, LuBadgeCheck, LuSparkles } from 'react-icons/lu';
+import { Metaplex } from '@metaplex-foundation/js';
+import { Connection, PublicKey } from '@solana/web3.js';
+import VanillaTilt from 'vanilla-tilt';
 import { usePriceDisplay } from '../marketplace/PriceDisplay';
 
 export interface NFTMetadata {
@@ -66,23 +66,90 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
   const { displayInUSD, toggleDisplay } = usePriceDisplay();
 
   const cardRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
+
+  // Track mouse for holographic shine effect
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setMousePos({ x, y });
+  }, []);
+
+  // Floating particles animation
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+
+    const particles: {
+      x: number;
+      y: number;
+      size: number;
+      speedY: number;
+      opacity: number;
+      hue: number;
+    }[] = [];
+    const particleCount = 30;
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * canvas.offsetWidth,
+        y: Math.random() * canvas.offsetHeight,
+        size: Math.random() * 2 + 0.5,
+        speedY: Math.random() * 0.3 + 0.1,
+        opacity: Math.random() * 0.5 + 0.2,
+        hue: Math.random() * 60 + 250, // Purple to gold range
+      });
+    }
+
+    let animationId: number;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+
+      particles.forEach((p) => {
+        p.y -= p.speedY;
+        if (p.y < -10) {
+          p.y = canvas.offsetHeight + 10;
+          p.x = Math.random() * canvas.offsetWidth;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 70%, 70%, ${p.opacity})`;
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate();
+    return () => cancelAnimationFrame(animationId);
+  }, []);
 
   // 3D Tilt Effect with Gyroscope Support (works on phone!)
   useEffect(() => {
     if (cardRef.current) {
       VanillaTilt.init(cardRef.current, {
-        max: 12,
+        max: 15,
         speed: 400,
-        glare: false,
-        "max-glare": 0.4,
+        glare: true,
+        'max-glare': 0.3,
         gyroscope: true,
         gyroscopeMinAngleX: -30,
         gyroscopeMaxAngleX: 30,
         gyroscopeMinAngleY: -30,
         gyroscopeMaxAngleY: 30,
-        scale: 1.05,
+        scale: 1.02,
         transition: true,
-        easing: "cubic-bezier(.03,.98,.52,.99)",
+        easing: 'cubic-bezier(.03,.98,.52,.99)',
       });
     }
 
@@ -107,7 +174,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
 
         if (!uri && mintAddress) {
           const connection = new Connection(
-            process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.devnet.solana.com"
+            process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
           );
           const metaplex = Metaplex.make(connection);
           const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mintAddress) });
@@ -123,20 +190,20 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
           ...json,
           priceSol: parseFloat(
             json.priceSol ??
-              json.attributes?.find((a: any) => a.trait_type === "Price")?.value ??
+              json.attributes?.find((a: any) => a.trait_type === 'Price')?.value ??
               prev?.priceSol ??
               priceSol?.toString() ??
-              "0"
+              '0'
           ),
           owner:
             json.owner ??
-            json.attributes?.find((a: any) => a.trait_type === "Current Owner")?.value ??
+            json.attributes?.find((a: any) => a.trait_type === 'Current Owner')?.value ??
             prev?.owner ??
             owner,
           mintAddress: mintAddress ?? prev?.mintAddress,
         }));
       } catch (err) {
-        console.error("Failed to fetch metadata:", err);
+        console.error('Failed to fetch metadata:', err);
       } finally {
         setLoading(false);
       }
@@ -152,7 +219,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     if (previewData && !metadata) {
       setMetadata({
         name: previewData.title,
-        symbol: "",
+        symbol: '',
         description: previewData.description,
         image: previewData.image,
         seller_fee_basis_points: 500,
@@ -167,16 +234,16 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     }
   }, [previewData]);
 
-  if (loading) return <p style={{ color: "#aaa" }}>Loading NFT details...</p>;
+  if (loading) return <p style={{ color: '#aaa' }}>Loading NFT details...</p>;
   if (!metadata) return <p> </p>;
 
   const truncate = (value: string, length: number = 10) => {
-    if (!value || typeof value !== "string") return "~";
+    if (!value || typeof value !== 'string') return '~';
     return value.length > length ? `${value.slice(0, 4)}...${value.slice(-4)}` : value;
   };
 
   const getAttr = (type: string, shorten: boolean = false) => {
-    const value = metadata.attributes?.find((a) => a.trait_type === type)?.value || "~";
+    const value = metadata.attributes?.find((a) => a.trait_type === type)?.value || '~';
     return shorten ? truncate(value.toString()) : value;
   };
 
@@ -184,7 +251,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     <div className={styles.modalBackdrop} onClick={onClose}>
       {/* 3D Flip Card */}
       <div
-        className={`${styles.flipCard} ${isFlipped ? styles.flipped : ""}`}
+        className={`${styles.flipCard} ${isFlipped ? styles.flipped : ''}`}
         ref={cardRef}
         onClick={(e) => {
           e.stopPropagation();
@@ -201,81 +268,73 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
 
             <h2>{metadata.name}</h2>
 
+            <div className={styles.metaDetails}>
+              {metadata.mintAddress && (
+                <div className={styles.metaRow}>
+                  <div className={styles.metaLabel}>mint: </div>
+                  <span
+                    className={`${styles.metaCode} ${copiedField === 'mint' ? styles.copied : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopy('mint', metadata.mintAddress ?? '');
+                    }}
+                    data-tooltip="tite"
+                  >
+                    <FaCopy style={{ marginRight: '6px' }} />
+                    {truncate(metadata.mintAddress)}
+                  </span>
+                </div>
+              )}
+
+              {metadata.owner && (
+                <div className={styles.metaRow}>
+                  <div className={styles.metaLabel}>Owner: </div>
+                  <span
+                    className={`${styles.metaCode} ${copiedField === 'owner' ? styles.copied : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopy('owner', metadata.owner ?? '');
+                    }}
+                  >
+                    <FaCopy style={{ marginRight: '6px' }} />
+                    {truncate(metadata.owner)}
+                  </span>
+                </div>
+              )}
+
               <div className={styles.metaDetails}>
-
-                {metadata.mintAddress && (
-                  <div className={styles.metaRow}>
-                    <div className={styles.metaLabel}>mint: </div>
-                    <span
-                      className={`${styles.metaCode} ${copiedField === "mint" ? styles.copied : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopy("mint", metadata.mintAddress ?? "");
-                      }}
-                      data-tooltip="tite"
-                    >
-                      <FaCopy style={{ marginRight: "6px" }} />
-                      {truncate(metadata.mintAddress)}
-                    </span>
-                  </div>
-                )}
-
-                {metadata.owner && (
-                  <div className={styles.metaRow}>
-                    <div className={styles.metaLabel}>Owner: </div>
-                    <span
-                      className={`${styles.metaCode} ${copiedField === "owner" ? styles.copied : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopy("owner", metadata.owner ?? "");
-                      }}
-                    >
-                      <FaCopy style={{ marginRight: "6px" }} />
-                      {truncate(metadata.owner)}
-                    </span>
-                  </div>
-                )}
-
-                <div className={styles.metaDetails}>
-
-                  {/* {metadata.priceSol !== undefined && (
+                {/* {metadata.priceSol !== undefined && (
                     <div className={styles.metaRow}>
                       <h2>{metadata.priceSol}</h2>
                       <strong>Price:</strong>{metadata.priceSol}
                     </div>
                   )} */}
 
-                  {metadata.priceSol !== undefined && (
-                    <div className={styles.metaRow}>
-                      <h2>{formatPrice(metadata.priceSol)}</h2>
-                    </div>
-                  )}
+                {metadata.priceSol !== undefined && (
+                  <div className={styles.metaRow}>
+                    <h2>{formatPrice(metadata.priceSol)}</h2>
+                  </div>
+                )}
 
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleDisplay();
-                    }}
-                    className={styles.priceToggleBtn}
-                  >
-                    {displayInUSD ? 'SOL' : 'USD'}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleDisplay();
+                  }}
+                  className={styles.priceToggleBtn}
+                >
+                  {displayInUSD ? 'SOL' : 'USD'}
+                </button>
+
+                {showContactButton && (
+                  <button className={styles.chatButton} onClick={(e) => e.stopPropagation()}>
+                    Contact Owner
                   </button>
-
-                  {showContactButton && (
-                    <button
-                      className={styles.chatButton}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Contact Owner
-                    </button>
-                  )}
-
-                </div>
-
-                
+                )}
               </div>
+            </div>
 
-              {/* {showContactButton && (
+            {/* {showContactButton && (
                 <button
                   className={styles.chatButton}
                   onClick={(e) => e.stopPropagation()}
@@ -283,7 +342,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
                   Contact Owner
                 </button>
               )} */}
-              
+
             {/* <div className={styles.flipHint}>
               Tap to view details<FaArrowsAltH />
             </div> */}
@@ -417,75 +476,75 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
                 <div className={styles.attributesGrid}>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Brand</div>
-                    <div className={styles.attrValue}>{getAttr("Brand")}</div>
+                    <div className={styles.attrValue}>{getAttr('Brand')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Model</div>
-                    <div className={styles.attrValue}>{getAttr("Model")}</div>
+                    <div className={styles.attrValue}>{getAttr('Model')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Serial Number</div>
-                    <div className={styles.attrValue}>{getAttr("Serial Number")}</div>
+                    <div className={styles.attrValue}>{getAttr('Serial Number')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Material</div>
-                    <div className={styles.attrValue}>{getAttr("Material")}</div>
+                    <div className={styles.attrValue}>{getAttr('Material')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Production Year</div>
-                    <div className={styles.attrValue}>{getAttr("Production Year")}</div>
+                    <div className={styles.attrValue}>{getAttr('Production Year')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Limited Edition</div>
-                    <div className={styles.attrValue}>{getAttr("Limited Edition")}</div>
+                    <div className={styles.attrValue}>{getAttr('Limited Edition')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Certificate</div>
-                    <div className={styles.attrValue}>{getAttr("Certificate")}</div>
+                    <div className={styles.attrValue}>{getAttr('Certificate')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Warranty Info</div>
-                    <div className={styles.attrValue}>{getAttr("Warranty Info")}</div>
+                    <div className={styles.attrValue}>{getAttr('Warranty Info')}</div>
                   </div>
-                  <div className={styles.attrCard} title={getAttr("Provenance")}>
+                  <div className={styles.attrCard} title={getAttr('Provenance')}>
                     <div className={styles.attrLabel}>Provenance</div>
-                    <div className={styles.attrValue}>{getAttr("Provenance", true)}</div>
+                    <div className={styles.attrValue}>{getAttr('Provenance', true)}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Movement</div>
-                    <div className={styles.attrValue}>{getAttr("Movement")}</div>
+                    <div className={styles.attrValue}>{getAttr('Movement')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Case Size</div>
-                    <div className={styles.attrValue}>{getAttr("Case Size")}</div>
+                    <div className={styles.attrValue}>{getAttr('Case Size')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Water Resistance</div>
-                    <div className={styles.attrValue}>{getAttr("Water Resistance")}</div>
+                    <div className={styles.attrValue}>{getAttr('Water Resistance')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Dial Color</div>
-                    <div className={styles.attrValue}>{getAttr("Dial Color")}</div>
+                    <div className={styles.attrValue}>{getAttr('Dial Color')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Country</div>
-                    <div className={styles.attrValue}>{getAttr("Country")}</div>
+                    <div className={styles.attrValue}>{getAttr('Country')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Release Date</div>
-                    <div className={styles.attrValue}>{getAttr("Release Date")}</div>
+                    <div className={styles.attrValue}>{getAttr('Release Date')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Box & Papers</div>
-                    <div className={styles.attrValue}>{getAttr("Box & Papers")}</div>
+                    <div className={styles.attrValue}>{getAttr('Box & Papers')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Condition</div>
-                    <div className={styles.attrValue}>{getAttr("Condition")}</div>
+                    <div className={styles.attrValue}>{getAttr('Condition')}</div>
                   </div>
                   <div className={styles.attrCard}>
                     <div className={styles.attrLabel}>Features</div>
-                    <div className={styles.attrValue}>{getAttr("Features")}</div>
+                    <div className={styles.attrValue}>{getAttr('Features')}</div>
                   </div>
                 </div>
               </div>
@@ -498,7 +557,8 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
         </div>
 
         <div className={styles.flipHint}>
-          Tap to view details<LuRotate3D />
+          Tap to view details
+          <LuRotate3D />
           {/* <FaArrowsAltH /> */}
         </div>
       </div>
