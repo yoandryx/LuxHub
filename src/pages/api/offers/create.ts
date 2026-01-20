@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get or create buyer user
     let buyerUser = await User.findOne({ wallet: buyerWallet });
     if (!buyerUser) {
-      buyerUser = new User({ wallet: buyerWallet, role: 'buyer' });
+      buyerUser = new User({ wallet: buyerWallet, role: 'user' }); // Buyers are regular users
       await buyerUser.save();
     }
 
