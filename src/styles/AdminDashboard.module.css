@@ -26,7 +26,7 @@
   -webkit-text-fill-color: transparent;
   margin: 0 0 20px 0;
 }
-  
+
 .header {
   font-weight: 500;
   letter-spacing: 1px;
@@ -57,7 +57,7 @@
   width: 100%;
   box-shadow: 0 5px 0px 0px #3f3a46;
 }
-  
+
 .logoutButton {
   background-color: var(--accent);
   color: var(--primary);
@@ -65,9 +65,11 @@
   padding: 8px 12px;
   border-radius: 5px;
   cursor: pointer;
-  transition: background 0.3s, border-color 0.3s;
+  transition:
+    background 0.3s,
+    border-color 0.3s;
 }
-  
+
 .logoutButton:hover {
   background-color: var(--border);
   border-color: var(--accent);
@@ -84,7 +86,6 @@
   font-weight: 500;
   margin: 10px;
 }
-
 
 .listItem {
   display: flex;
@@ -170,7 +171,7 @@
   height: 35px;
   margin: 20px 0;
   flex-direction: row;
-  background-color: #3c3c3c7b;  
+  background-color: #3c3c3c7b;
   padding: 20px 5px;
   border-radius: 5px;
 }
@@ -181,7 +182,7 @@
   border: 1px solid var(--accent);
   border-radius: 4px;
   width: 300px;
-  padding-left: 40px; 
+  padding-left: 40px;
   outline: none;
   font-size: small;
   height: 35px;
@@ -232,7 +233,7 @@
   font-size: x-large;
   transition: background 0.3s ease;
 }
-  
+
 .inputGroup button:hover {
   background: #59595900;
   cursor: pointer;
@@ -251,7 +252,7 @@
   border: 1px solid var(--accent);
   border-radius: 4px;
   width: 100%;
-  padding-left: 40px; 
+  padding-left: 40px;
   outline: none;
   font-size: small;
   height: 35px;
@@ -269,18 +270,18 @@
   border: 1px solid var(--accent);
   border-radius: 4px;
   width: 100%;
-  padding-left: 40px; 
+  padding-left: 40px;
   outline: none;
   font-size: small;
   height: 35px;
 }
-  
+
 .listingsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
 }
-  
+
 .listingCard {
   display: flex;
   flex-direction: column;
@@ -291,15 +292,17 @@
   padding: 20px;
   margin-bottom: 20px;
   color: #fff;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
-  
+
 .listingCard:hover {
   transform: translateY(-1px);
   transition: all 0.2s ease-in-out;
 }
-  
-.listingCardInfo p{
+
+.listingCardInfo p {
   display: flex;
   justify-content: space-between;
   margin: 6px 0;
@@ -307,31 +310,31 @@
   line-height: 1.4;
   color: #eaeaea;
 }
-  
+
 .listingCard strong {
   color: #c8a1ff;
   font-size: large;
   font-weight: 500;
 }
-  
+
 .cardTitle {
   font-size: 1.25rem;
   font-weight: bold;
   margin-bottom: 10px;
 }
-  
+
 .cardDescription {
   font-size: 0.9rem;
   color: var(--secondary);
   margin-bottom: 10px;
 }
-  
+
 .cardOwner,
 .cardStatus {
   font-size: 0.85rem;
   margin-bottom: 10px;
 }
-  
+
 .actions {
   gap: 10px;
   display: flex;
@@ -348,7 +351,7 @@
   backdrop-filter: blur(6px);
   transition: background 0.3s ease;
 }
-  
+
 .actions button:hover {
   background: rgba(200, 161, 255, 0.2);
   box-shadow: 0 0 12px rgba(180, 130, 255, 0.4);
@@ -376,7 +379,7 @@
   gap: 10px;
   margin: 20px 0;
 }
-  
+
 .paginationControls button {
   padding: 6px 14px;
   background: rgba(200, 161, 255, 0.1);
@@ -390,13 +393,13 @@
   transition: all 0.2s ease-in-out;
   backdrop-filter: blur(10px);
 }
-  
+
 .paginationControls button:hover {
   background: rgba(200, 161, 255, 0.2);
   box-shadow: 0 0 10px rgba(200, 161, 255, 0.3);
   transform: translateY(-1px);
 }
-  
+
 .paginationControls button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
@@ -411,8 +414,8 @@
   color: #fff;
   font-size: 16px;
 }
-  
-  .rejectBtn {
+
+.rejectBtn {
   background-color: #ff4d4f;
   color: white;
   border: none;
@@ -475,7 +478,6 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   margin: 2px 0;
-  
 }
 
 /* Responsive adjustments */
@@ -489,4 +491,293 @@
     margin-bottom: 15px;
   }
 }
-  
+
+/* ============================================
+   Shipment Verification Tab Styles
+   ============================================ */
+
+.tabContent {
+  padding: 20px 0;
+}
+
+.tabContent h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.tabContent .description {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  margin: 0 0 24px 0;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.shipmentGrid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 24px;
+}
+
+.shipmentList {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.shipmentList h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px 0;
+}
+
+.shipmentCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shipmentCard:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(200, 161, 255, 0.2);
+}
+
+.shipmentCard.selected {
+  background: rgba(200, 161, 255, 0.1);
+  border-color: #c8a1ff;
+}
+
+.shipmentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.assetModel {
+  font-weight: 600;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.status {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.shipmentDetails p {
+  margin: 4px 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.shipmentDetails strong {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.shipmentDetail {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.shipmentDetail h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 20px 0;
+}
+
+.detailSection {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.detailSection:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.detailSection h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #c8a1ff;
+  margin: 0 0 12px 0;
+}
+
+.detailSection p {
+  margin: 6px 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.detailSection code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #c8a1ff;
+}
+
+.assetImage {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.trackingLink {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: rgba(200, 161, 255, 0.15);
+  color: #c8a1ff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.trackingLink:hover {
+  background: rgba(200, 161, 255, 0.25);
+}
+
+.proofImages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.proofLink {
+  display: block;
+}
+
+.proofImage {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.proofImage:hover {
+  border-color: #c8a1ff;
+  transform: scale(1.05);
+}
+
+.rejectionInput {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.rejectionInput:focus {
+  outline: none;
+  border-color: #c8a1ff;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.approveButton {
+  flex: 1;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.approveButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.approveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rejectButton {
+  padding: 12px 20px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rejectButton:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.rejectButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.note {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(200, 161, 255, 0.1);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Responsive for shipment grid */
+@media screen and (max-width: 900px) {
+  .shipmentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .shipmentList {
+    max-height: 300px;
+  }
+}

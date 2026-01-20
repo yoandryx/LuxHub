@@ -21,8 +21,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Filter by status (default: show listed/initiated escrows)
+    // Supports comma-separated values for multiple statuses
     if (status) {
-      filter.status = status;
+      const statusArray = (status as string).split(',').map((s) => s.trim());
+      filter.status = statusArray.length > 1 ? { $in: statusArray } : statusArray[0];
     } else {
       // Default: show escrows available for purchase
       filter.status = { $in: ['initiated', 'listed'] };
@@ -39,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const escrows = await Escrow.find(filter)
-      .populate('asset', 'model serial priceUSD description imageUrl')
+      .populate('asset', 'model serial priceUSD description imageUrl imageIpfsUrls images')
       .populate('seller', 'businessName username verified')
       .sort({ createdAt: -1 })
       .skip(parseInt(offset as string))
@@ -61,6 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       listingPriceUSD: escrow.listingPriceUSD,
       minimumOffer: escrow.minimumOffer,
       minimumOfferUSD: escrow.minimumOfferUSD,
+      amountUSD: escrow.amountUSD,
       // Asset details
       asset: escrow.asset
         ? {
@@ -69,6 +72,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             priceUSD: escrow.asset.priceUSD,
             description: escrow.asset.description,
             imageUrl: escrow.asset.imageUrl,
+            imageIpfsUrls: escrow.asset.imageIpfsUrls,
+            images: escrow.asset.images,
           }
         : null,
       // Vendor details
@@ -80,6 +85,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         : null,
       sellerWallet: escrow.sellerWallet,
+      // Shipment tracking
+      shipmentStatus: escrow.shipmentStatus,
+      trackingCarrier: escrow.trackingCarrier,
+      trackingNumber: escrow.trackingNumber,
+      shipmentProofUrls: escrow.shipmentProofUrls,
+      shipmentSubmittedAt: escrow.shipmentSubmittedAt,
       // Metadata
       createdAt: escrow.createdAt,
       updatedAt: escrow.updatedAt,
