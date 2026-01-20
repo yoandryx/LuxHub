@@ -1,0 +1,579 @@
+{
+  "address": "kW2w2pHhAP8hFGRLganziunchKu6tjaXyomvF6jxNpj",
+  "metadata": {
+    "name": "luxhub_marketplace",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "LuxHub Marketplace - NFT-backed luxury asset marketplace"
+  },
+  "instructions": [
+    {
+      "name": "admin_only_example",
+      "discriminator": [
+        105,
+        183,
+        159,
+        157,
+        59,
+        202,
+        115,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  117,
+                  120,
+                  104,
+                  117,
+                  98,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "confirm_delivery",
+      "discriminator": [
+        11,
+        109,
+        227,
+        53,
+        179,
+        190,
+        88,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  117,
+                  120,
+                  104,
+                  117,
+                  98,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer_nft_ata",
+          "writable": true
+        },
+        {
+          "name": "nft_vault",
+          "writable": true
+        },
+        {
+          "name": "wsol_vault",
+          "writable": true
+        },
+        {
+          "name": "mint_a"
+        },
+        {
+          "name": "mint_b"
+        },
+        {
+          "name": "seller_funds_ata",
+          "writable": true
+        },
+        {
+          "name": "luxhub_fee_ata",
+          "writable": true
+        },
+        {
+          "name": "authority"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "exchange",
+      "discriminator": [
+        47,
+        3,
+        27,
+        97,
+        215,
+        236,
+        219,
+        144
+      ],
+      "accounts": [
+        {
+          "name": "taker",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "mint_a"
+        },
+        {
+          "name": "mint_b"
+        },
+        {
+          "name": "taker_funds_ata",
+          "writable": true
+        },
+        {
+          "name": "wsol_vault",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  117,
+                  120,
+                  104,
+                  117,
+                  98,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint_a"
+        },
+        {
+          "name": "mint_b"
+        },
+        {
+          "name": "seller_ata_a",
+          "writable": true
+        },
+        {
+          "name": "seller_ata_b",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "nft_vault",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "wsol_vault",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "seed",
+          "type": "u64"
+        },
+        {
+          "name": "initializer_amount",
+          "type": "u64"
+        },
+        {
+          "name": "taker_amount",
+          "type": "u64"
+        },
+        {
+          "name": "file_cid",
+          "type": "string"
+        },
+        {
+          "name": "sale_price",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_config",
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  117,
+                  120,
+                  104,
+                  117,
+                  98,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "squads_multisig",
+          "type": "pubkey"
+        },
+        {
+          "name": "squads_authority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "update_price",
+      "docs": [
+        "Update the sale price of an escrow listing.",
+        "Only callable by the original seller before a buyer is assigned."
+      ],
+      "discriminator": [
+        61,
+        34,
+        117,
+        155,
+        75,
+        34,
+        123,
+        208
+      ],
+      "accounts": [
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_price",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Escrow",
+      "discriminator": [
+        31,
+        213,
+        123,
+        187,
+        186,
+        22,
+        218,
+        155
+      ]
+    },
+    {
+      "name": "EscrowConfig",
+      "discriminator": [
+        138,
+        174,
+        227,
+        187,
+        239,
+        148,
+        1,
+        44
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized access."
+    },
+    {
+      "code": 6001,
+      "name": "NotCalledBySquads",
+      "msg": "Must be called via Squads CPI."
+    },
+    {
+      "code": 6002,
+      "name": "MathOverflow",
+      "msg": "Math operation overflowed."
+    },
+    {
+      "code": 6003,
+      "name": "NotMintAuthority",
+      "msg": "Caller is not the mint authority."
+    },
+    {
+      "code": 6004,
+      "name": "NotFreezeAuthority",
+      "msg": "Caller is not the freeze authority."
+    },
+    {
+      "code": 6005,
+      "name": "InvalidTokenAmount",
+      "msg": "Invalid token amount. Expected exactly 1 for NFT."
+    },
+    {
+      "code": 6006,
+      "name": "MintMismatch",
+      "msg": "Token account mint does not match expected mint."
+    },
+    {
+      "code": 6007,
+      "name": "NotDelegate",
+      "msg": "Caller is not a delegate for this token account."
+    },
+    {
+      "code": 6008,
+      "name": "AlreadyFrozen",
+      "msg": "NFT is already frozen."
+    },
+    {
+      "code": 6009,
+      "name": "NotFrozen",
+      "msg": "NFT is not frozen."
+    },
+    {
+      "code": 6010,
+      "name": "AlreadyBurned",
+      "msg": "NFT has already been burned."
+    },
+    {
+      "code": 6011,
+      "name": "InvalidRecipient",
+      "msg": "Invalid recipient address."
+    },
+    {
+      "code": 6012,
+      "name": "EmptyTokenAccount",
+      "msg": "Token account is empty."
+    },
+    {
+      "code": 6013,
+      "name": "EscrowAlreadyCompleted",
+      "msg": "Escrow has already been completed."
+    },
+    {
+      "code": 6014,
+      "name": "EscrowHasBuyer",
+      "msg": "Escrow already has a buyer assigned."
+    },
+    {
+      "code": 6015,
+      "name": "InvalidPrice",
+      "msg": "Price cannot be zero."
+    },
+    {
+      "code": 6016,
+      "name": "NotSeller",
+      "msg": "Only the seller can perform this action."
+    }
+  ],
+  "types": [
+    {
+      "name": "Escrow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "seed",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "initializer",
+            "type": "pubkey"
+          },
+          {
+            "name": "luxhub_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "initializer_amount",
+            "type": "u64"
+          },
+          {
+            "name": "taker_amount",
+            "type": "u64"
+          },
+          {
+            "name": "file_cid",
+            "type": "string"
+          },
+          {
+            "name": "sale_price",
+            "type": "u64"
+          },
+          {
+            "name": "is_completed",
+            "type": "bool"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EscrowConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "squads_multisig",
+            "type": "pubkey"
+          },
+          {
+            "name": "squads_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ]
+}
