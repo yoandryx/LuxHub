@@ -1,0 +1,330 @@
+/* src/styles/OfferCard.module.css */
+.offerCard {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.offerCard:hover {
+  border-color: rgba(200, 161, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(200, 161, 255, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.assetInfo {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.assetImage {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.assetDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assetModel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.escrowPda {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: monospace;
+}
+
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #000;
+}
+
+/* Offer Details */
+.offerDetails {
+  margin-bottom: 16px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.priceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.priceLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.priceValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.priceDiff {
+  margin-left: auto;
+}
+
+.diffBadge {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.diffBadge.below {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+}
+
+.diffBadge.above {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00ff88;
+}
+
+/* Message Box */
+.messageBox {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.messageLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.messageText {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Counter Offer Box */
+.counterOfferBox {
+  background: rgba(0, 191, 255, 0.1);
+  border: 1px solid rgba(0, 191, 255, 0.2);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.counterLabel {
+  font-size: 11px;
+  color: #00bfff;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.counterAmount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00bfff;
+}
+
+.counterMessage {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 8px 0 0 0;
+}
+
+/* Rejection Box */
+.rejectionBox {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.rejectionLabel {
+  font-size: 11px;
+  color: #ff6b6b;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.rejectionText {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+/* Meta */
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+  margin-bottom: 16px;
+}
+
+.participant {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.metaLabel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.metaValue {
+  font-size: 12px;
+  color: #c8a1ff;
+  font-weight: 500;
+}
+
+.timestamp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.expires {
+  color: #ffd700;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.acceptButton,
+.rejectButton,
+.counterButton,
+.withdrawButton {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.acceptButton {
+  background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+  border: none;
+  color: #000;
+}
+
+.acceptButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 255, 136, 0.3);
+}
+
+.counterButton {
+  background: rgba(0, 191, 255, 0.2);
+  border: 1px solid #00bfff;
+  color: #00bfff;
+}
+
+.counterButton:hover {
+  background: rgba(0, 191, 255, 0.3);
+}
+
+.rejectButton {
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid #ff6b6b;
+  color: #ff6b6b;
+}
+
+.rejectButton:hover {
+  background: rgba(255, 107, 107, 0.3);
+}
+
+.withdrawButton {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.withdrawButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .offerCard {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .statusBadge {
+    align-self: flex-start;
+  }
+
+  .priceRow {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .priceDiff {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .meta {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .timestamp {
+    align-items: flex-start;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+}

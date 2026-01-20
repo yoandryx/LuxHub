@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
-    const pool = await Pool.findOne({ _id: id, deleted: { $ne: true } })
+    const poolDoc = await Pool.findOne({ _id: id, deleted: { $ne: true } })
       .populate({
         path: 'selectedAssetId',
         select: 'model serial brand priceUSD description imageUrl imageIpfsUrls images category',
@@ -37,9 +37,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
       .lean();
 
-    if (!pool) {
+    if (!poolDoc) {
       return res.status(404).json({ error: 'Pool not found' });
     }
+
+    const pool = poolDoc as any;
 
     // Calculate funding progress
     const fundingProgress = pool.totalShares > 0 ? (pool.sharesSold / pool.totalShares) * 100 : 0;

@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
-    const escrow = await Escrow.findOne({ escrowPda: pda, deleted: { $ne: true } })
+    const escrowDoc = await Escrow.findOne({ escrowPda: pda, deleted: { $ne: true } })
       .populate(
         'asset',
         'model serial brand priceUSD description imageUrl imageIpfsUrls images category'
@@ -27,9 +27,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .populate('seller', 'businessName username verified wallet')
       .lean();
 
-    if (!escrow) {
+    if (!escrowDoc) {
       return res.status(404).json({ error: 'Escrow not found' });
     }
+
+    const escrow = escrowDoc as any;
 
     return res.status(200).json({
       success: true,

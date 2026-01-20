@@ -466,14 +466,15 @@ const EscrowDetailPage: React.FC = () => {
         {/* Make Offer Modal */}
         {showOfferModal && escrow && (
           <MakeOfferModal
-            nft={{
-              mintAddress: escrow.nftMint || '',
-              title: escrow.asset?.model || 'Asset',
+            escrow={{
               escrowPda: escrow.escrowPda,
+              listingPriceUSD: escrow.listingPriceUSD || 0,
               minimumOfferUSD: escrow.minimumOfferUSD,
+              asset: escrow.asset,
+              vendor: escrow.seller,
             }}
             onClose={() => setShowOfferModal(false)}
-            onOfferSubmitted={() => {
+            onSuccess={() => {
               setShowOfferModal(false);
               fetchEscrow();
             }}
