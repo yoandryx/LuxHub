@@ -163,112 +163,162 @@ const Marketplace = () => {
     return wallet.publicKey ? getProgram(wallet) : null;
   }, [wallet.publicKey]);
 
+  const [isLoading, setIsLoading] = useState(true);
+
   // ------------------------------------------------
-  // 1. Fetch NFTs from Pinata, show only "active" ones.
+  // 1. Fetch NFTs - works without wallet connection
   // ------------------------------------------------
   const fetchNFTs = async () => {
-    if (!metaplex) return;
-    let isCancelled = false;
+    setIsLoading(true);
+    const nftList: NFT[] = [];
+    const seenMints = new Set<string>();
 
     try {
-      const res = await fetch('/api/pinata/nfts');
-      if (!res.ok) throw new Error('Failed to fetch NFT data');
+      // First: Fetch from escrow API (no wallet required)
+      const escrowRes = await fetch('/api/escrow/list?status=initiated&limit=100');
+      if (escrowRes.ok) {
+        const { listings } = await escrowRes.json();
+        console.log('📦 Escrow listings:', listings?.length || 0);
 
-      const rawData: any[] = await res.json();
-      console.log('📦 Raw Pinata data received:', rawData);
-
-      // TEMP: Collect latest pins per mintAddress
-      const pinMap = new Map<string, any>();
-      for (const item of rawData) {
-        const ipfsHash = item.ipfs_pin_hash;
-        const pinnedRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`);
-        if (!pinnedRes.ok) continue;
-
-        const contentType = pinnedRes.headers.get('content-type');
-        if (!contentType?.includes('application/json')) continue;
-
-        try {
-          const pinnedData = await pinnedRes.json();
-          const mintAddress = pinnedData.mintAddress;
-          if (!mintAddress) {
-            console.warn(`⚠️ Skipping ${ipfsHash}: No mintAddress found in pinned JSON`);
-            continue;
+        for (const listing of listings || []) {
+          if (listing.nftMint && !seenMints.has(listing.nftMint)) {
+            seenMints.add(listing.nftMint);
+            nftList.push({
+              title: listing.asset?.model || 'Luxury Item',
+              description: listing.asset?.description || 'No description provided.',
+              image: listing.asset?.imageUrl || '',
+              priceSol: (listing.listingPrice || 0) / 1e9,
+              mintAddress: listing.nftMint,
+              metadataUri: '',
+              currentOwner: listing.sellerWallet || 'Unknown',
+              marketStatus: 'active',
+              nftId: listing._id,
+              fileCid: '',
+              timestamp: new Date(listing.createdAt).getTime(),
+              seller: listing.vendor?.businessName || '',
+              attributes: [
+                { trait_type: 'Brand', value: listing.asset?.model?.split(' ')[0] || '' },
+                { trait_type: 'Price', value: String((listing.listingPrice || 0) / 1e9) },
+                { trait_type: 'Market Status', value: 'active' },
+              ],
+              salePrice: listing.listingPriceUSD,
+            });
           }
-
-          const existing = pinMap.get(mintAddress);
-          const existingDate = existing ? new Date(existing.date_pinned) : null;
-          const newDate = new Date(item.date_pinned);
-
-          if (!existing || newDate > existingDate!) {
-            pinMap.set(mintAddress, { ...item, pinnedData });
-          }
-        } catch (err) {
-          console.warn(`❌ Error parsing JSON for ${ipfsHash}:`, err);
-          continue;
         }
       }
 
-      const nftList: NFT[] = [];
+      // Second: Fetch from Pinata for additional NFTs (parallel with batching)
+      const pinataRes = await fetch('/api/pinata/nfts');
+      if (pinataRes.ok) {
+        const rawData: any[] = await pinataRes.json();
+        console.log('📦 Pinata data received:', rawData?.length || 0);
 
-      for (const [mintAddress, { ipfs_pin_hash, pinnedData }] of pinMap.entries()) {
-        try {
-          const onChainNFT = await metaplex.nfts().findByMint({
-            mintAddress: new PublicKey(mintAddress),
-          });
+        // Batch fetch pinned data in parallel (max 10 concurrent)
+        const BATCH_SIZE = 10;
+        const batches = [];
+        for (let i = 0; i < rawData.length; i += BATCH_SIZE) {
+          batches.push(rawData.slice(i, i + BATCH_SIZE));
+        }
 
-          const updatedMetadata = onChainNFT.json;
-          if (!updatedMetadata) continue;
+        for (const batch of batches) {
+          const results = await Promise.allSettled(
+            batch.map(async (item: any) => {
+              const ipfsHash = item.ipfs_pin_hash;
+              const pinnedRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`);
+              if (!pinnedRes.ok) return null;
 
-          const marketStatus =
-            updatedMetadata.attributes?.find((attr: any) => attr.trait_type === 'Market Status')
-              ?.value || 'inactive';
+              const contentType = pinnedRes.headers.get('content-type');
+              if (!contentType?.includes('application/json')) return null;
 
-          const validStatuses = ['active', 'Holding LuxHub'];
-          if (!validStatuses.includes(marketStatus)) {
-            console.log(`⚠️ Skipping ${mintAddress} due to marketStatus: ${marketStatus}`);
-            continue;
-          }
-
-          const priceAttr = updatedMetadata.attributes?.find(
-            (attr: any) => attr.trait_type === 'Price'
+              const pinnedData = await pinnedRes.json();
+              return { ipfsHash, pinnedData, datePinned: item.date_pinned };
+            })
           );
-          const extractedPriceSol = parseFloat(priceAttr?.value || '0');
 
-          const currentOwner =
-            updatedMetadata.attributes?.find((attr: any) => attr.trait_type === 'Current Owner')
-              ?.value || 'Unknown';
+          for (const result of results) {
+            if (result.status === 'fulfilled' && result.value) {
+              const { ipfsHash, pinnedData } = result.value;
+              const mintAddress = pinnedData.mintAddress;
 
-          nftList.push({
-            title: updatedMetadata.name || 'Untitled',
-            description: updatedMetadata.description || 'No description provided.',
-            image: updatedMetadata.image || '',
-            priceSol: extractedPriceSol,
-            mintAddress,
-            metadataUri: onChainNFT.uri,
-            currentOwner,
-            marketStatus,
-            nftId: '',
-            fileCid: ipfs_pin_hash,
-            timestamp: Date.now(),
-            seller: '',
-            attributes: (updatedMetadata.attributes || [])
-              .filter((attr: any) => attr.trait_type && attr.value)
-              .map((attr: any) => ({
-                trait_type: attr.trait_type as string,
-                value: attr.value as string,
-              })),
-          });
-        } catch (err) {
-          console.error(`❌ Failed to process mint ${mintAddress}`, err);
+              if (!mintAddress || seenMints.has(mintAddress)) continue;
+              seenMints.add(mintAddress);
+
+              const marketStatus =
+                pinnedData.attributes?.find((attr: any) => attr.trait_type === 'Market Status')
+                  ?.value || 'inactive';
+
+              const validStatuses = ['active', 'Holding LuxHub'];
+              if (!validStatuses.includes(marketStatus)) continue;
+
+              const priceAttr = pinnedData.attributes?.find(
+                (attr: any) => attr.trait_type === 'Price'
+              );
+              const extractedPriceSol = parseFloat(priceAttr?.value || '0');
+
+              nftList.push({
+                title: pinnedData.name || 'Untitled',
+                description: pinnedData.description || 'No description provided.',
+                image: pinnedData.image || '',
+                priceSol: extractedPriceSol,
+                mintAddress,
+                metadataUri: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${ipfsHash}`,
+                currentOwner:
+                  pinnedData.attributes?.find((attr: any) => attr.trait_type === 'Current Owner')
+                    ?.value || 'Unknown',
+                marketStatus,
+                nftId: '',
+                fileCid: ipfsHash,
+                timestamp: Date.now(),
+                seller: '',
+                attributes: (pinnedData.attributes || [])
+                  .filter((attr: any) => attr.trait_type && attr.value)
+                  .map((attr: any) => ({
+                    trait_type: attr.trait_type as string,
+                    value: attr.value as string,
+                  })),
+              });
+            }
+          }
         }
       }
 
-      if (!isCancelled) {
-        console.log('🔎 Final active NFTs:', nftList);
-        setNfts(nftList);
+      // Optionally enhance with on-chain data if wallet connected
+      if (metaplex && nftList.length > 0) {
+        console.log('🔗 Enhancing with on-chain data...');
+        const enhanced = await Promise.allSettled(
+          nftList.slice(0, 20).map(async (nft) => {
+            try {
+              const onChainNFT = await metaplex.nfts().findByMint({
+                mintAddress: new PublicKey(nft.mintAddress),
+              });
+              if (onChainNFT.json) {
+                return {
+                  ...nft,
+                  title: onChainNFT.json.name || nft.title,
+                  image: onChainNFT.json.image || nft.image,
+                  metadataUri: onChainNFT.uri,
+                };
+              }
+            } catch {
+              // Ignore on-chain fetch errors
+            }
+            return nft;
+          })
+        );
+
+        enhanced.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            nftList[index] = result.value;
+          }
+        });
       }
+
+      console.log('🔎 Final NFTs:', nftList.length);
+      setNfts(nftList);
     } catch (error) {
       console.error('❌ Error fetching NFTs:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -276,6 +326,14 @@ const Marketplace = () => {
     fetchNFTs();
     const interval = setInterval(fetchNFTs, 5 * 60 * 1000);
     return () => clearInterval(interval);
+  }, []); // Remove metaplex dependency - fetch works without wallet
+
+  // Re-enhance with on-chain data when wallet connects
+  useEffect(() => {
+    if (metaplex && nfts.length > 0) {
+      // Optional: re-fetch to get enhanced data
+      fetchNFTs();
+    }
   }, [metaplex]);
 
   useEffect(() => {
@@ -569,8 +627,16 @@ const Marketplace = () => {
         />
       </div>
 
-      {nfts.length === 0 ? (
-        <>...</>
+      {isLoading ? (
+        <div className={styles.loadingContainer}>
+          <Loader />
+          <p>Loading marketplace...</p>
+        </div>
+      ) : nfts.length === 0 ? (
+        <div className={styles.emptyState}>
+          <h3>No items available</h3>
+          <p>Check back soon for new luxury listings</p>
+        </div>
       ) : (
         <div className={styles.nftGrid}>
           {filteredNfts.map((nft, index) => (

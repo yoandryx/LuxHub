@@ -671,6 +671,47 @@
 }
 
 /* ============================================
+   Loading & Empty States
+   ============================================ */
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loadingContainer p {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.emptyState h3 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.emptyState p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ============================================
    Wallet Connection Banner & Modal
    ============================================ */
 
