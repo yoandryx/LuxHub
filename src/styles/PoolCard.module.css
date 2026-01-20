@@ -1,0 +1,208 @@
+.poolCard {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  background: rgba(0, 0, 0, 0.68);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+  cursor: pointer;
+}
+
+.poolCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(200, 161, 255, 0.2);
+  border-color: rgba(200, 161, 255, 0.4);
+}
+
+.imageContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+}
+
+.poolImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.poolCard:hover .poolImage {
+  transform: scale(1.05);
+}
+
+.statusBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #000;
+  backdrop-filter: blur(8px);
+}
+
+.poolNumber {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #c8a1ff;
+  backdrop-filter: blur(8px);
+}
+
+.poolContent {
+  padding: 16px;
+}
+
+.assetTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 12px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Progress Section */
+.progressSection {
+  margin-bottom: 16px;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.progressPercent {
+  color: #c8a1ff;
+  font-weight: 600;
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #c8a1ff 0%, #9366d2 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progressStats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statLabel {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Buttons */
+.investButton {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #9366d2 100%);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.investButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.4);
+}
+
+.viewButton {
+  width: 100%;
+  padding: 12px;
+  background: rgba(200, 161, 255, 0.15);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 10px;
+  color: #c8a1ff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.viewButton:hover {
+  background: rgba(200, 161, 255, 0.25);
+  border-color: rgba(200, 161, 255, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .poolCard {
+    max-width: 100%;
+  }
+
+  .statsGrid {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .statValue {
+    font-size: 12px;
+  }
+}

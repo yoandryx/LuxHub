@@ -1,0 +1,372 @@
+/* src/styles/MakeOfferModal.module.css */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  background: rgba(20, 15, 30, 0.98);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 20px;
+  padding: 32px;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  background: rgba(200, 161, 255, 0.2);
+  border-color: #c8a1ff;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+/* Asset Preview */
+.assetPreview {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.assetImage {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.assetInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.assetModel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px 0;
+}
+
+.vendorName {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+.listPrice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.listPriceLabel {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.listPriceValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: #c8a1ff;
+}
+
+/* Input Sections */
+.inputSection {
+  margin-bottom: 20px;
+}
+
+.inputLabel {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.amountInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currencySymbol {
+  position: absolute;
+  left: 16px;
+  font-size: 24px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.amountInput {
+  width: 100%;
+  padding: 16px 16px 16px 40px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 600;
+  transition: border-color 0.3s ease;
+}
+
+.amountInput:focus {
+  outline: none;
+  border-color: #c8a1ff;
+}
+
+.amountInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.minimumNote {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 6px;
+}
+
+.diffIndicator {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.diffIndicator.below {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+}
+
+.diffIndicator.above {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00ff88;
+}
+
+.messageInput {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+}
+
+.messageInput:focus {
+  outline: none;
+  border-color: #c8a1ff;
+}
+
+.messageInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.select {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #c8a1ff;
+}
+
+/* Summary */
+.summary {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.summaryRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.summaryValue {
+  font-weight: 700;
+  color: #fff;
+}
+
+.negative {
+  color: #ff6b6b;
+}
+
+.positive {
+  color: #00ff88;
+}
+
+/* Error */
+.error {
+  color: #ff6b6b;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 10px;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 8px;
+}
+
+/* Submit Button */
+.submitButton {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #9366d2 100%);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(200, 161, 255, 0.4);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Success Message */
+.successMessage {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.successIcon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #000;
+}
+
+.successMessage h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.successMessage p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .modal {
+    padding: 24px;
+    border-radius: 16px;
+  }
+
+  .assetPreview {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .assetImage {
+    width: 100px;
+    height: 100px;
+  }
+
+  .amountInput {
+    font-size: 20px;
+    padding: 14px 14px 14px 36px;
+  }
+
+  .currencySymbol {
+    font-size: 20px;
+  }
+}
