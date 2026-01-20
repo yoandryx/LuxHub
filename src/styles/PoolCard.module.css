@@ -67,6 +67,31 @@
   backdrop-filter: blur(8px);
 }
 
+/* Bags Integration Badge */
+.bagsBadge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(200, 161, 255, 0.9) 100%);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  backdrop-filter: blur(8px);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bagsIconSmall {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
 .poolContent {
   padding: 16px;
 }

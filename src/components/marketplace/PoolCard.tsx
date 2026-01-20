@@ -35,6 +35,9 @@ interface Pool {
   custodyStatus?: string;
   resaleListingPriceUSD?: number;
   createdAt?: string;
+  // Bags integration fields
+  bagsTokenMint?: string;
+  bagsFeeShareConfigId?: string;
 }
 
 interface PoolCardProps {
@@ -65,6 +68,8 @@ const PoolCard: React.FC<PoolCardProps> = ({ pool, onClick }) => {
       closed: '#808080',
     }[pool.status] || '#c8a1ff';
 
+  const hasBagsToken = !!pool.bagsTokenMint;
+
   return (
     <div className={styles.poolCard} onClick={onClick}>
       <div className={styles.imageContainer}>
@@ -73,6 +78,13 @@ const PoolCard: React.FC<PoolCardProps> = ({ pool, onClick }) => {
           {pool.status.charAt(0).toUpperCase() + pool.status.slice(1)}
         </div>
         {pool.poolNumber && <div className={styles.poolNumber}>#{pool.poolNumber}</div>}
+        {/* Bags Token Badge */}
+        {hasBagsToken && (
+          <div className={styles.bagsBadge}>
+            <img src="/images/bags-icon.png" alt="Bags" className={styles.bagsIconSmall} />
+            Tradeable
+          </div>
+        )}
       </div>
 
       <div className={styles.poolContent}>
