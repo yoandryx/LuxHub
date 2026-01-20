@@ -16,6 +16,7 @@ import { ShipmentVerificationTab } from '../components/admins/ShipmentVerificati
 import { CiSearch } from 'react-icons/ci';
 import { VendorProfile } from '../lib/models/VendorProfile';
 import VendorManagementPanel from '../components/vendor/VendorManagementPanel';
+import CustodyDashboard from '../components/admin/CustodyDashboard';
 // NEW
 import * as multisig from '@sqds/multisig';
 import { Buffer } from 'buffer'; // for base64 encoding in browser
@@ -1678,6 +1679,8 @@ const AdminDashboard: React.FC = () => {
         );
       case 10:
         return <ShipmentVerificationTab onStatusChange={refreshData} />;
+      case 11:
+        return <CustodyDashboard />;
       default:
         return null;
     }
@@ -1720,6 +1723,12 @@ const AdminDashboard: React.FC = () => {
               onClick={() => setTabIndex(10)}
             >
               Shipment Verification
+            </button>
+            <button
+              className={`${styles.tab} ${tabIndex === 11 ? styles.activeTab : ''}`}
+              onClick={() => setTabIndex(11)}
+            >
+              Pool Custody
             </button>
             <button
               className={`${styles.tab} ${tabIndex === 6 ? styles.activeTab : ''}`}
