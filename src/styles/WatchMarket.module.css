@@ -1,7 +1,12 @@
 /* Main container */
 .container {
   padding: 50px 4px;
-  background: linear-gradient(135deg, rgba(31, 31, 31, 0.4) 0%, rgba(19, 19, 19, 0.3) 50%, rgba(21, 21, 21, 0.55) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(31, 31, 31, 0.4) 0%,
+    rgba(19, 19, 19, 0.3) 50%,
+    rgba(21, 21, 21, 0.55) 100%
+  );
   min-height: 100vh;
   box-sizing: border-box;
   overflow: hidden;
@@ -157,7 +162,9 @@
   padding: 8px 14px;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .buttonGroup button:hover {
@@ -337,8 +344,8 @@
 }
 
 .infoIcon {
-    display: none;
-  }
+  display: none;
+}
 
 @media (max-width: 768px) {
   .infoIcon {
@@ -420,7 +427,6 @@
   z-index: 2000;
 }
 
-
 @keyframes slideIn {
   from {
     transform: translateX(-100%);
@@ -458,7 +464,7 @@
   border: none;
   border-radius: 4px;
   width: 100%;
-  padding-left: 0px; 
+  padding-left: 0px;
   outline: none;
   font-size: small;
   height: 35px;
@@ -477,7 +483,7 @@
   font-size: x-large;
   transition: background 0.3s ease;
 }
-  
+
 .inputGroup button:hover {
   background: #3c3c3c;
   cursor: pointer;
@@ -503,7 +509,9 @@
 .filterPanelWrapper {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.4s ease, opacity 0.4s ease;
+  transition:
+    max-height 0.4s ease,
+    opacity 0.4s ease;
   opacity: 0;
   display: none;
 }
@@ -602,7 +610,6 @@
 
 .vendorSliderAvatarWrapper {
   margin-bottom: 0px;
-  
 }
 
 .vendorSliderAvatar {
@@ -661,4 +668,117 @@
   flex-direction: column;
   align-items: center;
   opacity: 0.5;
+}
+
+/* ============================================
+   Wallet Connection Banner & Modal
+   ============================================ */
+
+.walletBanner {
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin: 0 auto 20px;
+  max-width: 800px;
+}
+
+.walletBannerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.walletBannerContent span {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+/* Wallet Modal Overlay */
+.walletModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.walletModalContent {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.walletModalClose {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.walletModalClose:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.walletModalMessage {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.walletModalMessage strong {
+  color: #a855f7;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .walletBanner {
+    padding: 10px 15px;
+    margin: 0 10px 15px;
+  }
+
+  .walletBannerContent {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .walletModalContent {
+    padding: 20px;
+    margin: 10px;
+  }
+
+  .walletModalMessage {
+    font-size: 1rem;
+    padding: 0 10px;
+  }
 }
