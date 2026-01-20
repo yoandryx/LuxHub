@@ -142,18 +142,107 @@ anchor deploy        # Deploy to configured cluster
 - Auth middleware: `src/lib/middleware/auth.ts`
 - Main escrow program: `Solana-Anchor/programs/luxhub-marketplace/src/lib.rs:21-58`
 
+## UI/UX Design System
+
+LuxHub uses a consistent glass-morphism design language with a purple accent color.
+
+### Color Palette
+
+```css
+--accent: #c8a1ff;           /* Primary purple accent */
+--accent-dim: #c8a1ff40;     /* 25% opacity purple for borders */
+--accent-glow: #c8a1ff20;    /* 12% opacity purple for backgrounds */
+--bg-dark: #0d0d0d;          /* Dark background */
+--bg-card: #111111;          /* Card background */
+--border: #222222;           /* Default border color */
+--glass: rgba(13, 13, 13, 0.85);  /* Glass-morphism background */
+--text-primary: #ffffff;     /* Primary text */
+--text-secondary: #a1a1a1;   /* Secondary/muted text */
+```
+
+### Design Principles
+
+1. **Glass-Morphism**: Cards use `backdrop-filter: blur()` with semi-transparent backgrounds
+2. **Subtle Borders**: Default `#222222` borders, `--accent-dim` on hover/active states
+3. **Minimal Animation**: Smooth 0.2s transitions, subtle hover lifts (`translateY(-2px)`)
+4. **Purple Accent**: `#c8a1ff` for interactive elements, highlights, and CTAs
+5. **Dark Theme**: Consistent dark backgrounds (`#0d0d0d`) throughout
+
+### NFT Detail Card Component
+
+Premium holographic card design located at `src/components/marketplace/NftDetailCard.tsx`.
+
+**Features:**
+- 3D flip card with VanillaTilt gyroscope support (works on mobile)
+- Glass-morphism card faces with `backdrop-filter: blur(40px)`
+- Animated holographic shine sweep across the card
+- Floating purple sparkle particles (canvas animation)
+- Click image to view full-screen
+- Front: Image, title, mint/owner info, price
+- Back: Certificate of Authenticity with specifications grid
+
+**Key Styles** (`src/styles/NFTDetailCard.module.css`):
+```css
+/* Flip animation */
+.flipCardInner {
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Holographic shine effect */
+.holoShine {
+  background: linear-gradient(105deg, transparent 35%, rgba(200, 161, 255, 0.03) 45%,
+              rgba(255, 255, 255, 0.06) 50%, rgba(200, 161, 255, 0.03) 55%, transparent 65%);
+  animation: shineMove 4s ease-in-out infinite;
+}
+
+/* Accent border on hover */
+.holoBorder {
+  background: linear-gradient(135deg, var(--accent) 0%, transparent 40%,
+              transparent 60%, var(--accent) 100%);
+}
+```
+
+### Component Styling Pattern
+
+All CSS modules follow this variable pattern at the component root:
+```css
+.container {
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --bg-dark: #0d0d0d;
+  --border: #222222;
+  --glass: rgba(13, 13, 13, 0.85);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+}
+```
+
+### Key Styled Components
+
+| Component | Location | Theme Elements |
+|-----------|----------|----------------|
+| `NftDetailCard` | `src/components/marketplace/` | Glass card, holographic shine, 3D flip |
+| `LearnMore` | `src/pages/learnMore.tsx` | Full page glass-morphism layout |
+| `AdminDashboard` | `src/pages/adminDashboard.tsx` | Glass panels, accent highlights |
+| `SellerDashboard` | `src/pages/sellerDashboard.tsx` | Glass cards, status badges |
+| `Navbar` | `src/components/common/Navbar.tsx` | Glass nav, purple wallet button |
+
 ## Additional Documentation
 
 Detailed documentation is organized in `.claude/docs/`:
 
 | Document | Description |
 |----------|-------------|
+| **`luxhub_workflow.md`** | **PRIMARY: Complete marketplace workflow with visual diagrams. KEEP UPDATED as features are developed.** |
 | `architectural_patterns.md` | Recurring code patterns (Mongoose hooks, API routes, wallet integration, CSS modules) |
 | `escrow_flow.md` | (Planned) On-chain escrow lifecycle: initialize → exchange → confirm_delivery |
 | `fractional_pools.md` | (Planned) Pool creation, share calculations, distribution mechanics |
 | `backpack_integration.md` | (Planned) Backpack Bags API, wallet linking, session management |
 | `squads_multisig.md` | (Planned) Treasury/vendor vault multisig setup via Squads Protocol |
 | `vendor_onboarding.md` | (Planned) Vendor verification flow, invite codes, profile setup |
+
+> **Note:** When implementing new features or fixing flows, update `luxhub_workflow.md` to reflect changes.
 
 ## Program IDs
 
