@@ -31,5 +31,5 @@
     "**/*.tsx",
     ".next/types/**/*.ts"                  // Required by Next.js 13+
   ],
-  "exclude": ["node_modules", "Solana-Anchor"]
+  "exclude": ["node_modules", "Solana-Anchor", "scripts"]
 }

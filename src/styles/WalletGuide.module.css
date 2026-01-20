@@ -1,0 +1,381 @@
+/* WalletGuide.module.css */
+
+.container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.guideCard,
+.connectCard,
+.connectedCard {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.guideCard h2,
+.connectCard h2 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+/* Wallet Options Grid */
+.walletOptions h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.walletGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.walletOption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1rem;
+  background: rgba(138, 43, 226, 0.1);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  border-radius: 12px;
+  text-decoration: none;
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+.walletOption:hover {
+  background: rgba(138, 43, 226, 0.2);
+  border-color: rgba(138, 43, 226, 0.5);
+  transform: translateY(-2px);
+}
+
+.walletIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.installBadge {
+  font-size: 0.75rem;
+  background: rgba(138, 43, 226, 0.4);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  color: #fff;
+}
+
+.detectedBadge {
+  font-size: 0.75rem;
+  background: rgba(34, 197, 94, 0.3);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  color: #22c55e;
+}
+
+/* Steps Section */
+.stepsSection {
+  text-align: left;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stepsSection h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.step {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.step:hover,
+.activeStep {
+  background: rgba(138, 43, 226, 0.1);
+  border-color: rgba(138, 43, 226, 0.2);
+}
+
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(138, 43, 226, 0.2);
+  border-radius: 50%;
+  font-weight: 600;
+  color: #a855f7;
+  flex-shrink: 0;
+}
+
+.activeStep .stepNumber {
+  background: #a855f7;
+  color: #fff;
+}
+
+.stepContent h4 {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+  color: #fff;
+}
+
+.stepContent p {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+/* Refresh Note */
+.refreshNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.refreshNote p {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.refreshBtn {
+  background: transparent;
+  border: 1px solid rgba(138, 43, 226, 0.5);
+  color: #a855f7;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.refreshBtn:hover {
+  background: rgba(138, 43, 226, 0.2);
+}
+
+/* Connect Card */
+.detectedWallets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.detectedWallet {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 12px;
+}
+
+.detectedWallet .walletIcon {
+  width: 24px;
+  height: 24px;
+}
+
+.connectBtnLarge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  border: none;
+  color: #fff;
+  padding: 1rem 2.5rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 200px;
+}
+
+.connectBtnLarge:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(138, 43, 226, 0.3);
+}
+
+.connectBtnLarge:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.securityNote {
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Connected State */
+.connectedCard {
+  padding: 2.5rem;
+}
+
+.successIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: rgba(34, 197, 94, 0.2);
+  border-radius: 50%;
+  font-size: 1.75rem;
+  color: #22c55e;
+  margin-bottom: 1rem;
+}
+
+.connectedCard h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.walletAddress {
+  font-family: monospace;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.disconnectBtn {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.disconnectBtn:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+/* Compact Version */
+.compactContainer {
+  display: inline-flex;
+  align-items: center;
+}
+
+.connectedCompact {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.connectedCompact .walletAddress {
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+  margin: 0;
+}
+
+.connectedCompact .disconnectBtn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.connectBtn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  border: none;
+  color: #fff;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.connectBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
+}
+
+.connectBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  .guideCard,
+  .connectCard,
+  .connectedCard {
+    padding: 1.5rem;
+  }
+
+  .guideCard h2,
+  .connectCard h2 {
+    font-size: 1.5rem;
+  }
+
+  .walletGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .step {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
