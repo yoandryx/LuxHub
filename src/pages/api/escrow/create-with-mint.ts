@@ -82,10 +82,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Asset not found' });
     }
 
-    // Verify vendor exists
-    const vendor = await Vendor.findOne({ 'user.wallet': vendorWallet }).populate('user');
+    // Verify vendor exists - first find user by wallet, then find vendor by user
+    const { User } = await import('../../../lib/models/User');
+    const vendorUser = await User.findOne({ wallet: vendorWallet });
+    if (!vendorUser) {
+      return res.status(404).json({ error: 'Vendor user not found' });
+    }
+
+    const vendor = await Vendor.findOne({ user: vendorUser._id });
     if (!vendor) {
-      return res.status(404).json({ error: 'Vendor not found' });
+      return res.status(404).json({ error: 'Vendor profile not found for this wallet' });
     }
 
     // Check for duplicate escrow
