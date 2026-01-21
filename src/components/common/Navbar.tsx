@@ -4,15 +4,21 @@ import Link from 'next/link';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { CiSearch } from 'react-icons/ci';
 import { useRouter } from 'next/router';
-import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { getProgram } from '../../utils/programUtils';
 import { FaWallet } from 'react-icons/fa6';
+import { usePrivy } from '@privy-io/react-auth';
+import { useWallets } from '@privy-io/react-auth/solana';
 
 export default function Navbar() {
   const router = useRouter();
   const wallet = useWallet();
+
+  // Privy hooks for authentication and wallets
+  const { login, authenticated } = usePrivy();
+  const { wallets: privyWallets } = useWallets();
+  const privyWalletAddress = privyWallets?.[0]?.address;
 
   const [isClient, setIsClient] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -23,13 +29,35 @@ export default function Navbar() {
     setIsClient(true);
   }, []);
 
-  // Check admin status
+  // Get active public key (wallet adapter or Privy)
+  const activePublicKey =
+    wallet.publicKey || (privyWalletAddress ? new PublicKey(privyWalletAddress) : null);
+
+  // Check if connected via any method
+  const isConnected = wallet.connected || (authenticated && !!privyWalletAddress);
+
+  // Get display address
+  const displayAddress = activePublicKey
+    ? `${activePublicKey.toBase58().slice(0, 4)}...${activePublicKey.toBase58().slice(-4)}`
+    : null;
+
+  // Handle wallet button click - opens Privy login modal
+  const handleWalletClick = () => {
+    if (!isConnected) {
+      login();
+    }
+  };
+
+  // Check admin status - works with both wallet adapter and Privy
   useEffect(() => {
     const checkAdmin = async () => {
-      if (!wallet.publicKey) return;
+      if (!activePublicKey) {
+        setIsAdmin(false);
+        return;
+      }
 
       try {
-        const program = getProgram(wallet);
+        const program = getProgram({ publicKey: activePublicKey } as any);
         const [adminListPda] = PublicKey.findProgramAddressSync(
           [Buffer.from('admin_list')],
           program.programId
@@ -40,7 +68,7 @@ export default function Navbar() {
           .map((admin: any) => admin?.toBase58?.())
           .filter(Boolean);
 
-        setIsAdmin(adminListStr.includes(wallet.publicKey.toBase58()));
+        setIsAdmin(adminListStr.includes(activePublicKey.toBase58()));
       } catch (err) {
         console.error('Navbar admin check error:', err);
         setIsAdmin(false);
@@ -48,7 +76,8 @@ export default function Navbar() {
     };
 
     checkAdmin();
-  }, [wallet.publicKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePublicKey?.toBase58()]);
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const toggleSearch = () => setSearchOpen(!searchOpen);
@@ -112,10 +141,15 @@ export default function Navbar() {
             </div>
 
             <div className={styles.walletContainer}>
-              <WalletModalProvider>
-                <FaWallet className={styles.icon} />
-                <WalletMultiButton />
-              </WalletModalProvider>
+              <FaWallet className={styles.icon} />
+              {isClient && (
+                <button
+                  className="wallet-adapter-button wallet-adapter-button-trigger"
+                  onClick={handleWalletClick}
+                >
+                  <span>{isConnected ? displayAddress : 'Select Wallet'}</span>
+                </button>
+              )}
             </div>
           </div>
         </nav>
@@ -146,10 +180,15 @@ export default function Navbar() {
               </div>
 
               <div className={styles.walletContainer}>
-                <WalletModalProvider>
-                  <FaWallet className={styles.icon} />
-                  <WalletMultiButton />
-                </WalletModalProvider>
+                {isClient && (
+                  <button
+                    className="wallet-adapter-button wallet-adapter-button-trigger"
+                    onClick={handleWalletClick}
+                  >
+                    <FaWallet className={styles.icon} />
+                    <span>{isConnected ? displayAddress : 'Select Wallet'}</span>
+                  </button>
+                )}
               </div>
 
               <div className={styles.menuIcon} onClick={toggleMenu}>
