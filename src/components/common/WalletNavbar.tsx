@@ -5,7 +5,7 @@ import styles from '../../styles/WalletNavbar.module.css';
 import { useRouter } from 'next/router';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { usePrivy, useLogout } from '@privy-io/react-auth';
+import { usePrivy, useLogout, getAccessToken } from '@privy-io/react-auth';
 import { useCreateWallet, useWallets } from '@privy-io/react-auth/solana';
 import { SiSolana } from 'react-icons/si';
 import {
@@ -83,36 +83,103 @@ export default function WalletNavbar() {
 
   const widgetRef = useRef<HTMLDivElement>(null);
 
+  const [isRefreshingWallet, setIsRefreshingWallet] = useState(false);
+
   // Determine the active wallet - prefer wallet adapter if connected, otherwise use Privy
   // Try multiple sources for Privy wallet address:
   // 1. useWallets hook (embedded + linked wallets)
-  // 2. user.linkedAccounts (fallback)
+  // 2. user.linkedAccounts (fallback) - check for embedded_solana_wallet type
   const privyActiveWallet = privySolanaWallets?.[0];
   const privyWalletAddress = privyActiveWallet?.address;
 
-  // Fallback: check user.linkedAccounts for Solana wallet
-  const linkedSolanaWallet = user?.linkedAccounts?.find(
+  // Fallback: check user.linkedAccounts for Solana wallet (embedded or linked)
+  // Priority: embedded_solana_wallet > wallet with chainType solana
+  const linkedEmbeddedWallet = user?.linkedAccounts?.find(
+    (account: any) => account.type === 'embedded_solana_wallet'
+  ) as { address?: string } | undefined;
+
+  const linkedExternalWallet = user?.linkedAccounts?.find(
     (account: any) => account.type === 'wallet' && account.chainType === 'solana'
   ) as { address?: string } | undefined;
 
+  const linkedSolanaWallet = linkedEmbeddedWallet || linkedExternalWallet;
+
   const effectivePrivyAddress = privyWalletAddress || linkedSolanaWallet?.address;
-  const privyPublicKey = effectivePrivyAddress ? new PublicKey(effectivePrivyAddress) : null;
+
+  // Validate the wallet address before creating PublicKey
+  const isValidSolanaAddress = (address: string | undefined): boolean => {
+    if (!address) return false;
+    try {
+      new PublicKey(address);
+      return address.length >= 32 && address.length <= 44;
+    } catch {
+      return false;
+    }
+  };
+
+  const privyPublicKey =
+    effectivePrivyAddress && isValidSolanaAddress(effectivePrivyAddress)
+      ? new PublicKey(effectivePrivyAddress)
+      : null;
 
   // Debug logging (remove in production)
   useEffect(() => {
     if (authenticated) {
       console.log('[WalletNavbar] Privy Debug:', {
         authenticated,
+        ready,
         walletsReady,
+        userId: user?.id,
+        email: user?.email?.address,
         privySolanaWallets: privySolanaWallets?.map((w: any) => ({
           address: w.address,
           type: w.walletClientType,
         })),
-        linkedAccounts: user?.linkedAccounts?.filter((a: any) => a.type === 'wallet'),
+        linkedEmbeddedWallet: linkedEmbeddedWallet?.address,
+        linkedExternalWallet: linkedExternalWallet?.address,
+        allLinkedAccounts: user?.linkedAccounts?.map((a: any) => ({
+          type: a.type,
+          chainType: a.chainType,
+          address: a.address,
+        })),
         effectivePrivyAddress,
+        isValidAddress: isValidSolanaAddress(effectivePrivyAddress),
       });
     }
-  }, [authenticated, walletsReady, privySolanaWallets, user, effectivePrivyAddress]);
+  }, [
+    authenticated,
+    ready,
+    walletsReady,
+    privySolanaWallets,
+    user,
+    linkedEmbeddedWallet,
+    linkedExternalWallet,
+    effectivePrivyAddress,
+  ]);
+
+  // Force refresh wallet state by clearing cache and re-fetching
+  const handleRefreshWalletState = useCallback(async () => {
+    if (!authenticated) return;
+
+    setIsRefreshingWallet(true);
+    toast.loading('Refreshing wallet...', { id: 'refresh-wallet' });
+
+    try {
+      // Get fresh access token to ensure we have latest user data
+      const token = await getAccessToken();
+      console.log('[WalletNavbar] Got fresh token, length:', token?.length);
+
+      // Small delay to allow Privy to sync
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Force a page reload to re-initialize Privy state
+      window.location.reload();
+    } catch (err) {
+      console.error('[WalletNavbar] Refresh wallet error:', err);
+      toast.error('Failed to refresh wallet state', { id: 'refresh-wallet' });
+      setIsRefreshingWallet(false);
+    }
+  }, [authenticated]);
 
   // Use wallet adapter if connected, otherwise fall back to Privy embedded wallet
   const activePublicKey =
@@ -603,6 +670,22 @@ export default function WalletNavbar() {
                 <FaEnvelope /> {user.email.address}
               </div>
             )}
+
+            {/* Show if we found a wallet in linkedAccounts but it's not loading */}
+            {linkedSolanaWallet?.address && !privyPublicKey && (
+              <div className={styles.walletCacheWarning}>
+                <p>Wallet found but not loaded. Try refreshing.</p>
+                <button
+                  onClick={handleRefreshWalletState}
+                  className={styles.refreshWalletBtn}
+                  disabled={isRefreshingWallet}
+                >
+                  <FaRotate className={isRefreshingWallet ? styles.spinning : ''} />
+                  {isRefreshingWallet ? 'Refreshing...' : 'Refresh Wallet State'}
+                </button>
+              </div>
+            )}
+
             <p>Create or connect a wallet to continue</p>
 
             {/* Create embedded wallet */}
@@ -614,6 +697,19 @@ export default function WalletNavbar() {
             <button onClick={handleConnectWallet} className={styles.connectBtnSecondary}>
               <FaWallet /> Connect External Wallet
             </button>
+
+            {/* Refresh button if wallet state seems stale */}
+            {walletsReady && !linkedSolanaWallet?.address && (
+              <button
+                onClick={handleRefreshWalletState}
+                className={styles.refreshWalletBtn}
+                disabled={isRefreshingWallet}
+                style={{ marginTop: 8 }}
+              >
+                <FaRotate className={isRefreshingWallet ? styles.spinning : ''} />
+                {isRefreshingWallet ? 'Refreshing...' : 'Refresh Wallet State'}
+              </button>
+            )}
 
             {/* Sign out option */}
             <button
