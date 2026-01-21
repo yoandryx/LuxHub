@@ -3,6 +3,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
+// Import models to register schemas for populate()
+import '../../../lib/models/Assets';
+import '../../../lib/models/Vendor';
 
 interface ListQuery {
   status?: string;
