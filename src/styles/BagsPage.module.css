@@ -213,7 +213,7 @@
   line-height: 1.7;
 }
 
-h2 {
+.sectionTitle {
   font-size: 2rem;
   font-weight: 700;
   text-align: center;
