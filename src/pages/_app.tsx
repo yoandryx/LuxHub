@@ -66,7 +66,34 @@ const App = ({ Component, pageProps }: AppProps) => {
     []
   );
 
-  const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
+  const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+  const hasValidPrivyId = privyAppId && privyAppId.length > 10;
+
+  // Debug: log Privy app ID status
+  useEffect(() => {
+    if (!hasValidPrivyId) {
+      console.warn('[LuxHub] Privy app ID not configured or invalid. Email login disabled.');
+    }
+  }, [hasValidPrivyId]);
+
+  // Inner content wrapped with providers
+  const innerContent = (
+    <PriceDisplayProvider>
+      <ConnectionProvider endpoint={endpoint}>
+        <WalletProvider wallets={wallets} autoConnect>
+          <WalletModalProvider>
+            <Navbar />
+            <ToastContainer position="top-right" autoClose={4000} />
+            <Toaster position="top-right" />
+            <WalletNavbar />
+            <Component {...pageProps} />
+            <LuxuryAssistant />
+            <Footer />
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    </PriceDisplayProvider>
+  );
 
   const content = (
     <ErrorBoundary FallbackComponent={Fallback}>
@@ -79,40 +106,28 @@ const App = ({ Component, pageProps }: AppProps) => {
         />
       </Head>
 
-      <PrivyProvider
-        appId={privyAppId}
-        config={{
-          loginMethods: ['email', 'wallet'],
-          appearance: {
-            theme: 'dark',
-            accentColor: '#c8a1ff',
-            logo: '/images/purpleLGG.png',
-          },
-          embeddedWallets: {
-            solana: {
-              createOnLogin: 'users-without-wallets',
+      {hasValidPrivyId ? (
+        <PrivyProvider
+          appId={privyAppId}
+          config={{
+            loginMethods: ['email', 'wallet'],
+            appearance: {
+              theme: 'dark',
+              accentColor: '#c8a1ff',
+              logo: '/images/purpleLGG.png',
             },
-          },
-        }}
-      >
-        <PriceDisplayProvider>
-          <ConnectionProvider endpoint={endpoint}>
-            <WalletProvider wallets={wallets} autoConnect>
-              <WalletModalProvider>
-                {/* <EscrowProvider> */}
-                <Navbar />
-                <ToastContainer position="top-right" autoClose={4000} />
-                <Toaster position="top-right" />
-                <WalletNavbar />
-                <Component {...pageProps} />
-                <LuxuryAssistant />
-                <Footer />
-                {/* </EscrowProvider> */}
-              </WalletModalProvider>
-            </WalletProvider>
-          </ConnectionProvider>
-        </PriceDisplayProvider>
-      </PrivyProvider>
+            embeddedWallets: {
+              solana: {
+                createOnLogin: 'users-without-wallets',
+              },
+            },
+          }}
+        >
+          {innerContent}
+        </PrivyProvider>
+      ) : (
+        innerContent
+      )}
     </ErrorBoundary>
   );
 
