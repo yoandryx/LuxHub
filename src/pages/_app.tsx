@@ -13,6 +13,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
 import WalletNavbar from '../components/common/WalletNavbar';
+import WalletNavbarSimple from '../components/common/WalletNavbarSimple';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Fallback } from '../components/common/Fallback';
 import '../styles/globals.css';
@@ -77,7 +78,8 @@ const App = ({ Component, pageProps }: AppProps) => {
   }, [hasValidPrivyId]);
 
   // Inner content wrapped with providers
-  const innerContent = (
+  // WalletNavbar uses Privy hooks, so we use WalletNavbarSimple when Privy is not configured
+  const createInnerContent = (usePrivyWallet: boolean) => (
     <PriceDisplayProvider>
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
@@ -85,7 +87,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             <Navbar />
             <ToastContainer position="top-right" autoClose={4000} />
             <Toaster position="top-right" />
-            <WalletNavbar />
+            {usePrivyWallet ? <WalletNavbar /> : <WalletNavbarSimple />}
             <Component {...pageProps} />
             <LuxuryAssistant />
             <Footer />
@@ -123,10 +125,10 @@ const App = ({ Component, pageProps }: AppProps) => {
             },
           }}
         >
-          {innerContent}
+          {createInnerContent(true)}
         </PrivyProvider>
       ) : (
-        innerContent
+        createInnerContent(false)
       )}
     </ErrorBoundary>
   );
