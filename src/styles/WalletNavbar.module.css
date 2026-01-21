@@ -517,3 +517,65 @@
 .panel::-webkit-scrollbar-thumb:hover {
   background: rgba(200, 161, 255, 0.5);
 }
+
+/* Wallet cache warning */
+.walletCacheWarning {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.walletCacheWarning p {
+  color: #fbbf24;
+  font-size: 13px;
+  margin: 0 0 10px 0;
+}
+
+/* Refresh wallet button */
+.refreshWalletBtn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+}
+
+.refreshWalletBtn:hover:not(:disabled) {
+  background: rgba(251, 191, 36, 0.25);
+  border-color: #fbbf24;
+}
+
+.refreshWalletBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refreshWalletBtn svg {
+  font-size: 14px;
+}
+
+/* Spinning animation for refresh icon */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
