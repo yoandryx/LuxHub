@@ -16,8 +16,13 @@ import {
   FaBox,
   FaMoneyBillWave,
   FaTruck,
+  FaLock,
+  FaUnlock,
+  FaWater,
+  FaShieldAlt,
 } from 'react-icons/fa';
 import WalletGuide from '../../components/common/WalletGuide';
+import BagsPoolTrading from '../../components/marketplace/BagsPoolTrading';
 
 interface Asset {
   _id: string;
@@ -72,6 +77,13 @@ interface PoolData {
   distributionAmount?: number;
   bagsTokenMint?: string;
   createdAt?: string;
+  // New tokenization & liquidity fields
+  tokenStatus?: string;
+  liquidityModel?: string;
+  ammEnabled?: boolean;
+  ammLiquidityPercent?: number;
+  vendorPaymentPercent?: number;
+  fundsInEscrow?: number;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -439,6 +451,50 @@ const PoolDetailPage: React.FC = () => {
             <div className={styles.detailCard}>
               <h3>Pool Information</h3>
               <div className={styles.infoList}>
+                {/* Token Status */}
+                {pool.tokenStatus && (
+                  <div className={styles.infoRow}>
+                    <span>
+                      {pool.tokenStatus === 'unlocked' ? <FaUnlock /> : <FaLock />} Token Status
+                    </span>
+                    <span
+                      className={`${styles.tokenStatusBadge} ${styles[`tokenStatus_${pool.tokenStatus}`]}`}
+                    >
+                      {pool.tokenStatus === 'pending' && 'Pending'}
+                      {pool.tokenStatus === 'minted' && 'Minted (Locked)'}
+                      {pool.tokenStatus === 'unlocked' && 'Unlocked'}
+                      {pool.tokenStatus === 'frozen' && 'Frozen'}
+                      {pool.tokenStatus === 'burned' && 'Burned'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Liquidity Model */}
+                {pool.liquidityModel && (
+                  <div className={styles.infoRow}>
+                    <span>
+                      <FaWater /> Liquidity Model
+                    </span>
+                    <span className={styles.liquidityBadge}>
+                      {pool.liquidityModel === 'p2p' && 'P2P Trading'}
+                      {pool.liquidityModel === 'amm' && `AMM (${pool.ammLiquidityPercent || 30}%)`}
+                      {pool.liquidityModel === 'hybrid' && 'Hybrid (P2P + AMM)'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Escrow Protection */}
+                {pool.fundsInEscrow !== undefined && pool.fundsInEscrow > 0 && (
+                  <div className={styles.infoRow}>
+                    <span>
+                      <FaShieldAlt /> Funds in Escrow
+                    </span>
+                    <span className={styles.escrowAmount}>
+                      ${pool.fundsInEscrow.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+
                 {pool.custodyStatus && (
                   <div className={styles.infoRow}>
                     <span>Custody Status</span>
@@ -481,6 +537,32 @@ const PoolDetailPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Bags Secondary Market Trading */}
+            <BagsPoolTrading
+              pool={{
+                _id: pool._id,
+                poolNumber: pool._id.toString().slice(-6).toUpperCase(),
+                bagsTokenMint: pool.bagsTokenMint,
+                sharePriceUSD: pool.sharePriceUSD || 0,
+                totalShares: pool.totalShares,
+                sharesSold: pool.sharesSold,
+                status: pool.status,
+                asset: pool.asset
+                  ? {
+                      model: pool.asset.model,
+                      brand: pool.asset.brand,
+                    }
+                  : undefined,
+                // Tokenization & liquidity fields
+                tokenStatus: pool.tokenStatus,
+                liquidityModel: pool.liquidityModel,
+                ammEnabled: pool.ammEnabled,
+                ammLiquidityPercent: pool.ammLiquidityPercent,
+              }}
+              userShares={userInvestment?.shares || 0}
+              onTradeComplete={fetchPool}
+            />
 
             {/* Distribution Info (if applicable) */}
             {(pool.distributionStatus || pool.resaleSoldPriceUSD) && (

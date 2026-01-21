@@ -235,10 +235,10 @@ Detailed documentation is organized in `.claude/docs/`:
 | Document | Description |
 |----------|-------------|
 | **`luxhub_workflow.md`** | **PRIMARY: Complete marketplace workflow with visual diagrams. KEEP UPDATED as features are developed.** |
+| **`bags_tokenomics_flow.md`** | **Bags API integration: tokenomics, pool lifecycle, secondary trading, rug pull prevention** |
 | `architectural_patterns.md` | Recurring code patterns (Mongoose hooks, API routes, wallet integration, CSS modules) |
 | `escrow_flow.md` | (Planned) On-chain escrow lifecycle: initialize → exchange → confirm_delivery |
 | `fractional_pools.md` | (Planned) Pool creation, share calculations, distribution mechanics |
-| `backpack_integration.md` | (Planned) Backpack Bags API, wallet linking, session management |
 | `squads_multisig.md` | (Planned) Treasury/vendor vault multisig setup via Squads Protocol |
 | `vendor_onboarding.md` | (Planned) Vendor verification flow, invite codes, profile setup |
 

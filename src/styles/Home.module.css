@@ -1867,3 +1867,608 @@
     font-size: 1.6rem;
   }
 }
+
+/* ===== HORIZONTAL SCROLLER SECTIONS ===== */
+.horizontalSection {
+  width: 100%;
+  max-width: 1400px;
+  padding: 60px 20px;
+  z-index: 2;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+  padding: 0 10px;
+}
+
+.sectionHeaderRow h2 {
+  margin: 8px 0 4px;
+}
+
+.sectionTag {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #b991ff;
+  background: rgba(185, 145, 255, 0.08);
+  border: 1px solid rgba(185, 145, 255, 0.2);
+  border-radius: 16px;
+}
+
+.scrollControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scrollBtn {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.scrollBtn:hover {
+  background: rgba(185, 145, 255, 0.15);
+  border-color: rgba(185, 145, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.viewAllLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #b991ff;
+  background: transparent;
+  border: 1px solid rgba(185, 145, 255, 0.3);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.viewAllLink:hover {
+  background: rgba(185, 145, 255, 0.1);
+  border-color: #b991ff;
+}
+
+.viewAllLink svg {
+  font-size: 0.75rem;
+  transition: transform 0.3s ease;
+}
+
+.viewAllLink:hover svg {
+  transform: translateX(4px);
+}
+
+.horizontalScroller {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 10px 10px 20px;
+  margin: 0 -10px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.horizontalScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollerCard {
+  flex: 0 0 auto;
+  width: 300px;
+  scroll-snap-align: start;
+  transition: transform 0.3s ease;
+}
+
+.scrollerCard:hover {
+  transform: translateY(-6px);
+}
+
+.emptyScroller {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 300px;
+  height: 380px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #666;
+}
+
+/* ===== POOL SCROLL CARDS ===== */
+.poolScrollCard {
+  flex: 0 0 auto;
+  width: 320px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  overflow: hidden;
+  scroll-snap-align: start;
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.poolScrollCard:hover {
+  border-color: rgba(185, 145, 255, 0.3);
+  transform: translateY(-6px);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(185, 145, 255, 0.08);
+}
+
+.demoBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(185, 145, 255, 0.3);
+  border-radius: 12px;
+  z-index: 5;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.poolScrollImage {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+}
+
+.poolScrollImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.poolScrollCard:hover .poolScrollImage img {
+  transform: scale(1.05);
+}
+
+.poolBrandTag {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 6px 14px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.poolScrollContent {
+  padding: 20px;
+}
+
+.poolScrollContent h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poolProgressBar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.poolProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #b991ff 0%, #d4b8ff 100%);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.poolProgressLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 16px;
+}
+
+.poolProgressLabel span:first-child {
+  color: #b991ff;
+  font-weight: 600;
+}
+
+.poolScrollStats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.poolStatItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.poolStatItem svg {
+  color: #b991ff;
+  font-size: 0.9rem;
+}
+
+.poolInvestBtn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #000;
+  background: linear-gradient(135deg, #b991ff 0%, #d4b8ff 100%);
+  border: none;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.poolInvestBtn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px rgba(185, 145, 255, 0.3);
+}
+
+/* ===== QUICK SHOP SECTION ===== */
+.quickShopSection {
+  width: 100%;
+  max-width: 1200px;
+  padding: 80px 20px;
+  z-index: 2;
+}
+
+.quickShopHeader {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.quickShopIcon {
+  font-size: 2.5rem;
+  color: #b991ff;
+  margin-bottom: 16px;
+}
+
+.quickShopHeader h2 {
+  margin-bottom: 8px;
+}
+
+.quickShopGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.quickShopCard {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.4s ease;
+}
+
+.quickShopCard:hover {
+  border-color: rgba(185, 145, 255, 0.3);
+  transform: translateY(-8px);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 60px rgba(185, 145, 255, 0.1);
+}
+
+.quickShopImageWrapper {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+}
+
+.quickShopImageWrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.quickShopCard:hover .quickShopImageWrapper img {
+  transform: scale(1.08);
+}
+
+.quickShopBrand {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 14px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(185, 145, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(185, 145, 255, 0.3);
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.quickShopInfo {
+  padding: 20px;
+}
+
+.quickShopInfo h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quickShopPrice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.quickShopPrice svg {
+  color: #b991ff;
+}
+
+.quickBuyBtn {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #b991ff;
+  background: rgba(185, 145, 255, 0.1);
+  border: 1px solid rgba(185, 145, 255, 0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quickBuyBtn:hover {
+  background: rgba(185, 145, 255, 0.2);
+  border-color: #b991ff;
+}
+
+.quickShopCta {
+  text-align: center;
+}
+
+/* ===== ENHANCED FOOTER ===== */
+.footerInfo {
+  width: 100%;
+  max-width: 1200px;
+  padding: 80px 20px 40px;
+  z-index: 2;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 40px;
+  margin-bottom: 60px;
+}
+
+.footerCol h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.footerCol ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footerCol li {
+  margin-bottom: 12px;
+}
+
+.footerCol a {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footerCol a:hover {
+  color: #b991ff;
+}
+
+.footerColCta {
+  text-align: right;
+}
+
+.footerLogo {
+  width: 80px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 20px rgba(185, 145, 255, 0.3));
+}
+
+.footerColCta p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 20px;
+}
+
+.footerColCta .footerButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footerColCta .primaryButton,
+.footerColCta .ghostButton {
+  text-align: center;
+  padding: 12px 20px;
+  font-size: 0.85rem;
+}
+
+.footerBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.footerPartners {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.footerPartners span {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.footerPartners img {
+  height: 20px;
+  opacity: 0.4;
+  filter: grayscale(100%) brightness(1.5);
+  transition: all 0.3s ease;
+}
+
+.footerPartners img:hover {
+  opacity: 1;
+  filter: none;
+}
+
+.footerCopy {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ===== RESPONSIVE FOR NEW SECTIONS ===== */
+@media screen and (max-width: 1024px) {
+  .quickShopGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .footerGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .footerColCta {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
+  .footerColCta .footerButtons {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .sectionHeaderRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .scrollControls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .scrollerCard {
+    width: 260px;
+  }
+
+  .poolScrollCard {
+    width: 280px;
+  }
+
+  .quickShopGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .quickShopCard {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .footerGrid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .footerCol h3 {
+    margin-bottom: 12px;
+  }
+
+  .footerColCta {
+    text-align: center;
+  }
+
+  .footerColCta .footerButtons {
+    flex-direction: column;
+  }
+
+  .footerBottom {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .footerPartners {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

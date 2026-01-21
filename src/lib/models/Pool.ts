@@ -92,10 +92,50 @@ const PoolSchema = new Schema(
     squadsVendorPaymentIndex: { type: String }, // For vendor payment
     squadsDistributionIndex: { type: String }, // For investor distribution
 
-    // ========== BAGS API INTEGRATION (NEW) ==========
+    // ========== BAGS API INTEGRATION ==========
     bagsTokenMint: { type: String }, // Pool share token mint via Bags
     bagsFeeShareConfigId: { type: String }, // Bags fee share config ID
     bagsTokenCreatedAt: { type: Date },
+
+    // ========== TOKENIZATION & LIQUIDITY ==========
+    // Token status - tokens minted on pool creation but locked until conditions met
+    tokenStatus: {
+      type: String,
+      enum: [
+        'pending', // Not yet tokenized
+        'minted', // Tokens created, locked
+        'unlocked', // Tokens tradeable (pool filled + custody verified)
+        'frozen', // Trading halted (emergency)
+        'burned', // Pool closed, tokens burned
+      ],
+      default: 'pending',
+    },
+    tokenUnlockedAt: { type: Date }, // When tokens became tradeable
+
+    // Liquidity model selection
+    liquidityModel: {
+      type: String,
+      enum: [
+        'p2p', // Peer-to-peer only (no AMM, pure order book)
+        'amm', // AMM liquidity pool (30% of funds)
+        'hybrid', // Both P2P and partial AMM
+      ],
+      default: 'p2p',
+    },
+
+    // AMM Liquidity Pool (if liquidityModel is 'amm' or 'hybrid')
+    ammEnabled: { type: Boolean, default: false },
+    ammPoolAddress: { type: String }, // Bags AMM pool address
+    ammLiquidityAmount: { type: Number }, // Amount locked in AMM (e.g., 30% of target)
+    ammLiquidityPercent: { type: Number, default: 30 }, // Percentage to AMM (default 30%)
+    ammCreatedAt: { type: Date },
+
+    // Vendor payment calculation (adjusted for AMM)
+    vendorPaymentPercent: { type: Number, default: 97 }, // 97% for P2P, 67% for AMM (70% - 3% fee)
+
+    // Escrow protection - funds held until custody verified
+    fundsInEscrow: { type: Number, default: 0 }, // Current amount in escrow
+    escrowReleasedAt: { type: Date }, // When funds released to vendor/AMM
 
     // ========== SECURITY & ADMIN ==========
     securityConfirmedBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -150,6 +190,13 @@ PoolSchema.pre('save', function (next) {
       p.projectedReturnUSD = invested * (this.projectedROI || 1);
     });
 
+    // Update fundsInEscrow when participants change
+    const totalInvested = this.participants.reduce(
+      (sum: number, p: any) => sum + (p.investedUSD || 0),
+      0
+    );
+    this.fundsInEscrow = totalInvested;
+
     // Auto-fill when all shares sold
     if (this.sharesSold >= this.totalShares && this.status === 'open') {
       this.status = 'filled';
@@ -161,14 +208,25 @@ PoolSchema.pre('save', function (next) {
     this.sharePriceUSD = this.targetAmountUSD / this.totalShares;
   }
 
-  // Calculate vendor payment (97% of target)
+  // Calculate vendor payment based on liquidity model
   if (
     this.isModified('status') &&
     this.status === 'funded' &&
     !this.vendorPaidAmount &&
     this.targetAmountUSD
   ) {
-    this.vendorPaidAmount = this.targetAmountUSD * 0.97;
+    if (this.liquidityModel === 'amm' || this.liquidityModel === 'hybrid') {
+      // AMM model: vendor gets less, rest goes to liquidity pool
+      const ammPercent = this.ammLiquidityPercent || 30;
+      const vendorPercent = (100 - ammPercent - 3) / 100; // e.g., 67% if 30% AMM + 3% fee
+      this.vendorPaidAmount = this.targetAmountUSD * vendorPercent;
+      this.ammLiquidityAmount = this.targetAmountUSD * (ammPercent / 100);
+      this.vendorPaymentPercent = vendorPercent * 100;
+    } else {
+      // P2P model: vendor gets 97% (3% LuxHub fee)
+      this.vendorPaidAmount = this.targetAmountUSD * 0.97;
+      this.vendorPaymentPercent = 97;
+    }
   }
 
   // Calculate distribution amounts on resale

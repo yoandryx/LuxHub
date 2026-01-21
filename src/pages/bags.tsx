@@ -67,9 +67,9 @@ const BagsPage: React.FC = () => {
         <section className={styles.hero}>
           <div className={styles.heroContent}>
             <div className={styles.partnerLogos}>
-              <img src="/images/luxhub-logo.svg" alt="LuxHub" className={styles.luxhubLogo} />
+              <img src="/images/purpleLGG.png" alt="LuxHub" className={styles.luxhubLogo} />
               <span className={styles.xMark}>×</span>
-              <img src="/images/bags-logo.svg" alt="Bags" className={styles.bagsLogoLarge} />
+              <img src="/images/bags-icon.png" alt="Bags" className={styles.bagsLogoLarge} />
             </div>
             <h1>Fractional Luxury Trading</h1>
             <p>
