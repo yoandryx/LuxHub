@@ -1,15 +1,22 @@
 /* Main container */
 .container {
-  padding: 50px 4px;
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --bg-dark: #0d0d0d;
+  --border: #222222;
+  --glass: rgba(13, 13, 13, 0.85);
+
+  padding: 80px 16px 50px;
   background: linear-gradient(
     135deg,
-    rgba(31, 31, 31, 0.4) 0%,
-    rgba(19, 19, 19, 0.3) 50%,
-    rgba(21, 21, 21, 0.55) 100%
+    rgba(13, 13, 13, 1) 0%,
+    rgba(15, 10, 20, 1) 50%,
+    rgba(10, 10, 15, 1) 100%
   );
   min-height: 100vh;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 /* Title styling */
@@ -59,11 +66,30 @@
 .nftGrid {
   display: grid;
   justify-items: center;
-  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  .nftGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
+
+/* Card wrapper with subtle animation */
+.cardWrapper {
+  width: 100%;
+  max-width: 320px;
+  transition: transform 0.3s ease;
+}
+
+.cardWrapper:hover {
+  transform: translateY(-4px);
 }
 
 /* NFT Card Container */
@@ -228,62 +254,56 @@
 } */
 
 .sellerActions {
-  text-align: center;
   display: flex;
-  flex-wrap: wrap;
-  flex-direction: row;
   align-items: center;
-  justify-content: space-evenly;
-  background-color: #000000dc;
-  border: 1px solid var(--accent);
+  justify-content: space-between;
+  background: rgba(15, 15, 20, 0.9);
+  border: 1px solid rgba(200, 161, 255, 0.12);
   border-radius: 10px;
-  box-shadow: 0 0 15px #0000009d;
-  padding: 1px;
+  padding: 6px 8px;
   width: 100%;
-  max-width: 300px;
+  max-width: 320px;
   margin-top: 8px;
-  font-size: x-small;
+  gap: 6px;
 }
 
 .sellerActions p {
   display: flex;
-  justify-content: center;
   align-items: center;
-  background-color: #c8a1ff33;
-  border: 1px solid #c8a1ff33;
-  padding: 8px 12px;
-  border-radius: 5px;
-  font-size: small;
-  margin: 5px;
-  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
 }
 
 .sellerActions p:hover {
-  border: 1px solid #c8a1ff;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .sellerActions button {
-  background-color: #c8a1ff;
+  background: linear-gradient(135deg, var(--accent) 0%, #a87de8 100%);
   border: none;
-  padding: 8px 12px;
-  border-radius: 5px;
-  color: #000000;
-  text-shadow: 0 0 1px #0000006e;
-  box-shadow: 0 0 20px #c8a1ff66;
-  /* font-size: x-small; */
-  width: 100px;
-  cursor: pointer;
-  margin: 5px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: #000;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 1px;
-  transition: background-color 0.3s ease;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .sellerActions button:hover {
-  background-color: #c8a1ff65;
-  box-shadow: 0 0 20px #c8a1ff;
-  border: 1px solid #c8a1ff;
-  color: #ffffff;
+  background: linear-gradient(135deg, #d4b4ff 0%, #b990f0 100%);
+  transform: translateY(-1px);
+}
+
+.sellerActions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .tooltipButton {
@@ -490,38 +510,70 @@
 }
 
 .sellerActions .contactButton {
-  background-color: #c8a1ff77;
-  box-shadow: none;
-  border: #c8a1ff 1px solid;
-  color: #fff;
-  letter-spacing: 0.5px;
+  background: transparent;
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  color: var(--accent);
+  font-size: 10px;
+  padding: 5px 10px;
+}
+
+.sellerActions .contactButton:hover {
+  background: rgba(200, 161, 255, 0.1);
+  border-color: var(--accent);
 }
 
 .sellerActions .offerButton {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.3) 0%, rgba(138, 43, 226, 0.3) 100%);
-  border: 1px solid rgba(200, 161, 255, 0.5);
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: transparent;
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  color: var(--accent);
+  padding: 5px 10px;
+  font-size: 10px;
 }
 
 .sellerActions .offerButton:hover {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.5) 0%, rgba(138, 43, 226, 0.5) 100%);
-  border-color: rgba(200, 161, 255, 0.8);
-  transform: translateY(-1px);
+  background: rgba(200, 161, 255, 0.15);
+  border-color: var(--accent);
 }
 
 .priceInfo {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 8px;
-  color: #ffffff;
+  gap: 4px;
+  color: #fff;
   font-weight: 600;
+  font-size: 11px;
+  background: rgba(200, 161, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.statusBadge {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.statusPending {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.statusListed {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
 }
 
 .filterPanelWrapper {
@@ -546,9 +598,26 @@
   z-index: 0;
 }
 
+/* Demo Badge for Mock NFTs */
+.demoBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.9) 0%, rgba(255, 152, 0, 0.9) 100%);
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
 /* Vendor Slider Section */
 .vendorSliderSection {
-  margin: 20px auto;
+  margin: 30px auto;
   max-width: 1600px;
   padding: 0 4px;
 }
@@ -678,14 +747,47 @@
 }
 
 .vendorSliderCardSkeleton {
-  min-width: 180px;
-  background: #222;
-  border-radius: 16px;
-  padding: 16px;
+  min-width: 200px;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 20px;
+  padding: 10px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  opacity: 0.5;
+  gap: 10px;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+  margin: 10px 0;
+}
+
+.vendorSliderCardSkeleton .vendorSliderAvatarPlaceholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border: none;
+}
+
+.vendorSliderCardSkeleton .vendorSliderInfo p {
+  width: 80px;
+  height: 14px;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  margin: 4px 0;
 }
 
 /* ============================================
@@ -705,6 +807,123 @@
 .loadingContainer p {
   font-size: 1rem;
   margin: 0;
+}
+
+/* Skeleton Grid */
+.skeletonGrid {
+  display: grid;
+  justify-items: center;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  .skeletonGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
+
+/* Skeleton Card */
+.skeletonCard {
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.skeletonImage {
+  width: 100%;
+  aspect-ratio: 1;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.05) 0%,
+    rgba(200, 161, 255, 0.1) 50%,
+    rgba(200, 161, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeletonContent {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeletonTitle {
+  height: 20px;
+  width: 70%;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skeletonPrice {
+  height: 16px;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skeletonActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.skeletonButton {
+  height: 36px;
+  flex: 1;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.15) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
 }
 
 .emptyState {
@@ -839,5 +1058,615 @@
   .walletModalMessage {
     font-size: 1rem;
     padding: 0 10px;
+  }
+}
+
+/* ============================================
+   SECTION TABS
+   ============================================ */
+.sectionTabs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 30px auto 20px;
+  max-width: 800px;
+  padding: 0 16px;
+  flex-wrap: wrap;
+}
+
+.sectionTab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.6) 0%, rgba(20, 20, 25, 0.8) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.sectionTab:hover {
+  border-color: rgba(200, 161, 255, 0.4);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.sectionTab.activeTab {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.2) 0%, rgba(138, 43, 226, 0.15) 100%);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.2);
+}
+
+.tabIcon {
+  font-size: 1.1rem;
+}
+
+.tabCount {
+  background: rgba(200, 161, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sectionTab.activeTab .tabCount {
+  background: rgba(200, 161, 255, 0.4);
+}
+
+@media (max-width: 640px) {
+  .sectionTabs {
+    gap: 6px;
+  }
+
+  .sectionTab {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .sectionTab span:not(.tabCount) {
+    display: none;
+  }
+
+  .tabCount {
+    margin-left: 0;
+  }
+}
+
+/* ============================================
+   SECTION HEADER
+   ============================================ */
+.sectionHeader {
+  text-align: center;
+  margin: 20px auto 30px;
+  max-width: 800px;
+  padding: 0 16px;
+}
+
+.sectionHeader h3 {
+  font-size: 1.8rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.sectionDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ============================================
+   POOL GRID & CARDS
+   ============================================ */
+.poolGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  .poolGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 10px;
+  }
+}
+
+.poolCard {
+  position: relative;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.9) 0%, rgba(15, 15, 20, 0.95) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.poolCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(200, 161, 255, 0.4);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(200, 161, 255, 0.1);
+}
+
+.poolImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.5) 0%, rgba(20, 20, 25, 0.5) 100%);
+}
+
+.poolImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.poolCard:hover .poolImage {
+  transform: scale(1.05);
+}
+
+.poolBrand {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+}
+
+.poolContent {
+  padding: 20px;
+}
+
+.poolTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px;
+}
+
+.poolModel {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 16px;
+}
+
+/* Progress Bar */
+.progressSection {
+  margin-bottom: 16px;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.progressPercent {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.progressBarTrack {
+  height: 8px;
+  background: rgba(200, 161, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #a87de8 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(200, 161, 255, 0.4);
+}
+
+.progressValues {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+.progressValues span:first-child {
+  color: #fff;
+  font-weight: 600;
+}
+
+.progressTarget {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Pool Stats */
+.poolStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.poolStat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.poolStat .statIcon {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.poolStat > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.statLabel {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+}
+
+/* Invest Button */
+.investButton {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a87de8 100%);
+  border: none;
+  border-radius: 12px;
+  color: #000;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
+}
+
+.investButton:hover {
+  background: linear-gradient(135deg, #d4b4ff 0%, #b990f0 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(200, 161, 255, 0.5);
+}
+
+/* Pool Skeleton */
+.poolCardSkeleton {
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.skeletonProgressBar {
+  height: 8px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+.skeletonStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.skeletonStat {
+  height: 40px;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.05) 0%,
+    rgba(200, 161, 255, 0.1) 50%,
+    rgba(200, 161, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ============================================
+   CUSTODY GRID & CARDS
+   ============================================ */
+.custodyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  .custodyGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 10px;
+  }
+}
+
+.custodyCard {
+  position: relative;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.9) 0%, rgba(15, 15, 20, 0.95) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.custodyCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(200, 161, 255, 0.5);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(200, 161, 255, 0.15);
+}
+
+.custodyBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.8) 0%, rgba(22, 163, 74, 0.8) 100%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+.custodyBadgeIcon {
+  font-size: 0.8rem;
+}
+
+.custodyImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.5) 0%, rgba(20, 20, 25, 0.5) 100%);
+}
+
+.custodyImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.custodyCard:hover .custodyImage {
+  transform: scale(1.05);
+}
+
+.custodyContent {
+  padding: 20px;
+}
+
+.custodyBrand {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.custodyTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+/* Custody Pricing */
+.custodyPricing {
+  padding: 16px 0;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+  margin-bottom: 16px;
+}
+
+.originalPrice,
+.resalePrice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.priceLabel {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+.priceValue {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.priceValueHighlight {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.solPrice {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.solIcon {
+  font-size: 0.9rem;
+}
+
+/* Custody Stats */
+.custodyStats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.custodyStat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.custodyStat .statIcon {
+  color: var(--accent);
+}
+
+.profitBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.2) 100%);
+  color: #4ade80;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.profitBadge .statIcon {
+  color: #4ade80;
+}
+
+/* Purchase Custody Button */
+.purchaseCustodyButton {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+}
+
+.purchaseCustodyButton:hover {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(34, 197, 94, 0.5);
+}
+
+/* Custody Skeleton */
+.custodyCardSkeleton {
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE IMPROVEMENTS
+   ============================================ */
+@media (max-width: 768px) {
+  .sectionHeader h3 {
+    font-size: 1.4rem;
+  }
+
+  .sectionDescription {
+    font-size: 0.9rem;
+  }
+
+  .poolStats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .poolStat {
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(200, 161, 255, 0.05);
+  }
+
+  .poolStat:last-child {
+    border-bottom: none;
+  }
+
+  .custodyPricing {
+    font-size: 0.9rem;
+  }
+
+  .custodyStats {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .profitBadge {
+    width: 100%;
+    justify-content: center;
   }
 }
