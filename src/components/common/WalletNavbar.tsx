@@ -27,6 +27,9 @@ import {
   FaEnvelope,
   FaRightFromBracket,
   FaRegCircleCheck,
+  FaLink,
+  FaCircle,
+  FaStar,
 } from 'react-icons/fa6';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { usePriceDisplay } from '../marketplace/PriceDisplay';
@@ -46,6 +49,27 @@ interface VendorProfile {
   username: string;
   avatarUrl?: string;
   verified?: boolean;
+}
+
+interface LinkedWalletInfo {
+  address: string;
+  type: 'embedded' | 'external' | 'backpack';
+  walletClient?: string;
+  isPrimary: boolean;
+}
+
+interface UserProfile {
+  id: string;
+  privyId?: string;
+  email?: string;
+  role: string;
+  primaryWallet?: string;
+  linkedWallets: LinkedWalletInfo[];
+  profile?: {
+    name?: string;
+    username?: string;
+    avatar?: string;
+  };
 }
 
 export default function WalletNavbar() {
@@ -80,6 +104,9 @@ export default function WalletNavbar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [copied, setCopied] = useState(false);
   const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [showAllWallets, setShowAllWallets] = useState(false);
+  const [hasSynced, setHasSynced] = useState(false);
 
   const widgetRef = useRef<HTMLDivElement>(null);
 
@@ -180,6 +207,109 @@ export default function WalletNavbar() {
       setIsRefreshingWallet(false);
     }
   }, [authenticated]);
+
+  // Sync Privy user with MongoDB on authentication
+  const syncUserWithMongoDB = useCallback(async () => {
+    if (!authenticated || !user || hasSynced) return;
+
+    try {
+      const response = await fetch('/api/users/sync-privy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          privyUser: {
+            id: user.id,
+            createdAt: user.createdAt,
+            email: user.email,
+            linkedAccounts: user.linkedAccounts,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[WalletNavbar] User synced with MongoDB:', data.user);
+        setUserProfile(data.user);
+        setHasSynced(true);
+
+        // Update role from MongoDB if set
+        if (data.user.role && data.user.role !== 'user') {
+          setRole(data.user.role as UserRole);
+        }
+      }
+    } catch (err) {
+      console.error('[WalletNavbar] Sync error:', err);
+    }
+  }, [authenticated, user, hasSynced]);
+
+  // Sync on authentication
+  useEffect(() => {
+    if (authenticated && user && !hasSynced) {
+      syncUserWithMongoDB();
+    }
+  }, [authenticated, user, hasSynced, syncUserWithMongoDB]);
+
+  // Get all linked wallets from Privy (for display)
+  const getAllLinkedWallets = useCallback((): LinkedWalletInfo[] => {
+    const wallets: LinkedWalletInfo[] = [];
+    const seenAddresses = new Set<string>();
+
+    // Add wallets from useWallets hook
+    privySolanaWallets?.forEach((w: any) => {
+      if (w.address && !seenAddresses.has(w.address)) {
+        seenAddresses.add(w.address);
+        wallets.push({
+          address: w.address,
+          type: w.walletClientType === 'privy' ? 'embedded' : 'external',
+          walletClient: w.walletClientType,
+          isPrimary: wallets.length === 0,
+        });
+      }
+    });
+
+    // Add wallets from linkedAccounts (fallback)
+    user?.linkedAccounts?.forEach((account: any) => {
+      if (
+        account.type === 'embedded_solana_wallet' &&
+        account.address &&
+        !seenAddresses.has(account.address)
+      ) {
+        seenAddresses.add(account.address);
+        wallets.push({
+          address: account.address,
+          type: 'embedded',
+          walletClient: 'privy_embedded',
+          isPrimary: wallets.length === 0,
+        });
+      }
+      if (
+        account.type === 'wallet' &&
+        account.chainType === 'solana' &&
+        account.address &&
+        !seenAddresses.has(account.address)
+      ) {
+        seenAddresses.add(account.address);
+        wallets.push({
+          address: account.address,
+          type: 'external',
+          walletClient: account.walletClientType || 'unknown',
+          isPrimary: wallets.length === 0,
+        });
+      }
+    });
+
+    // Add MongoDB linked wallets if available
+    userProfile?.linkedWallets?.forEach((w) => {
+      if (w.address && !seenAddresses.has(w.address)) {
+        seenAddresses.add(w.address);
+        wallets.push(w);
+      }
+    });
+
+    return wallets;
+  }, [privySolanaWallets, user, userProfile]);
+
+  const allLinkedWallets = getAllLinkedWallets();
 
   // Use wallet adapter if connected, otherwise fall back to Privy embedded wallet
   const activePublicKey =
@@ -495,6 +625,54 @@ export default function WalletNavbar() {
                   {copied && <span className={styles.copied}>Copied</span>}
                 </span>
               </div>
+
+              {/* Show all linked wallets toggle */}
+              {allLinkedWallets.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAllWallets(!showAllWallets);
+                  }}
+                  className={styles.showWalletsBtn}
+                >
+                  <FaLink />
+                  {showAllWallets ? 'Hide' : 'Show'} all wallets ({allLinkedWallets.length})
+                </button>
+              )}
+
+              {/* All linked wallets list */}
+              {showAllWallets && allLinkedWallets.length > 0 && (
+                <div className={styles.linkedWalletsList}>
+                  {allLinkedWallets.map((wallet, idx) => (
+                    <div
+                      key={wallet.address}
+                      className={`${styles.linkedWalletItem} ${
+                        activePublicKey?.toBase58() === wallet.address ? styles.activeWallet : ''
+                      }`}
+                      onClick={() => {
+                        navigator.clipboard.writeText(wallet.address);
+                        toast.success('Address copied!');
+                      }}
+                    >
+                      <div className={styles.walletItemLeft}>
+                        {wallet.isPrimary && (
+                          <FaStar className={styles.primaryStar} title="Primary" />
+                        )}
+                        <span className={styles.walletTypeTag}>
+                          {wallet.type === 'embedded' ? '🔐' : '🔗'}
+                          {wallet.type}
+                        </span>
+                      </div>
+                      <span className={styles.walletItemAddress}>
+                        {wallet.address.slice(0, 4)}...{wallet.address.slice(-4)}
+                      </span>
+                      {wallet.walletClient && wallet.walletClient !== 'privy_embedded' && (
+                        <span className={styles.walletClientTag}>{wallet.walletClient}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Balance Section */}
