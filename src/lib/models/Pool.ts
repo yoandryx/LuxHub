@@ -132,7 +132,7 @@ const PoolSchema = new Schema(
 );
 
 // ========== INDEXES ==========
-PoolSchema.index({ status: 1 });
+// Note: status index defined inline with field definition
 PoolSchema.index({ escrowId: 1 }); // Find pool by escrow
 PoolSchema.index({ vendorWallet: 1 }); // Vendor's pools
 PoolSchema.index({ custodyStatus: 1 }); // Custody tracking
