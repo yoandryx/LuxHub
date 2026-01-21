@@ -118,7 +118,26 @@ async function getUserContext(wallet: string | null): Promise<UserContext> {
   };
 }
 
-function buildSystemPrompt(context: UserContext): string {
+// Page-specific context for the AI
+const pageContextMap: Record<string, string> = {
+  home: 'The home page - help them explore the platform and get started.',
+  marketplace: 'The marketplace - help them browse items, understand pricing, and make offers.',
+  pools: 'The pools page - explain fractional ownership, ROI calculations, and pool lifecycles.',
+  'nft-detail':
+    'Viewing a specific item - help with pricing analysis, making offers, and authenticity.',
+  'seller-dashboard':
+    'The seller dashboard - help manage listings, respond to offers, and track shipments.',
+  'admin-dashboard':
+    'The admin dashboard - help with verifications, pool management, and compliance.',
+  'my-offers':
+    'The offers page - help understand offer statuses, counter-offers, and negotiations.',
+  'create-nft': 'Creating a new NFT listing - help with photos, pricing, and the minting process.',
+  profile: 'The profile page - help with account settings and transaction history.',
+  'learn-more': 'The learn more page - provide comprehensive platform education.',
+  other: 'General browsing - provide helpful navigation and platform information.',
+};
+
+function buildSystemPrompt(context: UserContext, currentPage?: string, pageLabel?: string): string {
   const basePrompt = `You are Luxury, LuxHub's AI concierge — a premium NFT marketplace for luxury watches, jewelry, and collectibles on Solana.
 
 CORE KNOWLEDGE:
@@ -130,8 +149,14 @@ CORE KNOWLEDGE:
 
 TONE: Professional, knowledgeable, concise. Like a luxury concierge at a high-end boutique.`;
 
+  // Add page context
+  const pageContext =
+    currentPage && pageContextMap[currentPage]
+      ? `\n\nCURRENT PAGE: ${pageLabel || currentPage}\n${pageContextMap[currentPage]}`
+      : '';
+
   if (context.role === 'guest') {
-    return `${basePrompt}
+    return `${basePrompt}${pageContext}
 
 USER CONTEXT: Guest (wallet not connected)
 - Guide them to connect wallet first
@@ -140,7 +165,7 @@ USER CONTEXT: Guest (wallet not connected)
   }
 
   if (context.role === 'admin') {
-    return `${basePrompt}
+    return `${basePrompt}${pageContext}
 
 USER CONTEXT: Platform Administrator
 ${context.marketSnapshot?.recentActivity ? `- Current status: ${context.marketSnapshot.recentActivity}` : ''}
@@ -156,7 +181,7 @@ Help with: shipment verification, vendor management, pool administration, compli
   }
 
   if (context.role === 'vendor' && context.vendorInfo) {
-    return `${basePrompt}
+    return `${basePrompt}${pageContext}
 
 USER CONTEXT: Vendor - ${context.vendorInfo.businessName}
 - Verification: ${context.vendorInfo.verified ? 'Verified ✓' : 'Pending verification'}
@@ -178,7 +203,7 @@ Help with: pricing strategy, offer negotiation, shipment management, listing opt
     ? `Trending items: ${context.marketSnapshot.trendingItems.map((t) => `${t.name} (${t.offers} offers)`).join(', ')}`
     : '';
 
-  return `${basePrompt}
+  return `${basePrompt}${pageContext}
 
 USER CONTEXT: Buyer
 ${context.buyerInfo ? `- Active offers: ${context.buyerInfo.activeOffers}` : ''}
@@ -200,7 +225,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { message, wallet, conversationHistory } = req.body;
+  const { message, wallet, conversationHistory, currentPage, pageLabel } = req.body;
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Message is required and must be a string.' });
@@ -209,7 +234,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     // Get user context based on wallet
     const context = await getUserContext(wallet || null);
-    const systemPrompt = buildSystemPrompt(context);
+    const systemPrompt = buildSystemPrompt(context, currentPage, pageLabel);
 
     // Build messages array with conversation history
     const messages: { role: string; content: string }[] = [

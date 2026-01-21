@@ -579,3 +579,104 @@
     transform: rotate(360deg);
   }
 }
+
+/* Show all wallets toggle button */
+.showWalletsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  margin-top: 10px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 8px;
+  color: #c8a1ff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.showWalletsBtn:hover {
+  background: rgba(200, 161, 255, 0.2);
+  border-color: rgba(200, 161, 255, 0.4);
+}
+
+.showWalletsBtn svg {
+  font-size: 11px;
+}
+
+/* Linked wallets list */
+.linkedWalletsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.linkedWalletItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.linkedWalletItem:hover {
+  background: rgba(200, 161, 255, 0.1);
+  border-color: rgba(200, 161, 255, 0.3);
+}
+
+.linkedWalletItem.activeWallet {
+  background: rgba(200, 161, 255, 0.15);
+  border-color: rgba(200, 161, 255, 0.4);
+}
+
+.walletItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.primaryStar {
+  color: #fbbf24;
+  font-size: 10px;
+}
+
+.walletTypeTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: capitalize;
+}
+
+.walletItemAddress {
+  font-family: 'SF Mono', monospace;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.walletClientTag {
+  padding: 2px 6px;
+  background: rgba(96, 165, 250, 0.15);
+  border-radius: 4px;
+  font-size: 9px;
+  color: #60a5fa;
+  text-transform: capitalize;
+}
