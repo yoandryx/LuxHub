@@ -481,6 +481,157 @@
   color: var(--text-secondary);
 }
 
+/* ============================================
+   Locked Token State
+   ============================================ */
+.lockedToken {
+  text-align: center;
+  padding: 24px 20px;
+}
+
+.lockedIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.lockedToken p {
+  font-size: 18px;
+  color: #fbbf24;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.lockedToken > span {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.lockedInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.lockedStep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ============================================
+   Frozen/Burned Token State
+   ============================================ */
+.frozenToken {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.frozenIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.frozenToken p {
+  font-size: 18px;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.frozenToken > span {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============================================
+   Liquidity Model Badges
+   ============================================ */
+.liquidityBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.liquidityBadge span:first-child {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.liquidityBadge span:last-child {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ammBadge {
+  color: #60a5fa;
+}
+
+.p2pBadge {
+  color: #22c55e;
+}
+
+.hybridBadge {
+  color: #c8a1ff;
+}
+
+/* Liquidity Indicator (in header for active trading) */
+.liquidityIndicator {
+  margin-top: 12px;
+}
+
+.ammActive {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(96, 165, 250, 0.15);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #60a5fa;
+}
+
+.p2pActive {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #22c55e;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .container {
@@ -499,5 +650,13 @@
   .detailItem {
     flex-direction: row;
     justify-content: space-between;
+  }
+
+  .lockedInfo {
+    padding: 12px;
+  }
+
+  .lockedStep {
+    font-size: 12px;
   }
 }

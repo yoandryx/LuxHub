@@ -17,6 +17,11 @@ interface Pool {
     model?: string;
     brand?: string;
   };
+  // Tokenization & Liquidity fields
+  tokenStatus?: string; // pending, minted, unlocked, frozen, burned
+  liquidityModel?: string; // p2p, amm, hybrid
+  ammEnabled?: boolean;
+  ammLiquidityPercent?: number;
 }
 
 interface TradeQuote {
@@ -56,6 +61,11 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
 
   const poolTokenMint = pool.bagsTokenMint;
   const hasToken = !!poolTokenMint;
+  const tokenStatus = pool.tokenStatus || 'pending';
+  const liquidityModel = pool.liquidityModel || 'p2p';
+  const isTokenTradeable = hasToken && tokenStatus === 'unlocked';
+  const isTokenLocked = hasToken && tokenStatus === 'minted';
+  const isAmmEnabled = pool.ammEnabled && (liquidityModel === 'amm' || liquidityModel === 'hybrid');
 
   // Fetch quote when amount or trade type changes
   const fetchQuote = useCallback(async () => {
@@ -174,6 +184,7 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
     }
   };
 
+  // Show appropriate message based on token status
   if (!hasToken) {
     return (
       <div className={styles.container}>
@@ -193,6 +204,95 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
     );
   }
 
+  // Tokens minted but locked (waiting for custody verification)
+  if (isTokenLocked) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <div className={styles.bagsLogo}>
+            <img src="/images/bags-icon.png" alt="Bags" className={styles.bagsIcon} />
+            <span>Powered by Bags</span>
+          </div>
+          <h3>Secondary Market Trading</h3>
+          <p className={styles.tokenMint}>
+            Token: {poolTokenMint?.slice(0, 8)}...{poolTokenMint?.slice(-6)}
+          </p>
+        </div>
+        <div className={styles.lockedToken}>
+          <div className={styles.lockedIcon}>🔐</div>
+          <p>Tokens Minted - Trading Locked</p>
+          <span>
+            Trading will unlock once the pool is filled and the physical asset is verified in LuxHub
+            custody. This escrow protection ensures your investment is secured by real assets.
+          </span>
+          <div className={styles.lockedInfo}>
+            <div className={styles.lockedStep}>
+              <span className={styles.stepNumber}>1</span>
+              <span>Pool fills to 100%</span>
+            </div>
+            <div className={styles.lockedStep}>
+              <span className={styles.stepNumber}>2</span>
+              <span>Vendor ships to LuxHub</span>
+            </div>
+            <div className={styles.lockedStep}>
+              <span className={styles.stepNumber}>3</span>
+              <span>Asset verified in custody</span>
+            </div>
+            <div className={styles.lockedStep}>
+              <span className={styles.stepNumber}>4</span>
+              <span>Trading unlocks 🔓</span>
+            </div>
+          </div>
+        </div>
+        {/* Liquidity Model Badge */}
+        <div className={styles.liquidityBadge}>
+          {liquidityModel === 'amm' && (
+            <>
+              <span className={styles.ammBadge}>💧 AMM Liquidity</span>
+              <span>{pool.ammLiquidityPercent || 30}% instant liquidity pool</span>
+            </>
+          )}
+          {liquidityModel === 'p2p' && (
+            <>
+              <span className={styles.p2pBadge}>🤝 P2P Trading</span>
+              <span>Peer-to-peer order book trading</span>
+            </>
+          )}
+          {liquidityModel === 'hybrid' && (
+            <>
+              <span className={styles.hybridBadge}>⚡ Hybrid Model</span>
+              <span>AMM + P2P for maximum liquidity</span>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Token frozen or burned
+  if (tokenStatus === 'frozen' || tokenStatus === 'burned') {
+    return (
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <div className={styles.bagsLogo}>
+            <img src="/images/bags-icon.png" alt="Bags" className={styles.bagsIcon} />
+            <span>Powered by Bags</span>
+          </div>
+          <h3>Secondary Market Trading</h3>
+        </div>
+        <div className={styles.frozenToken}>
+          <div className={styles.frozenIcon}>{tokenStatus === 'frozen' ? '❄️' : '🔥'}</div>
+          <p>{tokenStatus === 'frozen' ? 'Trading Halted' : 'Pool Closed'}</p>
+          <span>
+            {tokenStatus === 'frozen'
+              ? 'Trading has been temporarily halted. Please check back later.'
+              : 'This pool has been closed and tokens burned. Proceeds have been distributed.'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       {/* Header with Bags branding */}
@@ -205,6 +305,16 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
         <p className={styles.tokenMint}>
           Token: {poolTokenMint?.slice(0, 8)}...{poolTokenMint?.slice(-6)}
         </p>
+        {/* Liquidity Model Indicator */}
+        <div className={styles.liquidityIndicator}>
+          {isAmmEnabled ? (
+            <span className={styles.ammActive}>
+              💧 AMM Active ({pool.ammLiquidityPercent || 30}% liquidity)
+            </span>
+          ) : (
+            <span className={styles.p2pActive}>🤝 P2P Trading</span>
+          )}
+        </div>
       </div>
 
       {/* Trade Type Tabs */}

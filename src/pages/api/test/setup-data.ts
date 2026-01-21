@@ -12,6 +12,96 @@ import { Pool } from '@/lib/models/Pool';
 
 // Test wallets
 const TEST_VENDOR_WALLET = 'VendorTestWallet1111111111111111111111111111';
+const TEST_VENDOR_WALLET_2 = 'VendorTestWallet2222222222222222222222222222';
+
+// Mock watch data with new images
+const MOCK_WATCHES = [
+  {
+    model: 'Rolex Daytona Rainbow',
+    brand: 'Rolex',
+    description:
+      'The iconic Rolex Cosmograph Daytona "Rainbow" ref. 116595RBOW features a stunning bezel set with 36 rainbow-colored sapphires. Rose gold case with black dial.',
+    priceUSD: 450000,
+    imageUrl: '/images/rolex-daytona-rainbow.jpg',
+    serial: 'RDR-2024-001',
+  },
+  {
+    model: 'Richard Mille RM 027',
+    brand: 'Richard Mille',
+    description:
+      'The RM 027 Tourbillon Rafael Nadal - an ultra-lightweight manual winding tourbillon movement. Carbon TPT case weighing under 20 grams.',
+    priceUSD: 850000,
+    imageUrl: '/images/rm-027.jpg',
+    serial: 'RM27-2024-001',
+  },
+  {
+    model: 'Audemars Piguet Royal Oak Offshore',
+    brand: 'Audemars Piguet',
+    description:
+      'The Royal Oak Offshore Chronograph in stainless steel with black ceramic bezel. 44mm case with Grande Tapisserie dial pattern.',
+    priceUSD: 35000,
+    imageUrl: '/images/ap-offshore.jpg',
+    serial: 'AP-ROO-2024-001',
+  },
+  {
+    model: 'Cartier Crash',
+    brand: 'Cartier',
+    description:
+      'The legendary Cartier Crash - a surrealist masterpiece inspired by a Salvador Dalí painting. 18k yellow gold case with asymmetrical design.',
+    priceUSD: 175000,
+    imageUrl: '/images/cartier-crash.jpg',
+    serial: 'CC-2024-001',
+  },
+];
+
+// Pool configurations to showcase different states
+const POOL_CONFIGS = [
+  {
+    // Open pool with P2P liquidity - accepting investments
+    watchIndex: 0,
+    status: 'open',
+    tokenStatus: 'minted',
+    liquidityModel: 'p2p',
+    ammEnabled: false,
+    sharesSoldPercent: 35,
+    projectedROI: 1.25,
+  },
+  {
+    // Open pool with AMM liquidity - partially filled
+    watchIndex: 1,
+    status: 'open',
+    tokenStatus: 'minted',
+    liquidityModel: 'amm',
+    ammEnabled: true,
+    ammLiquidityPercent: 30,
+    sharesSoldPercent: 68,
+    projectedROI: 1.35,
+  },
+  {
+    // Filled pool - tokens unlocked, in custody
+    watchIndex: 2,
+    status: 'active',
+    tokenStatus: 'unlocked',
+    liquidityModel: 'p2p',
+    ammEnabled: false,
+    sharesSoldPercent: 100,
+    projectedROI: 1.15,
+    custodyStatus: 'stored',
+  },
+  {
+    // Listed for resale - hybrid liquidity
+    watchIndex: 3,
+    status: 'listed',
+    tokenStatus: 'unlocked',
+    liquidityModel: 'hybrid',
+    ammEnabled: true,
+    ammLiquidityPercent: 20,
+    sharesSoldPercent: 100,
+    projectedROI: 1.4,
+    custodyStatus: 'stored',
+    resaleListingPriceUSD: 210000,
+  },
+];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Only allow in development
@@ -26,94 +116,191 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectDB();
 
-    // Create test user
-    let testUser = await User.findOne({ wallet: TEST_VENDOR_WALLET });
-    if (!testUser) {
-      testUser = await User.create({
-        wallet: TEST_VENDOR_WALLET,
-        role: 'vendor',
-      });
-      console.log('Created test user');
+    const createdData: {
+      users: string[];
+      vendors: string[];
+      assets: string[];
+      pools: string[];
+    } = {
+      users: [],
+      vendors: [],
+      assets: [],
+      pools: [],
+    };
+
+    // Create test users
+    const testWallets = [TEST_VENDOR_WALLET, TEST_VENDOR_WALLET_2];
+    const testUsers = [];
+
+    for (const wallet of testWallets) {
+      let user = await User.findOne({ wallet });
+      if (!user) {
+        user = await User.create({
+          wallet,
+          role: 'vendor',
+        });
+        console.log('Created test user:', wallet.slice(0, 20) + '...');
+      }
+      testUsers.push(user);
+      createdData.users.push(user._id.toString());
     }
 
-    // Create test vendor
-    let testVendor = await Vendor.findOne({ user: testUser._id });
-    if (!testVendor) {
-      testVendor = await Vendor.create({
-        user: testUser._id,
-        businessName: 'Test Luxury Vendor',
-        username: 'test_vendor_' + Date.now().toString().slice(-6),
-        verified: true,
-      });
-      console.log('Created test vendor');
+    // Create test vendors
+    const vendorNames = ['LuxWatch Collective', 'Prestige Timepieces'];
+    const testVendors = [];
+
+    for (let i = 0; i < testUsers.length; i++) {
+      let vendor = await Vendor.findOne({ user: testUsers[i]._id });
+      if (!vendor) {
+        vendor = await Vendor.create({
+          user: testUsers[i]._id,
+          businessName: vendorNames[i],
+          username:
+            vendorNames[i].toLowerCase().replace(/\s+/g, '_') +
+            '_' +
+            Date.now().toString().slice(-4),
+          verified: true,
+        });
+        console.log('Created vendor:', vendorNames[i]);
+      }
+      testVendors.push(vendor);
+      createdData.vendors.push(vendor._id.toString());
     }
 
-    // Create test asset
-    let testAsset = await Asset.findOne({ model: 'Test Rolex Submariner' });
-    if (!testAsset) {
-      testAsset = await Asset.create({
-        vendor: testVendor._id,
-        model: 'Test Rolex Submariner',
-        serial: 'TEST-' + Date.now().toString().slice(-6),
-        priceUSD: 15000,
-        status: 'listed', // valid enum: pending, reviewed, listed, pooled, sold, burned
-        description: 'Test watch for API testing',
-      });
-      console.log('Created test asset');
-    }
+    // Create assets and pools
+    for (let i = 0; i < POOL_CONFIGS.length; i++) {
+      const config = POOL_CONFIGS[i];
+      const watchData = MOCK_WATCHES[config.watchIndex];
+      const vendor = testVendors[i % testVendors.length];
 
-    // Create test escrow (for offer/shipment tests)
-    let testEscrow = await Escrow.findOne({ asset: testAsset._id, deleted: { $ne: true } });
-    if (!testEscrow) {
-      testEscrow = await Escrow.create({
-        asset: testAsset._id,
-        seller: testVendor._id,
-        sellerWallet: TEST_VENDOR_WALLET,
-        escrowPda: 'TestEscrowPda' + Date.now().toString(),
-        nftMint: 'TestNftMint' + Date.now().toString(),
-        saleMode: 'accepting_offers',
-        acceptingOffers: true,
-        listingPrice: 15000000000, // 15 SOL in lamports
-        listingPriceUSD: 15000,
-        minimumOffer: 10000000000, // 10 SOL minimum
-        minimumOfferUSD: 10000,
-        status: 'initiated',
-      });
-      console.log('Created test escrow');
-    }
+      // Check if asset already exists
+      let asset = await Asset.findOne({ serial: watchData.serial });
+      if (!asset) {
+        asset = await Asset.create({
+          vendor: vendor._id,
+          model: watchData.model,
+          brand: watchData.brand,
+          serial: watchData.serial,
+          priceUSD: watchData.priceUSD,
+          description: watchData.description,
+          images: [watchData.imageUrl],
+          imageIpfsUrls: [watchData.imageUrl],
+          status: 'pooled',
+        });
+        console.log('Created asset:', watchData.model);
+      }
+      createdData.assets.push(asset._id.toString());
 
-    // Create test pool
-    let testPool = await Pool.findOne({ selectedAssetId: testAsset._id, deleted: { $ne: true } });
-    if (!testPool) {
-      testPool = await Pool.create({
-        selectedAssetId: testAsset._id,
-        vendorId: testVendor._id,
-        vendorWallet: TEST_VENDOR_WALLET,
-        sourceType: 'dealer', // required: dealer, luxhub_owned, escrow_conversion
-        targetAmountUSD: 15000,
-        totalShares: 100,
-        sharesSold: 0,
-        sharePriceUSD: 150,
-        minBuyInUSD: 150,
-        maxInvestors: 50,
-        projectedROI: 1.2,
-        status: 'open',
-        participants: [],
-      });
-      console.log('Created test pool');
+      // Check if pool already exists for this asset
+      let pool = await Pool.findOne({ selectedAssetId: asset._id, deleted: { $ne: true } });
+
+      // Calculate shares and pricing
+      const totalShares = Math.ceil(watchData.priceUSD / 100); // $100 per share
+      const sharesSold = Math.floor(totalShares * (config.sharesSoldPercent / 100));
+      const sharePriceUSD = watchData.priceUSD / totalShares;
+
+      // Generate mock participants if shares sold
+      const participants = [];
+      if (sharesSold > 0) {
+        const numParticipants = Math.min(5, Math.ceil(sharesSold / 50));
+        let remainingShares = sharesSold;
+
+        for (let p = 0; p < numParticipants; p++) {
+          const participantShares =
+            p === numParticipants - 1
+              ? remainingShares
+              : Math.floor((remainingShares / (numParticipants - p)) * (0.5 + Math.random()));
+          remainingShares -= participantShares;
+
+          if (participantShares > 0) {
+            participants.push({
+              wallet: `MockInvestor${p + 1}${'1'.repeat(40 - 13 - String(p + 1).length)}`,
+              shares: participantShares,
+              ownershipPercent: (participantShares / totalShares) * 100,
+              investedUSD: participantShares * sharePriceUSD,
+              investedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+            });
+          }
+        }
+      }
+
+      if (!pool) {
+        pool = await Pool.create({
+          selectedAssetId: asset._id,
+          vendorId: vendor._id,
+          vendorWallet: testWallets[i % testWallets.length],
+          sourceType: 'dealer',
+          targetAmountUSD: watchData.priceUSD,
+          totalShares,
+          sharesSold,
+          sharePriceUSD,
+          minBuyInUSD: sharePriceUSD,
+          maxInvestors: 100,
+          projectedROI: config.projectedROI,
+          status: config.status,
+          participants,
+
+          // Tokenization & Liquidity fields
+          tokenStatus: config.tokenStatus,
+          liquidityModel: config.liquidityModel,
+          ammEnabled: config.ammEnabled,
+          ammLiquidityPercent: config.ammLiquidityPercent || 30,
+          vendorPaymentPercent: config.ammEnabled ? 67 : 97,
+          fundsInEscrow: sharesSold * sharePriceUSD,
+
+          // Mock Bags token mint for tokenized pools
+          bagsTokenMint:
+            config.tokenStatus !== 'pending'
+              ? `LuxPool${asset._id.toString().slice(-8)}${'1'.repeat(32)}`
+              : undefined,
+          bagsTokenCreatedAt: config.tokenStatus !== 'pending' ? new Date() : undefined,
+
+          // Custody status for filled pools
+          custodyStatus: config.custodyStatus || 'pending',
+
+          // Resale info
+          resaleListingPriceUSD: config.resaleListingPriceUSD,
+        });
+        console.log(
+          'Created pool:',
+          watchData.model,
+          '- Status:',
+          config.status,
+          '- Token:',
+          config.tokenStatus
+        );
+      } else {
+        // Update existing pool with new fields
+        await Pool.findByIdAndUpdate(pool._id, {
+          tokenStatus: config.tokenStatus,
+          liquidityModel: config.liquidityModel,
+          ammEnabled: config.ammEnabled,
+          ammLiquidityPercent: config.ammLiquidityPercent || 30,
+          vendorPaymentPercent: config.ammEnabled ? 67 : 97,
+          fundsInEscrow: sharesSold * sharePriceUSD,
+          bagsTokenMint:
+            config.tokenStatus !== 'pending'
+              ? `LuxPool${asset._id.toString().slice(-8)}${'1'.repeat(32)}`
+              : undefined,
+          custodyStatus: config.custodyStatus || 'pending',
+          resaleListingPriceUSD: config.resaleListingPriceUSD,
+        });
+        console.log('Updated pool:', watchData.model);
+      }
+      createdData.pools.push(pool._id.toString());
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Test data setup complete',
-      data: {
-        userId: testUser._id.toString(),
-        vendorId: testVendor._id.toString(),
-        assetId: testAsset._id.toString(),
-        escrowId: testEscrow._id.toString(),
-        escrowPda: testEscrow.escrowPda,
-        poolId: testPool._id.toString(),
-      },
+      message: 'Test data setup complete with mock pools',
+      data: createdData,
+      pools: POOL_CONFIGS.map((config, i) => ({
+        watch: MOCK_WATCHES[config.watchIndex].model,
+        status: config.status,
+        tokenStatus: config.tokenStatus,
+        liquidityModel: config.liquidityModel,
+        progress: `${config.sharesSoldPercent}%`,
+      })),
     });
   } catch (error: unknown) {
     console.error('Setup error:', error);

@@ -114,6 +114,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Bags integration
       bagsTokenMint: pool.bagsTokenMint,
+      bagsFeeShareConfigId: pool.bagsFeeShareConfigId,
+
+      // Tokenization & Liquidity
+      tokenStatus: pool.tokenStatus || 'pending',
+      liquidityModel: pool.liquidityModel || 'p2p',
+      ammEnabled: pool.ammEnabled || false,
+      ammLiquidityPercent: pool.ammLiquidityPercent,
+      vendorPaymentPercent: pool.vendorPaymentPercent,
+      fundsInEscrow: pool.fundsInEscrow || 0,
 
       // Timestamps
       createdAt: pool.createdAt,
