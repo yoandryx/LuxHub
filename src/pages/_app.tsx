@@ -34,9 +34,16 @@ import LuxuryAssistant from '../components/user/LuxuryAssistant';
 import { Toaster } from 'react-hot-toast';
 import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
 import { PrivyProvider } from '@privy-io/react-auth';
+import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 
 // Network URL
 const network = WalletAdapterNetwork.Devnet;
+
+// Privy Solana wallet connectors for external wallets
+const solanaConnectors = toSolanaWalletConnectors({
+  // Show Phantom and Solflare in Privy's wallet connect modal
+  shouldAutoConnect: true,
+});
 const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? 'https://api.devnet.solana.com';
 
 const App = ({ Component, pageProps }: AppProps) => {
@@ -118,9 +125,16 @@ const App = ({ Component, pageProps }: AppProps) => {
               accentColor: '#c8a1ff',
               logo: '/images/purpleLGG.png',
             },
+            // Solana embedded wallet configuration
             embeddedWallets: {
               solana: {
                 createOnLogin: 'users-without-wallets',
+              },
+            },
+            // External wallet connectors (Phantom, Solflare via Privy)
+            externalWallets: {
+              solana: {
+                connectors: solanaConnectors,
               },
             },
           }}
