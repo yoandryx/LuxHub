@@ -1,15 +1,30 @@
 .holderCard {
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+
   position: relative;
   width: 100%;
-  max-width: 300px;
-  background: #0000006a;
-  border: 1px solid #c8a1ff1a;
+  max-width: 320px;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.9) 0%, rgba(15, 15, 20, 0.95) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.15);
   border-radius: 16px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   overflow: hidden;
-  box-shadow: 0 8px 24px #00000040;
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.holderCard:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(200, 161, 255, 0.1);
+  border-color: rgba(200, 161, 255, 0.3);
 }
 
 .holderContent {
@@ -17,6 +32,7 @@
   width: 100%;
   aspect-ratio: 1/1;
   overflow: hidden;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.5) 0%, rgba(20, 20, 25, 0.5) 100%);
 }
 
 /* Skeleton Loader */
@@ -30,8 +46,12 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .holderImage {
@@ -39,28 +59,37 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: opacity 0.3s ease;
-  transition: 1s ease;
+  transition:
+    transform 0.5s ease,
+    opacity 0.3s ease;
 }
 
-.holderImage:hover {
+.holderCard:hover .holderImage {
   transform: scale(1.05);
 }
 
-/* Overlay Smooth */
+/* Overlay - Smooth slide up */
 .overlay {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.7) 50%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
   color: #fff;
-  padding: 14px;
+  padding: 20px 16px 16px;
   transform: translateY(100%);
   opacity: 0;
-  transition: transform 0.4s ease, opacity 0.4s ease;
+  transition:
+    transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 0.3s ease;
   font-size: 13px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .holderCard:hover .overlay {
@@ -69,33 +98,49 @@
 }
 
 .overlayTitle {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .overlayRow {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.overlayRow span:first-child {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.overlayRow span:last-child {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
 }
 
 .overlayButton {
-  background: #c8a1ff33;
-  border: 1px solid #c8a1ff;
-  color: #fff;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a87de8 100%);
+  border: none;
+  color: #000;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
   width: 100%;
-  transition: background 0.3s ease;
+  transition: all 0.2s ease;
   cursor: pointer;
+  box-shadow: 0 4px 15px rgba(200, 161, 255, 0.3);
+  margin-top: 4px;
 }
 
 .overlayButton:hover {
-  background: #c8a1ff8c;
-  border: 1px solid #c8a1ff;
+  background: linear-gradient(135deg, #d4b4ff 0%, #b990f0 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(200, 161, 255, 0.4);
 }
 
 /* Badges */
@@ -103,33 +148,66 @@
   position: absolute;
   display: flex;
   align-items: center;
-  top: 10px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.4);
+  gap: 6px;
+  top: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.6);
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 6px 10px;
   border-radius: 8px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
   backdrop-filter: blur(10px);
-  border: 1px solid #c8a1ff33;
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(200, 161, 255, 0.2);
 }
 
 .badgeIcon {
-  height: 16px;
+  height: 14px;
+  width: 14px;
 }
 
 .collectionTag {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.4);
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
   color: #fff;
   font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
   font-weight: 500;
-  border: 1px solid rgba(185, 145, 255, 0.25);
-  backdrop-filter: blur(6px);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mobile improvements */
+@media (max-width: 640px) {
+  .holderCard {
+    max-width: 100%;
+  }
+
+  .overlay {
+    padding: 16px 12px 12px;
+  }
+
+  .overlayTitle {
+    font-size: 14px;
+  }
+
+  .overlayRow {
+    font-size: 12px;
+  }
+
+  .overlayButton {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }

@@ -1,131 +1,592 @@
-import { useEffect, useRef, useState } from "react";
-import styles from "../../styles/WalletNavbar.module.css";
-import { useRouter } from "next/router";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { SiSolana } from "react-icons/si";
-import { FaWallet, FaSync, FaCopy, FaHandHoldingUsd, FaCalculator, FaChartBar, FaUsers } from "react-icons/fa";
-import { Connection } from "@solana/web3.js";
+'use client';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import styles from '../../styles/WalletNavbar.module.css';
+import { useRouter } from 'next/router';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { usePrivy, useLogout } from '@privy-io/react-auth';
+import { useCreateWallet, useStandardWallets } from '@privy-io/react-auth/solana';
+import { SiSolana } from 'react-icons/si';
+import {
+  FaWallet,
+  FaCopy,
+  FaArrowUpRightFromSquare,
+  FaUser,
+  FaCreditCard,
+  FaStore,
+  FaShieldHalved,
+  FaWandMagicSparkles,
+  FaRotate,
+  FaBoxesStacked,
+  FaChartLine,
+  FaClipboardList,
+  FaMoneyBillTrendUp,
+  FaCircleCheck,
+  FaBoxOpen,
+  FaEnvelope,
+  FaRightFromBracket,
+  FaRegCircleCheck,
+} from 'react-icons/fa6';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { usePriceDisplay } from '../marketplace/PriceDisplay';
+import toast from 'react-hot-toast';
+import { getProgram } from '../../utils/programUtils';
+
+const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? 'https://api.devnet.solana.com';
+const explorerUrl = endpoint.includes('devnet')
+  ? 'https://explorer.solana.com/address/'
+  : 'https://solscan.io/account/';
+
+type UserRole = 'user' | 'vendor' | 'admin';
+
+interface VendorProfile {
+  wallet: string;
+  name: string;
+  username: string;
+  avatarUrl?: string;
+  verified?: boolean;
+}
 
 export default function WalletNavbar() {
   const router = useRouter();
-  const { connected, publicKey, disconnect } = useWallet();
-  const { formatPrice } = usePriceDisplay();
+
+  // Solana wallet adapter hooks (for Phantom, Solflare, etc.)
+  const {
+    connected: walletAdapterConnected,
+    publicKey: walletAdapterPublicKey,
+    disconnect: walletAdapterDisconnect,
+  } = useWallet();
+  const { setVisible: openWalletModal } = useWalletModal();
+
+  // Privy hooks (for email login + embedded wallet)
+  const {
+    ready,
+    authenticated,
+    user,
+    login: privyLogin,
+    connectWallet: privyConnectWallet,
+  } = usePrivy();
+  const _standard = useStandardWallets() as any;
+  const privySolanaWallets = (_standard?.wallets ?? []) as any[];
+  const { createWallet } = useCreateWallet();
+  const { logout: privyLogout } = useLogout();
+
+  const { displayInUSD, toggleDisplay, formatPrice } = usePriceDisplay();
 
   const [isOpen, setIsOpen] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
+  const [role, setRole] = useState<UserRole>('user');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
+
   const widgetRef = useRef<HTMLDivElement>(null);
 
-  const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "https://api.mainnet-beta.solana.com");
+  // Determine the active wallet - prefer wallet adapter if connected, otherwise use Privy
+  const privyActiveWallet = privySolanaWallets[0] as any;
+  const privyPublicKey = privyActiveWallet?.address
+    ? new PublicKey(privyActiveWallet.address)
+    : privyActiveWallet?.publicKey
+      ? new PublicKey(privyActiveWallet.publicKey)
+      : null;
 
-  const fetchBalance = async () => {
-    if (!publicKey) return;
-    try {
-      const lamports = await connection.getBalance(publicKey);
-      setBalance(lamports / 1e9);
-    } catch (err) {
-      console.error("Balance fetch error:", err);
-    }
+  // Use wallet adapter if connected, otherwise fall back to Privy
+  const activePublicKey =
+    walletAdapterConnected && walletAdapterPublicKey ? walletAdapterPublicKey : privyPublicKey;
+
+  const isConnected = walletAdapterConnected || (authenticated && !!privyPublicKey);
+  const hasWallet = !!activePublicKey;
+
+  // Determine wallet type for display
+  const getWalletType = (): string => {
+    if (walletAdapterConnected && walletAdapterPublicKey) return 'External';
+    if (privyPublicKey) return 'Embedded';
+    return '';
   };
 
+  // Check on-chain roles (admin/vendor)
+  const checkRoles = useCallback(async () => {
+    if (!activePublicKey || !ready) return;
+
+    try {
+      const program = getProgram({ publicKey: activePublicKey } as any);
+
+      // Check admin status
+      const [adminPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('admin_list')],
+        program.programId
+      );
+      const adminAccount = await (program.account as any)['adminList']
+        ?.fetch(adminPda)
+        .catch(() => null);
+
+      if (adminAccount) {
+        const admins = adminAccount.admins.map((a: PublicKey) => a.toBase58());
+        if (admins.includes(activePublicKey.toBase58())) {
+          setRole('admin');
+          return;
+        }
+      }
+
+      // Check vendor status
+      const [vendorPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vendor_list')],
+        program.programId
+      );
+      const vendorAccount = await (program.account as any)['vendorList']
+        ?.fetch(vendorPda)
+        .catch(() => null);
+
+      if (vendorAccount) {
+        const vendors = vendorAccount.vendors.map((v: PublicKey) => v.toBase58());
+        if (vendors.includes(activePublicKey.toBase58())) {
+          setRole('vendor');
+          return;
+        }
+      }
+
+      setRole('user');
+    } catch (err) {
+      console.log('[WalletNavbar] Role check failed:', err);
+      setRole('user');
+    }
+  }, [activePublicKey, ready]);
+
+  // Fetch vendor profile if wallet has one
+  const fetchVendorProfile = useCallback(async () => {
+    if (!activePublicKey) {
+      setVendorProfile(null);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/vendor/profile?wallet=${activePublicKey.toBase58()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.vendor) {
+          setVendorProfile(data.vendor);
+        } else {
+          setVendorProfile(null);
+        }
+      } else {
+        setVendorProfile(null);
+      }
+    } catch (err) {
+      console.log('[WalletNavbar] Vendor profile fetch failed:', err);
+      setVendorProfile(null);
+    }
+  }, [activePublicKey]);
+
+  // Fetch balance
+  const fetchBalance = useCallback(async () => {
+    if (!activePublicKey) {
+      setBalance(0);
+      return;
+    }
+    const connection = new Connection(endpoint, 'confirmed');
+    try {
+      const bal = await connection.getBalance(activePublicKey);
+      setBalance(bal / 1e9);
+    } catch (err) {
+      console.error('[WalletNavbar] Balance error:', err);
+      setBalance(0);
+    }
+  }, [activePublicKey]);
+
   useEffect(() => {
-    if (connected && publicKey) fetchBalance();
-  }, [connected, publicKey]);
+    fetchBalance();
+    if (hasWallet) {
+      checkRoles();
+      fetchVendorProfile();
+    }
+    const interval = setInterval(fetchBalance, 30000);
+    return () => clearInterval(interval);
+  }, [hasWallet, fetchBalance, checkRoles, fetchVendorProfile]);
 
   // Click outside to close
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const copyAddress = () => {
-    if (publicKey) {
-      navigator.clipboard.writeText(publicKey.toBase58());
+  const toggleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen((prev) => !prev);
+  };
+
+  const handleCopy = () => {
+    if (activePublicKey) {
+      navigator.clipboard.writeText(activePublicKey.toBase58());
       setCopied(true);
+      toast.success('Address copied!');
       setTimeout(() => setCopied(false), 1500);
     }
   };
 
+  const handleExplorer = () => {
+    if (activePublicKey) {
+      window.open(
+        `${explorerUrl}${activePublicKey.toBase58()}?cluster=devnet`,
+        '_blank',
+        'noopener,noreferrer'
+      );
+    }
+  };
+
+  const handleFund = () => {
+    window.open('https://buy.moonpay.com/?defaultCurrencyCode=sol', '_blank');
+  };
+
+  // Login with Email (Privy)
+  const handleEmailLogin = () => {
+    privyLogin();
+    setIsOpen(false);
+  };
+
+  // Connect External Wallet (Solana wallet adapter)
+  const handleConnectWallet = () => {
+    openWalletModal(true);
+    setIsOpen(false);
+  };
+
+  // Create embedded wallet for Privy users without one
+  const handleCreateEmbedded = async () => {
+    try {
+      await createWallet();
+      toast.success('Embedded wallet created!');
+    } catch (err: any) {
+      if (err.message?.includes('already has')) {
+        toast.success('Wallet already exists — refreshing...');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        toast.error('Wallet creation failed');
+      }
+    }
+  };
+
+  // Link additional wallet via Privy
+  const handleLinkWallet = () => {
+    privyConnectWallet();
+    setIsOpen(false);
+  };
+
+  // Disconnect / Logout
+  const handleDisconnect = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+
+    try {
+      // Disconnect wallet adapter if connected
+      if (walletAdapterConnected) {
+        await walletAdapterDisconnect();
+      }
+
+      // Logout from Privy if authenticated
+      if (authenticated) {
+        await privyLogout();
+      }
+
+      toast.success('Signed out');
+      setRole('user');
+    } catch (err) {
+      console.error('[WalletNavbar] Disconnect error:', err);
+      toast.success('Signed out locally');
+    } finally {
+      setIsOpen(false);
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Navigation helpers
+  const navigateTo = (path: string) => {
+    setIsOpen(false);
+    router.push(path);
+  };
+
   return (
-    <div
-      ref={widgetRef}
-      className={`${styles.luxWalletOrb} ${isOpen ? styles.open : ""}`}
-    >
-      {/* Trigger */}
-      <div
-        className={styles.trigger}
-        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-      >
-        <FaWallet className={styles.walletIcon} />
-        {connected && publicKey && (
-          <span className={styles.shortAddress}>
-            {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
-          </span>
+    <div ref={widgetRef} className={`${styles.luxWalletOrb} ${isOpen ? styles.open : ''}`}>
+      {/* Trigger Button */}
+      <div className={styles.trigger} onClick={toggleOpen}>
+        {vendorProfile?.avatarUrl ? (
+          <img
+            src={vendorProfile.avatarUrl}
+            alt={vendorProfile.username}
+            className={styles.triggerAvatar}
+          />
+        ) : (
+          <FaWallet className={styles.walletIcon} />
         )}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          {hasWallet && activePublicKey ? (
+            vendorProfile ? (
+              <span className={styles.shortAddress}>@{vendorProfile.username}</span>
+            ) : (
+              <span className={styles.shortAddress}>
+                {activePublicKey.toBase58().slice(0, 4)}...{activePublicKey.toBase58().slice(-4)}
+              </span>
+            )
+          ) : (
+            <span>Connect</span>
+          )}
+        </div>
       </div>
 
-      {/* Compact Panel */}
+      {/* Dropdown Panel */}
       <div className={styles.panel}>
         <div className={styles.header}>
           <h3>LuxHub Wallet</h3>
-          <button onClick={(e) => { e.stopPropagation(); fetchBalance(); }} className={styles.refresh}>
-            <FaSync />
-          </button>
+          {hasWallet && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                fetchBalance();
+              }}
+              className={styles.refresh}
+              title="Refresh balance"
+            >
+              <FaRotate />
+            </button>
+          )}
         </div>
 
-        {connected && publicKey ? (
+        {isConnected && hasWallet ? (
           <>
-            <div className={styles.infoRow}>
-              <span className={styles.label}>Address</span>
-              <span className={styles.address} onClick={copyAddress}>
-                {publicKey.toBase58().slice(0, 6)}...{publicKey.toBase58().slice(-4)}
-                <FaCopy />
-                {copied && <span className={styles.copied}>Copied</span>}
-              </span>
+            {/* Account Info Section */}
+            <div className={styles.section}>
+              {vendorProfile ? (
+                <div className={styles.vendorProfileSection}>
+                  <div className={styles.vendorProfileHeader}>
+                    {vendorProfile.avatarUrl ? (
+                      <img
+                        src={vendorProfile.avatarUrl}
+                        alt={vendorProfile.username}
+                        className={styles.vendorAvatar}
+                      />
+                    ) : (
+                      <div className={styles.vendorAvatarPlaceholder}>
+                        <FaUser />
+                      </div>
+                    )}
+                    <div className={styles.vendorInfo}>
+                      <span className={styles.vendorName}>
+                        {vendorProfile.name}
+                        {vendorProfile.verified && (
+                          <FaCircleCheck className={styles.verifiedBadge} />
+                        )}
+                      </span>
+                      <span className={styles.vendorUsername}>@{vendorProfile.username}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : user?.email ? (
+                <div className={styles.infoRow}>
+                  <FaEnvelope className={styles.infoIcon} />
+                  <span className={styles.emailText}>{user.email.address}</span>
+                </div>
+              ) : null}
+              <div className={styles.infoRow}>
+                <span className={styles.label}>Wallet ({getWalletType()})</span>
+                <span className={styles.address} onClick={handleCopy}>
+                  {activePublicKey!.toBase58().slice(0, 6)}...
+                  {activePublicKey!.toBase58().slice(-4)}
+                  <FaCopy className={styles.copyIcon} />
+                  {copied && <span className={styles.copied}>Copied</span>}
+                </span>
+              </div>
             </div>
 
-            <div className={styles.infoRow}>
-              <span className={styles.label}>Balance</span>
-              <span className={styles.balance}>
-                <SiSolana /> {balance !== null ? formatPrice(balance) : "—"}
-              </span>
+            {/* Balance Section */}
+            <div className={styles.section}>
+              <div className={styles.infoRow}>
+                <span className={styles.label}>Balance</span>
+                <span className={styles.balance}>
+                  <SiSolana /> {balance !== null ? formatPrice(balance) : '—'}
+                </span>
+              </div>
+              {balance === 0 && (
+                <div className={styles.zeroBalanceHint}>
+                  Add funds to start collecting luxury items
+                </div>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleDisplay();
+                }}
+                className={styles.toggleBtn}
+              >
+                Show in {displayInUSD ? 'SOL' : 'USD'}
+              </button>
             </div>
 
-            {/* Future Action Buttons (Compact Grid) */}
-            <div className={styles.actionsGrid}>
-              <button className={styles.actionBtn} disabled>
-                <FaHandHoldingUsd /> Get Loan
-              </button>
-              <button className={styles.actionBtn} disabled>
-                <FaUsers /> Join Pool
-              </button>
-              <button className={styles.actionBtn} disabled>
-                <FaCalculator /> Trade Calc
-              </button>
-              <button className={styles.actionBtn} disabled>
-                <FaChartBar /> Compare
-              </button>
+            {/* Wallet Tools */}
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>Wallet Tools</div>
+              <div className={styles.actionRow}>
+                <button onClick={handleCopy} className={styles.smallBtn} title="Copy address">
+                  <FaCopy />
+                </button>
+                <button
+                  onClick={handleExplorer}
+                  className={styles.smallBtn}
+                  title="View on Explorer"
+                >
+                  <FaArrowUpRightFromSquare />
+                </button>
+                <button onClick={handleFund} className={styles.smallBtn} title="Fund with card">
+                  <FaCreditCard />
+                </button>
+              </div>
             </div>
 
+            {/* Role-Based Menu */}
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>
+                {role === 'admin' && (
+                  <>
+                    <FaShieldHalved className={styles.roleIcon} /> Admin
+                  </>
+                )}
+                {role === 'vendor' && (
+                  <>
+                    <FaStore className={styles.roleIcon} /> Vendor
+                  </>
+                )}
+                {role === 'user' && (
+                  <>
+                    <FaUser className={styles.roleIcon} /> My Account
+                  </>
+                )}
+              </div>
+
+              <div className={styles.menuList}>
+                {/* Regular User Menu */}
+                {role === 'user' && (
+                  <>
+                    <button
+                      onClick={() => navigateTo('/watchMarket?owned=true')}
+                      className={styles.menuItem}
+                    >
+                      <FaBoxesStacked /> My Collection
+                    </button>
+                    <button onClick={() => navigateTo('/pools')} className={styles.menuItem}>
+                      <FaChartLine /> My Investments
+                    </button>
+                    <button onClick={() => navigateTo('/orders')} className={styles.menuItem}>
+                      <FaClipboardList /> Active Orders
+                    </button>
+                    <button onClick={() => navigateTo('/profile')} className={styles.menuItem}>
+                      <FaUser /> Profile
+                    </button>
+                  </>
+                )}
+
+                {/* Vendor Menu */}
+                {role === 'vendor' && (
+                  <>
+                    <button
+                      onClick={() => navigateTo('/sellerDashboard')}
+                      className={styles.menuItem}
+                    >
+                      <FaStore /> Vendor Dashboard
+                    </button>
+                    <button
+                      onClick={() => navigateTo('/sellerDashboard?tab=inventory')}
+                      className={styles.menuItem}
+                    >
+                      <FaBoxOpen /> Add New Item
+                    </button>
+                    <button
+                      onClick={() => navigateTo('/sellerDashboard?tab=orders')}
+                      className={styles.menuItem}
+                    >
+                      <FaClipboardList /> Active Orders
+                    </button>
+                    <button
+                      onClick={() => navigateTo('/sellerDashboard?tab=payouts')}
+                      className={styles.menuItem}
+                    >
+                      <FaMoneyBillTrendUp /> Earnings
+                    </button>
+                  </>
+                )}
+
+                {/* Admin Menu */}
+                {role === 'admin' && (
+                  <>
+                    <button
+                      onClick={() => navigateTo('/adminDashboard')}
+                      className={styles.menuItem}
+                    >
+                      <FaShieldHalved /> Admin Panel
+                    </button>
+                    <button onClick={() => navigateTo('/createNFT')} className={styles.menuItem}>
+                      <FaWandMagicSparkles /> Mint NFT
+                    </button>
+                    <button
+                      onClick={() => navigateTo('/adminDashboard?tab=requests')}
+                      className={styles.menuItem}
+                    >
+                      <FaCircleCheck /> Pending Approvals
+                    </button>
+                    <button
+                      onClick={() => navigateTo('/adminDashboard?tab=escrow')}
+                      className={styles.menuItem}
+                    >
+                      <FaBoxesStacked /> Escrow Management
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Link Additional Wallet (for Privy users) */}
+            {authenticated && privySolanaWallets.length < 2 && (
+              <button onClick={handleLinkWallet} className={styles.actionBtn}>
+                Add External Wallet
+              </button>
+            )}
+
+            {/* Disconnect Button */}
             <button
-              onClick={(e) => { e.stopPropagation(); disconnect(); router.push("/login"); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDisconnect();
+              }}
               className={styles.disconnectBtn}
+              disabled={isLoggingOut}
             >
-              Disconnect
+              <FaRightFromBracket />
+              {isLoggingOut ? 'Signing out...' : 'Sign Out'}
             </button>
           </>
         ) : (
+          /* Not Connected - Show dual login options */
           <div className={styles.connectPrompt}>
-            <p>Connect to unlock loans, pools & insights</p>
-            <button onClick={() => router.push("/connect")} className={styles.connectBtn}>
-              Connect Wallet
+            <p>Connect to unlock the full LuxHub experience</p>
+
+            {/* Email Login via Privy */}
+            <button onClick={handleEmailLogin} className={styles.connectBtn}>
+              <FaEnvelope /> Login with Email
             </button>
+
+            {/* External Wallet via Solana Wallet Adapter */}
+            <button onClick={handleConnectWallet} className={styles.connectBtnSecondary}>
+              <FaWallet /> Connect Wallet
+            </button>
+
+            {/* Create embedded wallet if Privy authenticated but no wallet */}
+            {authenticated && !privyPublicKey && (
+              <button onClick={handleCreateEmbedded} className={styles.actionBtn}>
+                Create Embedded Wallet
+              </button>
+            )}
           </div>
         )}
       </div>
