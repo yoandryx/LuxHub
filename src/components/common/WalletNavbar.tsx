@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { usePrivy, useLogout } from '@privy-io/react-auth';
-import { useCreateWallet, useStandardWallets } from '@privy-io/react-auth/solana';
+import { useCreateWallet, useWallets } from '@privy-io/react-auth/solana';
 import { SiSolana } from 'react-icons/si';
 import {
   FaWallet,
@@ -67,8 +67,8 @@ export default function WalletNavbar() {
     login: privyLogin,
     connectWallet: privyConnectWallet,
   } = usePrivy();
-  const _standard = useStandardWallets() as any;
-  const privySolanaWallets = (_standard?.wallets ?? []) as any[];
+  // useWallets returns embedded + linked Solana wallets from Privy
+  const { wallets: privySolanaWallets, ready: walletsReady } = useWallets();
   const { createWallet } = useCreateWallet();
   const { logout: privyLogout } = useLogout();
 
@@ -84,19 +84,19 @@ export default function WalletNavbar() {
   const widgetRef = useRef<HTMLDivElement>(null);
 
   // Determine the active wallet - prefer wallet adapter if connected, otherwise use Privy
-  const privyActiveWallet = privySolanaWallets[0] as any;
-  const privyPublicKey = privyActiveWallet?.address
-    ? new PublicKey(privyActiveWallet.address)
-    : privyActiveWallet?.publicKey
-      ? new PublicKey(privyActiveWallet.publicKey)
-      : null;
+  // Privy wallets have .address property (string)
+  const privyActiveWallet = privySolanaWallets?.[0];
+  const privyWalletAddress = privyActiveWallet?.address;
+  const privyPublicKey = privyWalletAddress ? new PublicKey(privyWalletAddress) : null;
 
-  // Use wallet adapter if connected, otherwise fall back to Privy
+  // Use wallet adapter if connected, otherwise fall back to Privy embedded wallet
   const activePublicKey =
     walletAdapterConnected && walletAdapterPublicKey ? walletAdapterPublicKey : privyPublicKey;
 
   const isConnected = walletAdapterConnected || (authenticated && !!privyPublicKey);
   const hasWallet = !!activePublicKey;
+  const hasPrivyWalletButNotLoaded =
+    authenticated && walletsReady && privySolanaWallets.length === 0;
 
   // Determine wallet type for display
   const getWalletType = (): string => {
@@ -566,6 +566,38 @@ export default function WalletNavbar() {
               {isLoggingOut ? 'Signing out...' : 'Sign Out'}
             </button>
           </>
+        ) : authenticated ? (
+          /* Authenticated but no wallet yet - show wallet creation options */
+          <div className={styles.connectPrompt}>
+            {user?.email && (
+              <div className={styles.emailBadge}>
+                <FaEnvelope /> {user.email.address}
+              </div>
+            )}
+            <p>Create or connect a wallet to continue</p>
+
+            {/* Create embedded wallet */}
+            <button onClick={handleCreateEmbedded} className={styles.connectBtn}>
+              <FaWallet /> Create Embedded Wallet
+            </button>
+
+            {/* Or connect external wallet */}
+            <button onClick={handleConnectWallet} className={styles.connectBtnSecondary}>
+              <FaWallet /> Connect External Wallet
+            </button>
+
+            {/* Sign out option */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDisconnect();
+              }}
+              className={styles.disconnectBtn}
+              style={{ marginTop: 12 }}
+            >
+              <FaRightFromBracket /> Sign Out
+            </button>
+          </div>
         ) : (
           /* Not Connected - Show dual login options */
           <div className={styles.connectPrompt}>
@@ -580,13 +612,6 @@ export default function WalletNavbar() {
             <button onClick={handleConnectWallet} className={styles.connectBtnSecondary}>
               <FaWallet /> Connect Wallet
             </button>
-
-            {/* Create embedded wallet if Privy authenticated but no wallet */}
-            {authenticated && !privyPublicKey && (
-              <button onClick={handleCreateEmbedded} className={styles.actionBtn}>
-                Create Embedded Wallet
-              </button>
-            )}
           </div>
         )}
       </div>

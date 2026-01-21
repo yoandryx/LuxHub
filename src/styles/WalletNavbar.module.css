@@ -483,6 +483,23 @@
   margin-bottom: 12px;
 }
 
+.emailBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(200, 161, 255, 0.15);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 20px;
+  font-size: 13px;
+  color: #c8a1ff;
+  margin-bottom: 16px;
+}
+
+.emailBadge svg {
+  font-size: 14px;
+}
+
 /* Scrollbar styling */
 .panel::-webkit-scrollbar {
   width: 6px;
