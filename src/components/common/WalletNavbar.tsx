@@ -84,10 +84,35 @@ export default function WalletNavbar() {
   const widgetRef = useRef<HTMLDivElement>(null);
 
   // Determine the active wallet - prefer wallet adapter if connected, otherwise use Privy
-  // Privy wallets have .address property (string)
+  // Try multiple sources for Privy wallet address:
+  // 1. useWallets hook (embedded + linked wallets)
+  // 2. user.linkedAccounts (fallback)
   const privyActiveWallet = privySolanaWallets?.[0];
   const privyWalletAddress = privyActiveWallet?.address;
-  const privyPublicKey = privyWalletAddress ? new PublicKey(privyWalletAddress) : null;
+
+  // Fallback: check user.linkedAccounts for Solana wallet
+  const linkedSolanaWallet = user?.linkedAccounts?.find(
+    (account: any) => account.type === 'wallet' && account.chainType === 'solana'
+  ) as { address?: string } | undefined;
+
+  const effectivePrivyAddress = privyWalletAddress || linkedSolanaWallet?.address;
+  const privyPublicKey = effectivePrivyAddress ? new PublicKey(effectivePrivyAddress) : null;
+
+  // Debug logging (remove in production)
+  useEffect(() => {
+    if (authenticated) {
+      console.log('[WalletNavbar] Privy Debug:', {
+        authenticated,
+        walletsReady,
+        privySolanaWallets: privySolanaWallets?.map((w: any) => ({
+          address: w.address,
+          type: w.walletClientType,
+        })),
+        linkedAccounts: user?.linkedAccounts?.filter((a: any) => a.type === 'wallet'),
+        effectivePrivyAddress,
+      });
+    }
+  }, [authenticated, walletsReady, privySolanaWallets, user, effectivePrivyAddress]);
 
   // Use wallet adapter if connected, otherwise fall back to Privy embedded wallet
   const activePublicKey =
@@ -95,8 +120,7 @@ export default function WalletNavbar() {
 
   const isConnected = walletAdapterConnected || (authenticated && !!privyPublicKey);
   const hasWallet = !!activePublicKey;
-  const hasPrivyWalletButNotLoaded =
-    authenticated && walletsReady && privySolanaWallets.length === 0;
+  const hasPrivyWalletButNotLoaded = authenticated && walletsReady && !privyPublicKey;
 
   // Determine wallet type for display
   const getWalletType = (): string => {
@@ -258,14 +282,19 @@ export default function WalletNavbar() {
   // Create embedded wallet for Privy users without one
   const handleCreateEmbedded = async () => {
     try {
-      await createWallet();
+      const result = await createWallet();
+      console.log('[WalletNavbar] Wallet created:', result);
       toast.success('Embedded wallet created!');
+      // Give Privy a moment to update state, then refresh
+      setTimeout(() => window.location.reload(), 500);
     } catch (err: any) {
-      if (err.message?.includes('already has')) {
-        toast.success('Wallet already exists — refreshing...');
-        setTimeout(() => window.location.reload(), 1000);
+      console.log('[WalletNavbar] Create wallet error:', err);
+      if (err.message?.includes('already has') || err.message?.includes('already exists')) {
+        toast.success('Wallet found — loading...');
+        // Wallet exists, just need to reload to pick it up
+        setTimeout(() => window.location.reload(), 500);
       } else {
-        toast.error('Wallet creation failed');
+        toast.error('Wallet creation failed: ' + (err.message || 'Unknown error'));
       }
     }
   };
