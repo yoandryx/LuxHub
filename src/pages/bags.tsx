@@ -138,7 +138,7 @@ const BagsPage: React.FC = () => {
         <div className={styles.content}>
           {activeSection === 'overview' && (
             <section className={styles.overviewSection}>
-              <h2>How Bags Powers LuxHub</h2>
+              <h2 className={styles.sectionTitle}>How Bags Powers LuxHub</h2>
               <p className={styles.sectionIntro}>
                 Bags provides the infrastructure for tokenizing luxury asset pool shares, enabling
                 secondary market trading with automatic fee distribution.
@@ -240,7 +240,7 @@ const BagsPage: React.FC = () => {
 
           {activeSection === 'tokenomics' && (
             <section className={styles.tokenomicsSection}>
-              <h2>RWA Tokenomics Model</h2>
+              <h2 className={styles.sectionTitle}>RWA Tokenomics Model</h2>
               <p className={styles.sectionIntro}>
                 Each pool creates a fixed-supply token representing fractional ownership of a
                 verified luxury asset. This is Real World Asset (RWA) tokenization with built-in
@@ -378,7 +378,7 @@ const BagsPage: React.FC = () => {
         {/* CTA Section */}
         <section className={styles.ctaSection}>
           <div className={styles.ctaContent}>
-            <h2>Ready to Own Luxury?</h2>
+            <h2 className={styles.sectionTitle}>Ready to Own Luxury?</h2>
             <p>Start investing in fractional luxury assets powered by Bags.</p>
             <div className={styles.ctaButtons}>
               <Link href="/pools" className={styles.ctaPrimary}>
