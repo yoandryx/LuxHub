@@ -13,8 +13,9 @@ import {
 import { SiSolana } from 'react-icons/si';
 import { BiTargetLock } from 'react-icons/bi';
 import { MdWatch } from 'react-icons/md';
-import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
+import NFTCard from '../components/marketplace/NFTCard';
+import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import styles from '../styles/IndexTest.module.css';
 
 // Dynamic imports for 3D/heavy components
@@ -147,6 +148,7 @@ export default function IndexTest() {
   const [activeTab, setActiveTab] = useState<'watches' | 'pools'>('watches');
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
   const [isLoadingPools, setIsLoadingPools] = useState(false);
+  const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
 
   // Scroller ref
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -419,22 +421,7 @@ export default function IndexTest() {
                     transition={{ duration: 0.4, delay: i * 0.08 }}
                     viewport={{ once: true }}
                   >
-                    <div className={styles.nftCardImage}>
-                      <img
-                        src={nft.image || '/images/purpleLGG.png'}
-                        alt={nft.title}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                        }}
-                      />
-                    </div>
-                    <div className={styles.nftCardContent}>
-                      <h4>{nft.title}</h4>
-                      <div className={styles.nftCardPrice}>
-                        <SiSolana />
-                        <span>{nft.salePrice ? (nft.salePrice / 1e9).toFixed(1) : 'TBD'} SOL</span>
-                      </div>
-                    </div>
+                    <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
                   </motion.div>
                 ))
               ) : (
@@ -593,6 +580,19 @@ export default function IndexTest() {
 
       {/* ===== FOOTER ===== */}
       <Footer />
+
+      {/* ===== NFT DETAIL MODAL ===== */}
+      {selectedNFT && (
+        <div className={styles.detailOverlay} onClick={() => setSelectedNFT(null)}>
+          <div className={styles.detailContainer} onClick={(e) => e.stopPropagation()}>
+            <NftDetailCard
+              mintAddress={selectedNFT.nftId}
+              onClose={() => setSelectedNFT(null)}
+              showContactButton
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
