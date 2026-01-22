@@ -1,26 +1,51 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import NFTCard from '../components/marketplace/NFTCard';
+import styles from '../styles/Home.module.css';
+import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import { motion } from 'framer-motion';
 import {
   FaShieldAlt,
   FaLock,
+  FaExchangeAlt,
   FaChevronLeft,
   FaChevronRight,
-  FaArrowRight,
+  FaUsers,
   FaChartLine,
+  FaGem,
+  FaArrowRight,
 } from 'react-icons/fa';
 import { SiSolana } from 'react-icons/si';
 import { BiTargetLock } from 'react-icons/bi';
-import { MdWatch } from 'react-icons/md';
-import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
-import styles from '../styles/IndexTest.module.css';
 
-// Dynamic imports for 3D/heavy components
-const HeroScene = dynamic(() => import('../components/marketplace/HeroScene'), { ssr: false });
+const WaveScene = dynamic(() => import('../components/common/WaveScene'), { ssr: false });
 
-// Interfaces
+// Escrow flow steps - static data
+const escrowSteps = [
+  {
+    num: '01',
+    title: 'Verify',
+    subtitle: 'Authenticity Guaranteed',
+    desc: 'Blockchain-anchored NFT ensures provenance is tamper-proof.',
+    icon: FaShieldAlt,
+  },
+  {
+    num: '02',
+    title: 'Escrow',
+    subtitle: 'Protected Transaction',
+    desc: 'Funds held in Solana smart contract until sale approval.',
+    icon: FaLock,
+  },
+  {
+    num: '03',
+    title: 'Transfer',
+    subtitle: 'Immutable Ownership',
+    desc: 'NFT ownership transfers on-chain. Permanently recorded.',
+    icon: FaExchangeAlt,
+  },
+];
+
 interface NFT {
   nftId: string;
   fileCid: string;
@@ -56,28 +81,6 @@ interface Pool {
   maxInvestors: number;
   participants?: Array<{ wallet: string; shares: number }>;
 }
-
-// Flow steps data - simplified to 3 core steps
-const flowSteps = [
-  {
-    num: '01',
-    title: 'List',
-    desc: 'Submit your timepiece with documentation',
-    icon: MdWatch,
-  },
-  {
-    num: '02',
-    title: 'Verify',
-    desc: 'Admin authenticates and mints on Solana',
-    icon: FaShieldAlt,
-  },
-  {
-    num: '03',
-    title: 'Trade',
-    desc: 'Buy or sell with escrow protection',
-    icon: FaLock,
-  },
-];
 
 // Mock pools for demo
 const MOCK_POOLS: Pool[] = [
@@ -138,47 +141,71 @@ const MOCK_POOLS: Pool[] = [
     maxInvestors: 80,
     participants: [],
   },
+  {
+    _id: 'pool_004',
+    title: 'Cartier Crash London',
+    asset: {
+      model: 'Crash London',
+      brand: 'Cartier',
+      priceUSD: 280000,
+      images: ['/images/cartier-crash.jpg'],
+    },
+    status: 'open',
+    totalShares: 100,
+    sharesSold: 45,
+    sharePriceUSD: 2800,
+    targetAmountUSD: 280000,
+    minBuyInUSD: 2800,
+    projectedROI: 1.22,
+    maxInvestors: 40,
+    participants: [],
+  },
 ];
 
-export default function IndexTest() {
+export default function Home() {
   const [featuredNFTs, setFeaturedNFTs] = useState<NFT[]>([]);
   const [pools, setPools] = useState<Pool[]>([]);
-  const [show3DScene, setShow3DScene] = useState(false);
-  const [activeTab, setActiveTab] = useState<'watches' | 'pools'>('watches');
-  const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
-  const [isLoadingPools, setIsLoadingPools] = useState(false);
+  const [showWaveScene, setShowWaveScene] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
 
-  // Scroller ref
-  const scrollerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const leftColumnRef = useRef<HTMLDivElement>(null);
+  const rightColumnRef = useRef<HTMLDivElement>(null);
 
-  // Scroll handlers
-  const scrollLeft = () => {
-    if (scrollerRef.current) {
-      scrollerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+  // Horizontal scroller refs
+  const watchScrollerRef = useRef<HTMLDivElement>(null);
+  const poolScrollerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll handlers for horizontal scrollers
+  const scrollLeft = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: -340, behavior: 'smooth' });
     }
   };
 
-  const scrollRight = () => {
-    if (scrollerRef.current) {
-      scrollerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+  const scrollRight = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: 340, behavior: 'smooth' });
     }
   };
 
-  // Delayed 3D scene load for performance
+  // Delayed WaveScene load for performance
   useEffect(() => {
-    const sceneTimeout = setTimeout(() => setShow3DScene(true), 500);
-    return () => clearTimeout(sceneTimeout);
+    const timeout = setTimeout(() => setShowWaveScene(true), 500);
+    return () => clearTimeout(timeout);
   }, []);
 
-  // Fetch NFTs on initial load
+  // Fetch NFTs
   useEffect(() => {
-    const fetchNFTs = async () => {
-      setIsLoadingNFTs(true);
+    const fetchFeatured = async () => {
       try {
         const res = await fetch('/api/nft/holders');
         const data = await res.json();
         const enriched = await Promise.all(
-          data.slice(0, 8).map(async (nft: NFT) => {
+          data.slice(0, 6).map(async (nft: any) => {
             try {
               const meta = await fetch(`https://ipfs.io/ipfs/${nft.fileCid}`);
               const metaData = await meta.json();
@@ -193,406 +220,512 @@ export default function IndexTest() {
             }
           })
         );
-        setFeaturedNFTs(enriched);
+        setFeaturedNFTs([...enriched, ...enriched]);
       } catch (err) {
         console.error('Failed to load NFTs', err);
-      } finally {
-        setIsLoadingNFTs(false);
       }
     };
-    fetchNFTs();
+    fetchFeatured();
   }, []);
 
-  // Lazy-fetch Pools when tab switches
+  // Fetch Pools
   useEffect(() => {
-    if (activeTab === 'pools' && pools.length === 0) {
-      const fetchPools = async () => {
-        setIsLoadingPools(true);
-        try {
-          const res = await fetch('/api/pool/list?status=open&limit=6');
-          if (res.ok) {
-            const data = await res.json();
-            if (data.pools && data.pools.length > 0) {
-              setPools(data.pools);
-            } else {
-              setPools(MOCK_POOLS);
-            }
+    const fetchPools = async () => {
+      try {
+        const res = await fetch('/api/pool/list?status=open&limit=6');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.pools && data.pools.length > 0) {
+            setPools(data.pools);
           } else {
             setPools(MOCK_POOLS);
           }
-        } catch {
+        } else {
           setPools(MOCK_POOLS);
-        } finally {
-          setIsLoadingPools(false);
         }
-      };
-      fetchPools();
-    }
-  }, [activeTab, pools.length]);
+      } catch {
+        setPools(MOCK_POOLS);
+      }
+    };
+    fetchPools();
+  }, []);
 
-  // Render skeleton loading cards
-  const renderSkeletonCards = (count: number) => (
-    <>
-      {Array(count)
-        .fill(0)
-        .map((_, i) => (
-          <div key={`skeleton-${i}`} className={styles.skeletonCard}>
-            <div className={styles.skeletonImage} />
-            <div className={styles.skeletonContent}>
-              <div className={styles.skeletonTitle} />
-              <div className={styles.skeletonPrice} />
-            </div>
-          </div>
-        ))}
-    </>
-  );
+  // Auto-scroll animation
+  useEffect(() => {
+    if (isHovered || !isVisible || featuredNFTs.length === 0) return;
+
+    let frame: number;
+    let lastTime = performance.now();
+    const PIXELS_PER_SECOND = 40;
+
+    const animate = (currentTime: number) => {
+      const deltaTime = currentTime - lastTime;
+      lastTime = currentTime;
+      const distance = (PIXELS_PER_SECOND * deltaTime) / 1000;
+
+      if (!leftColumnRef.current || !rightColumnRef.current) return;
+
+      leftColumnRef.current.scrollTop += distance;
+      if (leftColumnRef.current.scrollTop >= leftColumnRef.current.scrollHeight / 2) {
+        leftColumnRef.current.scrollTop -= leftColumnRef.current.scrollHeight / 2;
+      }
+
+      rightColumnRef.current.scrollTop -= distance;
+      if (rightColumnRef.current.scrollTop <= 0) {
+        rightColumnRef.current.scrollTop += rightColumnRef.current.scrollHeight / 2;
+      }
+
+      frame = requestAnimationFrame(animate);
+    };
+
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [isHovered, isVisible, featuredNFTs]);
+
+  // Visibility observer
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    observerRef.current = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => setIsVisible(entry.isIntersecting)),
+      { threshold: 0.3 }
+    );
+    observerRef.current.observe(wrapperRef.current);
+    return () => {
+      if (observerRef.current && wrapperRef.current) {
+        observerRef.current.unobserve(wrapperRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <div className={styles.container}>
-      {/* ===== NAVBAR ===== */}
-      {/* <Navbar /> */}
+    <>
+      <div className={styles.waveBackground}>{showWaveScene && <WaveScene />}</div>
 
-      {/* ===== HERO SECTION - Split Layout ===== */}
-      <section className={styles.heroSection}>
-        <div className={styles.hero3DBackground}>{show3DScene && <HeroScene />}</div>
-
-        {/* Left side - Text content */}
-        <div className={styles.heroContent}>
-          <motion.div
-            className={styles.heroBadge}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <SiSolana />
-            <span>Powered by Solana</span>
-          </motion.div>
-
-          <motion.h1
-            className={styles.heroTitle}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-          >
-            Authenticated
-            <br />
-            <span className={styles.heroTitleAccent}>Luxury</span>
-            <br />
-            On-Chain
-          </motion.h1>
-
-          <motion.p
-            className={styles.heroSubtitle}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            NFT-backed luxury timepieces with verified provenance, secure escrow, and fractional
-            ownership.
-          </motion.p>
-
-          <motion.div
-            className={styles.heroButtons}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-          >
-            <Link href="/watchMarket" className={styles.primaryBtn}>
-              Explore Marketplace
-              <FaArrowRight />
-            </Link>
-            <Link href="/pools" className={styles.secondaryBtn}>
-              View Pools
-            </Link>
-          </motion.div>
-
-          {/* Quick stats */}
-          <motion.div
-            className={styles.heroStats}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-          >
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatValue}>$2M+</span>
-              <span className={styles.heroStatLabel}>Volume</span>
+      <div className={styles.container}>
+        {/* HERO + NFT SHOWCASE */}
+        <section className={styles.rowContent}>
+          <section className={styles.hero}>
+            <div className={styles.heroContent}>
+              <img src="/images/purpleLGG.png" alt="LuxHub Logo" className={styles.logo} />
+              <h1 className={styles.title}>LUXHUB</h1>
+              <p className={styles.subtitle}>Luxury Timepieces. On-Chain.</p>
+              <div className={styles.heroButtons}>
+                <Link href="/watchMarket" className={styles.heroPrimary}>
+                  Browse Market
+                </Link>
+                <Link href="/sellerDashboard" className={styles.heroSecondary}>
+                  List Your Watch
+                </Link>
+              </div>
             </div>
-            <div className={styles.heroStatDivider} />
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatValue}>100+</span>
-              <span className={styles.heroStatLabel}>Watches</span>
-            </div>
-            <div className={styles.heroStatDivider} />
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatValue}>&lt;400ms</span>
-              <span className={styles.heroStatLabel}>Finality</span>
-            </div>
-          </motion.div>
-        </div>
+          </section>
 
-        <div className={styles.scrollIndicator}>
-          <span />
-        </div>
-      </section>
-
-      {/* ===== HOW IT WORKS - 3 Steps ===== */}
-      <section className={styles.flowSection}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionBadge}>How It Works</span>
-          <h2 className={styles.sectionTitle}>Simple. Secure. On-Chain.</h2>
-        </div>
-
-        <div className={styles.flowDiagram}>
-          {flowSteps.map((step, index) => {
-            const IconComponent = step.icon;
-            return (
-              <motion.div
-                key={step.num}
-                className={styles.flowStep}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.15 }}
-                viewport={{ once: true }}
-              >
-                <div className={styles.flowIcon}>
-                  <IconComponent />
+          <section className={styles.featuredNFTs}>
+            <div
+              className={styles.verticalClockWrapper}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              ref={wrapperRef}
+            >
+              <div className={styles.dualColumns}>
+                <div className={styles.scrollColumn} ref={leftColumnRef}>
+                  <div className={styles.nftColumn}>
+                    {[...featuredNFTs, ...featuredNFTs].map((nft, i) => (
+                      <div
+                        key={`left-${nft.nftId}-${i}`}
+                        className={styles.nftCardWrapper}
+                        onClick={() => setSelectedNFT(nft)}
+                      >
+                        <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <span className={styles.flowNum}>{step.num}</span>
-                <h4 className={styles.flowTitle}>{step.title}</h4>
-                <p className={styles.flowDesc}>{step.desc}</p>
+                <div className={styles.scrollColumn} ref={rightColumnRef}>
+                  <div className={styles.nftColumn}>
+                    {[...featuredNFTs, ...featuredNFTs].map((nft, i) => (
+                      <div
+                        key={`right-${nft.nftId}-${i}`}
+                        className={styles.nftCardWrapper}
+                        onClick={() => setSelectedNFT(nft)}
+                      >
+                        <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        {/* TRUST STRIP + POWERED BY */}
+        <section className={styles.trustPoweredRow}>
+          <div className={styles.trustStrip}>
+            <motion.div
+              className={styles.trustStat}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
+              <span className={styles.statValue}>$2M+</span>
+              <span className={styles.statLabel}>Volume</span>
+            </motion.div>
+            <motion.div
+              className={styles.trustStat}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              viewport={{ once: true }}
+            >
+              <span className={styles.statValue}>100+</span>
+              <span className={styles.statLabel}>Timepieces</span>
+            </motion.div>
+            <motion.div
+              className={styles.trustStat}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <span className={styles.statValue}>3%</span>
+              <span className={styles.statLabel}>Royalty</span>
+            </motion.div>
+          </div>
+
+          <div className={styles.poweredBy}>
+            <span className={styles.poweredLabel}>Powered by</span>
+            <div className={styles.partnerLogos}>
+              <a href="https://solana.com" target="_blank" rel="noopener noreferrer">
+                <img src="/images/solana-logo.svg" alt="Solana" />
+              </a>
+              <a href="https://helius.dev" target="_blank" rel="noopener noreferrer">
+                <img src="/images/helius-logo.svg" alt="Helius" />
+              </a>
+              <a href="https://bags.fm" target="_blank" rel="noopener noreferrer">
+                <img src="/images/bags-icon.png" alt="Bags" />
+              </a>
+              <a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">
+                <img src="/images/ipfs-logo.svg" alt="IPFS" />
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURED WATCHES HORIZONTAL SCROLLER */}
+        <section className={styles.horizontalSection}>
+          <div className={styles.sectionHeaderRow}>
+            <div>
+              <span className={styles.sectionTag}>Featured</span>
+              <h2>Available Watches</h2>
+              <p className={styles.sectionSubtitle}>
+                Authenticated luxury timepieces ready for purchase
+              </p>
+            </div>
+            <div className={styles.scrollControls}>
+              <button
+                className={styles.scrollBtn}
+                onClick={() => scrollLeft(watchScrollerRef)}
+                aria-label="Scroll left"
+              >
+                <FaChevronLeft />
+              </button>
+              <button
+                className={styles.scrollBtn}
+                onClick={() => scrollRight(watchScrollerRef)}
+                aria-label="Scroll right"
+              >
+                <FaChevronRight />
+              </button>
+              <Link href="/watchMarket" className={styles.viewAllLink}>
+                View All <FaArrowRight />
+              </Link>
+            </div>
+          </div>
+          <div className={styles.horizontalScroller} ref={watchScrollerRef}>
+            {featuredNFTs.slice(0, 8).map((nft, i) => (
+              <motion.div
+                key={`featured-${nft.nftId}-${i}`}
+                className={styles.scrollerCard}
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                viewport={{ once: true }}
+                onClick={() => setSelectedNFT(nft)}
+              >
+                <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
               </motion.div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ===== MARKETPLACE SHOWCASE - Tabbed ===== */}
-      <section className={styles.showcaseSection}>
-        <div className={styles.showcaseHeader}>
-          <div>
-            <span className={styles.sectionBadge}>Marketplace</span>
-            <h2 className={styles.sectionTitle}>Browse & Invest</h2>
+            ))}
+            {featuredNFTs.length === 0 && (
+              <div className={styles.emptyScroller}>
+                <p>Loading watches...</p>
+              </div>
+            )}
           </div>
-          <div className={styles.tabSwitcher}>
-            <button
-              className={`${styles.tabBtn} ${activeTab === 'watches' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('watches')}
-            >
-              Watches
-            </button>
-            <button
-              className={`${styles.tabBtn} ${activeTab === 'pools' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('pools')}
-            >
-              Investment Pools
-            </button>
+        </section>
+
+        {/* INVESTMENT POOLS HORIZONTAL SCROLLER */}
+        <section className={styles.horizontalSection}>
+          <div className={styles.sectionHeaderRow}>
+            <div>
+              <span className={styles.sectionTag}>Investment</span>
+              <h2>Active Pools</h2>
+              <p className={styles.sectionSubtitle}>
+                Fractional ownership opportunities with projected returns
+              </p>
+            </div>
+            <div className={styles.scrollControls}>
+              <button
+                className={styles.scrollBtn}
+                onClick={() => scrollLeft(poolScrollerRef)}
+                aria-label="Scroll left"
+              >
+                <FaChevronLeft />
+              </button>
+              <button
+                className={styles.scrollBtn}
+                onClick={() => scrollRight(poolScrollerRef)}
+                aria-label="Scroll right"
+              >
+                <FaChevronRight />
+              </button>
+              <Link href="/pools" className={styles.viewAllLink}>
+                View All <FaArrowRight />
+              </Link>
+            </div>
           </div>
-        </div>
-
-        <div className={styles.scrollControls}>
-          <button className={styles.scrollBtn} onClick={scrollLeft} aria-label="Scroll left">
-            <FaChevronLeft />
-          </button>
-          <button className={styles.scrollBtn} onClick={scrollRight} aria-label="Scroll right">
-            <FaChevronRight />
-          </button>
-          <Link
-            href={activeTab === 'watches' ? '/watchMarket' : '/pools'}
-            className={styles.viewAllLink}
-          >
-            View All <FaArrowRight />
-          </Link>
-        </div>
-
-        <div className={styles.scroller} ref={scrollerRef}>
-          {activeTab === 'watches' ? (
-            <>
-              {isLoadingNFTs ? (
-                renderSkeletonCards(4)
-              ) : featuredNFTs.length > 0 ? (
-                featuredNFTs.map((nft, i) => (
-                  <motion.div
-                    key={`nft-${nft.nftId}-${i}`}
-                    className={styles.nftScrollCard}
-                    initial={{ opacity: 0, x: 40 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: i * 0.08 }}
-                    viewport={{ once: true }}
-                  >
-                    <div className={styles.nftCardImage}>
-                      <img
-                        src={nft.image || '/images/purpleLGG.png'}
-                        alt={nft.title}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                        }}
+          <div className={styles.horizontalScroller} ref={poolScrollerRef}>
+            {pools.map((pool, i) => {
+              const fundingPercent = Math.round((pool.sharesSold / pool.totalShares) * 100);
+              const imageUrl =
+                pool.asset?.images?.[0] ||
+                pool.asset?.imageIpfsUrls?.[0] ||
+                '/images/purpleLGG.png';
+              const isDemo = pool._id.startsWith('pool_');
+              return (
+                <motion.div
+                  key={pool._id}
+                  className={styles.poolScrollCard}
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  {isDemo && <span className={styles.demoBadge}>Demo</span>}
+                  <div className={styles.poolScrollImage}>
+                    <img
+                      src={imageUrl}
+                      alt={pool.title || pool.asset?.model}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
+                      }}
+                    />
+                    <span className={styles.poolBrandTag}>{pool.asset?.brand}</span>
+                  </div>
+                  <div className={styles.poolScrollContent}>
+                    <h4>{pool.title || pool.asset?.model}</h4>
+                    <div className={styles.poolProgressBar}>
+                      <div
+                        className={styles.poolProgressFill}
+                        style={{ width: `${fundingPercent}%` }}
                       />
                     </div>
-                    <div className={styles.nftCardContent}>
-                      <h4>{nft.title}</h4>
-                      <div className={styles.nftCardPrice}>
-                        <SiSolana />
-                        <span>{nft.salePrice ? (nft.salePrice / 1e9).toFixed(1) : 'TBD'} SOL</span>
+                    <div className={styles.poolProgressLabel}>
+                      <span>{fundingPercent}% Funded</span>
+                      <span>
+                        ${((pool.sharesSold * pool.sharePriceUSD) / 1000).toFixed(0)}K / $
+                        {(pool.targetAmountUSD / 1000).toFixed(0)}K
+                      </span>
+                    </div>
+                    <div className={styles.poolScrollStats}>
+                      <div className={styles.poolStatItem}>
+                        <BiTargetLock />
+                        <span>${pool.sharePriceUSD.toLocaleString()}/share</span>
+                      </div>
+                      <div className={styles.poolStatItem}>
+                        <FaChartLine />
+                        <span>+{((pool.projectedROI - 1) * 100).toFixed(0)}% ROI</span>
                       </div>
                     </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className={styles.emptyState}>No timepieces available</div>
-              )}
-            </>
-          ) : (
-            <>
-              {isLoadingPools ? (
-                renderSkeletonCards(4)
-              ) : pools.length > 0 ? (
-                pools.map((pool, i) => {
-                  const fundingPercent = Math.round((pool.sharesSold / pool.totalShares) * 100);
-                  const imageUrl =
-                    pool.asset?.images?.[0] ||
-                    pool.asset?.imageIpfsUrls?.[0] ||
-                    '/images/purpleLGG.png';
-                  const isDemo = pool._id.startsWith('pool_');
+                    <Link href={`/pool/${pool._id}`} className={styles.poolInvestBtn}>
+                      Invest Now
+                    </Link>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
 
-                  return (
-                    <motion.div
-                      key={pool._id}
-                      className={styles.poolCard}
-                      initial={{ opacity: 0, x: 40 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: i * 0.1 }}
-                      viewport={{ once: true }}
-                    >
-                      {isDemo && <span className={styles.poolDemoBadge}>Demo</span>}
-                      <div className={styles.poolImage}>
-                        <img
-                          src={imageUrl}
-                          alt={pool.title || pool.asset?.model}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                          }}
-                        />
-                        <span className={styles.poolBrandTag}>{pool.asset?.brand}</span>
-                      </div>
-                      <div className={styles.poolContent}>
-                        <h4>{pool.title || pool.asset?.model}</h4>
-                        <div className={styles.poolProgressBar}>
-                          <div
-                            className={styles.poolProgressFill}
-                            style={{ width: `${fundingPercent}%` }}
-                          />
-                        </div>
-                        <div className={styles.poolProgressLabel}>
-                          <span>{fundingPercent}% Funded</span>
-                          <span>
-                            ${((pool.sharesSold * pool.sharePriceUSD) / 1000).toFixed(0)}K / $
-                            {(pool.targetAmountUSD / 1000).toFixed(0)}K
-                          </span>
-                        </div>
-                        <div className={styles.poolStats}>
-                          <div className={styles.poolStatItem}>
-                            <BiTargetLock />
-                            <span>${pool.sharePriceUSD.toLocaleString()}/share</span>
-                          </div>
-                          <div className={styles.poolStatItem}>
-                            <FaChartLine />
-                            <span>+{((pool.projectedROI - 1) * 100).toFixed(0)}% ROI</span>
-                          </div>
-                        </div>
-                        <Link href={`/pool/${pool._id}`} className={styles.poolInvestBtn}>
-                          Invest Now
-                        </Link>
-                      </div>
-                    </motion.div>
-                  );
-                })
-              ) : (
-                <div className={styles.emptyState}>No pools available</div>
-              )}
-            </>
-          )}
-        </div>
-      </section>
+        {/* QUICK SHOP GRID */}
+        <section className={styles.quickShopSection}>
+          <div className={styles.quickShopHeader}>
+            <FaGem className={styles.quickShopIcon} />
+            <h2>Shop Now</h2>
+            <p className={styles.sectionSubtitle}>
+              Start your collection with these verified timepieces
+            </p>
+          </div>
+          <div className={styles.quickShopGrid}>
+            {featuredNFTs.slice(0, 4).map((nft, i) => {
+              const brand =
+                nft.attributes?.find((a) => a.trait_type === 'Brand')?.value || 'Luxury';
+              return (
+                <motion.div
+                  key={`shop-${nft.nftId}-${i}`}
+                  className={styles.quickShopCard}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  viewport={{ once: true }}
+                  onClick={() => setSelectedNFT(nft)}
+                >
+                  <div className={styles.quickShopImageWrapper}>
+                    <img src={nft.image || '/images/purpleLGG.png'} alt={nft.title} />
+                    <span className={styles.quickShopBrand}>{brand}</span>
+                  </div>
+                  <div className={styles.quickShopInfo}>
+                    <h4>{nft.title}</h4>
+                    <div className={styles.quickShopPrice}>
+                      <SiSolana />
+                      <span>{nft.salePrice ? (nft.salePrice / 1e9).toFixed(1) : 'TBD'} SOL</span>
+                    </div>
+                    <button className={styles.quickBuyBtn}>View Details</button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+          <div className={styles.quickShopCta}>
+            <Link href="/watchMarket" className={styles.heroPrimary}>
+              Browse Full Marketplace
+            </Link>
+          </div>
+        </section>
 
-      {/* ===== TRUST FOOTER - Combined Stats, Partners, CTA ===== */}
-      <section className={styles.trustFooter}>
-        <div className={styles.trustStats}>
-          <motion.div
-            className={styles.trustStat}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
-            <span className={styles.statValue}>$2M+</span>
-            <span className={styles.statLabel}>Volume</span>
-          </motion.div>
-          <motion.div
-            className={styles.trustStat}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            viewport={{ once: true }}
-          >
-            <span className={styles.statValue}>100+</span>
-            <span className={styles.statLabel}>Timepieces</span>
-          </motion.div>
-          <motion.div
-            className={styles.trustStat}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            <span className={styles.statValue}>3%</span>
-            <span className={styles.statLabel}>Royalty</span>
-          </motion.div>
-        </div>
+        {/* ESCROW FLOW */}
+        <section className={styles.escrowSection}>
+          <div className={styles.escrowHeader}>
+            <span className={styles.escrowTag}>Security</span>
+            <h2>How We Protect You</h2>
+            <p className={styles.sectionSubtitle}>
+              On-chain escrow. Verified provenance. Real luxury.
+            </p>
+          </div>
 
-        <div className={styles.poweredBy}>
-          <span className={styles.poweredLabel}>Powered by</span>
-          <div className={styles.partnerLogos}>
-            <a href="https://squads.xyz" target="_blank" rel="noopener noreferrer">
-              <img src="/images/squads-logo.svg" alt="Squads" />
-            </a>
-            <a href="https://helius.dev" target="_blank" rel="noopener noreferrer">
+          <div className={styles.escrowGrid}>
+            {escrowSteps.map((step, i) => {
+              const IconComponent = step.icon;
+              return (
+                <motion.div
+                  key={step.num}
+                  className={styles.escrowCard}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: i * 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+                  viewport={{ once: true, margin: '-50px' }}
+                >
+                  <div className={styles.escrowCardInner}>
+                    <span className={styles.escrowNum}>{step.num}</span>
+                    <div className={styles.escrowIcon}>
+                      <IconComponent />
+                    </div>
+                    <h3>{step.title}</h3>
+                    <span className={styles.escrowSubtitle}>{step.subtitle}</span>
+                    <p>{step.desc}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ENHANCED FOOTER INFO */}
+        <section className={styles.footerInfo}>
+          <div className={styles.footerGrid}>
+            <div className={styles.footerCol}>
+              <h3>Marketplace</h3>
+              <ul>
+                <li>
+                  <Link href="/watchMarket">Browse Watches</Link>
+                </li>
+                <li>
+                  <Link href="/pools">Investment Pools</Link>
+                </li>
+                <li>
+                  <Link href="/vendors">Verified Dealers</Link>
+                </li>
+                <li>
+                  <Link href="/learnMore">How It Works</Link>
+                </li>
+              </ul>
+            </div>
+            <div className={styles.footerCol}>
+              <h3>For Dealers</h3>
+              <ul>
+                <li>
+                  <Link href="/sellerDashboard">Seller Dashboard</Link>
+                </li>
+                <li>
+                  <Link href="/vendorOnboarding">Become a Dealer</Link>
+                </li>
+                <li>
+                  <Link href="/learnMore#fees">Fee Structure</Link>
+                </li>
+              </ul>
+            </div>
+            <div className={styles.footerCol}>
+              <h3>Resources</h3>
+              <ul>
+                <li>
+                  <Link href="/learnMore">Learn More</Link>
+                </li>
+                <li>
+                  <Link href="/learnMore#escrow">Escrow Security</Link>
+                </li>
+                <li>
+                  <Link href="/learnMore#provenance">Provenance</Link>
+                </li>
+              </ul>
+            </div>
+            <div className={styles.footerColCta}>
+              <img src="/images/purpleLGG.png" alt="LuxHub" className={styles.footerLogo} />
+              <p>Luxury Timepieces. On-Chain.</p>
+              <div className={styles.footerButtons}>
+                <Link href="/watchMarket" className={styles.primaryButton}>
+                  Explore Marketplace
+                </Link>
+                <Link href="/sellerDashboard" className={styles.ghostButton}>
+                  Become a Dealer
+                </Link>
+              </div>
+            </div>
+          </div>
+          <div className={styles.footerBottom}>
+            <div className={styles.footerPartners}>
+              <span>Powered by</span>
+              <img src="/images/solana-logo.svg" alt="Solana" />
               <img src="/images/helius-logo.svg" alt="Helius" />
-            </a>
-            <a href="https://www.metaplex.com" target="_blank" rel="noopener noreferrer">
-              <img src="/images/metaplex-logo.svg" alt="Metaplex" />
-            </a>
-            <a href="https://www.privy.io" target="_blank" rel="noopener noreferrer">
-              <img src="/images/privy-logo.svg" alt="Privy" />
-            </a>
-            <a href="https://pinata.cloud" target="_blank" rel="noopener noreferrer">
-              <img src="/images/ipfs-logo.svg" alt="Pinata" />
-            </a>
+              <img src="/images/bags-icon.png" alt="Bags" />
+            </div>
+            <p className={styles.footerCopy}>&copy; 2024 LuxHub. All rights reserved.</p>
           </div>
-        </div>
+        </section>
 
-        <motion.div
-          className={styles.ctaCard}
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-        >
-          <h2>Start Your Collection</h2>
-          <p>Join the future of authenticated luxury asset ownership on Solana.</p>
-          <div className={styles.ctaButtons}>
-            <Link href="/watchMarket" className={styles.primaryBtn}>
-              Browse Marketplace
-              <FaArrowRight />
-            </Link>
-            <Link href="/sellerDashboard" className={styles.secondaryBtn}>
-              Become a Dealer
-            </Link>
+        {/* NFT DETAIL MODAL */}
+        {selectedNFT && (
+          <div className={styles.detailOverlay}>
+            <div className={styles.detailContainer}>
+              <NftDetailCard
+                mintAddress={selectedNFT.nftId}
+                onClose={() => setSelectedNFT(null)}
+                showContactButton
+              />
+            </div>
           </div>
-        </motion.div>
-      </section>
-
-      {/* ===== FOOTER ===== */}
-      <Footer />
-    </div>
+        )}
+      </div>
+    </>
   );
 }
