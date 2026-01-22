@@ -552,17 +552,20 @@ export default function IndexTest() {
         <div className={styles.poweredBy}>
           <span className={styles.poweredLabel}>Powered by</span>
           <div className={styles.partnerLogos}>
-            <a href="https://solana.com" target="_blank" rel="noopener noreferrer">
-              <img src="/images/solana-logo.svg" alt="Solana" />
+            <a href="https://squads.xyz" target="_blank" rel="noopener noreferrer">
+              <img src="/images/squads-logo.svg" alt="Squads" />
             </a>
             <a href="https://helius.dev" target="_blank" rel="noopener noreferrer">
               <img src="/images/helius-logo.svg" alt="Helius" />
             </a>
-            <a href="https://bags.fm" target="_blank" rel="noopener noreferrer">
-              <img src="/images/bags-icon.png" alt="Bags" />
+            <a href="https://www.metaplex.com" target="_blank" rel="noopener noreferrer">
+              <img src="/images/metaplex-logo.svg" alt="Metaplex" />
             </a>
-            <a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">
-              <img src="/images/ipfs-logo.svg" alt="IPFS" />
+            <a href="https://www.privy.io" target="_blank" rel="noopener noreferrer">
+              <img src="/images/privy-logo.svg" alt="Privy" />
+            </a>
+            <a href="https://pinata.cloud" target="_blank" rel="noopener noreferrer">
+              <img src="/images/ipfs-logo.svg" alt="Pinata" />
             </a>
           </div>
         </div>

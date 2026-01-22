@@ -175,7 +175,7 @@ function GlowRing({ isMobile }: { isMobile: boolean }) {
   return (
     <mesh
       ref={ringRef}
-      position={[isMobile ? 0 : 2, isMobile ? 0.8 : 0.5, 0]}
+      position={[isMobile ? 0 : 1, isMobile ? 0.1 : 0.5, 0]}
       rotation={[Math.PI / 2.2, 0, 0]}
     >
       <ringGeometry args={[2.5, 2.65, 48]} />
