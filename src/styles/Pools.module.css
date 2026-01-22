@@ -1,14 +1,35 @@
 /* src/styles/Pools.module.css */
+/* LuxHub Glassmorphic Theme - Matching WatchMarket */
+
 .pageContainer {
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --bg-dark: #0d0d0d;
+  --border: #222222;
+  --glass: rgba(13, 13, 13, 0.85);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+
   min-height: 100vh;
-  background: linear-gradient(180deg, #0a0612 0%, #140f1a 50%, #0a0612 100%);
-  padding-bottom: 60px;
+  background: linear-gradient(
+    135deg,
+    rgba(13, 13, 13, 1) 0%,
+    rgba(15, 10, 20, 1) 50%,
+    rgba(10, 10, 15, 1) 100%
+  );
+  padding: 70px 16px 60px;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
-/* Hero Section */
+/* ============================================
+   HERO SECTION
+   ============================================ */
 .hero {
   position: relative;
-  padding: 80px 20px 60px;
+  padding: 40px 20px 50px;
   text-align: center;
   overflow: hidden;
 }
@@ -16,187 +37,186 @@
 .hero::before {
   content: '';
   position: absolute;
-  top: 0;
+  top: -100px;
   left: 50%;
   transform: translateX(-50%);
   width: 800px;
   height: 400px;
-  background: radial-gradient(ellipse, rgba(200, 161, 255, 0.15) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(200, 161, 255, 0.12) 0%, transparent 70%);
   pointer-events: none;
 }
 
 .heroContent {
   position: relative;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .heroTitle {
-  font-size: 48px;
+  font-size: 2.8rem;
   font-weight: 700;
   margin: 0 0 16px 0;
-  background: linear-gradient(135deg, #fff 0%, #c8a1ff 50%, #9366d2 100%);
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
 
 .heroSubtitle {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  color: var(--text-secondary);
   margin: 0 0 40px 0;
-  line-height: 1.6;
+  line-height: 1.7;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .heroStats {
   display: flex;
   justify-content: center;
-  gap: 60px;
+  gap: 50px;
+  flex-wrap: wrap;
 }
 
 .heroStat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 20px 30px;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(15, 15, 20, 0.9) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s ease;
+}
+
+.heroStat:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(200, 161, 255, 0.15);
 }
 
 .heroStatValue {
-  font-size: 32px;
+  font-size: 2rem;
   font-weight: 700;
-  color: #c8a1ff;
+  color: var(--accent);
 }
 
 .heroStatLabel {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 
-/* How It Works Section */
+/* ============================================
+   HOW IT WORKS SECTION
+   ============================================ */
 .howItWorks {
   max-width: 1200px;
-  margin: 0 auto 60px;
-  padding: 0 20px;
+  margin: 0 auto 50px;
+  padding: 0 16px;
 }
 
 .sectionTitle {
-  font-size: 24px;
+  font-size: 1.6rem;
   font-weight: 600;
-  color: #fff;
   text-align: center;
   margin: 0 0 40px 0;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .stepsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 20px;
 }
 
 .step {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(200, 161, 255, 0.1);
-  border-radius: 16px;
-  padding: 24px;
+  position: relative;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(15, 15, 20, 0.9) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 20px;
+  padding: 28px 20px;
   text-align: center;
   transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.step::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .step:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(200, 161, 255, 0.2);
-  transform: translateY(-4px);
+  border-color: var(--accent);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(200, 161, 255, 0.15);
+}
+
+.step:hover::before {
+  opacity: 1;
 }
 
 .stepNumber {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 16px;
-  background: linear-gradient(135deg, #c8a1ff 0%, #9366d2 100%);
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a87de8 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: #000;
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.4);
 }
 
 .step h3 {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
-  color: #fff;
-  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
 }
 
 .step p {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
   margin: 0;
-  line-height: 1.5;
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .stepsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .heroStats {
-    gap: 40px;
-  }
-}
-
-@media (max-width: 768px) {
-  .heroTitle {
-    font-size: 36px;
-  }
-
-  .heroSubtitle {
-    font-size: 16px;
-  }
-
-  .heroStats {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .stepsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .step {
-    padding: 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero {
-    padding: 60px 16px 40px;
-  }
-
-  .heroTitle {
-    font-size: 28px;
-  }
-
-  .heroStatValue {
-    font-size: 24px;
-  }
+  line-height: 1.6;
 }
 
 /* ============================================
-   Wallet Connection Banner & Modal
+   WALLET CONNECTION BANNER & MODAL
    ============================================ */
-
 .walletBanner {
-  background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
-  border: 1px solid rgba(138, 43, 226, 0.3);
-  border-radius: 12px;
-  padding: 12px 20px;
-  margin: 20px auto 0;
-  max-width: 800px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 16px;
+  padding: 14px 24px;
+  margin: 0 auto 30px;
+  max-width: 700px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .walletBannerContent {
@@ -208,7 +228,7 @@
 }
 
 .walletBannerContent span {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
   font-size: 0.95rem;
 }
 
@@ -219,8 +239,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -230,52 +251,155 @@
 
 .walletModalContent {
   position: relative;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
-  border: 1px solid rgba(138, 43, 226, 0.3);
-  border-radius: 20px;
-  padding: 30px;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.95) 0%, rgba(15, 15, 20, 0.98) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 24px;
+  padding: 32px;
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(200, 161, 255, 0.1);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
 }
 
 .walletModalClose {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: #fff;
+  top: 16px;
+  right: 16px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid var(--accent-dim);
+  color: var(--text-primary);
   font-size: 1.5rem;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 }
 
 .walletModalClose:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(200, 161, 255, 0.2);
+  border-color: var(--accent);
+  transform: rotate(90deg);
 }
 
 .walletModalMessage {
   text-align: center;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
   font-size: 1.1rem;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   padding: 0 20px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablets */
+@media (max-width: 1024px) {
+  .stepsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .heroStats {
+    gap: 30px;
+  }
+
+  .heroStat {
+    padding: 16px 24px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 60px 12px 50px;
+  }
+
+  .hero {
+    padding: 30px 16px 40px;
+  }
+
+  .heroTitle {
+    font-size: 2rem;
+    letter-spacing: 1px;
+  }
+
+  .heroSubtitle {
+    font-size: 1rem;
+    margin-bottom: 30px;
+  }
+
+  .heroStats {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .heroStat {
+    width: 100%;
+    max-width: 280px;
+    padding: 16px 20px;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .heroStatValue {
+    font-size: 1.6rem;
+  }
+
+  .heroStatLabel {
+    font-size: 0.7rem;
+  }
+
+  .howItWorks {
+    margin-bottom: 40px;
+  }
+
+  .sectionTitle {
+    font-size: 1.3rem;
+    margin-bottom: 30px;
+  }
+
+  .stepsGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .step {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .stepNumber {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+  }
+
+  .step h3 {
+    font-size: 1rem;
+  }
+
+  .step p {
+    font-size: 0.85rem;
+  }
+
   .walletBanner {
-    padding: 10px 15px;
-    margin: 15px 10px 0;
+    padding: 12px 16px;
+    margin: 0 8px 24px;
+    border-radius: 12px;
   }
 
   .walletBannerContent {
@@ -284,13 +408,107 @@
     gap: 12px;
   }
 
+  .walletBannerContent span {
+    font-size: 0.9rem;
+  }
+
   .walletModalContent {
-    padding: 20px;
+    padding: 24px 20px;
     margin: 10px;
+    border-radius: 20px;
   }
 
   .walletModalMessage {
     font-size: 1rem;
     padding: 0 10px;
   }
+
+  .walletModalClose {
+    width: 36px;
+    height: 36px;
+    font-size: 1.3rem;
+    top: 12px;
+    right: 12px;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .pageContainer {
+    padding: 55px 10px 40px;
+  }
+
+  .hero {
+    padding: 20px 12px 30px;
+  }
+
+  .heroTitle {
+    font-size: 1.6rem;
+  }
+
+  .heroSubtitle {
+    font-size: 0.9rem;
+  }
+
+  .heroStatValue {
+    font-size: 1.4rem;
+  }
+
+  .heroStatLabel {
+    font-size: 0.65rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.1rem;
+  }
+
+  .stepNumber {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .step h3 {
+    font-size: 0.95rem;
+  }
+
+  .step p {
+    font-size: 0.8rem;
+  }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.heroContent {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.step {
+  animation: fadeInUp 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+.step:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.step:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.step:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.step:nth-child(4) {
+  animation-delay: 0.4s;
 }

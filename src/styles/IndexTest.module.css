@@ -1,0 +1,1381 @@
+/* ========================================
+   LUXHUB LANDING PAGE - Simplified
+   Glass-morphism theme with purple accent
+   ======================================== */
+
+.container {
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --border: #222222;
+  --glass: rgba(13, 13, 13, 0.85);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 100vh;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  background: var(--bg-dark);
+}
+
+/* ========== HERO SECTION - Split Layout ========== */
+.heroSection {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 700px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.hero3DBackground {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero3DBackground::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(13, 13, 13, 0.95) 0%,
+    rgba(13, 13, 13, 0.7) 30%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* Subtle grid background for techy feel */
+.hero3DBackground::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(200, 161, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 161, 255, 0.02) 1px, transparent 1px);
+  background-size: 80px 80px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Left side content */
+.heroContent {
+  position: relative;
+  z-index: 10;
+  padding: 0 60px;
+  max-width: 650px;
+  width: 50%;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: 30px;
+  margin-bottom: 24px;
+}
+
+.heroBadge svg {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.heroBadge span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.heroTitleAccent {
+  background: linear-gradient(135deg, #b991ff 0%, #d4b8ff 50%, #b991ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+}
+
+.heroButtons {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.heroStats {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.heroStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heroStatValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.heroStatLabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.heroStatDivider {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+}
+
+.heroTitle {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin: 0 0 24px;
+  color: var(--text-primary);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.heroSubtitle {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0 0 32px;
+  max-width: 450px;
+}
+
+.scrollIndicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.scrollIndicator span {
+  display: block;
+  width: 2px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--accent), transparent);
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+
+@keyframes scrollPulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scaleY(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* ========== BUTTONS - Matching index.tsx style ========== */
+.primaryBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 32px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--bg-dark);
+  background: linear-gradient(135deg, #b991ff 0%, #d4b8ff 50%, #b991ff 100%);
+  background-size: 200% 200%;
+  border: none;
+  border-radius: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  animation: gradientShift 3s ease infinite;
+  white-space: nowrap;
+}
+
+.primaryBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.primaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 25px rgba(185, 145, 255, 0.4),
+    0 0 50px rgba(185, 145, 255, 0.2);
+}
+
+.primaryBtn:hover::before {
+  left: 100%;
+}
+
+@keyframes gradientShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.secondaryBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 32px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.secondaryBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.5),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.secondaryBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.08) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.secondaryBtn:hover {
+  color: #d4b8ff;
+  transform: translateY(-2px);
+}
+
+.secondaryBtn:hover::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.15) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
+}
+
+.secondaryBtn:hover::before {
+  animation: borderRotate 2s linear infinite;
+}
+
+@keyframes borderRotate {
+  0% {
+    background: linear-gradient(
+      0deg,
+      rgba(185, 145, 255, 0.5),
+      rgba(185, 145, 255, 0.1),
+      rgba(185, 145, 255, 0.5)
+    );
+  }
+  25% {
+    background: linear-gradient(
+      90deg,
+      rgba(185, 145, 255, 0.5),
+      rgba(185, 145, 255, 0.1),
+      rgba(185, 145, 255, 0.5)
+    );
+  }
+  50% {
+    background: linear-gradient(
+      180deg,
+      rgba(185, 145, 255, 0.5),
+      rgba(185, 145, 255, 0.1),
+      rgba(185, 145, 255, 0.5)
+    );
+  }
+  75% {
+    background: linear-gradient(
+      270deg,
+      rgba(185, 145, 255, 0.5),
+      rgba(185, 145, 255, 0.1),
+      rgba(185, 145, 255, 0.5)
+    );
+  }
+  100% {
+    background: linear-gradient(
+      360deg,
+      rgba(185, 145, 255, 0.5),
+      rgba(185, 145, 255, 0.1),
+      rgba(185, 145, 255, 0.5)
+    );
+  }
+}
+
+/* ========== SECTION COMMON STYLES ========== */
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.sectionBadge {
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #ffffff 0%, #b991ff 50%, #d4b8ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ========== HOW IT WORKS - 3 Steps ========== */
+.flowSection {
+  width: 100%;
+  max-width: 900px;
+  padding: 80px 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.flowDiagram {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 40px;
+}
+
+.flowStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  max-width: 240px;
+}
+
+.flowIcon {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 2rem;
+  color: var(--accent);
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.flowStep:hover .flowIcon {
+  border-color: var(--accent-dim);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(200, 161, 255, 0.15);
+}
+
+.flowNum {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.flowTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.flowDesc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ========== MARKETPLACE SHOWCASE - Tabbed ========== */
+.showcaseSection {
+  width: 100%;
+  max-width: 1200px;
+  padding: 60px 20px;
+  z-index: 2;
+}
+
+.showcaseHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.tabSwitcher {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.tabBtn {
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabBtn:hover {
+  color: var(--text-primary);
+}
+
+.activeTab {
+  color: var(--bg-dark);
+  background: var(--accent);
+}
+
+.scrollControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.scrollBtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.scrollBtn:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent-dim);
+  transform: scale(1.05);
+}
+
+.viewAllLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  margin-left: auto;
+}
+
+.viewAllLink:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+
+.viewAllLink svg {
+  transition: transform 0.3s ease;
+}
+
+.viewAllLink:hover svg {
+  transform: translateX(4px);
+}
+
+/* Scroller */
+.scroller {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 10px 5px 20px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* NFT Cards */
+.nftScrollCard {
+  flex: 0 0 auto;
+  width: 260px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.nftScrollCard:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(200, 161, 255, 0.1);
+}
+
+.nftCardImage {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.nftCardImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.nftScrollCard:hover .nftCardImage img {
+  transform: scale(1.08);
+}
+
+.nftCardContent {
+  padding: 16px;
+}
+
+.nftCardContent h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nftCardPrice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.nftCardPrice svg {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+/* Pool Cards */
+.poolCard {
+  flex: 0 0 auto;
+  width: 280px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  scroll-snap-align: start;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+}
+
+.poolCard:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(200, 161, 255, 0.08);
+}
+
+.poolDemoBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--accent-dim);
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  z-index: 5;
+}
+
+.poolImage {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+}
+
+.poolImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.poolCard:hover .poolImage img {
+  transform: scale(1.05);
+}
+
+.poolBrandTag {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 6px 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.poolContent {
+  padding: 16px;
+}
+
+.poolContent h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poolProgressBar {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.poolProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #d4b8ff 100%);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.poolProgressLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.poolProgressLabel span:first-child {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.poolStats {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.poolStatItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.poolStatItem svg {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.poolInvestBtn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--bg-dark);
+  background: linear-gradient(135deg, var(--accent) 0%, #d4b8ff 100%);
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.poolInvestBtn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px rgba(200, 161, 255, 0.3);
+}
+
+/* Empty & Loading States */
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 280px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* Skeleton Loading */
+.skeletonCard {
+  flex: 0 0 auto;
+  width: 260px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.skeletonImage {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeletonContent {
+  padding: 16px;
+}
+
+.skeletonTitle {
+  height: 16px;
+  width: 70%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.skeletonPrice {
+  height: 20px;
+  width: 40%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ========== TRUST FOOTER ========== */
+.trustFooter {
+  width: 100%;
+  max-width: 1000px;
+  padding: 60px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 50px;
+  z-index: 2;
+}
+
+.trustStats {
+  display: flex;
+  gap: 60px;
+}
+
+.trustStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.statValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -1px;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.poweredBy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.poweredLabel {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.partnerLogos {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.partnerLogos a {
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.partnerLogos img {
+  height: 28px;
+  width: auto;
+  opacity: 0.4;
+  filter: grayscale(100%) brightness(1.5);
+  transition: all 0.3s ease;
+}
+
+.partnerLogos a:hover img {
+  opacity: 1;
+  filter: grayscale(0%) brightness(1);
+  transform: scale(1.1);
+}
+
+/* CTA Card in Trust Footer */
+.ctaCard {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 50px 40px;
+  text-align: center;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 600px;
+}
+
+.ctaCard::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(200, 161, 255, 0.08), transparent 50%);
+  pointer-events: none;
+}
+
+.ctaCard h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  z-index: 1;
+}
+
+.ctaCard p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0 0 28px;
+  position: relative;
+  z-index: 1;
+}
+
+.ctaButtons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+/* ========== RESPONSIVE ========== */
+@media screen and (max-width: 1200px) {
+  .heroContent {
+    padding: 0 40px;
+    max-width: 550px;
+  }
+
+  .heroTitle {
+    font-size: 3.2rem;
+    letter-spacing: 1px;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  .heroContent {
+    width: 55%;
+  }
+
+  .heroTitle {
+    font-size: 2.6rem;
+    letter-spacing: 0.5px;
+  }
+
+  .flowDiagram {
+    gap: 30px;
+  }
+
+  .flowStep {
+    max-width: 200px;
+  }
+
+  .flowIcon {
+    width: 70px;
+    height: 70px;
+    font-size: 1.6rem;
+  }
+
+  .showcaseHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tabSwitcher {
+    width: 100%;
+  }
+
+  .tabBtn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .trustStats {
+    gap: 40px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .heroSection {
+    min-height: auto;
+    height: auto;
+    padding-top: 60px;
+    padding-bottom: 40px;
+  }
+
+  .hero3DBackground {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    min-height: 300px;
+  }
+
+  .hero3DBackground::after {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(13, 13, 13, 0.5) 40%,
+      rgba(13, 13, 13, 0.95) 70%,
+      var(--bg-dark) 100%
+    );
+  }
+
+  .heroContent {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 20px;
+    padding-top: 220px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0;
+  }
+
+  .heroBadge {
+    margin-bottom: 16px;
+  }
+
+  .heroTitle {
+    font-size: 2rem;
+    letter-spacing: 0;
+    margin-bottom: 16px;
+  }
+
+  .heroSubtitle {
+    font-size: 0.9rem;
+    text-align: center;
+    margin-bottom: 24px;
+    max-width: 320px;
+  }
+
+  .heroButtons {
+    flex-direction: column;
+    width: 100%;
+    max-width: 280px;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 0.9rem;
+  }
+
+  .heroStats {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .heroStatDivider {
+    display: none;
+  }
+
+  .heroStat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: auto;
+    flex: 0 0 auto;
+  }
+
+  .heroStatValue {
+    font-size: 1.2rem;
+  }
+
+  .heroStatLabel {
+    font-size: 0.6rem;
+  }
+
+  .scrollIndicator {
+    display: none;
+  }
+
+  .flowSection {
+    padding: 50px 20px;
+  }
+
+  .flowDiagram {
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .flowStep {
+    max-width: 280px;
+  }
+
+  .sectionTitle {
+    font-size: 1.5rem;
+  }
+
+  .nftScrollCard {
+    width: 220px;
+  }
+
+  .nftCardImage {
+    height: 160px;
+  }
+
+  .poolCard {
+    width: 240px;
+  }
+
+  .poolImage {
+    height: 120px;
+  }
+
+  .trustStats {
+    gap: 24px;
+  }
+
+  .statValue {
+    font-size: 1.8rem;
+  }
+
+  .partnerLogos {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .partnerLogos img {
+    height: 20px;
+  }
+
+  .ctaCard {
+    padding: 32px 20px;
+    margin: 0 10px;
+  }
+
+  .ctaCard h2 {
+    font-size: 1.4rem;
+  }
+
+  .ctaCard p {
+    font-size: 0.85rem;
+  }
+
+  .ctaButtons {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ctaButtons a {
+    width: 100%;
+  }
+
+  .showcaseSection {
+    padding: 40px 16px;
+  }
+
+  .scrollControls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .viewAllLink {
+    margin-left: 0;
+    flex: 1;
+    justify-content: center;
+    min-width: 120px;
+  }
+
+  .scrollBtn {
+    width: 36px;
+    height: 36px;
+    font-size: 0.8rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .heroContent {
+    padding: 0 16px;
+    padding-top: 200px;
+  }
+
+  .heroTitle {
+    font-size: 1.7rem;
+  }
+
+  .heroSubtitle {
+    font-size: 0.85rem;
+    max-width: 280px;
+  }
+
+  .heroButtons {
+    max-width: 260px;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    padding: 12px 20px;
+    font-size: 0.85rem;
+  }
+
+  .heroStats {
+    gap: 16px;
+  }
+
+  .heroStatValue {
+    font-size: 1rem;
+  }
+
+  .heroStatLabel {
+    font-size: 0.55rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.3rem;
+  }
+
+  .sectionBadge {
+    font-size: 0.6rem;
+    padding: 5px 12px;
+  }
+
+  .flowIcon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.4rem;
+  }
+
+  .flowTitle {
+    font-size: 1rem;
+  }
+
+  .flowDesc {
+    font-size: 0.8rem;
+  }
+
+  .trustStats {
+    gap: 16px;
+  }
+
+  .trustStat {
+    min-width: 70px;
+  }
+
+  .statValue {
+    font-size: 1.4rem;
+  }
+
+  .statLabel {
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+  }
+
+  .tabBtn {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+
+  .nftScrollCard {
+    width: 200px;
+  }
+
+  .poolCard {
+    width: 220px;
+  }
+}
+
+@media screen and (max-width: 360px) {
+  .heroTitle {
+    font-size: 1.5rem;
+  }
+
+  .heroSubtitle {
+    font-size: 0.8rem;
+  }
+
+  .heroButtons {
+    max-width: 240px;
+  }
+
+  .heroStats {
+    gap: 12px;
+  }
+
+  .heroStatValue {
+    font-size: 0.9rem;
+  }
+}
