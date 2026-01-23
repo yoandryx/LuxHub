@@ -781,3 +781,112 @@
     max-height: 300px;
   }
 }
+
+/* ============================================
+   NFT Image Styles
+   ============================================ */
+.nftImage {
+  max-width: 200px;
+  border-radius: 10px;
+}
+
+/* ============================================
+   Squads Multisig Styles
+   ============================================ */
+.multisigCard {
+  margin-bottom: 20px;
+  background-color: #1a1a2e;
+}
+
+.multisigTitle {
+  margin: 0 0 10px 0;
+}
+
+.detailsToggle {
+  margin-top: 10px;
+}
+
+.detailsSummary {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.membersList {
+  margin-top: 5px;
+  padding-left: 20px;
+}
+
+.memberItem {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.permissionBadge {
+  color: #888;
+}
+
+.vaultBalance {
+  margin-left: 10px;
+  color: #10b981;
+}
+
+.filterSelect {
+  width: auto;
+  padding: 8px 12px;
+}
+
+.refreshBtn {
+  margin-left: 10px;
+}
+
+/* Squads proposal status badge colors */
+.statusExecuted {
+  background-color: #10b981;
+}
+
+.statusApproved {
+  background-color: #3b82f6;
+}
+
+.statusRejected {
+  background-color: #ef4444;
+}
+
+.statusCancelled {
+  background-color: #6b7280;
+}
+
+.statusActive {
+  background-color: #f59e0b;
+}
+
+/* Squads action buttons */
+.btnApprove {
+  background-color: #10b981;
+}
+
+.btnReject {
+  background-color: #ef4444;
+}
+
+.btnCancel {
+  background-color: #6b7280;
+}
+
+.btnExecute {
+  background-color: #3b82f6;
+}
+
+.btnSync {
+  background-color: #10b981;
+}
+
+/* Loading tab fallback */
+.loadingTab {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+}

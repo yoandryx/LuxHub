@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, Suspense, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Environment, useProgress, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import styles from '../../styles/HeroScene.module.css';
 
 // Label data with detailed info for hover
 const TECH_LABELS = [
@@ -32,31 +33,9 @@ function Loader() {
   const { progress } = useProgress();
   return (
     <Html center>
-      <div
-        style={{
-          color: '#c8a1ff',
-          fontSize: '14px',
-          fontFamily: 'system-ui',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            width: '100px',
-            height: '2px',
-            background: 'rgba(200, 161, 255, 0.2)',
-            borderRadius: '2px',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: `${progress}%`,
-              height: '100%',
-              background: '#c8a1ff',
-              transition: 'width 0.2s ease',
-            }}
-          />
+      <div className={styles.loaderContainer}>
+        <div className={styles.loaderTrack}>
+          <div className={styles.loaderProgress} style={{ width: `${progress}%` }} />
         </div>
       </div>
     </Html>
@@ -80,7 +59,7 @@ function WatchModel({
   const { scene } = useGLTF('/3Dmodels/RolexSub-optimized.glb');
 
   // Scale based on viewport
-  const scale = viewportSize === 'mobile' ? 0.9 : viewportSize === 'tablet' ? 1.2 : 1.8;
+  const scale = viewportSize === 'mobile' ? 0.9 : viewportSize === 'tablet' ? 1.2 : 1.5;
 
   useEffect(() => {
     if (scene) {
@@ -98,7 +77,7 @@ function WatchModel({
       });
 
       // Rotate PI (180°) on Y-axis so watch dial faces the camera
-      scene.rotation.set(0, Math.PI, 0);
+      scene.rotation.set(0, 5, 0.1);
       scene.scale.setScalar(scale);
     }
   }, [scene, scale]);
@@ -253,73 +232,16 @@ function ParticleField({
 // Mobile labels - Stacked cards on the left side with animated highlight
 function MobileLabelsStack({ activeIndex }: { activeIndex: number }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        left: '12px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        zIndex: 10,
-        pointerEvents: 'none',
-      }}
-    >
+    <div className={styles.mobileLabelsStack}>
       {TECH_LABELS.map((label, i) => {
         const isActive = activeIndex === i;
         return (
           <div
             key={label.code}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: isActive ? '10px 14px' : '8px 12px',
-              background: isActive ? 'rgba(200, 161, 255, 0.12)' : 'rgba(13, 13, 13, 0.7)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: `1px solid ${isActive ? 'rgba(200, 161, 255, 0.4)' : 'rgba(200, 161, 255, 0.15)'}`,
-              borderRadius: '6px',
-              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              transform: isActive ? 'translateX(4px) scale(1.02)' : 'translateX(0) scale(1)',
-              boxShadow: isActive ? '0 4px 20px rgba(200, 161, 255, 0.15)' : 'none',
-              opacity: isActive ? 1 : 0.7,
-            }}
+            className={`${styles.mobileLabelCard} ${isActive ? styles.active : ''}`}
           >
-            {/* Code badge */}
-            <span
-              style={{
-                padding: '3px 6px',
-                background: isActive ? 'rgba(200, 161, 255, 0.25)' : 'rgba(200, 161, 255, 0.1)',
-                border: '1px solid rgba(200, 161, 255, 0.3)',
-                borderRadius: '3px',
-                fontSize: '0.55rem',
-                fontWeight: 700,
-                color: isActive ? '#c8a1ff' : 'rgba(200, 161, 255, 0.7)',
-                letterSpacing: '1px',
-                fontFamily: '"SF Mono", "Fira Code", monospace',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              {label.code}
-            </span>
-            {/* Text - only show on active */}
-            <span
-              style={{
-                fontSize: '0.65rem',
-                fontWeight: 500,
-                color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
-                letterSpacing: '0.5px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                maxWidth: isActive ? '120px' : '0px',
-                opacity: isActive ? 1 : 0,
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-            >
-              {label.text}
-            </span>
+            <span className={styles.mobileLabelBadge}>{label.code}</span>
+            <span className={styles.mobileLabelText}>{label.text}</span>
           </div>
         );
       })}
@@ -330,98 +252,23 @@ function MobileLabelsStack({ activeIndex }: { activeIndex: number }) {
 // Tablet labels - Horizontal bar at bottom with expanded detail
 function TabletLabelsBar({ activeIndex }: { activeIndex: number }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: '16px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '10px',
-        zIndex: 10,
-        pointerEvents: 'none',
-      }}
-    >
+    <div className={styles.tabletLabelsBar}>
       {/* Active label detail */}
-      <div
-        style={{
-          padding: '8px 16px',
-          background: 'rgba(13, 13, 13, 0.85)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(200, 161, 255, 0.25)',
-          borderRadius: '8px',
-          textAlign: 'center',
-          minWidth: '200px',
-        }}
-      >
-        <p
-          style={{
-            fontSize: '0.7rem',
-            color: 'rgba(255, 255, 255, 0.7)',
-            margin: 0,
-            lineHeight: 1.4,
-          }}
-        >
-          {TECH_LABELS[activeIndex].detail}
-        </p>
+      <div className={styles.tabletDetailBox}>
+        <p className={styles.tabletDetailText}>{TECH_LABELS[activeIndex].detail}</p>
       </div>
 
       {/* Badge row */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '6px',
-          padding: '6px 10px',
-          background: 'rgba(13, 13, 13, 0.8)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(200, 161, 255, 0.2)',
-          borderRadius: '8px',
-        }}
-      >
+      <div className={styles.tabletBadgeRow}>
         {TECH_LABELS.map((label, i) => {
           const isActive = activeIndex === i;
           return (
             <div
               key={label.code}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: isActive ? '6px 12px' : '6px 8px',
-                background: isActive ? 'rgba(200, 161, 255, 0.15)' : 'transparent',
-                border: `1px solid ${isActive ? 'rgba(200, 161, 255, 0.4)' : 'transparent'}`,
-                borderRadius: '4px',
-                transition: 'all 0.3s ease',
-              }}
+              className={`${styles.tabletBadgeItem} ${isActive ? styles.active : ''}`}
             >
-              <span
-                style={{
-                  fontSize: '0.6rem',
-                  fontWeight: 600,
-                  color: isActive ? '#c8a1ff' : 'rgba(200, 161, 255, 0.6)',
-                  letterSpacing: '1px',
-                  fontFamily: '"SF Mono", "Fira Code", monospace',
-                }}
-              >
-                {label.code}
-              </span>
-              {isActive && (
-                <span
-                  style={{
-                    fontSize: '0.65rem',
-                    fontWeight: 500,
-                    color: '#ffffff',
-                    letterSpacing: '0.5px',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {label.text}
-                </span>
-              )}
+              <span className={styles.tabletBadgeCode}>{label.code}</span>
+              {isActive && <span className={styles.tabletBadgeText}>{label.text}</span>}
             </div>
           );
         })}
@@ -448,175 +295,41 @@ function FloatingLabel({
 }) {
   return (
     <div
+      className={`${styles.floatingLabel} ${isHovered ? styles.hovered : ''}`}
       style={{
-        position: 'absolute',
         right: `${position.x}%`,
         top: `${position.y}%`,
-        transform: 'translateY(-50%)',
         opacity,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0',
-        cursor: 'pointer',
-        pointerEvents: 'auto',
         zIndex: isHovered ? 100 : Math.round(opacity * 10),
       }}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
     >
       {/* Main container - angular futuristic shape */}
-      <div
-        style={{
-          position: 'relative',
-          padding: isHovered ? '12px 18px' : '8px 14px',
-          background: isHovered
-            ? 'linear-gradient(135deg, rgba(200, 161, 255, 0.12) 0%, rgba(13, 13, 13, 0.9) 100%)'
-            : 'rgba(13, 13, 13, 0.8)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: `1px solid ${isHovered ? 'rgba(200, 161, 255, 0.4)' : 'rgba(200, 161, 255, 0.15)'}`,
-          borderRadius: '2px',
-          clipPath:
-            'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          boxShadow: isHovered
-            ? '0 0 30px rgba(200, 161, 255, 0.2), inset 0 0 20px rgba(200, 161, 255, 0.05)'
-            : 'none',
-        }}
-      >
+      <div className={styles.floatingLabelMain}>
         {/* Corner accents */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '12px',
-            height: '1px',
-            background: isHovered ? '#c8a1ff' : 'rgba(200, 161, 255, 0.4)',
-            transition: 'all 0.3s ease',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '1px',
-            height: '12px',
-            background: isHovered ? '#c8a1ff' : 'rgba(200, 161, 255, 0.4)',
-            transition: 'all 0.3s ease',
-          }}
-        />
+        <div className={styles.cornerAccentH} />
+        <div className={styles.cornerAccentV} />
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}
-        >
+        <div className={styles.floatingLabelContent}>
           {/* Tech code badge */}
-          <span
-            style={{
-              padding: '3px 6px',
-              background: isHovered ? 'rgba(200, 161, 255, 0.2)' : 'transparent',
-              border: '1px solid rgba(200, 161, 255, 0.4)',
-              fontSize: '0.6rem',
-              fontWeight: 600,
-              color: '#c8a1ff',
-              letterSpacing: '1.5px',
-              fontFamily: '"SF Mono", "Fira Code", monospace',
-              transition: 'all 0.3s ease',
-            }}
-          >
-            {label.code}
-          </span>
-          <span
-            style={{
-              fontSize: '0.7rem',
-              fontWeight: 500,
-              color: isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
-              letterSpacing: '1.5px',
-              whiteSpace: 'nowrap',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              transition: 'all 0.3s ease',
-            }}
-          >
-            {label.text}
-          </span>
+          <span className={styles.floatingLabelCode}>{label.code}</span>
+          <span className={styles.floatingLabelText}>{label.text}</span>
         </div>
 
         {/* Expanded detail on hover */}
-        <div
-          style={{
-            maxHeight: isHovered ? '50px' : '0',
-            overflow: 'hidden',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            marginTop: isHovered ? '8px' : '0',
-            paddingTop: isHovered ? '8px' : '0',
-            borderTop: isHovered ? '1px solid rgba(200, 161, 255, 0.2)' : '1px solid transparent',
-          }}
-        >
-          <p
-            style={{
-              fontSize: '0.65rem',
-              color: 'rgba(255, 255, 255, 0.6)',
-              margin: 0,
-              lineHeight: 1.5,
-              maxWidth: '220px',
-              letterSpacing: '0.3px',
-            }}
-          >
-            {label.detail}
-          </p>
+        <div className={styles.floatingLabelDetail}>
+          <p className={styles.floatingLabelDetailText}>{label.detail}</p>
         </div>
       </div>
 
       {/* Connector line with gradient */}
-      <div
-        style={{
-          width: isHovered ? '35px' : '20px',
-          height: '1px',
-          background: `linear-gradient(90deg, rgba(200, 161, 255, ${isHovered ? 0.6 : 0.3}), transparent)`,
-          transition: 'all 0.3s ease',
-        }}
-      />
+      <div className={styles.floatingLabelConnector} />
 
       {/* Target reticle dot */}
-      <div
-        style={{
-          position: 'relative',
-          width: isHovered ? '14px' : '10px',
-          height: isHovered ? '14px' : '10px',
-          transition: 'all 0.3s ease',
-        }}
-      >
-        {/* Outer ring */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            border: `1px solid ${isHovered ? '#c8a1ff' : 'rgba(200, 161, 255, 0.5)'}`,
-            borderRadius: '50%',
-            transition: 'all 0.3s ease',
-          }}
-        />
-        {/* Inner dot */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: isHovered ? '4px' : '3px',
-            height: isHovered ? '4px' : '3px',
-            background: '#c8a1ff',
-            borderRadius: '50%',
-            boxShadow: isHovered ? '0 0 10px #c8a1ff' : 'none',
-            transition: 'all 0.3s ease',
-          }}
-        />
+      <div className={styles.floatingLabelReticle}>
+        <div className={styles.reticleOuter} />
+        <div className={styles.reticleInner} />
       </div>
     </div>
   );
@@ -702,10 +415,10 @@ export default function HeroScene() {
   }, []);
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div className={styles.heroContainer}>
       <Canvas
         camera={{ position: [0, 1, 8], fov: 55 }}
-        style={{ background: 'transparent' }}
+        className={styles.canvas}
         gl={{
           antialias: false, // Disable for performance
           alpha: true,
@@ -736,14 +449,7 @@ export default function HeroScene() {
       ) : viewportSize === 'tablet' ? (
         <TabletLabelsBar activeIndex={mobileActiveLabel} />
       ) : (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            overflow: 'hidden',
-          }}
-        >
+        <div className={styles.desktopLabelsContainer}>
           {labelPositions.map((pos, i) => (
             <FloatingLabel
               key={i}
@@ -759,21 +465,7 @@ export default function HeroScene() {
       )}
 
       {/* Radial glow behind watch - responsive positioning */}
-      <div
-        style={{
-          position: 'absolute',
-          top: viewportSize === 'mobile' ? '40%' : viewportSize === 'tablet' ? '45%' : '40%',
-          right: viewportSize === 'mobile' ? '40%' : viewportSize === 'tablet' ? '50%' : '15%',
-          transform: 'translate(50%, -50%)',
-          width:
-            viewportSize === 'mobile' ? '280px' : viewportSize === 'tablet' ? '400px' : '600px',
-          height:
-            viewportSize === 'mobile' ? '280px' : viewportSize === 'tablet' ? '400px' : '600px',
-          background: 'radial-gradient(circle, rgba(200, 161, 255, 0.12) 0%, transparent 55%)',
-          pointerEvents: 'none',
-          filter: 'blur(60px)',
-        }}
-      />
+      <div className={`${styles.radialGlow} ${styles[viewportSize]}`} />
     </div>
   );
 }

@@ -31,6 +31,7 @@ import FilterSortPanel from '../components/marketplace/FilterSortPanel';
 import { CiSearch } from 'react-icons/ci';
 import MakeOfferModal from '../components/marketplace/MakeOfferModal';
 import { VendorProfile } from '@/lib/models/VendorProfile';
+import { useVendors, usePools } from '../hooks/useSWR';
 
 interface NFT {
   title: string;
@@ -322,8 +323,6 @@ const MOCK_CUSTODY: CustodyItem[] = [
 const Marketplace = () => {
   const wallet = useWallet();
   const [nfts, setNfts] = useState<NFT[]>([]);
-  const [pools, setPools] = useState<Pool[]>([]);
-  const [custodyItems, setCustodyItems] = useState<CustodyItem[]>([]);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [loadingMint, setLoadingMint] = useState<string | null>(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
@@ -344,10 +343,36 @@ const Marketplace = () => {
     categories: [],
   });
 
-  const [vendors, setVendors] = useState<VendorProfile[]>([]);
-  const [verifiedVendors, setVerifiedVendors] = useState<VendorProfile[]>([]);
-  const [isLoadingPools, setIsLoadingPools] = useState(true);
-  const [isLoadingCustody, setIsLoadingCustody] = useState(true);
+  // SWR hooks for cached data fetching (automatic caching & revalidation)
+  const { vendors, verifiedVendors } = useVendors();
+  const { pools: openPools, isLoading: isLoadingPools } = usePools('open');
+  const { pools: listedPools, isLoading: isLoadingCustody } = usePools('listed');
+
+  // Use SWR data or fallback to mock data
+  const pools = (openPools.length > 0 ? openPools : MOCK_POOLS) as Pool[];
+
+  // Custody items derived from SWR pools data with transformation
+  const custodyItems: CustodyItem[] = useMemo(() => {
+    if (listedPools.length === 0) return MOCK_CUSTODY;
+
+    return listedPools.map((pool: any) => ({
+      _id: pool._id,
+      poolId: pool._id,
+      title: pool.asset?.model || pool.title || 'Luxury Item',
+      description: pool.description || 'Verified item in LuxHub custody.',
+      image: pool.asset?.imageUrl || pool.image || '',
+      originalPurchaseUSD: pool.targetAmountUSD,
+      resaleListingPriceUSD: pool.resaleListingPriceUSD,
+      resaleListingPriceSol: pool.resaleListingPrice,
+      totalInvestors: pool.participants?.length || 0,
+      projectedProfitPercent:
+        ((pool.resaleListingPriceUSD - pool.targetAmountUSD) / pool.targetAmountUSD) * 100,
+      custodyVerifiedAt: pool.custodyReceivedAt || pool.updatedAt,
+      brand: pool.asset?.brand || pool.brand || '',
+      model: pool.asset?.model || pool.model || '',
+      status: 'listed' as const,
+    }));
+  }, [listedPools]);
 
   const filteredNfts = useMemo(() => {
     return nfts
@@ -657,86 +682,7 @@ const Marketplace = () => {
     }
   }, [metaplex]);
 
-  useEffect(() => {
-    fetch('/api/vendor/vendorList')
-      .then((res) => res.json())
-      .then((data) => {
-        setVendors(data.vendors || []);
-        setVerifiedVendors(data.verifiedVendors || []);
-      })
-      .catch((err) => console.error('Failed to load vendors:', err));
-  }, []);
-
-  // Fetch pools for fractional ownership
-  useEffect(() => {
-    const fetchPools = async () => {
-      setIsLoadingPools(true);
-      try {
-        const res = await fetch('/api/pools?status=open');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.pools && data.pools.length > 0) {
-            setPools(data.pools);
-          } else {
-            // Use mock data if no real pools
-            setPools(MOCK_POOLS);
-          }
-        } else {
-          setPools(MOCK_POOLS);
-        }
-      } catch (error) {
-        console.error('Error fetching pools:', error);
-        setPools(MOCK_POOLS);
-      } finally {
-        setIsLoadingPools(false);
-      }
-    };
-    fetchPools();
-  }, []);
-
-  // Fetch custody items (funded pools listed for resale)
-  useEffect(() => {
-    const fetchCustody = async () => {
-      setIsLoadingCustody(true);
-      try {
-        const res = await fetch('/api/pools?status=listed');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.pools && data.pools.length > 0) {
-            // Transform pool data to custody format
-            const custodyData: CustodyItem[] = data.pools.map((pool: any) => ({
-              _id: pool._id,
-              poolId: pool._id,
-              title: pool.asset?.model || pool.title || 'Luxury Item',
-              description: pool.description || 'Verified item in LuxHub custody.',
-              image: pool.asset?.imageUrl || pool.image || '',
-              originalPurchaseUSD: pool.targetAmountUSD,
-              resaleListingPriceUSD: pool.resaleListingPriceUSD,
-              resaleListingPriceSol: pool.resaleListingPrice,
-              totalInvestors: pool.participants?.length || 0,
-              projectedProfitPercent:
-                ((pool.resaleListingPriceUSD - pool.targetAmountUSD) / pool.targetAmountUSD) * 100,
-              custodyVerifiedAt: pool.custodyReceivedAt || pool.updatedAt,
-              brand: pool.asset?.brand || pool.brand || '',
-              model: pool.asset?.model || pool.model || '',
-              status: 'listed',
-            }));
-            setCustodyItems(custodyData);
-          } else {
-            setCustodyItems(MOCK_CUSTODY);
-          }
-        } else {
-          setCustodyItems(MOCK_CUSTODY);
-        }
-      } catch (error) {
-        console.error('Error fetching custody items:', error);
-        setCustodyItems(MOCK_CUSTODY);
-      } finally {
-        setIsLoadingCustody(false);
-      }
-    };
-    fetchCustody();
-  }, []);
+  // Vendors, pools, and custody items are now fetched via SWR hooks (see above)
 
   // Handle wallet connected callback from WalletGuide modal
   const handleWalletConnected = useCallback(() => {

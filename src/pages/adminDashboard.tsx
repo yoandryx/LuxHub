@@ -1206,12 +1206,7 @@ const AdminDashboard: React.FC = () => {
                     <div className={styles.listingCardInfo}>
                       {escrow.image && (
                         <div className={styles.nftImageWrapper}>
-                          <img
-                            src={escrow.image}
-                            alt={escrow.name}
-                            className={styles.nftImage}
-                            style={{ maxWidth: '200px', borderRadius: '10px' }}
-                          />
+                          <img src={escrow.image} alt={escrow.name} className={styles.nftImage} />
                         </div>
                       )}
 
@@ -1487,12 +1482,9 @@ const AdminDashboard: React.FC = () => {
 
             {/* Multisig Info Card */}
             {squadsMultisigInfo && (
-              <div
-                className={styles.listingCard}
-                style={{ marginBottom: '20px', backgroundColor: '#1a1a2e' }}
-              >
+              <div className={`${styles.listingCard} ${styles.multisigCard}`}>
                 <div className={styles.listingCardInfo}>
-                  <h3 style={{ margin: '0 0 10px 0' }}>Multisig Configuration</h3>
+                  <h3 className={styles.multisigTitle}>Multisig Configuration</h3>
                   <p>
                     <strong>Address:</strong>{' '}
                     <a
@@ -1512,17 +1504,17 @@ const AdminDashboard: React.FC = () => {
                     <strong>Total Proposals:</strong> {squadsMultisigInfo.transactionIndex}
                   </p>
 
-                  <details style={{ marginTop: '10px' }}>
-                    <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                  <details className={styles.detailsToggle}>
+                    <summary className={styles.detailsSummary}>
                       Members ({squadsMultisigInfo.members?.length})
                     </summary>
-                    <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
+                    <ul className={styles.membersList}>
                       {squadsMultisigInfo.members?.map((m, i) => (
-                        <li key={i} style={{ fontSize: '12px', marginBottom: '4px' }}>
+                        <li key={i} className={styles.memberItem}>
                           <code>
                             {m.pubkey.slice(0, 6)}...{m.pubkey.slice(-6)}
                           </code>{' '}
-                          <span style={{ color: '#888' }}>
+                          <span className={styles.permissionBadge}>
                             [{m.permissions.initiate && 'I'}
                             {m.permissions.vote && 'V'}
                             {m.permissions.execute && 'E'}]
@@ -1533,19 +1525,19 @@ const AdminDashboard: React.FC = () => {
                   </details>
 
                   {squadsMultisigInfo.vaults && squadsMultisigInfo.vaults.length > 0 && (
-                    <details style={{ marginTop: '10px' }}>
-                      <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                    <details className={styles.detailsToggle}>
+                      <summary className={styles.detailsSummary}>
                         Vaults ({squadsMultisigInfo.vaults.length})
                       </summary>
-                      <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
+                      <ul className={styles.membersList}>
                         {squadsMultisigInfo.vaults.map((v, i) => (
-                          <li key={i} style={{ fontSize: '12px', marginBottom: '4px' }}>
+                          <li key={i} className={styles.memberItem}>
                             <strong>Vault {v.index}:</strong>{' '}
                             <code>
                               {v.pda.slice(0, 6)}...{v.pda.slice(-6)}
                             </code>
                             {v.balance !== undefined && (
-                              <span style={{ marginLeft: '10px', color: '#10b981' }}>
+                              <span className={styles.vaultBalance}>
                                 {(v.balance / 1e9).toFixed(4)} SOL
                               </span>
                             )}
@@ -1566,8 +1558,7 @@ const AdminDashboard: React.FC = () => {
                     setSquadsFilter(e.target.value);
                     fetchSquadsProposals(e.target.value);
                   }}
-                  className={styles.searchBar}
-                  style={{ width: 'auto', padding: '8px 12px' }}
+                  className={`${styles.searchBar} ${styles.filterSelect}`}
                 >
                   <option value="pending">Pending (Active/Approved)</option>
                   <option value="active">Active Only</option>
@@ -1578,7 +1569,7 @@ const AdminDashboard: React.FC = () => {
                 <button
                   onClick={() => fetchSquadsProposals(squadsFilter)}
                   disabled={squadsLoading}
-                  style={{ marginLeft: '10px' }}
+                  className={styles.refreshBtn}
                 >
                   {squadsLoading ? 'Loading...' : 'Refresh'}
                 </button>
@@ -1600,18 +1591,17 @@ const AdminDashboard: React.FC = () => {
                   <div key={idx} className={styles.listingCard}>
                     <div className={styles.statusBadge}>
                       <div
-                        style={{
-                          backgroundColor:
-                            proposal.status === 'executed'
-                              ? '#10b981'
-                              : proposal.status === 'approved'
-                                ? '#3b82f6'
-                                : proposal.status === 'rejected'
-                                  ? '#ef4444'
-                                  : proposal.status === 'cancelled'
-                                    ? '#6b7280'
-                                    : '#f59e0b',
-                        }}
+                        className={
+                          proposal.status === 'executed'
+                            ? styles.statusExecuted
+                            : proposal.status === 'approved'
+                              ? styles.statusApproved
+                              : proposal.status === 'rejected'
+                                ? styles.statusRejected
+                                : proposal.status === 'cancelled'
+                                  ? styles.statusCancelled
+                                  : styles.statusActive
+                        }
                       >
                         {proposal.status.toUpperCase()}
                       </div>
@@ -1660,21 +1650,21 @@ const AdminDashboard: React.FC = () => {
                             <button
                               onClick={() => approveSquadsProposal(proposal.transactionIndex)}
                               disabled={squadsLoading}
-                              style={{ backgroundColor: '#10b981' }}
+                              className={styles.btnApprove}
                             >
                               Approve
                             </button>
                             <button
                               onClick={() => rejectSquadsProposal(proposal.transactionIndex)}
                               disabled={squadsLoading}
-                              style={{ backgroundColor: '#ef4444' }}
+                              className={styles.btnReject}
                             >
                               Reject
                             </button>
                             <button
                               onClick={() => cancelSquadsProposal(proposal.transactionIndex)}
                               disabled={squadsLoading}
-                              style={{ backgroundColor: '#6b7280' }}
+                              className={styles.btnCancel}
                             >
                               Cancel
                             </button>
@@ -1684,7 +1674,7 @@ const AdminDashboard: React.FC = () => {
                           <button
                             onClick={() => executeSquadsProposal(proposal.transactionIndex)}
                             disabled={squadsLoading}
-                            style={{ backgroundColor: '#3b82f6' }}
+                            className={styles.btnExecute}
                           >
                             Execute Proposal
                           </button>
@@ -1696,7 +1686,7 @@ const AdminDashboard: React.FC = () => {
                               if (seed) syncEscrowState(seed);
                             }}
                             disabled={squadsLoading}
-                            style={{ backgroundColor: '#10b981' }}
+                            className={styles.btnSync}
                           >
                             Sync to MongoDB
                           </button>
