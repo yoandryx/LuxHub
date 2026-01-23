@@ -1,5 +1,20 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import styles from '../../styles/PoolCard.module.css';
+
+// Hoisted outside component to prevent re-creation on each render
+const POOL_STATUS_COLORS: Record<string, string> = {
+  open: '#00ff88',
+  filled: '#ffd700',
+  funded: '#00bfff',
+  custody: '#ff69b4',
+  active: '#9370db',
+  listed: '#ff8c00',
+  sold: '#32cd32',
+  distributed: '#c0c0c0',
+  closed: '#808080',
+};
+
+const DEFAULT_STATUS_COLOR = '#c8a1ff';
 
 interface Pool {
   _id: string;
@@ -45,28 +60,26 @@ interface PoolCardProps {
   onClick: () => void;
 }
 
-const PoolCard: React.FC<PoolCardProps> = ({ pool, onClick }) => {
-  const percentFilled =
-    pool.totalShares > 0 ? ((pool.sharesSold / pool.totalShares) * 100).toFixed(1) : '0';
+const PoolCard: React.FC<PoolCardProps> = memo(({ pool, onClick }) => {
+  // Memoized calculations
+  const percentFilled = useMemo(
+    () => (pool.totalShares > 0 ? ((pool.sharesSold / pool.totalShares) * 100).toFixed(1) : '0'),
+    [pool.totalShares, pool.sharesSold]
+  );
 
   const sharesRemaining = pool.totalShares - pool.sharesSold;
   const assetImage =
     pool.asset?.imageIpfsUrls?.[0] || pool.asset?.images?.[0] || '/images/placeholder-watch.png';
   const assetModel = pool.asset?.model || 'Luxury Watch';
-  const investorCount = new Set(pool.participants?.map((p) => p.wallet) || []).size;
 
-  const statusColor =
-    {
-      open: '#00ff88',
-      filled: '#ffd700',
-      funded: '#00bfff',
-      custody: '#ff69b4',
-      active: '#9370db',
-      listed: '#ff8c00',
-      sold: '#32cd32',
-      distributed: '#c0c0c0',
-      closed: '#808080',
-    }[pool.status] || '#c8a1ff';
+  // Memoized investor count calculation
+  const investorCount = useMemo(
+    () => new Set(pool.participants?.map((p) => p.wallet) || []).size,
+    [pool.participants]
+  );
+
+  // Use hoisted color map
+  const statusColor = POOL_STATUS_COLORS[pool.status] || DEFAULT_STATUS_COLOR;
 
   const hasBagsToken = !!pool.bagsTokenMint;
 
@@ -143,6 +156,8 @@ const PoolCard: React.FC<PoolCardProps> = ({ pool, onClick }) => {
       </div>
     </div>
   );
-};
+});
+
+PoolCard.displayName = 'PoolCard';
 
 export default PoolCard;

@@ -42,6 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Fetch assets for this vendor
+    // Note: vendor lookup depends on user, and assets depend on vendor,
+    // so these must remain sequential
     const assets = await Asset.find(query).sort({ createdAt: -1 }).lean();
 
     // Transform assets for frontend (include all relevant fields)

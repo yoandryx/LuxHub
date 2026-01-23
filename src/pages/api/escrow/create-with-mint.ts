@@ -76,28 +76,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
+    // Import User model
+    const { User } = await import('../../../lib/models/User');
+
+    // Run independent queries in parallel (asset, vendor user, existing escrow check)
+    const [asset, vendorUser, existingEscrow] = await Promise.all([
+      Asset.findById(assetId),
+      User.findOne({ wallet: vendorWallet }),
+      Escrow.findOne({ nftMint, deleted: false }),
+    ]);
+
     // Verify asset exists
-    const asset = await Asset.findById(assetId);
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
 
-    // Verify vendor exists - first find user by wallet, then find vendor by user
-    const { User } = await import('../../../lib/models/User');
-    const vendorUser = await User.findOne({ wallet: vendorWallet });
+    // Verify vendor user exists
     if (!vendorUser) {
       return res.status(404).json({ error: 'Vendor user not found' });
     }
 
+    // Check for duplicate escrow
+    if (existingEscrow) {
+      return res.status(400).json({ error: 'Escrow already exists for this NFT' });
+    }
+
+    // Find vendor profile (depends on vendorUser)
     const vendor = await Vendor.findOne({ user: vendorUser._id });
     if (!vendor) {
       return res.status(404).json({ error: 'Vendor profile not found for this wallet' });
-    }
-
-    // Check for duplicate escrow
-    const existingEscrow = await Escrow.findOne({ nftMint, deleted: false });
-    if (existingEscrow) {
-      return res.status(400).json({ error: 'Escrow already exists for this NFT' });
     }
 
     const connection = new Connection(rpc, 'confirmed');

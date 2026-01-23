@@ -82,21 +82,21 @@ async function getUserContext(wallet: string | null): Promise<UserContext> {
     };
   }
 
-  // Default: buyer
-  const activeOffers = await Offer.countDocuments({
-    buyerWallet: wallet,
-    status: { $in: ['pending', 'countered'] },
-  });
-  const poolInvestments = await Pool.countDocuments({
-    'participants.wallet': wallet,
-  });
-
-  // Get trending items for buyers
-  const trendingEscrows = await Escrow.find({ status: 'active' })
-    .sort({ activeOfferCount: -1 })
-    .limit(3)
-    .populate('asset', 'model priceUSD')
-    .lean();
+  // Default: buyer - run independent queries in parallel
+  const [activeOffers, poolInvestments, trendingEscrows] = await Promise.all([
+    Offer.countDocuments({
+      buyerWallet: wallet,
+      status: { $in: ['pending', 'countered'] },
+    }),
+    Pool.countDocuments({
+      'participants.wallet': wallet,
+    }),
+    Escrow.find({ status: 'active' })
+      .sort({ activeOfferCount: -1 })
+      .limit(3)
+      .populate('asset', 'model priceUSD')
+      .lean(),
+  ]);
 
   const trendingItems = trendingEscrows.map((e: any) => ({
     name: e.asset?.model || 'Unknown',

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import styles from '../../styles/AdminDashboard.module.css';
-import { toast } from 'react-toastify';
+import toast from 'react-hot-toast';
 
 interface EscrowShipment {
   _id: string;
@@ -108,7 +108,9 @@ export const ShipmentVerificationTab: React.FC<ShipmentVerificationTabProps> = (
       if (approved) {
         toast.success('Shipment verified! confirm_delivery proposal created in Squads.');
         if (result.squadsProposal?.transactionIndex) {
-          toast.info(`Squads proposal #${result.squadsProposal.transactionIndex} created`);
+          toast(`Squads proposal #${result.squadsProposal.transactionIndex} created`, {
+            icon: 'ℹ️',
+          });
         }
       } else {
         toast.success('Shipment rejected. Vendor notified to resubmit.');

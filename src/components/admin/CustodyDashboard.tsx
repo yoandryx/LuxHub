@@ -1,8 +1,19 @@
 // src/components/admin/CustodyDashboard.tsx
 // Admin dashboard for tracking LuxHub-held pool assets
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import styles from '../../styles/CustodyDashboard.module.css';
+
+// Hoisted outside component to prevent re-creation on each render
+const CUSTODY_STATUS_COLORS: Record<string, string> = {
+  pending: '#ffd700',
+  shipped: '#00bfff',
+  received: '#ff69b4',
+  verified: '#9370db',
+  stored: '#00ff88',
+};
+
+const DEFAULT_COLOR = '#c8a1ff';
 
 interface CustodyItem {
   _id: string;
@@ -65,13 +76,8 @@ const CustodyDashboard: React.FC = () => {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  useEffect(() => {
-    if (connected && publicKey) {
-      fetchCustodyItems();
-    }
-  }, [connected, publicKey]);
-
-  const fetchCustodyItems = async () => {
+  // Memoized fetch function to prevent unnecessary re-renders
+  const fetchCustodyItems = useCallback(async () => {
     if (!publicKey) return;
 
     try {
@@ -93,82 +99,90 @@ const CustodyDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [publicKey]);
 
-  const handleAction = async (
-    item: CustodyItem,
-    action: string,
-    extraData?: Record<string, any>
-  ) => {
-    if (!publicKey || actionLoading) return;
-
-    setActionLoading(true);
-    try {
-      const response = await fetch('/api/pool/custody', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          poolId: item._id,
-          adminWallet: publicKey.toBase58(),
-          action,
-          ...extraData,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update custody status');
-      }
-
+  useEffect(() => {
+    if (connected && publicKey) {
       fetchCustodyItems();
-      setShowTrackingModal(false);
-      setSelectedItem(null);
-    } catch (err: any) {
-      alert('Error: ' + err.message);
-    } finally {
-      setActionLoading(false);
     }
-  };
+  }, [connected, publicKey, fetchCustodyItems]);
 
-  const openTrackingModal = (item: CustodyItem) => {
+  // Memoized action handler
+  const handleAction = useCallback(
+    async (item: CustodyItem, action: string, extraData?: Record<string, any>) => {
+      if (!publicKey || actionLoading) return;
+
+      setActionLoading(true);
+      try {
+        const response = await fetch('/api/pool/custody', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            poolId: item._id,
+            adminWallet: publicKey.toBase58(),
+            action,
+            ...extraData,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to update custody status');
+        }
+
+        fetchCustodyItems();
+        setShowTrackingModal(false);
+        setSelectedItem(null);
+      } catch (err: any) {
+        alert('Error: ' + err.message);
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [publicKey, actionLoading, fetchCustodyItems]
+  );
+
+  // Memoized modal opener
+  const openTrackingModal = useCallback((item: CustodyItem) => {
     setSelectedItem(item);
     setTrackingCarrier('');
     setTrackingNumber('');
     setShowTrackingModal(true);
-  };
+  }, []);
 
-  const submitTracking = () => {
+  // Memoized submit handler
+  const submitTracking = useCallback(() => {
     if (!selectedItem || !trackingCarrier || !trackingNumber) return;
     handleAction(selectedItem, 'submit_tracking', {
       trackingCarrier,
       trackingNumber,
     });
-  };
+  }, [selectedItem, trackingCarrier, trackingNumber, handleAction]);
 
-  const filteredItems = items.filter((item) => {
-    if (filter === 'all') return true;
-    return item.custodyStatus === filter;
-  });
+  // Memoized filtered items
+  const filteredItems = useMemo(
+    () =>
+      items.filter((item) => {
+        if (filter === 'all') return true;
+        return item.custodyStatus === filter;
+      }),
+    [items, filter]
+  );
 
-  const formatDate = (dateString: string) => {
+  // Memoized date formatter
+  const formatDate = useCallback((dateString: string) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
-  };
+  }, []);
 
-  const getCustodyStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: '#ffd700',
-      shipped: '#00bfff',
-      received: '#ff69b4',
-      verified: '#9370db',
-      stored: '#00ff88',
-    };
-    return colors[status] || '#c8a1ff';
-  };
+  // Use hoisted color map
+  const getCustodyStatusColor = useCallback((status: string) => {
+    return CUSTODY_STATUS_COLORS[status] || DEFAULT_COLOR;
+  }, []);
 
   if (!connected) {
     return (

@@ -87,12 +87,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Get or create investor user
-    let investorUser = await User.findOne({ wallet: investorWallet });
-    if (!investorUser) {
-      investorUser = new User({ wallet: investorWallet, role: 'buyer' });
-      await investorUser.save();
-    }
+    // Get or create investor user (using upsert for efficiency - single DB round-trip)
+    const investorUser = await User.findOneAndUpdate(
+      { wallet: investorWallet },
+      { $setOnInsert: { wallet: investorWallet, role: 'buyer' } },
+      { upsert: true, new: true }
+    );
 
     // Check if investor already has shares
     const existingParticipant = pool.participants.find((p: any) => p.wallet === investorWallet);
