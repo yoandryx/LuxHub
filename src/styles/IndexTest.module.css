@@ -512,53 +512,32 @@
   background: var(--accent);
 }
 
-.scrollControls {
+.viewAllContainer {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.scrollBtn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.scrollBtn:hover {
-  background: var(--accent-glow);
-  border-color: var(--accent-dim);
-  transform: scale(1.05);
+  margin-top: 30px;
+  padding-bottom: 10px;
 }
 
 .viewAllLink {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  font-size: 0.85rem;
+  padding: 12px 28px;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--accent);
   background: transparent;
   border: 1px solid var(--accent-dim);
-  border-radius: 8px;
+  border-radius: 10px;
   text-decoration: none;
   transition: all 0.3s ease;
-  margin-left: auto;
 }
 
 .viewAllLink:hover {
   background: var(--accent-glow);
   border-color: var(--accent);
+  transform: translateY(-2px);
 }
 
 .viewAllLink svg {
@@ -569,31 +548,22 @@
   transform: translateX(4px);
 }
 
-/* Scroller */
+/* Scroller - Grid on desktop, horizontal scroll on mobile */
 .scroller {
-  display: flex;
-  gap: 20px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding: 10px 5px 20px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.scroller::-webkit-scrollbar {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+  padding: 10px 0 20px;
+  width: 100%;
 }
 
 /* NFT Cards */
 .nftScrollCard {
-  flex: 0 0 auto;
-  width: 260px;
+  width: 100%;
   background: var(--glass);
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
-  scroll-snap-align: start;
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(20px);
@@ -656,13 +626,11 @@
 
 /* Pool Cards */
 .poolCard {
-  flex: 0 0 auto;
-  width: 280px;
+  width: 100%;
   background: var(--glass);
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
-  scroll-snap-align: start;
   transition: all 0.3s ease;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -810,11 +778,12 @@
 
 /* Empty & Loading States */
 .emptyState {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 280px;
+  min-height: 200px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px dashed var(--border);
   border-radius: 16px;
@@ -824,8 +793,7 @@
 
 /* Skeleton Loading */
 .skeletonCard {
-  flex: 0 0 auto;
-  width: 260px;
+  width: 100%;
   background: var(--glass);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -834,7 +802,7 @@
 
 .skeletonImage {
   width: 100%;
-  height: 200px;
+  aspect-ratio: 1/1;
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.03) 25%,
@@ -966,6 +934,9 @@
   overflow: hidden;
   width: 100%;
   max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .ctaCard::before {
@@ -1213,8 +1184,14 @@
     font-size: 1.5rem;
   }
 
+  .scroller {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 10px 0 20px;
+  }
+
   .nftScrollCard {
-    width: 220px;
+    width: 100%;
   }
 
   .nftCardImage {
@@ -1222,11 +1199,40 @@
   }
 
   .poolCard {
-    width: 240px;
+    width: 100%;
   }
 
   .poolImage {
     height: 120px;
+  }
+
+  .poolContent {
+    padding: 12px;
+  }
+
+  .poolContent h4 {
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+
+  .poolProgressLabel {
+    font-size: 0.65rem;
+    margin-bottom: 10px;
+  }
+
+  .poolStats {
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .poolStatItem {
+    font-size: 0.7rem;
+  }
+
+  .poolInvestBtn {
+    padding: 10px;
+    font-size: 0.8rem;
   }
 
   .trustStats {
@@ -1273,23 +1279,13 @@
     padding: 40px 16px;
   }
 
-  .scrollControls {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 8px;
+  .viewAllContainer {
+    margin-top: 24px;
   }
 
   .viewAllLink {
-    margin-left: 0;
-    flex: 1;
-    justify-content: center;
-    min-width: 120px;
-  }
-
-  .scrollBtn {
-    width: 36px;
-    height: 36px;
-    font-size: 0.8rem;
+    padding: 10px 24px;
+    font-size: 0.85rem;
   }
 }
 
@@ -1375,12 +1371,17 @@
     font-size: 0.75rem;
   }
 
+  .scroller {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
   .nftScrollCard {
-    width: 200px;
+    width: 100%;
   }
 
   .poolCard {
-    width: 220px;
+    width: 100%;
   }
 }
 
@@ -1403,5 +1404,10 @@
 
   .heroStatValue {
     font-size: 0.9rem;
+  }
+
+  .scroller {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
