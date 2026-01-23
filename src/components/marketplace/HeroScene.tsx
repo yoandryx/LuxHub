@@ -68,11 +68,10 @@ function easeInOutSine(t: number): number {
   return -(Math.cos(Math.PI * t) - 1) / 2;
 }
 
-// Watch model - centered on mobile, positioned right on desktop
+// Watch model - centered on mobile with face-forward rotation, positioned right on desktop
 function WatchModel({ isMobile }: { isMobile: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF('/3Dmodels/RolexSub-optimized.glb');
-  const rotationRef = useRef({ target: 0, current: 0, velocity: 0 });
 
   useEffect(() => {
     if (scene) {
@@ -89,8 +88,10 @@ function WatchModel({ isMobile }: { isMobile: boolean }) {
         }
       });
 
-      scene.rotation.set(0.35, 0, 0.1);
-      scene.scale.setScalar(isMobile ? 1.2 : 1.6);
+      // Rotate PI (180°) on Y-axis so watch dial faces the camera
+      // The model's default orientation has the back facing forward
+      scene.rotation.set(0, Math.PI, 0);
+      scene.scale.setScalar(isMobile ? 1.0 : 1.8); // Smaller on mobile
     }
   }, [scene, isMobile]);
 
@@ -98,33 +99,63 @@ function WatchModel({ isMobile }: { isMobile: boolean }) {
     if (groupRef.current) {
       const t = state.clock.elapsedTime;
 
-      // Luxurious ease-in-out rotation using multiple sine waves
-      // Creates a smooth, organic rotation that speeds up and slows down
-      const slowRotation = Math.sin(t * 0.15) * 0.3; // Very slow base oscillation
-      const mediumRotation = Math.sin(t * 0.4) * 0.15; // Medium speed variation
-      const microVariation = Math.sin(t * 1.2) * 0.02; // Subtle micro-movement
+      if (isMobile) {
+        // Mobile: Ultra-smooth ease-in-out left-right swing
+        // Max rotation ~45° each way from center
+        const maxSwing = Math.PI / 4; // 45 degrees
 
-      // Combine for a smooth, luxurious feel with occasional pauses
-      const pauseFactor = easeInOutSine((Math.sin(t * 0.08) + 1) / 2);
-      const baseSpeed = 0.0008 + pauseFactor * 0.003; // Variable base speed
+        // Create smooth ease-in-out using cosine (starts slow, speeds up, slows down)
+        // Period of ~8 seconds for full left-right-left cycle
+        const period = 8;
+        const phase = (t % period) / period; // 0 to 1
 
-      rotationRef.current.current += baseSpeed;
-      groupRef.current.rotation.y =
-        rotationRef.current.current + slowRotation + mediumRotation + microVariation;
+        // Smooth sine wave with natural easing
+        const smoothSwing = Math.sin(phase * Math.PI * 2) * maxSwing;
 
-      // Gentle floating with ease-in-out
-      const floatPhase = easeInOutSine((Math.sin(t * 0.25) + 1) / 2);
-      groupRef.current.position.y = (isMobile ? 0.8 : 0.5) + floatPhase * 0.08 - 0.04;
+        // Add very subtle secondary motion for organic feel
+        const microMotion = Math.sin(t * 0.5) * 0.03;
 
-      // Subtle tilt variation for extra life
-      groupRef.current.rotation.x = Math.sin(t * 0.2) * 0.02;
-      groupRef.current.rotation.z = Math.sin(t * 0.18) * 0.015;
+        groupRef.current.rotation.y = smoothSwing + microMotion;
+
+        // Gentle floating
+        const floatPhase = easeInOutSine((Math.sin(t * 0.2) + 1) / 2);
+        groupRef.current.position.y = 0.2 + floatPhase * 0.04 - 0.02;
+
+        // Very subtle tilt for life
+        groupRef.current.rotation.x = Math.sin(t * 0.12) * 0.01;
+        groupRef.current.rotation.z = Math.sin(t * 0.1) * 0.008;
+      } else {
+        // Mobile: Ultra-smooth ease-in-out left-right swing
+        // Max rotation ~45° each way from center
+        const maxSwing = Math.PI / 4; // 45 degrees
+
+        // Create smooth ease-in-out using cosine (starts slow, speeds up, slows down)
+        // Period of ~8 seconds for full left-right-left cycle
+        const period = 8;
+        const phase = (t % period) / period; // 0 to 1
+
+        // Smooth sine wave with natural easing
+        const smoothSwing = Math.sin(phase * Math.PI * 2) * maxSwing;
+
+        // Add very subtle secondary motion for organic feel
+        const microMotion = Math.sin(t * 0.6) * 0.04;
+
+        groupRef.current.rotation.y = smoothSwing + microMotion;
+
+        // Gentle floating
+        const floatPhase = easeInOutSine((Math.sin(t * 0.2) + 1) / 2);
+        groupRef.current.position.y = 0.2 + floatPhase * 0.04 - 0.02;
+
+        // Very subtle tilt for life
+        // groupRef.current.rotation.x = Math.sin(t * 0.12) * 0.01;
+        // groupRef.current.rotation.z = Math.sin(t * 0.1) * 0.008;
+      }
     }
   });
 
-  // Center on mobile, right side on desktop
+  // Center on mobile (slightly higher), right side on desktop
   const xPos = isMobile ? 0 : 2;
-  const yPos = isMobile ? 0.8 : 0.5;
+  const yPos = isMobile ? 0.2 : 0.5;
 
   return (
     <group ref={groupRef} position={[xPos, yPos, 0]}>
@@ -151,12 +182,20 @@ function CameraController({ isMobile }: { isMobile: boolean }) {
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    // Subtle camera movement with ease
-    const camMovement = easeInOutSine((Math.sin(t * 0.1) + 1) / 2);
-    camera.position.x = (isMobile ? 0 : 0.5) + camMovement * 0.4 - 0.2;
-    camera.position.y = 1 + Math.sin(t * 0.08) * 0.1;
-    // Look at watch position (centered on mobile, right on desktop)
-    camera.lookAt(isMobile ? 0 : 2, isMobile ? 0.8 : 0.5, 0);
+
+    if (isMobile) {
+      // Mobile: Camera straight on, good distance for smaller watch
+      camera.position.x = Math.sin(t * 0.06) * 0.08; // Very subtle side movement
+      camera.position.y = 0.6 + Math.sin(t * 0.05) * 0.03;
+      camera.position.z = 5.5; // Good distance for mobile
+      camera.lookAt(0, 0.2, 0);
+    } else {
+      // Desktop: Original camera movement
+      const camMovement = easeInOutSine((Math.sin(t * 0.1) + 1) / 2);
+      camera.position.x = 0.5 + camMovement * 0.4 - 0.2;
+      camera.position.y = 1 + Math.sin(t * 0.08) * 0.1;
+      camera.lookAt(2, 0.5, 0);
+    }
   });
 
   return null;
@@ -185,22 +224,23 @@ function GlowRing({ isMobile }: { isMobile: boolean }) {
 }
 
 // Particles spread across scene - positioned in front of camera
-function ParticleField() {
+function ParticleField({ isMobile }: { isMobile: boolean }) {
   const particlesRef = useRef<THREE.Points>(null);
 
   const { geometry } = useMemo(() => {
-    const count = 80;
+    // More particles for richer effect on both mobile and desktop
+    const count = isMobile ? 120 : 200;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       // Spread particles across visible area, closer to camera
-      positions[i * 3] = (Math.random() - 0.5) * 25; // x: wide spread
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 15; // y: tall spread
-      positions[i * 3 + 2] = Math.random() * 6 + 1; // z: in front (1-7)
+      positions[i * 3] = (Math.random() - 0.5) * 30; // x: wider spread
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 20; // y: taller spread
+      positions[i * 3 + 2] = Math.random() * 8 + 1; // z: in front (1-9)
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return { geometry: geo };
-  }, []);
+  }, [isMobile]);
 
   useFrame((state) => {
     if (particlesRef.current) {
@@ -210,8 +250,63 @@ function ParticleField() {
 
   return (
     <points ref={particlesRef} geometry={geometry}>
-      <pointsMaterial size={0.06} color="#c8a1ff" transparent opacity={0.6} sizeAttenuation />
+      <pointsMaterial
+        size={isMobile ? 0.08 : 0.06}
+        color="#c8a1ff"
+        transparent
+        opacity={0.6}
+        sizeAttenuation
+      />
     </points>
+  );
+}
+
+// Mobile label strip - compact horizontal badges
+function MobileLabelStrip({ activeIndex }: { activeIndex: number }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: '12px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: '8px',
+        padding: '8px 12px',
+        background: 'rgba(13, 13, 13, 0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(200, 161, 255, 0.2)',
+        borderRadius: '8px',
+        zIndex: 10,
+      }}
+    >
+      {TECH_LABELS.map((label, i) => (
+        <div
+          key={label.code}
+          style={{
+            padding: '4px 8px',
+            background: activeIndex === i ? 'rgba(200, 161, 255, 0.2)' : 'transparent',
+            border: `1px solid ${activeIndex === i ? 'rgba(200, 161, 255, 0.5)' : 'rgba(200, 161, 255, 0.2)'}`,
+            borderRadius: '4px',
+            transition: 'all 0.3s ease',
+            transform: activeIndex === i ? 'scale(1.05)' : 'scale(1)',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '0.55rem',
+              fontWeight: 600,
+              color: activeIndex === i ? '#c8a1ff' : 'rgba(200, 161, 255, 0.7)',
+              letterSpacing: '1px',
+              fontFamily: '"SF Mono", "Fira Code", monospace',
+            }}
+          >
+            {label.code}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -413,6 +508,7 @@ export default function HeroScene() {
   );
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileActiveLabel, setMobileActiveLabel] = useState(0);
   const angleRef = useRef(0);
 
   // Check for mobile viewport
@@ -423,29 +519,54 @@ export default function HeroScene() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Animate labels - positioned on right side near watch
+  // Mobile: Cycle through labels to highlight them in sync with watch rotation
   useEffect(() => {
+    if (!isMobile) return;
+
+    const cycleLabelInterval = setInterval(() => {
+      setMobileActiveLabel((prev) => (prev + 1) % TECH_LABELS.length);
+    }, 2500); // Change every 2.5 seconds
+
+    return () => clearInterval(cycleLabelInterval);
+  }, [isMobile]);
+
+  // Animate labels - fixed positions around the watch with subtle floating
+  // Labels arranged: top-right, right, bottom-right, bottom
+  useEffect(() => {
+    // Fixed base positions for each label (positioned around the watch on the right side)
+    const basePositions = [
+      { x: 5, y: 18 }, // ESC - top right of watch
+      { x: 2, y: 38 }, // NFT - right side upper
+      { x: 2, y: 62 }, // VRF - right side lower
+      { x: 5, y: 82 }, // ROY - bottom right of watch
+    ];
+
     const updateLabels = () => {
-      angleRef.current += 0.0015;
+      angleRef.current += 0.008; // Slow animation speed
 
       const newPositions = TECH_LABELS.map((_, i) => {
-        const baseAngle = (i / TECH_LABELS.length) * Math.PI * 2 - Math.PI / 2;
-        const currentAngle = baseAngle + angleRef.current;
+        const base = basePositions[i];
+        const t = angleRef.current;
 
-        // Labels on the right side, orbiting around watch area
-        const x = 8 + Math.cos(currentAngle) * 18;
-        const y = 50 + Math.sin(currentAngle) * 30;
+        // Subtle floating motion - each label has slightly offset timing
+        const offsetPhase = i * 0.8;
+        const floatX = Math.sin(t + offsetPhase) * 1.5; // Small horizontal drift
+        const floatY = Math.sin(t * 0.7 + offsetPhase) * 2; // Small vertical drift
 
-        const depth = Math.cos(currentAngle);
-        const opacity = Math.max(0.2, Math.min(1, (depth + 0.8) * 0.6));
+        // Slight pulsing opacity for depth effect
+        const breathe = 0.85 + Math.sin(t * 0.5 + offsetPhase) * 0.15;
 
-        return { x, y, opacity };
+        return {
+          x: base.x + floatX,
+          y: base.y + floatY,
+          opacity: breathe,
+        };
       });
 
       setLabelPositions(newPositions);
     };
 
-    const interval = setInterval(updateLabels, 33); // ~30fps instead of 50fps
+    const interval = setInterval(updateLabels, 33); // ~30fps
     return () => clearInterval(interval);
   }, []);
 
@@ -475,11 +596,13 @@ export default function HeroScene() {
         </Suspense>
 
         <GlowRing isMobile={isMobile} />
-        <ParticleField />
+        <ParticleField isMobile={isMobile} />
       </Canvas>
 
-      {/* Floating Labels - hidden on mobile to prevent overlap */}
-      {!isMobile && (
+      {/* Floating Labels - desktop: floating around watch, mobile: compact strip */}
+      {isMobile ? (
+        <MobileLabelStrip activeIndex={mobileActiveLabel} />
+      ) : (
         <div
           style={{
             position: 'absolute',
@@ -502,16 +625,16 @@ export default function HeroScene() {
         </div>
       )}
 
-      {/* Radial glow behind watch - on right side */}
+      {/* Radial glow behind watch - centered on mobile, right side on desktop */}
       <div
         style={{
           position: 'absolute',
-          top: '40%',
-          right: '15%',
-          transform: 'translate(50%, -50%)',
-          width: '600px',
-          height: '600px',
-          background: 'radial-gradient(circle, rgba(200, 161, 255, 0.1) 0%, transparent 55%)',
+          top: isMobile ? '35%' : '40%',
+          right: isMobile ? '50%' : '15%',
+          transform: isMobile ? 'translate(50%, -50%)' : 'translate(50%, -50%)',
+          width: isMobile ? '350px' : '600px',
+          height: isMobile ? '350px' : '600px',
+          background: 'radial-gradient(circle, rgba(200, 161, 255, 0.12) 0%, transparent 55%)',
           pointerEvents: 'none',
           filter: 'blur(60px)',
         }}
