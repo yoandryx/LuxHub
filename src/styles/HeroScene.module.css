@@ -1,0 +1,431 @@
+/* HeroScene.module.css - Extracted inline styles for performance */
+
+/* ============================================
+   CSS Variables
+   ============================================ */
+.heroContainer {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.4);
+  --accent-glow: rgba(200, 161, 255, 0.15);
+  --accent-subtle: rgba(200, 161, 255, 0.2);
+  --bg-glass: rgba(13, 13, 13, 0.8);
+  --bg-glass-dark: rgba(13, 13, 13, 0.9);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.3s ease;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+  --font-system: system-ui, -apple-system, sans-serif;
+
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* ============================================
+   Loader Component
+   ============================================ */
+.loaderContainer {
+  color: var(--accent);
+  font-size: 14px;
+  font-family: system-ui;
+  text-align: center;
+}
+
+.loaderTrack {
+  width: 100px;
+  height: 2px;
+  background: var(--accent-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loaderProgress {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+/* ============================================
+   Canvas Styles
+   ============================================ */
+.canvas {
+  background: transparent;
+}
+
+/* ============================================
+   Mobile Labels Stack
+   ============================================ */
+.mobileLabelsStack {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.mobileLabelCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(13, 13, 13, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--accent-glow);
+  border-radius: 6px;
+  transition: var(--transition-smooth);
+  opacity: 0.7;
+}
+
+.mobileLabelCard.active {
+  padding: 10px 14px;
+  background: rgba(200, 161, 255, 0.12);
+  border-color: var(--accent-dim);
+  transform: translateX(4px) scale(1.02);
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.15);
+  opacity: 1;
+}
+
+.mobileLabelBadge {
+  padding: 3px 6px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 3px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: rgba(200, 161, 255, 0.7);
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+  transition: var(--transition-fast);
+}
+
+.mobileLabelCard.active .mobileLabelBadge {
+  background: rgba(200, 161, 255, 0.25);
+  color: var(--accent);
+}
+
+.mobileLabelText {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  transition: var(--transition-smooth);
+}
+
+.mobileLabelCard.active .mobileLabelText {
+  color: var(--text-primary);
+  max-width: 120px;
+  opacity: 1;
+}
+
+/* ============================================
+   Tablet Labels Bar
+   ============================================ */
+.tabletLabelsBar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.tabletDetailBox {
+  padding: 8px 16px;
+  background: rgba(13, 13, 13, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(200, 161, 255, 0.25);
+  border-radius: 8px;
+  text-align: center;
+  min-width: 200px;
+}
+
+.tabletDetailText {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.tabletBadgeRow {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--accent-subtle);
+  border-radius: 8px;
+}
+
+.tabletBadgeItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: var(--transition-fast);
+}
+
+.tabletBadgeItem.active {
+  padding: 6px 12px;
+  background: var(--accent-glow);
+  border-color: var(--accent-dim);
+}
+
+.tabletBadgeCode {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(200, 161, 255, 0.6);
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+}
+
+.tabletBadgeItem.active .tabletBadgeCode {
+  color: var(--accent);
+}
+
+.tabletBadgeText {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* ============================================
+   Floating Label (Desktop)
+   ============================================ */
+.floatingLabel {
+  position: absolute;
+  transform: translateY(-50%);
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.floatingLabelMain {
+  position: relative;
+  padding: 8px 14px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--accent-glow);
+  border-radius: 2px;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  transition: var(--transition-smooth);
+}
+
+.floatingLabel.hovered .floatingLabelMain {
+  padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.12) 0%, var(--bg-glass-dark) 100%);
+  border-color: var(--accent-dim);
+  box-shadow:
+    0 0 30px rgba(200, 161, 255, 0.2),
+    inset 0 0 20px rgba(200, 161, 255, 0.05);
+}
+
+/* Corner accents */
+.cornerAccentH,
+.cornerAccentV {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(200, 161, 255, 0.4);
+  transition: var(--transition-fast);
+}
+
+.cornerAccentH {
+  width: 12px;
+  height: 1px;
+}
+
+.cornerAccentV {
+  width: 1px;
+  height: 12px;
+}
+
+.floatingLabel.hovered .cornerAccentH,
+.floatingLabel.hovered .cornerAccentV {
+  background: var(--accent);
+}
+
+.floatingLabelContent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.floatingLabelCode {
+  padding: 3px 6px;
+  background: transparent;
+  border: 1px solid var(--accent-dim);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 1.5px;
+  font-family: var(--font-mono);
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .floatingLabelCode {
+  background: var(--accent-subtle);
+}
+
+.floatingLabelText {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+  font-family: var(--font-system);
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .floatingLabelText {
+  color: var(--text-primary);
+}
+
+/* Expanded detail */
+.floatingLabelDetail {
+  max-height: 0;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 1px solid transparent;
+}
+
+.floatingLabel.hovered .floatingLabelDetail {
+  max-height: 50px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top-color: var(--accent-subtle);
+}
+
+.floatingLabelDetailText {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 220px;
+  letter-spacing: 0.3px;
+}
+
+/* Connector line */
+.floatingLabelConnector {
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(200, 161, 255, 0.3), transparent);
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .floatingLabelConnector {
+  width: 35px;
+  background: linear-gradient(90deg, rgba(200, 161, 255, 0.6), transparent);
+}
+
+/* Target reticle */
+.floatingLabelReticle {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .floatingLabelReticle {
+  width: 14px;
+  height: 14px;
+}
+
+.reticleOuter {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(200, 161, 255, 0.5);
+  border-radius: 50%;
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .reticleOuter {
+  border-color: var(--accent);
+}
+
+.reticleInner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 50%;
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .reticleInner {
+  width: 4px;
+  height: 4px;
+  box-shadow: 0 0 10px var(--accent);
+}
+
+/* ============================================
+   Desktop Labels Container
+   ============================================ */
+.desktopLabelsContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ============================================
+   Radial Glow
+   ============================================ */
+.radialGlow {
+  position: absolute;
+  transform: translate(50%, -50%);
+  background: radial-gradient(circle, rgba(200, 161, 255, 0.12) 0%, transparent 55%);
+  pointer-events: none;
+  filter: blur(60px);
+}
+
+.radialGlow.mobile {
+  top: 40%;
+  right: 40%;
+  width: 280px;
+  height: 280px;
+}
+
+.radialGlow.tablet {
+  top: 45%;
+  right: 50%;
+  width: 400px;
+  height: 400px;
+}
+
+.radialGlow.desktop {
+  top: 40%;
+  right: 15%;
+  width: 600px;
+  height: 600px;
+}
