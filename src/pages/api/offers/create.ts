@@ -85,20 +85,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Get or create buyer user
-    let buyerUser = await User.findOne({ wallet: buyerWallet });
-    if (!buyerUser) {
-      buyerUser = new User({ wallet: buyerWallet, role: 'user' }); // Buyers are regular users
-      await buyerUser.save();
-    }
+    // Get or create buyer user (using upsert for efficiency)
+    const buyerUser = await User.findOneAndUpdate(
+      { wallet: buyerWallet },
+      { $setOnInsert: { wallet: buyerWallet, role: 'user' } },
+      { upsert: true, new: true }
+    );
 
-    // Check for existing pending offer from this buyer
-    const existingOffer = await Offer.findOne({
-      escrowPda,
-      buyerWallet,
-      status: { $in: ['pending', 'countered'] },
-      deleted: false,
-    });
+    // Run independent queries in parallel
+    const [existingOffer, asset] = await Promise.all([
+      Offer.findOne({
+        escrowPda,
+        buyerWallet,
+        status: { $in: ['pending', 'countered'] },
+        deleted: false,
+      }),
+      Asset.findById(escrow.asset),
+    ]);
 
     if (existingOffer) {
       return res.status(400).json({
@@ -107,9 +110,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         existingOfferAmount: existingOffer.offerPriceUSD,
       });
     }
-
-    // Get asset for offer record
-    const asset = await Asset.findById(escrow.asset);
 
     // Calculate expiration if specified
     let expiresAt: Date | undefined;
@@ -136,19 +136,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await offer.save();
 
-    // Update escrow offer tracking
-    const pendingOfferCount = await Offer.countDocuments({
-      escrowPda,
-      status: { $in: ['pending', 'countered'] },
-      deleted: false,
-    });
-
-    // Get highest offer
-    const highestOffer = await Offer.findOne({
-      escrowPda,
-      status: { $in: ['pending', 'countered'] },
-      deleted: false,
-    }).sort({ offerAmount: -1 });
+    // Update escrow offer tracking - run queries in parallel
+    const [pendingOfferCount, highestOffer] = await Promise.all([
+      Offer.countDocuments({
+        escrowPda,
+        status: { $in: ['pending', 'countered'] },
+        deleted: false,
+      }),
+      Offer.findOne({
+        escrowPda,
+        status: { $in: ['pending', 'countered'] },
+        deleted: false,
+      }).sort({ offerAmount: -1 }),
+    ]);
 
     await Escrow.findByIdAndUpdate(escrow._id, {
       $set: {

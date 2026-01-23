@@ -39,15 +39,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
+    // Run independent queries in parallel
+    const [adminUser, pool] = await Promise.all([
+      User.findOne({ wallet: adminWallet }),
+      Pool.findById(poolId),
+    ]);
+
     // Verify admin privileges
-    const adminUser = await User.findOne({ wallet: adminWallet });
     const isAdmin = adminUser?.role === 'admin' || ADMIN_WALLETS.includes(adminWallet);
     if (!isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Find the pool
-    const pool = await Pool.findById(poolId);
+    // Check pool exists
     if (!pool || pool.deleted) {
       return res.status(404).json({ error: 'Pool not found' });
     }

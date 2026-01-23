@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo } from 'react';
 import styles from '../../styles/NFTCard.module.css';
 
 interface NFT {
@@ -21,21 +21,29 @@ interface NFTCardProps {
 
 const PLACEHOLDER_IMAGE = '/images/purpleLGG.png';
 
-const NFTCard = ({ nft, onClick }: NFTCardProps) => {
+const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
   const [imgError, setImgError] = useState(false);
 
-  const price =
-    nft.salePrice ??
-    parseFloat(nft.attributes?.find((attr) => attr.trait_type === 'Price')?.value ?? '0') ??
-    (nft as any).priceSol ??
-    0;
+  // Memoized price calculation
+  const price = useMemo(
+    () =>
+      nft.salePrice ??
+      parseFloat(nft.attributes?.find((attr) => attr.trait_type === 'Price')?.value ?? '0') ??
+      (nft as any).priceSol ??
+      0,
+    [nft.salePrice, nft.attributes]
+  );
 
-  const owner =
-    nft.buyer ??
-    nft.attributes?.find((attr) => attr.trait_type === 'Current Owner')?.value ??
-    (nft as any).currentOwner ??
-    nft.seller ??
-    'N/A';
+  // Memoized owner calculation
+  const owner = useMemo(
+    () =>
+      nft.buyer ??
+      nft.attributes?.find((attr) => attr.trait_type === 'Current Owner')?.value ??
+      (nft as any).currentOwner ??
+      nft.seller ??
+      'N/A',
+    [nft.buyer, nft.attributes, nft.seller]
+  );
 
   const imageUrl = imgError || !nft.image ? PLACEHOLDER_IMAGE : nft.image;
 
@@ -76,6 +84,8 @@ const NFTCard = ({ nft, onClick }: NFTCardProps) => {
       <div className={styles.collectionTag}>{nft.title}</div>
     </div>
   );
-};
+});
+
+NFTCard.displayName = 'NFTCard';
 
 export default NFTCard;

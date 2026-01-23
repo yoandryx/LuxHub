@@ -1,4 +1,4 @@
-import type { LeanDocument } from "../../../types/mongoose";
+import type { LeanDocument } from '../../../types/mongoose';
 // /pages/api/vendor/orders.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
@@ -46,6 +46,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
       .sort({ createdAt: -1 })
       .lean()) as any[];
+    // Note: vendor lookup depends on user, and escrows depend on vendor,
+    // so these must remain sequential
 
     // Transform escrows to order format for frontend
     const orders = escrows.map((escrow: any) => ({

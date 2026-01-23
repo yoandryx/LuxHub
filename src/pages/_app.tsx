@@ -28,8 +28,7 @@ import {
 } from '@solana-mobile/wallet-adapter-mobile';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import '@solana/wallet-adapter-react-ui/styles.css';
-import 'react-toastify/dist/ReactToastify.css';
-import { ToastContainer } from 'react-toastify';
+// Consolidated to single toast library (react-hot-toast) - saves ~5KB
 import LuxuryAssistant from '../components/user/LuxuryAssistant';
 import { Toaster } from 'react-hot-toast';
 import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
@@ -92,8 +91,7 @@ const App = ({ Component, pageProps }: AppProps) => {
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
             <Navbar />
-            <ToastContainer position="top-right" autoClose={4000} />
-            <Toaster position="top-right" />
+            <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
             {usePrivyWallet ? <WalletNavbar /> : <WalletNavbarSimple />}
             <Component {...pageProps} />
             <LuxuryAssistant />
