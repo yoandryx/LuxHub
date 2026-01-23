@@ -179,7 +179,8 @@ export default function Navbar() {
                 )}
               </div>
 
-              <div className={styles.walletContainer}>
+              <div className={styles.mobileWalletContainer}>
+                <FaWallet className={styles.icon} />
                 {isClient && (
                   <button
                     className="wallet-adapter-button wallet-adapter-button-trigger"

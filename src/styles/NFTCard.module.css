@@ -194,20 +194,60 @@
     max-width: 100%;
   }
 
+  .holderContent {
+    aspect-ratio: 1/1;
+  }
+
   .overlay {
-    padding: 16px 12px 12px;
+    padding: 14px 10px 10px;
   }
 
   .overlayTitle {
-    font-size: 14px;
+    font-size: 13px;
+    margin-bottom: 8px;
   }
 
   .overlayRow {
-    font-size: 12px;
+    font-size: 11px;
+    margin-bottom: 6px;
   }
 
   .overlayButton {
-    padding: 8px 12px;
+    padding: 8px 10px;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  .collectionTag {
+    font-size: 9px;
+    padding: 4px 8px;
+    max-width: 90px;
+  }
+}
+
+/* Very small screens - single column */
+@media (max-width: 380px) {
+  .holderCard {
+    border-radius: 12px;
+  }
+
+  .overlay {
+    padding: 12px 10px 10px;
+  }
+
+  .overlayTitle {
     font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .overlayRow {
+    font-size: 10px;
+    margin-bottom: 5px;
+  }
+
+  .overlayButton {
+    padding: 7px 8px;
+    font-size: 10px;
+    border-radius: 8px;
   }
 }

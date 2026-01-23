@@ -1,15 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import {
-  FaShieldAlt,
-  FaLock,
-  FaChevronLeft,
-  FaChevronRight,
-  FaArrowRight,
-  FaChartLine,
-} from 'react-icons/fa';
+import { FaShieldAlt, FaLock, FaArrowRight, FaChartLine } from 'react-icons/fa';
 import { SiSolana } from 'react-icons/si';
 import { BiTargetLock } from 'react-icons/bi';
 import { MdWatch } from 'react-icons/md';
@@ -149,22 +142,6 @@ export default function IndexTest() {
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
   const [isLoadingPools, setIsLoadingPools] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
-
-  // Scroller ref
-  const scrollerRef = useRef<HTMLDivElement>(null);
-
-  // Scroll handlers
-  const scrollLeft = () => {
-    if (scrollerRef.current) {
-      scrollerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollerRef.current) {
-      scrollerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-    }
-  };
 
   // Delayed 3D scene load for performance
   useEffect(() => {
@@ -391,22 +368,7 @@ export default function IndexTest() {
           </div>
         </div>
 
-        <div className={styles.scrollControls}>
-          <button className={styles.scrollBtn} onClick={scrollLeft} aria-label="Scroll left">
-            <FaChevronLeft />
-          </button>
-          <button className={styles.scrollBtn} onClick={scrollRight} aria-label="Scroll right">
-            <FaChevronRight />
-          </button>
-          <Link
-            href={activeTab === 'watches' ? '/watchMarket' : '/pools'}
-            className={styles.viewAllLink}
-          >
-            View All <FaArrowRight />
-          </Link>
-        </div>
-
-        <div className={styles.scroller} ref={scrollerRef}>
+        <div className={styles.scroller}>
           {activeTab === 'watches' ? (
             <>
               {isLoadingNFTs ? (
@@ -416,10 +378,10 @@ export default function IndexTest() {
                   <motion.div
                     key={`nft-${nft.nftId}-${i}`}
                     className={styles.nftScrollCard}
-                    initial={{ opacity: 0, x: 40 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: i * 0.08 }}
-                    viewport={{ once: true }}
+                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
+                    viewport={{ once: true, margin: '-50px' }}
                   >
                     <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
                   </motion.div>
@@ -445,10 +407,10 @@ export default function IndexTest() {
                     <motion.div
                       key={pool._id}
                       className={styles.poolCard}
-                      initial={{ opacity: 0, x: 40 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: i * 0.1 }}
-                      viewport={{ once: true }}
+                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
+                      viewport={{ once: true, margin: '-50px' }}
                     >
                       {isDemo && <span className={styles.poolDemoBadge}>Demo</span>}
                       <div className={styles.poolImage}>
@@ -498,6 +460,15 @@ export default function IndexTest() {
               )}
             </>
           )}
+        </div>
+
+        <div className={styles.viewAllContainer}>
+          <Link
+            href={activeTab === 'watches' ? '/watchMarket' : '/pools'}
+            className={styles.viewAllLink}
+          >
+            View All {activeTab === 'watches' ? 'Watches' : 'Pools'} <FaArrowRight />
+          </Link>
         </div>
       </section>
 

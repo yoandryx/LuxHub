@@ -68,10 +68,19 @@ function easeInOutSine(t: number): number {
   return -(Math.cos(Math.PI * t) - 1) / 2;
 }
 
-// Watch model - centered on mobile with face-forward rotation, positioned right on desktop
-function WatchModel({ isMobile }: { isMobile: boolean }) {
+// Watch model - responsive positioning for mobile/tablet/desktop
+function WatchModel({
+  isMobile,
+  viewportSize,
+}: {
+  isMobile: boolean;
+  viewportSize: 'mobile' | 'tablet' | 'desktop';
+}) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF('/3Dmodels/RolexSub-optimized.glb');
+
+  // Scale based on viewport
+  const scale = viewportSize === 'mobile' ? 0.9 : viewportSize === 'tablet' ? 1.2 : 1.8;
 
   useEffect(() => {
     if (scene) {
@@ -89,73 +98,40 @@ function WatchModel({ isMobile }: { isMobile: boolean }) {
       });
 
       // Rotate PI (180°) on Y-axis so watch dial faces the camera
-      // The model's default orientation has the back facing forward
       scene.rotation.set(0, Math.PI, 0);
-      scene.scale.setScalar(isMobile ? 1.0 : 1.8); // Smaller on mobile
+      scene.scale.setScalar(scale);
     }
-  }, [scene, isMobile]);
+  }, [scene, scale]);
 
   useFrame((state) => {
     if (groupRef.current) {
       const t = state.clock.elapsedTime;
 
+      // Smooth rotation for all viewports
+      const maxSwing = viewportSize === 'desktop' ? Math.PI / 4 : Math.PI / 5;
+      const period = 8;
+      const phase = (t % period) / period;
+      const smoothSwing = Math.sin(phase * Math.PI * 2) * maxSwing;
+      const microMotion = Math.sin(t * 0.5) * 0.03;
+
+      groupRef.current.rotation.y = smoothSwing + microMotion;
+
+      // Gentle floating
+      const floatPhase = easeInOutSine((Math.sin(t * 0.2) + 1) / 2);
+      groupRef.current.position.y = (isMobile ? 0.1 : 0.2) + floatPhase * 0.04 - 0.02;
+
+      // Subtle tilt for life (mobile/tablet only)
       if (isMobile) {
-        // Mobile: Ultra-smooth ease-in-out left-right swing
-        // Max rotation ~45° each way from center
-        const maxSwing = Math.PI / 4; // 45 degrees
-
-        // Create smooth ease-in-out using cosine (starts slow, speeds up, slows down)
-        // Period of ~8 seconds for full left-right-left cycle
-        const period = 8;
-        const phase = (t % period) / period; // 0 to 1
-
-        // Smooth sine wave with natural easing
-        const smoothSwing = Math.sin(phase * Math.PI * 2) * maxSwing;
-
-        // Add very subtle secondary motion for organic feel
-        const microMotion = Math.sin(t * 0.5) * 0.03;
-
-        groupRef.current.rotation.y = smoothSwing + microMotion;
-
-        // Gentle floating
-        const floatPhase = easeInOutSine((Math.sin(t * 0.2) + 1) / 2);
-        groupRef.current.position.y = 0.2 + floatPhase * 0.04 - 0.02;
-
-        // Very subtle tilt for life
         groupRef.current.rotation.x = Math.sin(t * 0.12) * 0.01;
         groupRef.current.rotation.z = Math.sin(t * 0.1) * 0.008;
-      } else {
-        // Mobile: Ultra-smooth ease-in-out left-right swing
-        // Max rotation ~45° each way from center
-        const maxSwing = Math.PI / 4; // 45 degrees
-
-        // Create smooth ease-in-out using cosine (starts slow, speeds up, slows down)
-        // Period of ~8 seconds for full left-right-left cycle
-        const period = 8;
-        const phase = (t % period) / period; // 0 to 1
-
-        // Smooth sine wave with natural easing
-        const smoothSwing = Math.sin(phase * Math.PI * 2) * maxSwing;
-
-        // Add very subtle secondary motion for organic feel
-        const microMotion = Math.sin(t * 0.6) * 0.04;
-
-        groupRef.current.rotation.y = smoothSwing + microMotion;
-
-        // Gentle floating
-        const floatPhase = easeInOutSine((Math.sin(t * 0.2) + 1) / 2);
-        groupRef.current.position.y = 0.2 + floatPhase * 0.04 - 0.02;
-
-        // Very subtle tilt for life
-        // groupRef.current.rotation.x = Math.sin(t * 0.12) * 0.01;
-        // groupRef.current.rotation.z = Math.sin(t * 0.1) * 0.008;
       }
     }
   });
 
-  // Center on mobile (slightly higher), right side on desktop
-  const xPos = isMobile ? 0 : 2;
-  const yPos = isMobile ? 0.2 : 0.5;
+  // Position: centered on mobile/tablet, right on desktop
+  // On mobile, shift slightly right to make room for left-side labels
+  const xPos = viewportSize === 'mobile' ? 0.3 : viewportSize === 'tablet' ? 0 : 2;
+  const yPos = viewportSize === 'mobile' ? 0.1 : viewportSize === 'tablet' ? 0.2 : 0.5;
 
   return (
     <group ref={groupRef} position={[xPos, yPos, 0]}>
@@ -176,18 +152,24 @@ function StudioLighting() {
   );
 }
 
-// Camera controller - look at watch (centered on mobile, right on desktop)
-function CameraController({ isMobile }: { isMobile: boolean }) {
+// Camera controller - responsive for all viewports
+function CameraController({ viewportSize }: { viewportSize: 'mobile' | 'tablet' | 'desktop' }) {
   const { camera } = useThree();
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
 
-    if (isMobile) {
-      // Mobile: Camera straight on, good distance for smaller watch
-      camera.position.x = Math.sin(t * 0.06) * 0.08; // Very subtle side movement
-      camera.position.y = 0.6 + Math.sin(t * 0.05) * 0.03;
-      camera.position.z = 5.5; // Good distance for mobile
+    if (viewportSize === 'mobile') {
+      // Mobile: Camera straight on, closer for smaller watch, slightly offset to right
+      camera.position.x = 0.2 + Math.sin(t * 0.06) * 0.05;
+      camera.position.y = 0.5 + Math.sin(t * 0.05) * 0.02;
+      camera.position.z = 5;
+      camera.lookAt(0.3, 0.1, 0);
+    } else if (viewportSize === 'tablet') {
+      // Tablet: Centered view with subtle movement
+      camera.position.x = Math.sin(t * 0.06) * 0.1;
+      camera.position.y = 0.7 + Math.sin(t * 0.05) * 0.04;
+      camera.position.z = 5.5;
       camera.lookAt(0, 0.2, 0);
     } else {
       // Desktop: Original camera movement
@@ -201,8 +183,8 @@ function CameraController({ isMobile }: { isMobile: boolean }) {
   return null;
 }
 
-// Single optimized glow ring
-function GlowRing({ isMobile }: { isMobile: boolean }) {
+// Single optimized glow ring - responsive
+function GlowRing({ viewportSize }: { viewportSize: 'mobile' | 'tablet' | 'desktop' }) {
   const ringRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
@@ -211,36 +193,41 @@ function GlowRing({ isMobile }: { isMobile: boolean }) {
     }
   });
 
+  // Position based on viewport
+  const xPos = viewportSize === 'mobile' ? 0.3 : viewportSize === 'tablet' ? 0 : 1;
+  const yPos = viewportSize === 'mobile' ? 0.05 : viewportSize === 'tablet' ? 0.1 : 0.5;
+  const ringSize = viewportSize === 'mobile' ? 1.8 : viewportSize === 'tablet' ? 2.2 : 2.5;
+
   return (
-    <mesh
-      ref={ringRef}
-      position={[isMobile ? 0 : 1, isMobile ? 0.1 : 0.5, 0]}
-      rotation={[Math.PI / 2.2, 0, 0]}
-    >
-      <ringGeometry args={[2.5, 2.65, 48]} />
+    <mesh ref={ringRef} position={[xPos, yPos, 0]} rotation={[Math.PI / 2.2, 0, 0]}>
+      <ringGeometry args={[ringSize, ringSize + 0.15, 48]} />
       <meshBasicMaterial color="#c8a1ff" transparent opacity={0.08} side={THREE.DoubleSide} />
     </mesh>
   );
 }
 
-// Particles spread across scene - positioned in front of camera
-function ParticleField({ isMobile }: { isMobile: boolean }) {
+// Particles spread across scene - responsive
+function ParticleField({
+  isMobile,
+  viewportSize,
+}: {
+  isMobile: boolean;
+  viewportSize: 'mobile' | 'tablet' | 'desktop';
+}) {
   const particlesRef = useRef<THREE.Points>(null);
 
   const { geometry } = useMemo(() => {
-    // More particles for richer effect on both mobile and desktop
-    const count = isMobile ? 120 : 200;
+    const count = viewportSize === 'mobile' ? 80 : viewportSize === 'tablet' ? 120 : 200;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      // Spread particles across visible area, closer to camera
-      positions[i * 3] = (Math.random() - 0.5) * 30; // x: wider spread
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 20; // y: taller spread
-      positions[i * 3 + 2] = Math.random() * 8 + 1; // z: in front (1-9)
+      positions[i * 3] = (Math.random() - 0.5) * 30;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+      positions[i * 3 + 2] = Math.random() * 8 + 1;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return { geometry: geo };
-  }, [isMobile]);
+  }, [viewportSize]);
 
   useFrame((state) => {
     if (particlesRef.current) {
@@ -248,10 +235,12 @@ function ParticleField({ isMobile }: { isMobile: boolean }) {
     }
   });
 
+  const particleSize = viewportSize === 'mobile' ? 0.1 : viewportSize === 'tablet' ? 0.08 : 0.06;
+
   return (
     <points ref={particlesRef} geometry={geometry}>
       <pointsMaterial
-        size={isMobile ? 0.08 : 0.06}
+        size={particleSize}
         color="#c8a1ff"
         transparent
         opacity={0.6}
@@ -261,51 +250,182 @@ function ParticleField({ isMobile }: { isMobile: boolean }) {
   );
 }
 
-// Mobile label strip - compact horizontal badges
-function MobileLabelStrip({ activeIndex }: { activeIndex: number }) {
+// Mobile labels - Stacked cards on the left side with animated highlight
+function MobileLabelsStack({ activeIndex }: { activeIndex: number }) {
   return (
     <div
       style={{
         position: 'absolute',
-        bottom: '12px',
+        left: '12px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        zIndex: 10,
+        pointerEvents: 'none',
+      }}
+    >
+      {TECH_LABELS.map((label, i) => {
+        const isActive = activeIndex === i;
+        return (
+          <div
+            key={label.code}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: isActive ? '10px 14px' : '8px 12px',
+              background: isActive ? 'rgba(200, 161, 255, 0.12)' : 'rgba(13, 13, 13, 0.7)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: `1px solid ${isActive ? 'rgba(200, 161, 255, 0.4)' : 'rgba(200, 161, 255, 0.15)'}`,
+              borderRadius: '6px',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: isActive ? 'translateX(4px) scale(1.02)' : 'translateX(0) scale(1)',
+              boxShadow: isActive ? '0 4px 20px rgba(200, 161, 255, 0.15)' : 'none',
+              opacity: isActive ? 1 : 0.7,
+            }}
+          >
+            {/* Code badge */}
+            <span
+              style={{
+                padding: '3px 6px',
+                background: isActive ? 'rgba(200, 161, 255, 0.25)' : 'rgba(200, 161, 255, 0.1)',
+                border: '1px solid rgba(200, 161, 255, 0.3)',
+                borderRadius: '3px',
+                fontSize: '0.55rem',
+                fontWeight: 700,
+                color: isActive ? '#c8a1ff' : 'rgba(200, 161, 255, 0.7)',
+                letterSpacing: '1px',
+                fontFamily: '"SF Mono", "Fira Code", monospace',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              {label.code}
+            </span>
+            {/* Text - only show on active */}
+            <span
+              style={{
+                fontSize: '0.65rem',
+                fontWeight: 500,
+                color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
+                letterSpacing: '0.5px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                maxWidth: isActive ? '120px' : '0px',
+                opacity: isActive ? 1 : 0,
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              {label.text}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Tablet labels - Horizontal bar at bottom with expanded detail
+function TabletLabelsBar({ activeIndex }: { activeIndex: number }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: '16px',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: '8px',
-        padding: '8px 12px',
-        background: 'rgba(13, 13, 13, 0.85)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(200, 161, 255, 0.2)',
-        borderRadius: '8px',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px',
         zIndex: 10,
+        pointerEvents: 'none',
       }}
     >
-      {TECH_LABELS.map((label, i) => (
-        <div
-          key={label.code}
+      {/* Active label detail */}
+      <div
+        style={{
+          padding: '8px 16px',
+          background: 'rgba(13, 13, 13, 0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(200, 161, 255, 0.25)',
+          borderRadius: '8px',
+          textAlign: 'center',
+          minWidth: '200px',
+        }}
+      >
+        <p
           style={{
-            padding: '4px 8px',
-            background: activeIndex === i ? 'rgba(200, 161, 255, 0.2)' : 'transparent',
-            border: `1px solid ${activeIndex === i ? 'rgba(200, 161, 255, 0.5)' : 'rgba(200, 161, 255, 0.2)'}`,
-            borderRadius: '4px',
-            transition: 'all 0.3s ease',
-            transform: activeIndex === i ? 'scale(1.05)' : 'scale(1)',
+            fontSize: '0.7rem',
+            color: 'rgba(255, 255, 255, 0.7)',
+            margin: 0,
+            lineHeight: 1.4,
           }}
         >
-          <span
-            style={{
-              fontSize: '0.55rem',
-              fontWeight: 600,
-              color: activeIndex === i ? '#c8a1ff' : 'rgba(200, 161, 255, 0.7)',
-              letterSpacing: '1px',
-              fontFamily: '"SF Mono", "Fira Code", monospace',
-            }}
-          >
-            {label.code}
-          </span>
-        </div>
-      ))}
+          {TECH_LABELS[activeIndex].detail}
+        </p>
+      </div>
+
+      {/* Badge row */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '6px',
+          padding: '6px 10px',
+          background: 'rgba(13, 13, 13, 0.8)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(200, 161, 255, 0.2)',
+          borderRadius: '8px',
+        }}
+      >
+        {TECH_LABELS.map((label, i) => {
+          const isActive = activeIndex === i;
+          return (
+            <div
+              key={label.code}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: isActive ? '6px 12px' : '6px 8px',
+                background: isActive ? 'rgba(200, 161, 255, 0.15)' : 'transparent',
+                border: `1px solid ${isActive ? 'rgba(200, 161, 255, 0.4)' : 'transparent'}`,
+                borderRadius: '4px',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.6rem',
+                  fontWeight: 600,
+                  color: isActive ? '#c8a1ff' : 'rgba(200, 161, 255, 0.6)',
+                  letterSpacing: '1px',
+                  fontFamily: '"SF Mono", "Fira Code", monospace',
+                }}
+              >
+                {label.code}
+              </span>
+              {isActive && (
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 500,
+                    color: '#ffffff',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label.text}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -507,17 +627,28 @@ export default function HeroScene() {
     []
   );
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [viewportSize, setViewportSize] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [mobileActiveLabel, setMobileActiveLabel] = useState(0);
   const angleRef = useRef(0);
 
-  // Check for mobile viewport
+  // Check for viewport size - mobile (<480), tablet (480-1024), desktop (>1024)
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const checkViewport = () => {
+      const width = window.innerWidth;
+      if (width < 480) {
+        setViewportSize('mobile');
+      } else if (width < 1024) {
+        setViewportSize('tablet');
+      } else {
+        setViewportSize('desktop');
+      }
+    };
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
   }, []);
+
+  const isMobile = viewportSize === 'mobile' || viewportSize === 'tablet';
 
   // Mobile: Cycle through labels to highlight them in sync with watch rotation
   useEffect(() => {
@@ -586,22 +717,24 @@ export default function HeroScene() {
         performance={{ min: 0.5 }}
       >
         <StudioLighting />
-        <CameraController isMobile={isMobile} />
+        <CameraController viewportSize={viewportSize} />
 
         {/* Use preset instead of heavy HDR file */}
         <Environment preset="studio" background={false} />
 
         <Suspense fallback={<Loader />}>
-          <WatchModel isMobile={isMobile} />
+          <WatchModel isMobile={isMobile} viewportSize={viewportSize} />
         </Suspense>
 
-        <GlowRing isMobile={isMobile} />
-        <ParticleField isMobile={isMobile} />
+        <GlowRing viewportSize={viewportSize} />
+        <ParticleField isMobile={isMobile} viewportSize={viewportSize} />
       </Canvas>
 
-      {/* Floating Labels - desktop: floating around watch, mobile: compact strip */}
-      {isMobile ? (
-        <MobileLabelStrip activeIndex={mobileActiveLabel} />
+      {/* Floating Labels - responsive display */}
+      {viewportSize === 'mobile' ? (
+        <MobileLabelsStack activeIndex={mobileActiveLabel} />
+      ) : viewportSize === 'tablet' ? (
+        <TabletLabelsBar activeIndex={mobileActiveLabel} />
       ) : (
         <div
           style={{
@@ -625,15 +758,17 @@ export default function HeroScene() {
         </div>
       )}
 
-      {/* Radial glow behind watch - centered on mobile, right side on desktop */}
+      {/* Radial glow behind watch - responsive positioning */}
       <div
         style={{
           position: 'absolute',
-          top: isMobile ? '35%' : '40%',
-          right: isMobile ? '50%' : '15%',
-          transform: isMobile ? 'translate(50%, -50%)' : 'translate(50%, -50%)',
-          width: isMobile ? '350px' : '600px',
-          height: isMobile ? '350px' : '600px',
+          top: viewportSize === 'mobile' ? '40%' : viewportSize === 'tablet' ? '45%' : '40%',
+          right: viewportSize === 'mobile' ? '40%' : viewportSize === 'tablet' ? '50%' : '15%',
+          transform: 'translate(50%, -50%)',
+          width:
+            viewportSize === 'mobile' ? '280px' : viewportSize === 'tablet' ? '400px' : '600px',
+          height:
+            viewportSize === 'mobile' ? '280px' : viewportSize === 'tablet' ? '400px' : '600px',
           background: 'radial-gradient(circle, rgba(200, 161, 255, 0.12) 0%, transparent 55%)',
           pointerEvents: 'none',
           filter: 'blur(60px)',
