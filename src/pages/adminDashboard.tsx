@@ -27,6 +27,12 @@ import {
   HiOutlineCube,
   HiOutlineKey,
   HiOutlineDatabase,
+  HiOutlineHome,
+  HiOutlineCash,
+  HiOutlineClock,
+  HiOutlineCheckCircle,
+  HiOutlineXCircle,
+  HiOutlineLightningBolt,
 } from 'react-icons/hi';
 import { VendorProfile } from '../lib/models/VendorProfile';
 
@@ -46,6 +52,11 @@ const ShipmentVerificationTab = lazy(() =>
 );
 const VendorManagementPanel = lazy(() => import('../components/vendor/VendorManagementPanel'));
 const CustodyDashboard = lazy(() => import('../components/admin/CustodyDashboard'));
+const TransactionHistoryTab = lazy(() =>
+  import('../components/admins/TransactionHistoryTab').then((m) => ({
+    default: m.TransactionHistoryTab,
+  }))
+);
 
 // Loading fallback for lazy components
 const TabLoader = () => <div className={styles.loadingTab}>Loading...</div>;
@@ -217,7 +228,7 @@ const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: strin
 
 const AdminDashboard: React.FC = () => {
   const wallet = useWallet();
-  const [tabIndex, setTabIndex] = useState<number>(5);
+  const [tabIndex, setTabIndex] = useState<number>(1);
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -944,16 +955,24 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // Escrow Cancellation
+  // Escrow Cancellation (via Squads Multisig)
   // ------------------------------------------------
   const cancelEscrow = async (escrow: EscrowAccount) => {
+    const confirm = window.confirm(
+      `Cancel escrow for seed ${escrow.seed}?\n\nThis will create a Squads proposal to return funds to the seller.`
+    );
+    if (!confirm) return;
+
     if (!wallet.publicKey || !program) {
-      alert('Wallet not connected or program not ready.');
+      toast.error('Wallet not connected or program not ready.');
       return;
     }
 
     try {
+      setLoading(true);
+      setStatus('Creating cancellation proposal via Squads...');
       console.log('[cancelEscrow] Cancelling escrow with seed:', escrow.seed);
+
       const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('state'), seedBuffer],
@@ -962,10 +981,16 @@ const AdminDashboard: React.FC = () => {
 
       const vault = await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), escrowPda, true);
 
-      const tx = await program.methods
+      // Dynamic import multisig to reduce initial bundle size
+      const multisig = await import('@sqds/multisig');
+      const msig = new PublicKey(process.env.NEXT_PUBLIC_SQUADS_MSIG!);
+      const [vaultPda] = multisig.getVaultPda({ multisigPda: msig, index: 0 });
+
+      // Build Anchor instruction (NO .rpc() - goes through Squads)
+      const ix = await program.methods
         .cancel()
         .accounts({
-          initializer: wallet.publicKey,
+          initializer: vaultPda, // Squads vault as signer for admin operation
           mintA: new PublicKey(escrow.mintA),
           initializerAta: await getAssociatedTokenAddress(
             new PublicKey(FUNDS_MINT),
@@ -975,26 +1000,38 @@ const AdminDashboard: React.FC = () => {
           vault: vault,
           tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
         })
-        .rpc();
+        .instruction();
 
-      setStatus('Escrow canceled. Tx: ' + tx);
-      addLog('Cancel Escrow', tx, 'For escrow seed: ' + escrow.seed);
+      // Shape for API
+      const keys = ix.keys.map((k) => ({
+        pubkey: k.pubkey.toBase58(),
+        isSigner: k.isSigner,
+        isWritable: k.isWritable,
+      }));
+      const dataBase64 = Buffer.from(ix.data).toString('base64');
 
-      await fetch('/api/nft/updateStatus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mintAddress: escrow.mintB,
-          marketStatus: 'active',
-        }),
+      // Create Squads proposal
+      const result = await proposeToSquads({
+        programId: ix.programId.toBase58(),
+        keys,
+        dataBase64,
+        vaultIndex: 0,
       });
 
-      fetchActiveEscrowsByMint();
+      toast.success(
+        `✅ Cancellation proposal created in Squads (index ${result.transactionIndex}). Approve & Execute in Squads.`
+      );
+      setStatus(`Squads cancel proposal created. Index: ${result.transactionIndex}`);
+      addLog('Cancel Escrow (proposed)', 'N/A', `Escrow seed: ${escrow.seed}`);
+
+      await refreshData();
     } catch (error: any) {
       console.error('[cancelEscrow] error:', error);
-      setStatus('Cancel escrow failed: ' + error.message);
+      setStatus('Cancel escrow (proposal) failed: ' + error.message);
       addLog('Cancel Escrow', 'N/A', 'Error: ' + error.message);
-      toast.error(`❌ Cancel failed: ${error.message}`);
+      toast.error(`❌ Cancel proposal failed: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1158,6 +1195,53 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
+  // Reject Sale Request
+  // ------------------------------------------------
+  const handleRejectSale = async (req: SaleRequest) => {
+    const confirm = window.confirm(
+      `Reject sale request for NFT ${req.nftId.slice(0, 8)}...?\n\nThis will mark the request as rejected and the seller can relist.`
+    );
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+      setStatus('Rejecting sale request...');
+
+      const token = localStorage.getItem('luxhub_token');
+      const res = await fetch('/api/nft/rejectSale', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ nftId: req.nftId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to reject sale');
+      }
+
+      // Optionally update NFT metadata to mark as available
+      await updateNFTMarketStatus(req.nftId, 'listed', wallet);
+
+      toast.success('Sale request rejected');
+      setStatus('Sale request rejected successfully');
+      addLog('Reject Sale', 'N/A', `NFT: ${req.nftId.slice(0, 8)}...`);
+
+      // Remove from UI
+      setSaleRequests((prev) => prev.filter((r) => r.nftId !== req.nftId));
+      await refreshData();
+    } catch (error: any) {
+      console.error('[handleRejectSale] error:', error);
+      setStatus('Reject sale failed: ' + error.message);
+      toast.error(`❌ Rejection failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ------------------------------------------------
   // Vault Address Fetching
   // ------------------------------------------------
   useEffect(() => {
@@ -1194,6 +1278,142 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const renderTabContent = () => {
     switch (tabIndex) {
+      case 1: // Dashboard Overview
+        return (
+          <div className={styles.section}>
+            {/* Quick Stats Grid */}
+            <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon}>
+                  <HiOutlineClipboardList />
+                </div>
+                <div className={styles.statValue}>{saleRequests.length}</div>
+                <div className={styles.statLabel}>Pending Requests</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon}>
+                  <HiOutlineLockClosed />
+                </div>
+                <div className={styles.statValue}>{activeEscrows.length}</div>
+                <div className={styles.statLabel}>Active Escrows</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon}>
+                  <HiOutlineShieldCheck />
+                </div>
+                <div className={styles.statValue}>{squadsProposals.length}</div>
+                <div className={styles.statLabel}>Squads Proposals</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon}>
+                  <HiOutlineUserGroup />
+                </div>
+                <div className={styles.statValue}>{adminList.length}</div>
+                <div className={styles.statLabel}>Active Admins</div>
+              </div>
+            </div>
+
+            {/* Recent Activity Feed */}
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>
+                  <HiOutlineClock className="icon" style={{ color: 'var(--accent)' }} />
+                  Recent Activity
+                </h2>
+                <span className={styles.sectionCount}>{logs.length}</span>
+              </div>
+              {logs.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <HiOutlineClock className={styles.emptyIcon} />
+                  <h3 className={styles.emptyTitle}>No Recent Activity</h3>
+                  <p className={styles.emptyDescription}>
+                    Admin actions will appear here as you work.
+                  </p>
+                </div>
+              ) : (
+                <div className={styles.activityFeed}>
+                  {logs
+                    .slice(-10)
+                    .reverse()
+                    .map((log, idx) => (
+                      <div key={idx} className={styles.activityItem}>
+                        <div className={styles.activityIcon}>
+                          {log.action.toLowerCase().includes('approve') && <HiOutlineCheckCircle />}
+                          {log.action.toLowerCase().includes('reject') && <HiOutlineXCircle />}
+                          {log.action.toLowerCase().includes('squads') && <HiOutlineShieldCheck />}
+                          {log.action.toLowerCase().includes('cancel') && <HiOutlineXCircle />}
+                          {log.action.toLowerCase().includes('confirm') && <HiOutlineCheckCircle />}
+                          {!log.action.toLowerCase().includes('approve') &&
+                            !log.action.toLowerCase().includes('reject') &&
+                            !log.action.toLowerCase().includes('squads') &&
+                            !log.action.toLowerCase().includes('cancel') &&
+                            !log.action.toLowerCase().includes('confirm') && (
+                              <HiOutlineLightningBolt />
+                            )}
+                        </div>
+                        <div className={styles.activityContent}>
+                          <div className={styles.activityTitle}>{log.action}</div>
+                          <div className={styles.activityMessage}>{log.message}</div>
+                        </div>
+                        <div className={styles.activityTime}>{log.timestamp}</div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Actions */}
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>
+                  <HiOutlineLightningBolt className="icon" style={{ color: 'var(--accent)' }} />
+                  Quick Actions
+                </h2>
+              </div>
+              <div className={styles.quickActions}>
+                <button onClick={() => setTabIndex(5)} className={styles.quickActionCard}>
+                  <HiOutlineClipboardList />
+                  <span>Review Sales</span>
+                  {saleRequests.length > 0 && (
+                    <span className={styles.quickActionBadge}>{saleRequests.length}</span>
+                  )}
+                </button>
+                <button onClick={() => setTabIndex(2)} className={styles.quickActionCard}>
+                  <HiOutlineLockClosed />
+                  <span>Manage Escrows</span>
+                  {activeEscrows.length > 0 && (
+                    <span className={styles.quickActionBadge}>{activeEscrows.length}</span>
+                  )}
+                </button>
+                <button onClick={() => setTabIndex(9)} className={styles.quickActionCard}>
+                  <HiOutlineShieldCheck />
+                  <span>Squads Proposals</span>
+                  {squadsProposals.length > 0 && (
+                    <span className={styles.quickActionBadge}>{squadsProposals.length}</span>
+                  )}
+                </button>
+                <button onClick={() => setTabIndex(8)} className={styles.quickActionCard}>
+                  <HiOutlineUserGroup />
+                  <span>Vendor Approvals</span>
+                </button>
+                <button onClick={() => setTabIndex(3)} className={styles.quickActionCard}>
+                  <HiOutlineCash />
+                  <span>Transactions</span>
+                </button>
+                <button onClick={() => setTabIndex(0)} className={styles.quickActionCard}>
+                  <HiOutlineCog />
+                  <span>Configuration</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      case 3: // Transaction History
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <TransactionHistoryTab />
+          </Suspense>
+        );
       case 2:
         return (
           <div className={styles.section}>
@@ -1412,7 +1632,13 @@ const AdminDashboard: React.FC = () => {
                         <button className={styles.cardBtn} onClick={updateSeed}>
                           New Seed
                         </button>
-                        <button className={`${styles.cardBtn} ${styles.danger}`}>Cancel</button>
+                        <button
+                          className={`${styles.cardBtn} ${styles.danger}`}
+                          onClick={() => handleRejectSale(req)}
+                          disabled={loading}
+                        >
+                          Reject
+                        </button>
                       </div>
                     </div>
                   );
@@ -1827,6 +2053,7 @@ const AdminDashboard: React.FC = () => {
 
   // Navigation items configuration
   const navItems = [
+    { id: 1, label: 'Overview', icon: HiOutlineHome },
     { id: 5, label: 'Sale Requests', icon: HiOutlineClipboardList, badge: saleRequests.length },
     { id: 2, label: 'Active Escrows', icon: HiOutlineLockClosed, badge: activeEscrows.length },
     { id: 10, label: 'Shipments', icon: HiOutlineTruck },
@@ -1841,11 +2068,13 @@ const AdminDashboard: React.FC = () => {
   const securityNavItems = [
     { id: 9, label: 'Squads Multisig', icon: HiOutlineShieldCheck, badge: squadsProposals.length },
     { id: 8, label: 'Vendor Approvals', icon: HiOutlineUserGroup },
+    { id: 3, label: 'Transactions', icon: HiOutlineCash },
     { id: 0, label: 'Configuration', icon: HiOutlineCog },
   ];
 
   // Page titles for each tab
   const pageTitles: Record<number, { title: string; subtitle: string }> = {
+    1: { title: 'Dashboard Overview', subtitle: 'Key metrics, recent activity, and quick actions' },
     5: { title: 'Sale Requests', subtitle: 'Review and approve marketplace listing requests' },
     2: { title: 'Active Escrows', subtitle: 'Manage on-chain escrow accounts and deliveries' },
     10: { title: 'Shipment Verification', subtitle: 'Verify delivery proofs and shipment status' },
@@ -1854,6 +2083,7 @@ const AdminDashboard: React.FC = () => {
     7: { title: 'Metadata Change Requests', subtitle: 'Review pending metadata update requests' },
     9: { title: 'Squads Multisig', subtitle: 'Manage treasury proposals and multisig approvals' },
     8: { title: 'Vendor Approvals', subtitle: 'Review and approve vendor applications' },
+    3: { title: 'Transaction History', subtitle: 'View all platform transactions and activity' },
     0: { title: 'Configuration', subtitle: 'Manage escrow config and admin permissions' },
   };
 

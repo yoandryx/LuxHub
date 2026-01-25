@@ -24,6 +24,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isVendor, setIsVendor] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -79,6 +80,32 @@ export default function Navbar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePublicKey?.toBase58()]);
 
+  // Check vendor status
+  useEffect(() => {
+    const checkVendor = async () => {
+      if (!activePublicKey) {
+        setIsVendor(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/vendor/profile?wallet=${activePublicKey.toBase58()}`);
+        if (res.ok) {
+          const data = await res.json();
+          setIsVendor(!!data.wallet);
+        } else {
+          setIsVendor(false);
+        }
+      } catch (err) {
+        console.error('Navbar vendor check error:', err);
+        setIsVendor(false);
+      }
+    };
+
+    checkVendor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePublicKey?.toBase58()]);
+
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const toggleSearch = () => setSearchOpen(!searchOpen);
   const closeMenu = () => setMenuOpen(false);
@@ -124,9 +151,11 @@ export default function Navbar() {
                 Admins
               </Link>
             )}
-            <Link href="/sellerDashboard" onClick={closeMenu}>
-              User
-            </Link>
+            {isVendor && activePublicKey && (
+              <Link href={`/vendor/${activePublicKey.toBase58()}`} onClick={closeMenu}>
+                Profile
+              </Link>
+            )}
             {!isAdmin && (
               <Link href="/learnMore" onClick={closeMenu}>
                 Learn More
@@ -186,7 +215,6 @@ export default function Navbar() {
                     className="wallet-adapter-button wallet-adapter-button-trigger"
                     onClick={handleWalletClick}
                   >
-                    <FaWallet className={styles.icon} />
                     <span>{isConnected ? displayAddress : 'Select Wallet'}</span>
                   </button>
                 )}
@@ -223,7 +251,7 @@ export default function Navbar() {
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>MARKETPLACE</div>
             <Link href="/watchMarket" onClick={closeMenu}>
-              Inventory
+              Marketplace
             </Link>
             <Link href="/pools" onClick={closeMenu}>
               Investment Pools
@@ -238,7 +266,7 @@ export default function Navbar() {
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>LUXHUB</div>
             <Link href="/vendors" onClick={closeMenu}>
-              vendors
+              Vendors
             </Link>
             {/* <Link href="/luxhubHolders" onClick={closeMenu}>
               Holders
@@ -257,9 +285,11 @@ export default function Navbar() {
 
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>ACCOUNT</div>
-            <Link href="/sellerDashboard" onClick={closeMenu}>
-              Profile
-            </Link>
+            {isVendor && activePublicKey && (
+              <Link href={`/vendor/${activePublicKey.toBase58()}`} onClick={closeMenu}>
+                Profile
+              </Link>
+            )}
             <Link href="/" onClick={closeMenu}>
               Home
             </Link>

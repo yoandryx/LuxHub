@@ -1,21 +1,33 @@
+/* Inherit LuxHub design system */
 .panelWrapper {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.25);
+  --accent-glow: rgba(200, 161, 255, 0.08);
+  --accent-border: rgba(200, 161, 255, 0.15);
+  --bg-dark: #0a0a0c;
+  --bg-card: #0f0f12;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --text-primary: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.45);
+
   padding: 2rem;
   border-radius: 12px;
-  background: rgba(25, 25, 30, 0.45);
+  background: var(--bg-card);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f1f1f1;
-  letter-spacing: 1px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
 }
 
 .sectionTitle {
-  font-size: 2rem;
-  margin-bottom: 2rem;
-  color: #fff;
-  text-align: center;
-  text-transform: uppercase;
-  border-bottom: 1px solid #b991ff;
-
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  text-align: left;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .subTitle {
@@ -36,15 +48,15 @@
 }
 
 .notification.success {
-  background-color: #e6ffed;
-  border-color: #b2e5c2;
-  color: #135e27;
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
 }
 
 .notification.error {
-  background-color: #ffe6e6;
-  border-color: #f5c2c2;
-  color: #8a1f1f;
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
 }
 
 .grid {
@@ -54,11 +66,18 @@
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 1rem;
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.25rem;
   text-align: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  border-color: var(--accent-border);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .banner {
@@ -75,7 +94,7 @@
 
 .username {
   font-size: 0.9rem;
-  color: #b991ff;
+  color: var(--accent);
   font-weight: 500;
 }
 
@@ -93,40 +112,66 @@
 }
 
 .buttonGroup button {
-  padding: 6px 12px;
-  border-radius: 6px;
-  background-color: #b991ff;
-  color: white;
-  text-shadow: #1a1a1a 0px 0px 5px;
-  font-weight: bold;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent) 0%, #9333ea 100%);
+  color: var(--bg-dark);
+  font-weight: 600;
+  font-size: 0.8rem;
   border: none;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 .buttonGroup button:hover {
-  background-color: #a67cf8;
+  box-shadow: 0 4px 16px rgba(200, 161, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.buttonGroup button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .rejectButton {
-  background-color: #e15a5a;
-  color: white;
+  background: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+}
+
+.rejectButton:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+}
+
+.verifyButton {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #10b981 !important;
+}
+
+.verifyButton:hover {
+  background: rgba(16, 185, 129, 0.25) !important;
 }
 
 .inviteCard {
   padding: 1.5rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-border);
+  margin: 1.5rem 0;
 }
 
 .inviteCard h3 {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  font-weight: 500;
-  text-transform: uppercase;
-  border-bottom: 1px solid #b991ff;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--accent);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--accent-border);
 }
 
 .inviteCard button {
@@ -149,12 +194,19 @@
 }
 
 .inputGroup input {
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #5a3a85;
-  background: #1a1a1a;
-  color: #fff;
-  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.inputGroup input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .latestInvite {
