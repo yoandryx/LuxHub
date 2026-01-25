@@ -1738,8 +1738,8 @@
 
 .activityItem {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 10px;
   padding: 12px;
   background: linear-gradient(135deg, #1f1f1f90 0%, #13131370 100%);
   border: 1px solid #e8d7ff21;
@@ -1749,6 +1749,7 @@
 
 @media screen and (min-width: 576px) {
   .activityItem {
+    align-items: center;
     gap: 16px;
     padding: 16px;
   }
@@ -1763,17 +1764,21 @@
 }
 
 .activityIcon {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: #c8a1ff;
-  padding: 8px;
+  padding: 6px;
   background: rgba(200, 161, 255, 0.15);
-  border-radius: 8px;
+  border-radius: 6px;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 @media screen and (min-width: 576px) {
   .activityIcon {
     font-size: 1.2rem;
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 0;
   }
 }
 
@@ -1781,22 +1786,53 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
+}
+
+@media screen and (min-width: 576px) {
+  .activityContent {
+    gap: 4px;
+  }
 }
 
 .activityTitle {
   font-weight: 500;
   color: #ffffff;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media screen and (min-width: 576px) {
+  .activityTitle {
+    font-size: 1rem;
+  }
 }
 
 .activityMeta {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #888;
 }
 
+@media screen and (min-width: 576px) {
+  .activityMeta {
+    font-size: 0.85rem;
+  }
+}
+
 .activityDate {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #666;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media screen and (min-width: 576px) {
+  .activityDate {
+    font-size: 0.8rem;
+  }
 }
 
 .emptyActivity {
@@ -1815,88 +1851,183 @@
 .ordersList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
+}
+
+@media screen and (min-width: 576px) {
+  .ordersList {
+    gap: 16px;
+  }
 }
 
 .orderCard {
   background: linear-gradient(135deg, #1f1f1f90 0%, #13131370 100%);
   border: 1px groove var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
+}
+
+@media screen and (min-width: 576px) {
+  .orderCard {
+    border-radius: 12px;
+  }
 }
 
 .orderHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 14px;
   background: rgba(0, 0, 0, 0.2);
   border-bottom: 1px solid var(--border);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media screen and (min-width: 576px) {
+  .orderHeader {
+    padding: 16px 20px;
+    flex-wrap: nowrap;
+  }
 }
 
 .orderId {
   font-weight: 600;
   color: #c8a1ff;
   font-family: monospace;
+  font-size: 0.85rem;
+}
+
+@media screen and (min-width: 576px) {
+  .orderId {
+    font-size: 1rem;
+  }
 }
 
 .orderStatus {
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
 }
 
+@media screen and (min-width: 576px) {
+  .orderStatus {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+  }
+}
+
 .orderBody {
-  padding: 20px;
+  padding: 14px;
+}
+
+@media screen and (min-width: 576px) {
+  .orderBody {
+    padding: 20px;
+  }
 }
 
 .orderItem {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media screen and (min-width: 480px) {
+  .orderItem {
+    align-items: center;
+    flex-wrap: nowrap;
+  }
 }
 
 .orderItemTitle {
   font-weight: 500;
   color: #ffffff;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+@media screen and (min-width: 576px) {
+  .orderItemTitle {
+    font-size: 1rem;
+  }
 }
 
 .orderItemPrice {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #04ffc4;
+  flex-shrink: 0;
+}
+
+@media screen and (min-width: 576px) {
+  .orderItemPrice {
+    font-size: 1.2rem;
+  }
 }
 
 .orderMeta {
   display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
   color: #888;
 }
 
+@media screen and (min-width: 480px) {
+  .orderMeta {
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 0.85rem;
+  }
+}
+
 .orderActions {
-  padding: 16px 20px;
+  padding: 12px 14px;
   border-top: 1px solid var(--border);
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media screen and (min-width: 576px) {
+  .orderActions {
+    padding: 16px 20px;
+    gap: 12px;
+  }
 }
 
 .primaryButton {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
   background: #c8a1ff;
   border: none;
   border-radius: 8px;
   color: #000;
   font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media screen and (min-width: 576px) {
+  .primaryButton {
+    padding: 10px 20px;
+    font-size: 1rem;
+    gap: 8px;
+    flex: 0 1 auto;
+  }
 }
 
 .primaryButton:hover {
@@ -1908,8 +2039,14 @@
 .offersList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
+}
+
+@media screen and (min-width: 576px) {
+  .offersList {
+    gap: 16px;
+  }
 }
 
 .offerCard {
@@ -1923,78 +2060,171 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 14px;
   background: rgba(0, 0, 0, 0.2);
   border-bottom: 1px solid var(--border);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media screen and (min-width: 576px) {
+  .offerHeader {
+    padding: 16px 20px;
+    flex-wrap: nowrap;
+  }
 }
 
 .offerAsset {
   font-weight: 600;
   color: #ffffff;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+@media screen and (min-width: 576px) {
+  .offerAsset {
+    font-size: 1rem;
+  }
 }
 
 .offerStatus {
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
+  flex-shrink: 0;
+}
+
+@media screen and (min-width: 576px) {
+  .offerStatus {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+  }
 }
 
 .offerBody {
-  padding: 20px;
+  padding: 14px;
+}
+
+@media screen and (min-width: 576px) {
+  .offerBody {
+    padding: 20px;
+  }
 }
 
 .offerPrices {
   display: flex;
-  gap: 32px;
-  margin-bottom: 16px;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+@media screen and (min-width: 576px) {
+  .offerPrices {
+    gap: 32px;
+    margin-bottom: 16px;
+  }
 }
 
 .offerPrice {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+}
+
+@media screen and (min-width: 576px) {
+  .offerPrice {
+    gap: 4px;
+  }
 }
 
 .offerPriceLabel {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #888;
   text-transform: uppercase;
 }
 
+@media screen and (min-width: 576px) {
+  .offerPriceLabel {
+    font-size: 0.8rem;
+  }
+}
+
 .offerPriceValue {
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #04ffc4;
 }
 
+@media screen and (min-width: 576px) {
+  .offerPriceValue {
+    font-size: 1.4rem;
+  }
+}
+
 .offerPriceOriginal {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #aaa;
+}
+
+@media screen and (min-width: 576px) {
+  .offerPriceOriginal {
+    font-size: 1.1rem;
+  }
 }
 
 .offerMeta {
   display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
   color: #888;
 }
 
+@media screen and (min-width: 480px) {
+  .offerMeta {
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 0.85rem;
+  }
+}
+
 .offerActions {
-  padding: 16px 20px;
+  padding: 12px 14px;
   border-top: 1px solid var(--border);
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media screen and (min-width: 576px) {
+  .offerActions {
+    padding: 16px 20px;
+    gap: 12px;
+  }
 }
 
 .acceptButton,
 .counterButton,
 .rejectButton {
-  padding: 10px 20px;
+  padding: 8px 14px;
   border-radius: 8px;
   font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex: 1 1 auto;
+  min-width: 70px;
+  text-align: center;
+}
+
+@media screen and (min-width: 576px) {
+  .acceptButton,
+  .counterButton,
+  .rejectButton {
+    padding: 10px 20px;
+    font-size: 1rem;
+    flex: 0 1 auto;
+  }
 }
 
 .acceptButton {
@@ -2034,12 +2264,19 @@
 .earningsSummary {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin: 20px 0;
+  gap: 10px;
+  margin: 16px 0;
   width: 100%;
 }
 
-@media (min-width: 768px) {
+@media screen and (min-width: 576px) {
+  .earningsSummary {
+    gap: 16px;
+    margin: 20px 0;
+  }
+}
+
+@media screen and (min-width: 768px) {
   .earningsSummary {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -2048,104 +2285,215 @@
 .earningsCard {
   background: linear-gradient(135deg, #1f1f1f90 0%, #13131370 100%);
   border: 1px groove var(--border);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+}
+
+@media screen and (min-width: 576px) {
+  .earningsCard {
+    border-radius: 12px;
+    padding: 20px;
+    gap: 8px;
+  }
 }
 
 .earningsLabel {
-  font-size: 0.85rem;
+  font-size: 0.65rem;
   color: #888;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+}
+
+@media screen and (min-width: 576px) {
+  .earningsLabel {
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+  }
 }
 
 .earningsValue {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #ffffff;
+  word-break: break-word;
+}
+
+@media screen and (min-width: 576px) {
+  .earningsValue {
+    font-size: 1.5rem;
+  }
 }
 
 .earningsDeduction {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #ff4d4f;
+  word-break: break-word;
+}
+
+@media screen and (min-width: 576px) {
+  .earningsDeduction {
+    font-size: 1.5rem;
+  }
 }
 
 .earningsNet {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #04ffc4;
+  word-break: break-word;
+}
+
+@media screen and (min-width: 576px) {
+  .earningsNet {
+    font-size: 1.5rem;
+  }
 }
 
 .earningsPending {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #ffc107;
+  word-break: break-word;
+}
+
+@media screen and (min-width: 576px) {
+  .earningsPending {
+    font-size: 1.5rem;
+  }
 }
 
 /* Payouts List */
 .payoutsList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 
+@media screen and (min-width: 576px) {
+  .payoutsList {
+    gap: 12px;
+  }
+}
+
 .payoutItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  padding: 12px;
   background: linear-gradient(135deg, #1f1f1f90 0%, #13131370 100%);
   border: 1px groove var(--border);
   border-radius: 10px;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
+}
+
+@media screen and (min-width: 576px) {
+  .payoutItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    gap: 12px;
+  }
 }
 
 .payoutInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
+}
+
+@media screen and (min-width: 576px) {
+  .payoutInfo {
+    gap: 4px;
+  }
 }
 
 .payoutTitle {
   font-weight: 500;
   color: #ffffff;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media screen and (min-width: 576px) {
+  .payoutTitle {
+    font-size: 1rem;
+  }
 }
 
 .payoutDate {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #666;
+}
+
+@media screen and (min-width: 576px) {
+  .payoutDate {
+    font-size: 0.8rem;
+  }
 }
 
 .payoutAmount {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 2px;
+}
+
+@media screen and (min-width: 576px) {
+  .payoutAmount {
+    gap: 4px;
+  }
 }
 
 .payoutGross {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #ffffff;
 }
 
+@media screen and (min-width: 576px) {
+  .payoutGross {
+    font-size: 1.1rem;
+  }
+}
+
 .payoutNet {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #04ffc4;
 }
 
+@media screen and (min-width: 576px) {
+  .payoutNet {
+    font-size: 0.85rem;
+  }
+}
+
 .payoutStatus {
-  padding: 4px 12px;
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+@media screen and (min-width: 576px) {
+  .payoutStatus {
+    grid-column: auto;
+    justify-self: auto;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+  }
 }
 
 /* Status Info variant */
