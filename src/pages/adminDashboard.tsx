@@ -2152,15 +2152,6 @@ const AdminDashboard: React.FC = () => {
     <div className={styles.dashboard}>
       {/* Sidebar Navigation */}
       <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.sidebarLogo}>
-            <div className={styles.logoIcon}>L</div>
-            <div className={styles.logoText}>
-              Lux<span>Hub</span>
-            </div>
-          </div>
-        </div>
-
         <nav className={styles.sidebarNav}>
           <div className={styles.navSection}>
             <div className={styles.navSectionLabel}>Marketplace</div>
@@ -2177,20 +2168,6 @@ const AdminDashboard: React.FC = () => {
             {securityNavItems.map(renderNavItem)}
           </div>
         </nav>
-
-        <div className={styles.sidebarFooter}>
-          <div className={styles.walletInfo}>
-            <div className={styles.walletAvatar}>
-              <HiOutlineKey />
-            </div>
-            <div className={styles.walletDetails}>
-              <div className={styles.walletLabel}>Admin Wallet</div>
-              <div className={styles.walletAddress}>
-                {wallet.publicKey.toBase58().slice(0, 4)}...{wallet.publicKey.toBase58().slice(-4)}
-              </div>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* Main Content Area */}

@@ -17,6 +17,10 @@ import {
   FiEye,
   FiTruck,
   FiInbox,
+  FiUser,
+  FiRefreshCw,
+  FiKey,
+  FiLock,
 } from 'react-icons/fi';
 import AddInventoryForm from '../../components/vendor/AddInventoryForm';
 import toast from 'react-hot-toast';
@@ -358,19 +362,67 @@ const VendorDashboard = () => {
     </div>
   );
 
-  // Tab configuration
-  const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <FiTrendingUp /> },
-    { id: 'inventory', label: 'Inventory', icon: <FiPackage /> },
-    { id: 'orders', label: 'Orders', icon: <FiTruck /> },
-    { id: 'offers', label: 'Offers', icon: <FiInbox /> },
-    { id: 'payouts', label: 'Payouts', icon: <FiDollarSign /> },
-    { id: 'profile', label: 'Profile', icon: <FiEdit2 /> },
+  // Navigation items configuration (matching AdminDashboard style)
+  const navItems = [
+    { id: 'dashboard' as TabId, label: 'Dashboard', icon: FiTrendingUp },
+    { id: 'inventory' as TabId, label: 'Inventory', icon: FiPackage, badge: metrics.pendingReview },
+    { id: 'orders' as TabId, label: 'Orders', icon: FiTruck, badge: metrics.activeEscrows },
+    { id: 'offers' as TabId, label: 'Offers', icon: FiInbox, badge: metrics.pendingOffers },
   ];
+
+  const financeNavItems = [{ id: 'payouts' as TabId, label: 'Payouts', icon: FiDollarSign }];
+
+  const settingsNavItems = [{ id: 'profile' as TabId, label: 'Profile', icon: FiUser }];
+
+  // Page titles for each tab
+  const pageTitles: Record<TabId, { title: string; subtitle: string }> = {
+    dashboard: { title: 'Vendor Dashboard', subtitle: 'Overview of your sales and inventory' },
+    inventory: { title: 'Inventory Management', subtitle: 'Add and manage your listed assets' },
+    orders: { title: 'Orders & Escrows', subtitle: 'Track active orders and shipments' },
+    offers: { title: 'Incoming Offers', subtitle: 'Review and respond to buyer offers' },
+    payouts: { title: 'Earnings & Payouts', subtitle: 'Track your sales and pending payouts' },
+    profile: { title: 'Vendor Profile', subtitle: 'Manage your public vendor profile' },
+  };
+
+  // Render sidebar nav item
+  const renderNavItem = (item: { id: TabId; label: string; icon: any; badge?: number }) => {
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.id}
+        className={`${styles.navItem} ${activeTab === item.id ? styles.active : ''}`}
+        onClick={() => setActiveTab(item.id)}
+      >
+        <Icon className={styles.navIcon} />
+        <span>{item.label}</span>
+        {item.badge !== undefined && item.badge > 0 && (
+          <span className={styles.navBadge}>{item.badge}</span>
+        )}
+      </button>
+    );
+  };
+
+  // Refresh data handler
+  const refreshData = () => {
+    if (activeTab === 'dashboard') {
+      fetchVendorAssets();
+      fetchOrders();
+      fetchOffers();
+      fetchPayouts();
+    } else if (activeTab === 'inventory') {
+      fetchVendorAssets();
+    } else if (activeTab === 'orders') {
+      fetchOrders();
+    } else if (activeTab === 'offers') {
+      fetchOffers();
+    } else if (activeTab === 'payouts') {
+      fetchPayouts();
+    }
+  };
 
   if (loading)
     return (
-      <div className={styles.dashboardContainer}>
+      <div className={styles.dashboard}>
         <div className={styles.loadingState}>
           <FiLoader className={styles.spinner} />
           <p>Loading dashboard...</p>
@@ -380,28 +432,35 @@ const VendorDashboard = () => {
 
   if (!publicKey)
     return (
-      <div className={styles.dashboardContainer}>
-        <div className={styles.emptyState}>
-          <p>Please connect your wallet to access the vendor dashboard.</p>
+      <div className={styles.dashboard}>
+        <div className={styles.accessDenied}>
+          <FiKey className={styles.accessDeniedIcon} />
+          <h1 className={styles.accessDeniedTitle}>Connect Wallet</h1>
+          <p className={styles.accessDeniedText}>
+            Please connect your wallet to access the vendor dashboard.
+          </p>
         </div>
       </div>
     );
 
   if (error)
     return (
-      <div className={styles.dashboardContainer}>
-        <div className={styles.errorState}>
-          <p>{error}</p>
+      <div className={styles.dashboard}>
+        <div className={styles.accessDenied}>
+          <FiLock className={styles.accessDeniedIcon} />
+          <h1 className={styles.accessDeniedTitle}>Error</h1>
+          <p className={styles.accessDeniedText}>{error}</p>
         </div>
       </div>
     );
 
   if (!profile?.approved)
     return (
-      <div className={styles.dashboardContainer}>
-        <div className={styles.pendingState}>
-          <h2>Pending Approval</h2>
-          <p>
+      <div className={styles.dashboard}>
+        <div className={styles.accessDenied}>
+          <FiClock className={styles.accessDeniedIcon} style={{ color: 'var(--warning)' }} />
+          <h1 className={styles.accessDeniedTitle}>Pending Approval</h1>
+          <p className={styles.accessDeniedText}>
             Your vendor profile is pending admin approval. You&apos;ll be notified once approved.
           </p>
         </div>
@@ -409,635 +468,658 @@ const VendorDashboard = () => {
     );
 
   return (
-    <div className={styles.dashboardContainer}>
-      {/* Tabs */}
-      <div className={styles.tabButtons}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={activeTab === tab.id ? styles.activeTab : ''}
-          >
-            <span className={styles.tabIcon}>{tab.icon}</span>
-            <span className={styles.tabLabel}>{tab.label}</span>
-          </button>
-        ))}
-      </div>
+    <div className={styles.dashboard}>
+      {/* Sidebar Navigation */}
+      <aside className={styles.sidebar}>
+        <nav className={styles.sidebarNav}>
+          <div className={styles.navSection}>
+            <div className={styles.navSectionLabel}>Marketplace</div>
+            {navItems.map(renderNavItem)}
+          </div>
 
-      {/* Dashboard Tab */}
-      {activeTab === 'dashboard' && (
-        <div className={styles.tabContentColumn}>
-          <div className={styles.tabContent}>
-            <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Welcome back, {profile?.name || 'Vendor'}</h2>
-            </div>
+          <div className={styles.navSection}>
+            <div className={styles.navSectionLabel}>Finance</div>
+            {financeNavItems.map(renderNavItem)}
+          </div>
 
-            {/* Metrics Grid */}
-            <div className={styles.metricsGrid}>
-              <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
-                <div className={styles.metricIcon}>
-                  <FiPackage />
-                </div>
-                <div className={styles.metricContent}>
-                  <span className={styles.metricValue}>
-                    ${metrics.totalInventoryValue.toLocaleString()}
-                  </span>
-                  <span className={styles.metricLabel}>Total Inventory Value</span>
-                </div>
-              </div>
+          <div className={styles.navSection}>
+            <div className={styles.navSectionLabel}>Settings</div>
+            {settingsNavItems.map(renderNavItem)}
+          </div>
+        </nav>
+      </aside>
 
-              <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
-                <div className={styles.metricIconWarning}>
-                  <FiClock />
-                </div>
-                <div className={styles.metricContent}>
-                  <span className={styles.metricValue}>{metrics.pendingReview}</span>
-                  <span className={styles.metricLabel}>Pending Review</span>
-                </div>
-              </div>
+      {/* Main Content Area */}
+      <main className={styles.mainContent}>
+        <header className={styles.contentHeader}>
+          <div className={styles.pageTitle}>
+            <h1>{pageTitles[activeTab]?.title || 'Dashboard'}</h1>
+            <p>{pageTitles[activeTab]?.subtitle || ''}</p>
+          </div>
+          <div className={styles.headerActions}>
+            <button
+              className={styles.refreshBtn}
+              onClick={refreshData}
+              disabled={loading || assetsLoading}
+            >
+              <FiRefreshCw className={loading || assetsLoading ? styles.spinning : ''} />
+              {loading || assetsLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+        </header>
 
-              <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
-                <div className={styles.metricIconSuccess}>
-                  <FiCheckCircle />
-                </div>
-                <div className={styles.metricContent}>
-                  <span className={styles.metricValue}>{metrics.listedCount}</span>
-                  <span className={styles.metricLabel}>Listed Items</span>
-                </div>
-              </div>
-
-              <div className={styles.metricCard} onClick={() => setActiveTab('orders')}>
-                <div className={styles.metricIconInfo}>
-                  <FiTruck />
-                </div>
-                <div className={styles.metricContent}>
-                  <span className={styles.metricValue}>{metrics.activeEscrows}</span>
-                  <span className={styles.metricLabel}>Active Escrows</span>
-                </div>
-              </div>
-
-              <div className={styles.metricCard} onClick={() => setActiveTab('offers')}>
-                <div className={styles.metricIcon}>
-                  <FiInbox />
-                </div>
-                <div className={styles.metricContent}>
-                  <span className={styles.metricValue}>{metrics.pendingOffers}</span>
-                  <span className={styles.metricLabel}>Pending Offers</span>
-                </div>
-              </div>
-
-              <div className={styles.metricCard} onClick={() => setActiveTab('payouts')}>
-                <div className={styles.metricIconSuccess}>
-                  <FiDollarSign />
-                </div>
-                <div className={styles.metricContent}>
-                  <span className={styles.metricValue}>${metrics.totalSales.toLocaleString()}</span>
-                  <span className={styles.metricLabel}>Total Sales</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Quick Actions</h2>
-            </div>
-            <div className={styles.quickActions}>
-              <button
-                className={styles.quickActionButton}
-                onClick={() => setActiveTab('inventory')}
-              >
-                <FiPlus /> Add New Item
-              </button>
-              <button className={styles.quickActionButton} onClick={() => setActiveTab('offers')}>
-                <FiEye /> View Offers
-              </button>
-              <button className={styles.quickActionButton} onClick={() => setActiveTab('orders')}>
-                <FiTruck /> Manage Orders
-              </button>
-            </div>
-
-            {/* Recent Activity */}
-            <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Recent Activity</h2>
-            </div>
-            <div className={styles.activityList}>
-              {vendorAssets.slice(0, 5).map((asset: any) => (
-                <div key={asset._id} className={styles.activityItem}>
-                  <div className={styles.activityIcon}>
-                    {asset.status === 'pending' ? <FiClock /> : <FiCheckCircle />}
+        <div className={styles.contentBody}>
+          {/* Dashboard Tab */}
+          {activeTab === 'dashboard' && (
+            <>
+              {/* Metrics Grid */}
+              <div className={styles.metricsGrid}>
+                <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
+                  <div className={styles.metricIcon}>
+                    <FiPackage />
                   </div>
-                  <div className={styles.activityContent}>
-                    <span className={styles.activityTitle}>{asset.title || asset.model}</span>
-                    <span className={styles.activityMeta}>
-                      {asset.status === 'pending' ? 'Pending review' : 'Listed'} • $
-                      {asset.priceUSD?.toLocaleString()}
+                  <div className={styles.metricContent}>
+                    <span className={styles.metricValue}>
+                      ${metrics.totalInventoryValue.toLocaleString()}
+                    </span>
+                    <span className={styles.metricLabel}>Total Inventory Value</span>
+                  </div>
+                </div>
+
+                <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
+                  <div className={styles.metricIconWarning}>
+                    <FiClock />
+                  </div>
+                  <div className={styles.metricContent}>
+                    <span className={styles.metricValue}>{metrics.pendingReview}</span>
+                    <span className={styles.metricLabel}>Pending Review</span>
+                  </div>
+                </div>
+
+                <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
+                  <div className={styles.metricIconSuccess}>
+                    <FiCheckCircle />
+                  </div>
+                  <div className={styles.metricContent}>
+                    <span className={styles.metricValue}>{metrics.listedCount}</span>
+                    <span className={styles.metricLabel}>Listed Items</span>
+                  </div>
+                </div>
+
+                <div className={styles.metricCard} onClick={() => setActiveTab('orders')}>
+                  <div className={styles.metricIconInfo}>
+                    <FiTruck />
+                  </div>
+                  <div className={styles.metricContent}>
+                    <span className={styles.metricValue}>{metrics.activeEscrows}</span>
+                    <span className={styles.metricLabel}>Active Escrows</span>
+                  </div>
+                </div>
+
+                <div className={styles.metricCard} onClick={() => setActiveTab('offers')}>
+                  <div className={styles.metricIcon}>
+                    <FiInbox />
+                  </div>
+                  <div className={styles.metricContent}>
+                    <span className={styles.metricValue}>{metrics.pendingOffers}</span>
+                    <span className={styles.metricLabel}>Pending Offers</span>
+                  </div>
+                </div>
+
+                <div className={styles.metricCard} onClick={() => setActiveTab('payouts')}>
+                  <div className={styles.metricIconSuccess}>
+                    <FiDollarSign />
+                  </div>
+                  <div className={styles.metricContent}>
+                    <span className={styles.metricValue}>
+                      ${metrics.totalSales.toLocaleString()}
+                    </span>
+                    <span className={styles.metricLabel}>Total Sales</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className={styles.sectionHeading}>
+                <h2 className={styles.editHeading}>Quick Actions</h2>
+              </div>
+              <div className={styles.quickActions}>
+                <button
+                  className={styles.quickActionButton}
+                  onClick={() => setActiveTab('inventory')}
+                >
+                  <FiPlus /> Add New Item
+                </button>
+                <button className={styles.quickActionButton} onClick={() => setActiveTab('offers')}>
+                  <FiEye /> View Offers
+                </button>
+                <button className={styles.quickActionButton} onClick={() => setActiveTab('orders')}>
+                  <FiTruck /> Manage Orders
+                </button>
+              </div>
+
+              {/* Recent Activity */}
+              <div className={styles.sectionHeading}>
+                <h2 className={styles.editHeading}>Recent Activity</h2>
+              </div>
+              <div className={styles.activityList}>
+                {vendorAssets.slice(0, 5).map((asset: any) => (
+                  <div key={asset._id} className={styles.activityItem}>
+                    <div className={styles.activityIcon}>
+                      {asset.status === 'pending' ? <FiClock /> : <FiCheckCircle />}
+                    </div>
+                    <div className={styles.activityContent}>
+                      <span className={styles.activityTitle}>{asset.title || asset.model}</span>
+                      <span className={styles.activityMeta}>
+                        {asset.status === 'pending' ? 'Pending review' : 'Listed'} • $
+                        {asset.priceUSD?.toLocaleString()}
+                      </span>
+                    </div>
+                    <span className={styles.activityDate}>
+                      {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : '—'}
                     </span>
                   </div>
-                  <span className={styles.activityDate}>
-                    {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : '—'}
-                  </span>
+                ))}
+                {vendorAssets.length === 0 && (
+                  <div className={styles.emptyActivity}>
+                    <p>No recent activity. Start by adding your first item!</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Inventory Tab */}
+          {activeTab === 'inventory' && (
+            <>
+              <AddInventoryForm onSuccess={fetchVendorAssets} />
+
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Your Submitted Assets</h2>
+              </div>
+
+              {assetsLoading ? (
+                <div className={styles.assetGrid}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <AssetSkeleton key={i} />
+                  ))}
                 </div>
-              ))}
-              {vendorAssets.length === 0 && (
-                <div className={styles.emptyActivity}>
-                  <p>No recent activity. Start by adding your first item!</p>
+              ) : vendorAssets.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <FiPackage className={styles.emptyIcon} />
+                  <p>No assets submitted yet. Add inventory above to request minting.</p>
+                </div>
+              ) : (
+                <div className={styles.assetGrid}>
+                  {vendorAssets.map((asset: any) => {
+                    // Map asset status to NFTStatus
+                    const mapAssetStatus = (status: string): NFTStatus => {
+                      switch (status) {
+                        case 'pending':
+                          return 'pending';
+                        case 'listed':
+                          return 'listed';
+                        case 'rejected':
+                          return 'error';
+                        case 'sold':
+                          return 'sold';
+                        case 'in_escrow':
+                          return 'escrow';
+                        default:
+                          return 'pending';
+                      }
+                    };
+
+                    const imageUrl = asset.imageIpfsUrls?.[0]
+                      ? `${process.env.NEXT_PUBLIC_GATEWAY_URL}${asset.imageIpfsUrls[0]}`
+                      : asset.imageBase64s?.[0] || undefined;
+
+                    return (
+                      <div key={asset._id} className={styles.assetCardWrapper}>
+                        <NFTGridCard
+                          title={asset.model || asset.title || 'Untitled'}
+                          image={imageUrl}
+                          price={asset.priceUSD || 0}
+                          priceLabel="USD"
+                          brand={asset.brand}
+                          status={mapAssetStatus(asset.status)}
+                          subtitle={asset.reference || asset.serialNumber}
+                        />
+                        {asset.status === 'pending' && (
+                          <div className={styles.assetCardActions}>
+                            <button
+                              className={styles.editButton}
+                              onClick={() => toast('Edit feature coming soon')}
+                              title="Edit asset"
+                            >
+                              <FiEdit2 />
+                            </button>
+                            <button
+                              className={styles.deleteButton}
+                              onClick={() => handleDeleteAsset(asset._id)}
+                              disabled={deletingAssetId === asset._id}
+                              title="Delete asset"
+                            >
+                              {deletingAssetId === asset._id ? (
+                                <FiLoader className={styles.buttonSpinner} />
+                              ) : (
+                                <FiTrash2 />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
 
-      {/* Inventory Tab */}
-      {activeTab === 'inventory' && (
-        <div className={styles.tabContentColumn}>
-          <div className={styles.tabContentRow}>
-            <div className={styles.tabContentLeft}>
-              <AddInventoryForm onSuccess={fetchVendorAssets} />
-            </div>
-          </div>
-
-          <div className={styles.tabContent}>
-            <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Your Submitted Assets</h2>
-            </div>
-
-            {assetsLoading ? (
-              <div className={styles.assetGrid}>
-                {[1, 2, 3, 4].map((i) => (
-                  <AssetSkeleton key={i} />
-                ))}
+          {/* Orders Tab */}
+          {activeTab === 'orders' && (
+            <>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Orders & Escrows</h2>
               </div>
-            ) : vendorAssets.length === 0 ? (
-              <div className={styles.emptyState}>
-                <FiPackage className={styles.emptyIcon} />
-                <p>No assets submitted yet. Add inventory above to request minting.</p>
-              </div>
-            ) : (
-              <div className={styles.assetGrid}>
-                {vendorAssets.map((asset: any) => {
-                  // Map asset status to NFTStatus
-                  const mapAssetStatus = (status: string): NFTStatus => {
-                    switch (status) {
-                      case 'pending':
-                        return 'pending';
-                      case 'listed':
-                        return 'listed';
-                      case 'rejected':
-                        return 'error';
-                      case 'sold':
-                        return 'sold';
-                      case 'in_escrow':
-                        return 'escrow';
-                      default:
-                        return 'pending';
-                    }
-                  };
 
-                  const imageUrl = asset.imageIpfsUrls?.[0]
-                    ? `${process.env.NEXT_PUBLIC_GATEWAY_URL}${asset.imageIpfsUrls[0]}`
-                    : asset.imageBase64s?.[0] || undefined;
-
-                  return (
-                    <div key={asset._id} className={styles.assetCardWrapper}>
-                      <NFTGridCard
-                        title={asset.model || asset.title || 'Untitled'}
-                        image={imageUrl}
-                        price={asset.priceUSD || 0}
-                        priceLabel="USD"
-                        brand={asset.brand}
-                        status={mapAssetStatus(asset.status)}
-                        subtitle={asset.reference || asset.serialNumber}
-                      />
-                      {asset.status === 'pending' && (
-                        <div className={styles.assetCardActions}>
-                          <button
-                            className={styles.editButton}
-                            onClick={() => toast('Edit feature coming soon')}
-                            title="Edit asset"
-                          >
-                            <FiEdit2 />
-                          </button>
-                          <button
-                            className={styles.deleteButton}
-                            onClick={() => handleDeleteAsset(asset._id)}
-                            disabled={deletingAssetId === asset._id}
-                            title="Delete asset"
-                          >
-                            {deletingAssetId === asset._id ? (
-                              <FiLoader className={styles.buttonSpinner} />
-                            ) : (
-                              <FiTrash2 />
-                            )}
+              {ordersLoading ? (
+                <div className={styles.loadingState}>
+                  <FiLoader className={styles.spinner} />
+                  <p>Loading orders...</p>
+                </div>
+              ) : orders.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <FiTruck className={styles.emptyIcon} />
+                  <h3>No Active Orders</h3>
+                  <p>When a buyer purchases one of your items, it will appear here.</p>
+                </div>
+              ) : (
+                <div className={styles.ordersList}>
+                  {orders.map((order: any) => (
+                    <div key={order._id} className={styles.orderCard}>
+                      <div className={styles.orderHeader}>
+                        <span className={styles.orderId}>Order #{order._id?.slice(-8)}</span>
+                        <span
+                          className={`${styles.orderStatus} ${
+                            order.status === 'in_escrow'
+                              ? styles.statusPending
+                              : order.status === 'shipped'
+                                ? styles.statusInfo
+                                : order.status === 'delivered'
+                                  ? styles.statusListed
+                                  : ''
+                          }`}
+                        >
+                          {order.status?.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </div>
+                      <div className={styles.orderBody}>
+                        <div className={styles.orderItem}>
+                          <span className={styles.orderItemTitle}>
+                            {order.assetTitle || 'Asset'}
+                          </span>
+                          <span className={styles.orderItemPrice}>
+                            ${order.amount?.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className={styles.orderMeta}>
+                          <span>Buyer: {order.buyerWallet?.slice(0, 8)}...</span>
+                          <span>
+                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
+                          </span>
+                        </div>
+                      </div>
+                      {order.status === 'in_escrow' && (
+                        <div className={styles.orderActions}>
+                          <button className={styles.primaryButton}>
+                            <FiTruck /> Add Tracking
                           </button>
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Orders Tab */}
-      {activeTab === 'orders' && (
-        <div className={styles.tabContentColumn}>
-          <div className={styles.tabContent}>
-            <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Orders & Escrows</h2>
-            </div>
-
-            {ordersLoading ? (
-              <div className={styles.loadingState}>
-                <FiLoader className={styles.spinner} />
-                <p>Loading orders...</p>
-              </div>
-            ) : orders.length === 0 ? (
-              <div className={styles.emptyState}>
-                <FiTruck className={styles.emptyIcon} />
-                <h3>No Active Orders</h3>
-                <p>When a buyer purchases one of your items, it will appear here.</p>
-              </div>
-            ) : (
-              <div className={styles.ordersList}>
-                {orders.map((order: any) => (
-                  <div key={order._id} className={styles.orderCard}>
-                    <div className={styles.orderHeader}>
-                      <span className={styles.orderId}>Order #{order._id?.slice(-8)}</span>
-                      <span
-                        className={`${styles.orderStatus} ${
-                          order.status === 'in_escrow'
-                            ? styles.statusPending
-                            : order.status === 'shipped'
-                              ? styles.statusInfo
-                              : order.status === 'delivered'
-                                ? styles.statusListed
-                                : ''
-                        }`}
-                      >
-                        {order.status?.replace('_', ' ').toUpperCase()}
-                      </span>
-                    </div>
-                    <div className={styles.orderBody}>
-                      <div className={styles.orderItem}>
-                        <span className={styles.orderItemTitle}>{order.assetTitle || 'Asset'}</span>
-                        <span className={styles.orderItemPrice}>
-                          ${order.amount?.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className={styles.orderMeta}>
-                        <span>Buyer: {order.buyerWallet?.slice(0, 8)}...</span>
-                        <span>
-                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
-                        </span>
-                      </div>
-                    </div>
-                    {order.status === 'in_escrow' && (
-                      <div className={styles.orderActions}>
-                        <button className={styles.primaryButton}>
-                          <FiTruck /> Add Tracking
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Offers Tab */}
-      {activeTab === 'offers' && (
-        <div className={styles.tabContentColumn}>
-          <div className={styles.tabContent}>
-            <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Incoming Offers</h2>
-            </div>
-
-            {offersLoading ? (
-              <div className={styles.loadingState}>
-                <FiLoader className={styles.spinner} />
-                <p>Loading offers...</p>
-              </div>
-            ) : offers.length === 0 ? (
-              <div className={styles.emptyState}>
-                <FiInbox className={styles.emptyIcon} />
-                <h3>No Pending Offers</h3>
-                <p>Offers from buyers will appear here. Keep your listings active!</p>
-              </div>
-            ) : (
-              <div className={styles.offersList}>
-                {offers.map((offer: any) => (
-                  <div key={offer._id} className={styles.offerCard}>
-                    <div className={styles.offerHeader}>
-                      <span className={styles.offerAsset}>{offer.assetTitle || 'Asset'}</span>
-                      <span
-                        className={`${styles.offerStatus} ${
-                          offer.status === 'pending'
-                            ? styles.statusPending
-                            : offer.status === 'accepted'
-                              ? styles.statusListed
-                              : offer.status === 'rejected'
-                                ? styles.statusRejected
-                                : ''
-                        }`}
-                      >
-                        {offer.status?.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className={styles.offerBody}>
-                      <div className={styles.offerPrices}>
-                        <div className={styles.offerPrice}>
-                          <span className={styles.offerPriceLabel}>Offer</span>
-                          <span className={styles.offerPriceValue}>
-                            ${offer.offerAmount?.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className={styles.offerPrice}>
-                          <span className={styles.offerPriceLabel}>Listed</span>
-                          <span className={styles.offerPriceOriginal}>
-                            ${offer.listPrice?.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className={styles.offerMeta}>
-                        <span>From: {offer.buyerWallet?.slice(0, 8)}...</span>
-                        <span>
-                          {offer.createdAt ? new Date(offer.createdAt).toLocaleDateString() : ''}
-                        </span>
-                      </div>
-                    </div>
-                    {offer.status === 'pending' && (
-                      <div className={styles.offerActions}>
-                        <button className={styles.acceptButton}>Accept</button>
-                        <button className={styles.counterButton}>Counter</button>
-                        <button className={styles.rejectButton}>Reject</button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Payouts Tab */}
-      {activeTab === 'payouts' && (
-        <div className={styles.tabContentColumn}>
-          <div className={styles.tabContent}>
-            <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Earnings & Payouts</h2>
-            </div>
-
-            {/* Earnings Summary */}
-            <div className={styles.earningsSummary}>
-              <div className={styles.earningsCard}>
-                <span className={styles.earningsLabel}>Total Sales</span>
-                <span className={styles.earningsValue}>${metrics.totalSales.toLocaleString()}</span>
-              </div>
-              <div className={styles.earningsCard}>
-                <span className={styles.earningsLabel}>Platform Fee (3%)</span>
-                <span className={styles.earningsDeduction}>
-                  -${(metrics.totalSales * 0.03).toLocaleString()}
-                </span>
-              </div>
-              <div className={styles.earningsCard}>
-                <span className={styles.earningsLabel}>Net Earnings</span>
-                <span className={styles.earningsNet}>
-                  ${(metrics.totalSales * 0.97).toLocaleString()}
-                </span>
-              </div>
-              <div className={styles.earningsCard}>
-                <span className={styles.earningsLabel}>Pending Payout</span>
-                <span className={styles.earningsPending}>
-                  ${metrics.pendingPayouts.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            {payoutsLoading ? (
-              <div className={styles.loadingState}>
-                <FiLoader className={styles.spinner} />
-                <p>Loading payout history...</p>
-              </div>
-            ) : payouts.length === 0 ? (
-              <div className={styles.emptyState}>
-                <FiDollarSign className={styles.emptyIcon} />
-                <h3>No Payouts Yet</h3>
-                <p>Completed sales and payouts will be listed here.</p>
-              </div>
-            ) : (
-              <>
-                <div className={styles.sectionHeading}>
-                  <h2 className={styles.editHeading}>Payout History</h2>
+                  ))}
                 </div>
-                <div className={styles.payoutsList}>
-                  {payouts.map((payout: any) => (
-                    <div key={payout._id} className={styles.payoutItem}>
-                      <div className={styles.payoutInfo}>
-                        <span className={styles.payoutTitle}>{payout.assetTitle}</span>
-                        <span className={styles.payoutDate}>
-                          {payout.createdAt ? new Date(payout.createdAt).toLocaleDateString() : ''}
-                        </span>
-                      </div>
-                      <div className={styles.payoutAmount}>
-                        <span className={styles.payoutGross}>
-                          ${payout.grossAmount?.toLocaleString()}
-                        </span>
-                        <span className={styles.payoutNet}>
-                          Net: ${payout.netAmount?.toLocaleString()}
-                        </span>
-                      </div>
-                      <span
-                        className={`${styles.payoutStatus} ${
-                          payout.status === 'completed'
-                            ? styles.statusListed
-                            : payout.status === 'pending'
+              )}
+            </>
+          )}
+
+          {/* Offers Tab */}
+          {activeTab === 'offers' && (
+            <>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Incoming Offers</h2>
+              </div>
+
+              {offersLoading ? (
+                <div className={styles.loadingState}>
+                  <FiLoader className={styles.spinner} />
+                  <p>Loading offers...</p>
+                </div>
+              ) : offers.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <FiInbox className={styles.emptyIcon} />
+                  <h3>No Pending Offers</h3>
+                  <p>Offers from buyers will appear here. Keep your listings active!</p>
+                </div>
+              ) : (
+                <div className={styles.offersList}>
+                  {offers.map((offer: any) => (
+                    <div key={offer._id} className={styles.offerCard}>
+                      <div className={styles.offerHeader}>
+                        <span className={styles.offerAsset}>{offer.assetTitle || 'Asset'}</span>
+                        <span
+                          className={`${styles.offerStatus} ${
+                            offer.status === 'pending'
                               ? styles.statusPending
-                              : ''
-                        }`}
-                      >
-                        {payout.status}
-                      </span>
+                              : offer.status === 'accepted'
+                                ? styles.statusListed
+                                : offer.status === 'rejected'
+                                  ? styles.statusRejected
+                                  : ''
+                          }`}
+                        >
+                          {offer.status?.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className={styles.offerBody}>
+                        <div className={styles.offerPrices}>
+                          <div className={styles.offerPrice}>
+                            <span className={styles.offerPriceLabel}>Offer</span>
+                            <span className={styles.offerPriceValue}>
+                              ${offer.offerAmount?.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className={styles.offerPrice}>
+                            <span className={styles.offerPriceLabel}>Listed</span>
+                            <span className={styles.offerPriceOriginal}>
+                              ${offer.listPrice?.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={styles.offerMeta}>
+                          <span>From: {offer.buyerWallet?.slice(0, 8)}...</span>
+                          <span>
+                            {offer.createdAt ? new Date(offer.createdAt).toLocaleDateString() : ''}
+                          </span>
+                        </div>
+                      </div>
+                      {offer.status === 'pending' && (
+                        <div className={styles.offerActions}>
+                          <button className={styles.acceptButton}>Accept</button>
+                          <button className={styles.counterButton}>Counter</button>
+                          <button className={styles.rejectButton}>Reject</button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+              )}
+            </>
+          )}
 
-      {/* Profile Tab */}
-      {activeTab === 'profile' && (
-        <div className={styles.tabContentColumn}>
-          <div className={styles.tabContent}>
-            <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Edit Profile</h2>
-            </div>
-
-            <div className={styles.tabContentRow}>
-              <div className={styles.tabContentLeft}>
-                <AvatarBannerUploader
-                  onUploadComplete={(avatarUrl, bannerUrl) => {
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      avatarUrl: avatarUrl || prev.avatarUrl,
-                      bannerUrl: bannerUrl || prev.bannerUrl,
-                    }));
-                  }}
-                  onPreviewUpdate={(avatarPreview, bannerPreview) => {
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      avatarUrl: avatarPreview || prev.avatarUrl,
-                      bannerUrl: bannerPreview || prev.bannerUrl,
-                    }));
-                  }}
-                />
-                <div className={styles.sectionHeading}>
-                  <h2>Profile Info</h2>
-                </div>
-
-                <div className={styles.formField}>
-                  <p>NAME *</p>
-                  <input
-                    placeholder="Name"
-                    value={formData.name || ''}
-                    onChange={(e) => {
-                      setFormData({ ...formData, name: e.target.value });
-                      clearFieldError('name');
-                    }}
-                    className={fieldErrors.name ? styles.inputError : ''}
-                  />
-                  {fieldErrors.name && (
-                    <span className={styles.inputErrorMsg}>{fieldErrors.name}</span>
-                  )}
-                </div>
-
-                <div className={styles.formField}>
-                  <p>USERNAME</p>
-                  <input
-                    placeholder="Username"
-                    value={formData.username || ''}
-                    disabled
-                    className={styles.inputDisabled}
-                  />
-                </div>
-
-                <div className={styles.formField}>
-                  <p>BIO *</p>
-                  <textarea
-                    placeholder="Bio"
-                    value={formData.bio || ''}
-                    onChange={(e) => {
-                      setFormData({ ...formData, bio: e.target.value });
-                      clearFieldError('bio');
-                    }}
-                    className={fieldErrors.bio ? styles.inputError : ''}
-                  />
-                  {fieldErrors.bio && (
-                    <span className={styles.inputErrorMsg}>{fieldErrors.bio}</span>
-                  )}
-                </div>
-
-                <div className={styles.formField}>
-                  <p>INSTAGRAM</p>
-                  <input
-                    placeholder="Instagram username or full URL"
-                    value={formData.socialLinks?.instagram || ''}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        socialLinks: {
-                          ...formData.socialLinks,
-                          instagram: e.target.value,
-                        },
-                      });
-                      clearFieldError('instagram');
-                    }}
-                    className={fieldErrors.instagram ? styles.inputError : ''}
-                  />
-                  {fieldErrors.instagram && (
-                    <span className={styles.inputErrorMsg}>{fieldErrors.instagram}</span>
-                  )}
-                </div>
-
-                <div className={styles.formField}>
-                  <p>X ACCOUNT</p>
-                  <input
-                    placeholder="X username or full link"
-                    value={formData.socialLinks?.x || ''}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        socialLinks: {
-                          ...formData.socialLinks,
-                          x: e.target.value,
-                        },
-                      });
-                      clearFieldError('x');
-                    }}
-                    className={fieldErrors.x ? styles.inputError : ''}
-                  />
-                  {fieldErrors.x && <span className={styles.inputErrorMsg}>{fieldErrors.x}</span>}
-                </div>
-
-                <div className={styles.formField}>
-                  <p>WEBSITE</p>
-                  <input
-                    placeholder="Website URL"
-                    value={formData.socialLinks?.website || ''}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        socialLinks: {
-                          ...formData.socialLinks,
-                          website: e.target.value,
-                        },
-                      });
-                      clearFieldError('website');
-                    }}
-                    className={fieldErrors.website ? styles.inputError : ''}
-                  />
-                  {fieldErrors.website && (
-                    <span className={styles.inputErrorMsg}>{fieldErrors.website}</span>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleUpdate}
-                  disabled={saving}
-                  className={saving ? styles.buttonDisabled : ''}
-                >
-                  {saving ? (
-                    <>
-                      <FiLoader className={styles.buttonSpinner} />
-                      SAVING...
-                    </>
-                  ) : (
-                    'SAVE PROFILE'
-                  )}
-                </button>
+          {/* Payouts Tab */}
+          {activeTab === 'payouts' && (
+            <>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Earnings & Payouts</h2>
               </div>
 
-              <div className={styles.tabContentRight}>
-                <div className={styles.sectionHeading}>
-                  <h2>Tips</h2>
+              {/* Earnings Summary */}
+              <div className={styles.earningsSummary}>
+                <div className={styles.earningsCard}>
+                  <span className={styles.earningsLabel}>Total Sales</span>
+                  <span className={styles.earningsValue}>
+                    ${metrics.totalSales.toLocaleString()}
+                  </span>
                 </div>
-                <p>A complete profile builds trust with buyers.</p>
-                <SlArrowDown />
-                <p>Add social links to verify your identity.</p>
-                <SlArrowDown />
-                <p>Use a professional banner and avatar.</p>
+                <div className={styles.earningsCard}>
+                  <span className={styles.earningsLabel}>Platform Fee (3%)</span>
+                  <span className={styles.earningsDeduction}>
+                    -${(metrics.totalSales * 0.03).toLocaleString()}
+                  </span>
+                </div>
+                <div className={styles.earningsCard}>
+                  <span className={styles.earningsLabel}>Net Earnings</span>
+                  <span className={styles.earningsNet}>
+                    ${(metrics.totalSales * 0.97).toLocaleString()}
+                  </span>
+                </div>
+                <div className={styles.earningsCard}>
+                  <span className={styles.earningsLabel}>Pending Payout</span>
+                  <span className={styles.earningsPending}>
+                    ${metrics.pendingPayouts.toLocaleString()}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
+
+              {payoutsLoading ? (
+                <div className={styles.loadingState}>
+                  <FiLoader className={styles.spinner} />
+                  <p>Loading payout history...</p>
+                </div>
+              ) : payouts.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <FiDollarSign className={styles.emptyIcon} />
+                  <h3>No Payouts Yet</h3>
+                  <p>Completed sales and payouts will be listed here.</p>
+                </div>
+              ) : (
+                <>
+                  <div className={styles.sectionHeader}>
+                    <h2 className={styles.sectionTitle}>Payout History</h2>
+                  </div>
+                  <div className={styles.payoutsList}>
+                    {payouts.map((payout: any) => (
+                      <div key={payout._id} className={styles.payoutItem}>
+                        <div className={styles.payoutInfo}>
+                          <span className={styles.payoutTitle}>{payout.assetTitle}</span>
+                          <span className={styles.payoutDate}>
+                            {payout.createdAt
+                              ? new Date(payout.createdAt).toLocaleDateString()
+                              : ''}
+                          </span>
+                        </div>
+                        <div className={styles.payoutAmount}>
+                          <span className={styles.payoutGross}>
+                            ${payout.grossAmount?.toLocaleString()}
+                          </span>
+                          <span className={styles.payoutNet}>
+                            Net: ${payout.netAmount?.toLocaleString()}
+                          </span>
+                        </div>
+                        <span
+                          className={`${styles.payoutStatus} ${
+                            payout.status === 'completed'
+                              ? styles.statusListed
+                              : payout.status === 'pending'
+                                ? styles.statusPending
+                                : ''
+                          }`}
+                        >
+                          {payout.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+            <>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Edit Profile</h2>
+              </div>
+
+              <div className={styles.profileContent}>
+                <div className={styles.profileMain}>
+                  <AvatarBannerUploader
+                    onUploadComplete={(avatarUrl, bannerUrl) => {
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        avatarUrl: avatarUrl || prev.avatarUrl,
+                        bannerUrl: bannerUrl || prev.bannerUrl,
+                      }));
+                    }}
+                    onPreviewUpdate={(avatarPreview, bannerPreview) => {
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        avatarUrl: avatarPreview || prev.avatarUrl,
+                        bannerUrl: bannerPreview || prev.bannerUrl,
+                      }));
+                    }}
+                  />
+                  <div className={styles.sectionHeading}>
+                    <h2>Profile Info</h2>
+                  </div>
+
+                  <div className={styles.formField}>
+                    <p>NAME *</p>
+                    <input
+                      placeholder="Name"
+                      value={formData.name || ''}
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        clearFieldError('name');
+                      }}
+                      className={fieldErrors.name ? styles.inputError : ''}
+                    />
+                    {fieldErrors.name && (
+                      <span className={styles.inputErrorMsg}>{fieldErrors.name}</span>
+                    )}
+                  </div>
+
+                  <div className={styles.formField}>
+                    <p>USERNAME</p>
+                    <input
+                      placeholder="Username"
+                      value={formData.username || ''}
+                      disabled
+                      className={styles.inputDisabled}
+                    />
+                  </div>
+
+                  <div className={styles.formField}>
+                    <p>BIO *</p>
+                    <textarea
+                      placeholder="Bio"
+                      value={formData.bio || ''}
+                      onChange={(e) => {
+                        setFormData({ ...formData, bio: e.target.value });
+                        clearFieldError('bio');
+                      }}
+                      className={fieldErrors.bio ? styles.inputError : ''}
+                    />
+                    {fieldErrors.bio && (
+                      <span className={styles.inputErrorMsg}>{fieldErrors.bio}</span>
+                    )}
+                  </div>
+
+                  <div className={styles.formField}>
+                    <p>INSTAGRAM</p>
+                    <input
+                      placeholder="Instagram username or full URL"
+                      value={formData.socialLinks?.instagram || ''}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          socialLinks: {
+                            ...formData.socialLinks,
+                            instagram: e.target.value,
+                          },
+                        });
+                        clearFieldError('instagram');
+                      }}
+                      className={fieldErrors.instagram ? styles.inputError : ''}
+                    />
+                    {fieldErrors.instagram && (
+                      <span className={styles.inputErrorMsg}>{fieldErrors.instagram}</span>
+                    )}
+                  </div>
+
+                  <div className={styles.formField}>
+                    <p>X ACCOUNT</p>
+                    <input
+                      placeholder="X username or full link"
+                      value={formData.socialLinks?.x || ''}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          socialLinks: {
+                            ...formData.socialLinks,
+                            x: e.target.value,
+                          },
+                        });
+                        clearFieldError('x');
+                      }}
+                      className={fieldErrors.x ? styles.inputError : ''}
+                    />
+                    {fieldErrors.x && <span className={styles.inputErrorMsg}>{fieldErrors.x}</span>}
+                  </div>
+
+                  <div className={styles.formField}>
+                    <p>WEBSITE</p>
+                    <input
+                      placeholder="Website URL"
+                      value={formData.socialLinks?.website || ''}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          socialLinks: {
+                            ...formData.socialLinks,
+                            website: e.target.value,
+                          },
+                        });
+                        clearFieldError('website');
+                      }}
+                      className={fieldErrors.website ? styles.inputError : ''}
+                    />
+                    {fieldErrors.website && (
+                      <span className={styles.inputErrorMsg}>{fieldErrors.website}</span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleUpdate}
+                    disabled={saving}
+                    className={saving ? styles.buttonDisabled : ''}
+                  >
+                    {saving ? (
+                      <>
+                        <FiLoader className={styles.buttonSpinner} />
+                        SAVING...
+                      </>
+                    ) : (
+                      'SAVE PROFILE'
+                    )}
+                  </button>
+                </div>
+
+                <div className={styles.profileSidebar}>
+                  <div className={styles.tipsCard}>
+                    <h3 className={styles.tipsTitle}>Profile Tips</h3>
+                    <div className={styles.tipItem}>
+                      <SlArrowDown className={styles.tipIcon} />
+                      <p>A complete profile builds trust with buyers.</p>
+                    </div>
+                    <div className={styles.tipItem}>
+                      <SlArrowDown className={styles.tipIcon} />
+                      <p>Add social links to verify your identity.</p>
+                    </div>
+                    <div className={styles.tipItem}>
+                      <SlArrowDown className={styles.tipIcon} />
+                      <p>Use a professional banner and avatar.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </main>
     </div>
   );
 };
