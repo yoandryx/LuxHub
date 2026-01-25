@@ -34,9 +34,23 @@
   background: var(--bg-terminal);
   font-family: 'Clash Display', 'SF Mono', 'Fira Code', monospace;
   overflow-x: hidden;
+  padding-top: 50px;
 }
 
-/* Terminal Grid Background */
+/* ============================================
+   PARTICLE CANVAS BACKGROUND
+   ============================================ */
+.particleCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Terminal Grid Background - Purple */
 .pageContainer::before {
   content: '';
   position: fixed;
@@ -45,14 +59,14 @@
   right: 0;
   bottom: 0;
   background-image:
-    linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(200, 161, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 161, 255, 0.04) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
   z-index: 0;
 }
 
-/* Ambient Glow */
+/* Ambient Glow - Purple & Green Mix */
 .pageContainer::after {
   content: '';
   position: fixed;
@@ -61,7 +75,9 @@
   transform: translateX(-50%);
   width: 1000px;
   height: 600px;
-  background: radial-gradient(ellipse, rgba(0, 255, 136, 0.08) 0%, transparent 60%);
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(200, 161, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 50%, rgba(0, 255, 136, 0.06) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -86,6 +102,41 @@
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+/* Logo Collaboration: LuxHub x Bags */
+.logoCollab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.12) 0%, rgba(0, 255, 136, 0.08) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 14px;
+  box-shadow:
+    0 0 30px rgba(200, 161, 255, 0.1),
+    0 0 60px rgba(0, 255, 136, 0.05);
+}
+
+.brandLogo {
+  border-radius: 10px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(200, 161, 255, 0.4));
+  transition: filter 0.3s ease;
+}
+
+.brandLogo:hover {
+  filter: drop-shadow(0 0 15px rgba(0, 255, 136, 0.5));
+}
+
+.logoX {
+  font-size: 1.3rem;
+  font-weight: 300;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
 }
 
 .terminalLogo {
@@ -474,6 +525,20 @@
     padding: 16px;
   }
 
+  .logoCollab {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .brandLogo {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .logoX {
+    font-size: 1rem;
+  }
+
   .terminalLogo {
     width: 40px;
     height: 40px;
@@ -580,6 +645,20 @@
    RESPONSIVE - SMALL MOBILE
    ============================================ */
 @media (max-width: 380px) {
+  .logoCollab {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+
+  .brandLogo {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .logoX {
+    font-size: 0.85rem;
+  }
+
   .terminalTitle h1 {
     font-size: 1rem;
   }
