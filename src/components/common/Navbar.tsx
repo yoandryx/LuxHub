@@ -111,9 +111,9 @@ export default function Navbar() {
             <Link href="/vendors" onClick={closeMenu}>
               Vendors
             </Link>
-            <Link href="/luxhubHolders" onClick={closeMenu}>
+            {/* <Link href="/luxhubHolders" onClick={closeMenu}>
               Holders
-            </Link>
+            </Link> */}
             {isAdmin && (
               <Link href="/createNFT" onClick={closeMenu}>
                 Mint NFT
@@ -240,9 +240,9 @@ export default function Navbar() {
             <Link href="/vendors" onClick={closeMenu}>
               vendors
             </Link>
-            <Link href="/luxhubHolders" onClick={closeMenu}>
+            {/* <Link href="/luxhubHolders" onClick={closeMenu}>
               Holders
-            </Link>
+            </Link> */}
             {isAdmin && (
               <Link href="/adminDashboard" onClick={closeMenu}>
                 Admins
