@@ -1,8 +1,9 @@
 // src/pages/pools.tsx
 // Investment Pools - Trading Terminal for Watch Pools
 // LuxHub x Bags Collaboration - Blockchain Native Trading View
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import Image from 'next/image';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
   FiSearch,
@@ -59,6 +60,101 @@ const PoolsPage: React.FC = () => {
   const wallet = useWallet();
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Green floating particles animation
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles: Array<{
+      x: number;
+      y: number;
+      size: number;
+      speedX: number;
+      speedY: number;
+      opacity: number;
+    }> = [];
+
+    // Create 60 particles
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2.5 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.4,
+        speedY: (Math.random() - 0.5) * 0.4,
+        opacity: Math.random() * 0.5 + 0.1,
+      });
+    }
+
+    let animationId: number;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p) => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        // Wrap around edges
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        // Draw particle with green color
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 255, 136, ${p.opacity})`;
+        ctx.fill();
+
+        // Draw glow effect
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 255, 136, ${p.opacity * 0.2})`;
+        ctx.fill();
+      });
+
+      // Draw connecting lines between nearby particles
+      particles.forEach((p1, i) => {
+        particles.slice(i + 1).forEach((p2) => {
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 120) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(0, 255, 136, ${0.1 * (1 - distance / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const handlePoolSelect = (pool: Pool) => {
     if (!wallet.connected) {
@@ -87,11 +183,29 @@ const PoolsPage: React.FC = () => {
       </Head>
 
       <div className={styles.pageContainer}>
+        {/* Green Particles Canvas Background */}
+        <canvas ref={canvasRef} className={styles.particleCanvas} />
+
         {/* Terminal Header */}
         <header className={styles.terminalHeader}>
           <div className={styles.terminalBrand}>
-            <div className={styles.terminalLogo}>
-              <FiActivity className={styles.terminalIcon} />
+            {/* Logo Collaboration: LuxHub x Bags */}
+            <div className={styles.logoCollab}>
+              <Image
+                src="/images/purpleLGG.png"
+                alt="LuxHub"
+                width={44}
+                height={44}
+                className={styles.brandLogo}
+              />
+              <span className={styles.logoX}>×</span>
+              <Image
+                src="/images/bags-logo.svg"
+                alt="Bags"
+                width={44}
+                height={44}
+                className={styles.brandLogo}
+              />
             </div>
             <div className={styles.terminalTitle}>
               <h1>WATCH POOLS</h1>
