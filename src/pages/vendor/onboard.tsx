@@ -314,7 +314,6 @@ export default function VendorOnboard() {
       bio: formData.bio.trim(),
       avatarUrl: formData.avatarUrl,
       bannerUrl: formData.bannerUrl,
-      inviteCode: query.v || null,
       socialLinks: {
         instagram: formData.instagram.trim() || '',
         x: formData.x.trim() || '',
@@ -335,8 +334,8 @@ export default function VendorOnboard() {
       console.log('API RESPONSE:', res.status, text);
 
       if (res.ok) {
-        toast.success('Application submitted successfully!');
-        router.push(`/vendor/${publicKey?.toBase58()}`);
+        toast.success('Application submitted! We will review your profile shortly.');
+        router.push('/vendor/pending');
       } else {
         const data = text ? JSON.parse(text) : {};
         toast.error(data?.error ?? 'Submission failed');
@@ -802,33 +801,6 @@ export default function VendorOnboard() {
                 </div>
               )}
             </>
-          )}
-
-          {/* Debug: Show validation status (remove in production) */}
-          {currentStep === 0 && !isStep1Valid && (
-            <div
-              style={{
-                padding: '12px',
-                background: 'rgba(255,100,100,0.1)',
-                borderRadius: '8px',
-                marginBottom: '16px',
-                fontSize: '13px',
-              }}
-            >
-              <strong>Missing requirements:</strong>
-              <ul style={{ margin: '8px 0 0 16px', color: '#ff6b6b' }}>
-                {!publicKey && <li>Connect your wallet</li>}
-                {!formData.name.trim() && <li>Enter business name</li>}
-                {!formData.username.trim() && <li>Enter username</li>}
-                {!formData.bio.trim() && <li>Enter bio</li>}
-                {errors.name && <li>Name must be at least 2 characters</li>}
-                {errors.username && <li>Username must be at least 3 characters</li>}
-                {errors.bio && <li>Bio must be at least 10 characters</li>}
-                {errors.instagram && <li>Invalid Instagram handle</li>}
-                {errors.x && <li>Invalid X handle</li>}
-                {errors.website && <li>Invalid website URL</li>}
-              </ul>
-            </div>
           )}
 
           {/* Navigation Buttons */}

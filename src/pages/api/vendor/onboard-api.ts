@@ -1,8 +1,9 @@
-// pages/api/vendor/onboard-b-api.ts
+// pages/api/vendor/onboard-api.ts
+// Open vendor registration - no invite code required
+// Flow: Register → Pending → Admin Approval → (Optional) Verification
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import VendorProfileModel from '../../../lib/models/VendorProfile';
-import InviteCodeModel from '../../../lib/models/InviteCode';
 import { z } from 'zod';
 
 const onboardSchema = z.object({
@@ -12,7 +13,6 @@ const onboardSchema = z.object({
   bio: z.string().min(10, 'Bio must be at least 10 characters'),
   avatarUrl: z.string().url('Invalid avatar URL'),
   bannerUrl: z.string().url('Invalid banner URL'),
-  inviteCode: z.union([z.string(), z.null()]).optional(),
   socialLinks: z
     .object({
       instagram: z.string(),
@@ -43,19 +43,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
-    const existing = await VendorProfileModel.findOne({ username: parsed.username });
-    if (existing) return res.status(400).json({ error: 'Username taken' });
+    // Check if username is taken
+    const existingUsername = await VendorProfileModel.findOne({ username: parsed.username });
+    if (existingUsername) return res.status(400).json({ error: 'Username already taken' });
 
-    // Invite code validation (optional - skip if not provided)
-    if (parsed.inviteCode) {
-      const invite = await InviteCodeModel.findOne({ code: parsed.inviteCode });
-      if (!invite || invite.used || invite.vendorWallet !== parsed.wallet) {
-        return res.status(403).json({ error: 'Invalid invite code' });
-      }
-      // Mark invite as used after successful validation
-      invite.used = true;
-      await invite.save();
-    }
+    // Check if wallet already registered
+    const existingWallet = await VendorProfileModel.findOne({ wallet: parsed.wallet });
+    if (existingWallet)
+      return res.status(400).json({ error: 'Wallet already registered as vendor' });
 
     await VendorProfileModel.create({
       ...parsed,
@@ -70,7 +65,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       inventory: [],
     });
 
-    return res.status(200).json({ message: 'Submitted!' });
+    return res.status(200).json({
+      message: 'Application submitted successfully! Your profile is pending approval.',
+      status: 'pending',
+    });
   } catch (err: any) {
     console.error('API ERROR:', err);
     if (err instanceof z.ZodError) {
