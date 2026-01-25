@@ -1,0 +1,742 @@
+/* UnifiedNFTCard.module.css - LuxHub Themed NFT Card */
+
+/* ========== CSS VARIABLES ========== */
+.card {
+  --accent: #c8a1ff;
+  --accent-bright: #d4b4ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --success: #4ade80;
+  --success-dim: #4ade8040;
+  --success-glow: #4ade8015;
+  --warning: #fbbf24;
+  --warning-dim: #fbbf2440;
+  --error: #f87171;
+  --error-dim: #f8717140;
+  --info: #60a5fa;
+  --info-dim: #60a5fa40;
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --bg-elevated: #181818;
+  --border: #222222;
+  --border-light: #333333;
+  --glass: rgba(13, 13, 13, 0.85);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+  --text-muted: #666666;
+}
+
+/* ========== BASE CARD ========== */
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-dim);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 0 30px var(--accent-glow);
+}
+
+/* Glow effect */
+.glowEffect {
+  position: absolute;
+  inset: -1px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    transparent 40%,
+    transparent 60%,
+    var(--accent) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.card:hover .glowEffect {
+  opacity: 0.15;
+}
+
+/* ========== IMAGE CONTAINER ========== */
+.imageContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover .image {
+  transform: scale(1.05);
+}
+
+.imageShine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.03) 55%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.card:hover .imageShine {
+  opacity: 1;
+  animation: shineMove 2s ease-in-out;
+}
+
+@keyframes shineMove {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ========== STATUS BADGES ========== */
+.statusBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.statusBadge svg {
+  font-size: 0.75rem;
+}
+
+/* Badge variants */
+.badgeVerified {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+}
+
+.badgePending {
+  background: var(--warning-dim);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
+.badgeEscrow {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+}
+
+.badgeListed {
+  background: var(--info-dim);
+  border: 1px solid var(--info);
+  color: var(--info);
+}
+
+.badgeSold {
+  background: rgba(100, 100, 100, 0.3);
+  border: 1px solid #666;
+  color: #999;
+}
+
+.badgePooled {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+}
+
+.badgeBurned {
+  background: var(--error-dim);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+
+.badgePreview {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.badgeMinting {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.badgeReady {
+  background: var(--success-glow);
+  border: 1px solid var(--success-dim);
+  color: var(--success);
+}
+
+.badgeError {
+  background: var(--error-dim);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Verified shield badge */
+.verifiedBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.3) 0%, rgba(138, 43, 226, 0.25) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 0.85rem;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(200, 161, 255, 0.3);
+}
+
+/* Pool eligible badge */
+.poolBadge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  z-index: 10;
+}
+
+/* ========== HOVER OVERLAY ========== */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.8) 40%,
+    rgba(0, 0, 0, 0.4) 70%,
+    transparent 100%
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px 16px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 5;
+}
+
+.overlayVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.overlayContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overlayTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.overlayRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.overlayRow span:first-child {
+  color: var(--text-muted);
+}
+
+.overlayRow span:last-child {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.overlayPriceContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.overlayPrice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.overlayPriceUSD {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.priceIcon {
+  font-size: 0.9rem;
+}
+
+.overlayActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.viewButton,
+.buyButton {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewButton {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+}
+
+.viewButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-dim);
+}
+
+.buyButton {
+  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 50%, #9333ea 100%);
+  background-size: 200% auto;
+  color: #0d0d0d;
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.4);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+.buyButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.buyButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(200, 161, 255, 0.5);
+  background-position: right center;
+}
+
+.buyButton:hover::before {
+  left: 100%;
+}
+
+.buyButton:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(200, 161, 255, 0.3);
+}
+
+/* ========== CARD FOOTER ========== */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+
+.footerMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footerBuyButton {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 50%, #9333ea 100%);
+  background-size: 200% auto;
+  border: none;
+  border-radius: 8px;
+  color: #0d0d0d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.footerBuyButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(200, 161, 255, 0.4);
+  background-position: right center;
+}
+
+.footerBuyButton:active {
+  transform: translateY(0);
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.priceTag {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.priceSol {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.priceValue {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.priceLabel {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.priceUSD {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+/* ========== CARD VARIANTS ========== */
+
+/* Compact variant */
+.variantCompact {
+  max-width: 220px;
+}
+
+.variantCompact .imageContainer {
+  aspect-ratio: 1;
+}
+
+.variantCompact .footer {
+  padding: 10px 12px;
+}
+
+.variantCompact .title {
+  font-size: 0.8rem;
+}
+
+.variantCompact .priceValue {
+  font-size: 0.85rem;
+}
+
+/* Large variant */
+.variantLarge {
+  max-width: 400px;
+}
+
+.variantLarge .imageContainer {
+  aspect-ratio: 4/3;
+}
+
+.variantLarge .footer {
+  padding: 18px 20px;
+}
+
+.variantLarge .title {
+  font-size: 1.1rem;
+}
+
+.variantLarge .priceValue {
+  font-size: 1.2rem;
+}
+
+/* List variant */
+.variantList {
+  max-width: none;
+  display: flex;
+  flex-direction: row;
+  border-radius: 12px;
+}
+
+.variantList .imageContainer {
+  width: 120px;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  border-radius: 12px 0 0 12px;
+}
+
+.variantList .footer {
+  flex: 1;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-top: none;
+  border-left: 1px solid var(--border);
+  border-radius: 0 12px 12px 0;
+}
+
+/* ========== GRID CARD (Simpler version) ========== */
+.gridCard {
+  position: relative;
+  background: var(--glass);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.gridCard:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.gridCardInvalid {
+  opacity: 0.7;
+  border-color: var(--warning);
+}
+
+.gridImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+.gridImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.gridCard:hover .gridImage {
+  transform: scale(1.05);
+}
+
+.gridImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 2rem;
+}
+
+.gridBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.gridContent {
+  padding: 14px;
+}
+
+.gridTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gridMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gridBrand {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.gridSubtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.gridPriceContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.gridPrice {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.gridPriceUSD {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* ========== RESPONSIVE ========== */
+@media screen and (max-width: 640px) {
+  .card {
+    max-width: 100%;
+  }
+
+  .statusBadge {
+    padding: 5px 8px;
+    font-size: 0.65rem;
+  }
+
+  .overlay {
+    padding: 16px 12px;
+  }
+
+  .overlayTitle {
+    font-size: 0.9rem;
+  }
+
+  .overlayRow {
+    font-size: 0.75rem;
+  }
+
+  .overlayActions {
+    flex-direction: column;
+  }
+
+  .footer {
+    padding: 12px 14px;
+  }
+
+  .title {
+    font-size: 0.85rem;
+  }
+
+  .variantList {
+    flex-direction: column;
+  }
+
+  .variantList .imageContainer {
+    width: 100%;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .variantList .footer {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 12px 12px;
+  }
+}

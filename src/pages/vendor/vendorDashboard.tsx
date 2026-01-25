@@ -1,16 +1,27 @@
-import { useEffect, useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { VendorProfile } from "../../lib/models/VendorProfile";
-import styles from "../../styles/VendorDashboard.module.css";
-import AvatarBannerUploader from "../../components/vendor/AvatarBannerUploader";
-import { SlArrowDown } from "react-icons/sl";
+import { useEffect, useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { VendorProfile } from '../../lib/models/VendorProfile';
+import styles from '../../styles/VendorDashboard.module.css';
+import AvatarBannerUploader from '../../components/vendor/AvatarBannerUploader';
+import { SlArrowDown } from 'react-icons/sl';
 import {
-  FiEdit2, FiTrash2, FiLoader, FiPackage, FiDollarSign,
-  FiTrendingUp, FiClock, FiCheckCircle, FiPlus, FiEye,
-  FiTruck, FiInbox
-} from "react-icons/fi";
-import AddInventoryForm from "../../components/vendor/AddInventoryForm";
-import toast from "react-hot-toast";
+  FiEdit2,
+  FiTrash2,
+  FiLoader,
+  FiPackage,
+  FiDollarSign,
+  FiTrendingUp,
+  FiClock,
+  FiCheckCircle,
+  FiPlus,
+  FiEye,
+  FiTruck,
+  FiInbox,
+} from 'react-icons/fi';
+import AddInventoryForm from '../../components/vendor/AddInventoryForm';
+import toast from 'react-hot-toast';
+import { NFTGridCard } from '../../components/common/UnifiedNFTCard';
+import type { NFTStatus } from '../../components/common/UnifiedNFTCard';
 
 const isValidUrl = (url: string) => {
   try {
@@ -23,7 +34,7 @@ const isValidUrl = (url: string) => {
 
 const isSocialHandleValid = (handle: string) => /^[a-zA-Z0-9._]{2,30}$/.test(handle);
 
-const cleanHandle = (handle: string) => handle?.replace(/^@/, "").trim();
+const cleanHandle = (handle: string) => handle?.replace(/^@/, '').trim();
 
 interface FieldErrors {
   name?: string;
@@ -43,7 +54,7 @@ interface DashboardMetrics {
   pendingPayouts: number;
 }
 
-type TabId = "dashboard" | "inventory" | "orders" | "offers" | "payouts" | "profile";
+type TabId = 'dashboard' | 'inventory' | 'orders' | 'offers' | 'payouts' | 'profile';
 
 const VendorDashboard = () => {
   const { publicKey } = useWallet();
@@ -52,7 +63,7 @@ const VendorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const [vendorAssets, setVendorAssets] = useState<any[]>([]);
@@ -89,11 +100,14 @@ const VendorDashboard = () => {
         setVendorAssets(assets);
 
         // Calculate metrics from assets
-        const pendingReview = assets.filter((a: any) => a.status === "pending").length;
-        const listedCount = assets.filter((a: any) => a.status === "listed").length;
-        const totalInventoryValue = assets.reduce((sum: number, a: any) => sum + (a.priceUSD || 0), 0);
+        const pendingReview = assets.filter((a: any) => a.status === 'pending').length;
+        const listedCount = assets.filter((a: any) => a.status === 'listed').length;
+        const totalInventoryValue = assets.reduce(
+          (sum: number, a: any) => sum + (a.priceUSD || 0),
+          0
+        );
 
-        setMetrics(prev => ({
+        setMetrics((prev) => ({
           ...prev,
           pendingReview,
           listedCount,
@@ -101,8 +115,8 @@ const VendorDashboard = () => {
         }));
       }
     } catch (err) {
-      console.error("Failed to fetch vendor assets:", err);
-      toast.error("Failed to load assets");
+      console.error('Failed to fetch vendor assets:', err);
+      toast.error('Failed to load assets');
     } finally {
       setAssetsLoading(false);
     }
@@ -116,13 +130,13 @@ const VendorDashboard = () => {
       if (res.ok) {
         const data = await res.json();
         setOrders(data.orders || []);
-        setMetrics(prev => ({
+        setMetrics((prev) => ({
           ...prev,
-          activeEscrows: (data.orders || []).filter((o: any) => o.status === "in_escrow").length,
+          activeEscrows: (data.orders || []).filter((o: any) => o.status === 'in_escrow').length,
         }));
       }
     } catch (err) {
-      console.error("Failed to fetch orders:", err);
+      console.error('Failed to fetch orders:', err);
     } finally {
       setOrdersLoading(false);
     }
@@ -136,13 +150,13 @@ const VendorDashboard = () => {
       if (res.ok) {
         const data = await res.json();
         setOffers(data.offers || []);
-        setMetrics(prev => ({
+        setMetrics((prev) => ({
           ...prev,
-          pendingOffers: (data.offers || []).filter((o: any) => o.status === "pending").length,
+          pendingOffers: (data.offers || []).filter((o: any) => o.status === 'pending').length,
         }));
       }
     } catch (err) {
-      console.error("Failed to fetch offers:", err);
+      console.error('Failed to fetch offers:', err);
     } finally {
       setOffersLoading(false);
     }
@@ -156,14 +170,14 @@ const VendorDashboard = () => {
       if (res.ok) {
         const data = await res.json();
         setPayouts(data.payouts || []);
-        setMetrics(prev => ({
+        setMetrics((prev) => ({
           ...prev,
           totalSales: data.totalSales || 0,
           pendingPayouts: data.pendingPayouts || 0,
         }));
       }
     } catch (err) {
-      console.error("Failed to fetch payouts:", err);
+      console.error('Failed to fetch payouts:', err);
     } finally {
       setPayoutsLoading(false);
     }
@@ -173,18 +187,18 @@ const VendorDashboard = () => {
   useEffect(() => {
     if (!publicKey) return;
 
-    if (activeTab === "dashboard") {
+    if (activeTab === 'dashboard') {
       fetchVendorAssets();
       fetchOrders();
       fetchOffers();
       fetchPayouts();
-    } else if (activeTab === "inventory") {
+    } else if (activeTab === 'inventory') {
       fetchVendorAssets();
-    } else if (activeTab === "orders") {
+    } else if (activeTab === 'orders') {
       fetchOrders();
-    } else if (activeTab === "offers") {
+    } else if (activeTab === 'offers') {
       fetchOffers();
-    } else if (activeTab === "payouts") {
+    } else if (activeTab === 'payouts') {
       fetchPayouts();
     }
   }, [publicKey, activeTab]);
@@ -207,31 +221,32 @@ const VendorDashboard = () => {
     const errors: FieldErrors = {};
 
     if (!formData.name?.trim()) {
-      errors.name = "Name is required";
+      errors.name = 'Name is required';
     }
 
     if (!formData.bio?.trim()) {
-      errors.bio = "Bio is required";
+      errors.bio = 'Bio is required';
     }
 
     const isValidSocialInput = (input: string) =>
       isValidUrl(input) || isSocialHandleValid(cleanHandle(input));
 
     if (formData.socialLinks?.instagram && !isValidSocialInput(formData.socialLinks.instagram)) {
-      errors.instagram = "Enter a valid username or full URL";
+      errors.instagram = 'Enter a valid username or full URL';
     }
 
     if (formData.socialLinks?.x && !isValidSocialInput(formData.socialLinks.x)) {
-      errors.x = "Enter a valid username or full URL";
+      errors.x = 'Enter a valid username or full URL';
     }
 
-    const cleanedWebsite = formData.socialLinks?.website?.trim() || "";
-    const finalWebsite = cleanedWebsite && !/^https?:\/\//i.test(cleanedWebsite)
-      ? "https://" + cleanedWebsite
-      : cleanedWebsite;
+    const cleanedWebsite = formData.socialLinks?.website?.trim() || '';
+    const finalWebsite =
+      cleanedWebsite && !/^https?:\/\//i.test(cleanedWebsite)
+        ? 'https://' + cleanedWebsite
+        : cleanedWebsite;
 
     if (cleanedWebsite && !isValidUrl(finalWebsite)) {
-      errors.website = "Enter a valid website URL";
+      errors.website = 'Enter a valid website URL';
     }
 
     setFieldErrors(errors);
@@ -240,7 +255,7 @@ const VendorDashboard = () => {
 
   const handleUpdate = async () => {
     if (!validateForm()) {
-      toast.error("Please fix the errors before saving");
+      toast.error('Please fix the errors before saving');
       return;
     }
 
@@ -251,18 +266,19 @@ const VendorDashboard = () => {
       ? isValidUrl(formData.socialLinks.instagram)
         ? formData.socialLinks.instagram
         : `https://instagram.com/${cleanHandle(formData.socialLinks.instagram)}`
-      : "";
+      : '';
 
     const cleanedX = formData.socialLinks?.x
       ? isValidUrl(formData.socialLinks.x)
         ? formData.socialLinks.x
         : `https://x.com/${cleanHandle(formData.socialLinks.x)}`
-      : "";
+      : '';
 
-    const cleanedWebsite = formData.socialLinks?.website?.trim() || "";
-    const finalWebsite = cleanedWebsite && !/^https?:\/\//i.test(cleanedWebsite)
-      ? "https://" + cleanedWebsite
-      : cleanedWebsite;
+    const cleanedWebsite = formData.socialLinks?.website?.trim() || '';
+    const finalWebsite =
+      cleanedWebsite && !/^https?:\/\//i.test(cleanedWebsite)
+        ? 'https://' + cleanedWebsite
+        : cleanedWebsite;
 
     const updatedProfile = {
       ...formData,
@@ -275,9 +291,9 @@ const VendorDashboard = () => {
     };
 
     try {
-      const res = await fetch("/api/vendor/updateProfile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/vendor/updateProfile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedProfile),
       });
 
@@ -285,36 +301,36 @@ const VendorDashboard = () => {
       if (data.error) {
         toast.error(data.error);
       } else {
-        toast.success("Profile updated successfully!");
+        toast.success('Profile updated successfully!');
         setProfile(data.profile || updatedProfile);
       }
     } catch (err) {
-      toast.error("Failed to update profile. Please try again.");
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteAsset = async (assetId: string) => {
-    if (!confirm("Are you sure you want to delete this asset? This cannot be undone.")) return;
+    if (!confirm('Are you sure you want to delete this asset? This cannot be undone.')) return;
 
     setDeletingAssetId(assetId);
     try {
       const res = await fetch(`/api/vendor/assets/${assetId}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wallet: publicKey?.toBase58() }),
       });
 
       if (res.ok) {
-        toast.success("Asset deleted");
-        setVendorAssets(prev => prev.filter(a => a._id !== assetId));
+        toast.success('Asset deleted');
+        setVendorAssets((prev) => prev.filter((a) => a._id !== assetId));
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to delete asset");
+        toast.error(data.error || 'Failed to delete asset');
       }
     } catch (err) {
-      toast.error("Failed to delete asset");
+      toast.error('Failed to delete asset');
     } finally {
       setDeletingAssetId(null);
     }
@@ -322,13 +338,13 @@ const VendorDashboard = () => {
 
   const clearFieldError = (field: keyof FieldErrors) => {
     if (fieldErrors[field]) {
-      setFieldErrors(prev => ({ ...prev, [field]: undefined }));
+      setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   // Skeleton loader component
   const Skeleton = ({ className }: { className?: string }) => (
-    <div className={`${styles.skeleton} ${className || ""}`} />
+    <div className={`${styles.skeleton} ${className || ''}`} />
   );
 
   const AssetSkeleton = () => (
@@ -344,58 +360,63 @@ const VendorDashboard = () => {
 
   // Tab configuration
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: "dashboard", label: "Dashboard", icon: <FiTrendingUp /> },
-    { id: "inventory", label: "Inventory", icon: <FiPackage /> },
-    { id: "orders", label: "Orders", icon: <FiTruck /> },
-    { id: "offers", label: "Offers", icon: <FiInbox /> },
-    { id: "payouts", label: "Payouts", icon: <FiDollarSign /> },
-    { id: "profile", label: "Profile", icon: <FiEdit2 /> },
+    { id: 'dashboard', label: 'Dashboard', icon: <FiTrendingUp /> },
+    { id: 'inventory', label: 'Inventory', icon: <FiPackage /> },
+    { id: 'orders', label: 'Orders', icon: <FiTruck /> },
+    { id: 'offers', label: 'Offers', icon: <FiInbox /> },
+    { id: 'payouts', label: 'Payouts', icon: <FiDollarSign /> },
+    { id: 'profile', label: 'Profile', icon: <FiEdit2 /> },
   ];
 
-  if (loading) return (
-    <div className={styles.dashboardContainer}>
-      <div className={styles.loadingState}>
-        <FiLoader className={styles.spinner} />
-        <p>Loading dashboard...</p>
+  if (loading)
+    return (
+      <div className={styles.dashboardContainer}>
+        <div className={styles.loadingState}>
+          <FiLoader className={styles.spinner} />
+          <p>Loading dashboard...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
 
-  if (!publicKey) return (
-    <div className={styles.dashboardContainer}>
-      <div className={styles.emptyState}>
-        <p>Please connect your wallet to access the vendor dashboard.</p>
+  if (!publicKey)
+    return (
+      <div className={styles.dashboardContainer}>
+        <div className={styles.emptyState}>
+          <p>Please connect your wallet to access the vendor dashboard.</p>
+        </div>
       </div>
-    </div>
-  );
+    );
 
-  if (error) return (
-    <div className={styles.dashboardContainer}>
-      <div className={styles.errorState}>
-        <p>{error}</p>
+  if (error)
+    return (
+      <div className={styles.dashboardContainer}>
+        <div className={styles.errorState}>
+          <p>{error}</p>
+        </div>
       </div>
-    </div>
-  );
+    );
 
-  if (!profile?.approved) return (
-    <div className={styles.dashboardContainer}>
-      <div className={styles.pendingState}>
-        <h2>Pending Approval</h2>
-        <p>Your vendor profile is pending admin approval. You&apos;ll be notified once approved.</p>
+  if (!profile?.approved)
+    return (
+      <div className={styles.dashboardContainer}>
+        <div className={styles.pendingState}>
+          <h2>Pending Approval</h2>
+          <p>
+            Your vendor profile is pending admin approval. You&apos;ll be notified once approved.
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   return (
     <div className={styles.dashboardContainer}>
-
       {/* Tabs */}
       <div className={styles.tabButtons}>
-        {tabs.map(tab => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={activeTab === tab.id ? styles.activeTab : ""}
+            className={activeTab === tab.id ? styles.activeTab : ''}
           >
             <span className={styles.tabIcon}>{tab.icon}</span>
             <span className={styles.tabLabel}>{tab.label}</span>
@@ -404,57 +425,71 @@ const VendorDashboard = () => {
       </div>
 
       {/* Dashboard Tab */}
-      {activeTab === "dashboard" && (
+      {activeTab === 'dashboard' && (
         <div className={styles.tabContentColumn}>
           <div className={styles.tabContent}>
             <div className={styles.sectionHeading}>
-              <h2 className={styles.editHeading}>Welcome back, {profile?.name || "Vendor"}</h2>
+              <h2 className={styles.editHeading}>Welcome back, {profile?.name || 'Vendor'}</h2>
             </div>
 
             {/* Metrics Grid */}
             <div className={styles.metricsGrid}>
-              <div className={styles.metricCard} onClick={() => setActiveTab("inventory")}>
-                <div className={styles.metricIcon}><FiPackage /></div>
+              <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
+                <div className={styles.metricIcon}>
+                  <FiPackage />
+                </div>
                 <div className={styles.metricContent}>
-                  <span className={styles.metricValue}>${metrics.totalInventoryValue.toLocaleString()}</span>
+                  <span className={styles.metricValue}>
+                    ${metrics.totalInventoryValue.toLocaleString()}
+                  </span>
                   <span className={styles.metricLabel}>Total Inventory Value</span>
                 </div>
               </div>
 
-              <div className={styles.metricCard} onClick={() => setActiveTab("inventory")}>
-                <div className={styles.metricIconWarning}><FiClock /></div>
+              <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
+                <div className={styles.metricIconWarning}>
+                  <FiClock />
+                </div>
                 <div className={styles.metricContent}>
                   <span className={styles.metricValue}>{metrics.pendingReview}</span>
                   <span className={styles.metricLabel}>Pending Review</span>
                 </div>
               </div>
 
-              <div className={styles.metricCard} onClick={() => setActiveTab("inventory")}>
-                <div className={styles.metricIconSuccess}><FiCheckCircle /></div>
+              <div className={styles.metricCard} onClick={() => setActiveTab('inventory')}>
+                <div className={styles.metricIconSuccess}>
+                  <FiCheckCircle />
+                </div>
                 <div className={styles.metricContent}>
                   <span className={styles.metricValue}>{metrics.listedCount}</span>
                   <span className={styles.metricLabel}>Listed Items</span>
                 </div>
               </div>
 
-              <div className={styles.metricCard} onClick={() => setActiveTab("orders")}>
-                <div className={styles.metricIconInfo}><FiTruck /></div>
+              <div className={styles.metricCard} onClick={() => setActiveTab('orders')}>
+                <div className={styles.metricIconInfo}>
+                  <FiTruck />
+                </div>
                 <div className={styles.metricContent}>
                   <span className={styles.metricValue}>{metrics.activeEscrows}</span>
                   <span className={styles.metricLabel}>Active Escrows</span>
                 </div>
               </div>
 
-              <div className={styles.metricCard} onClick={() => setActiveTab("offers")}>
-                <div className={styles.metricIcon}><FiInbox /></div>
+              <div className={styles.metricCard} onClick={() => setActiveTab('offers')}>
+                <div className={styles.metricIcon}>
+                  <FiInbox />
+                </div>
                 <div className={styles.metricContent}>
                   <span className={styles.metricValue}>{metrics.pendingOffers}</span>
                   <span className={styles.metricLabel}>Pending Offers</span>
                 </div>
               </div>
 
-              <div className={styles.metricCard} onClick={() => setActiveTab("payouts")}>
-                <div className={styles.metricIconSuccess}><FiDollarSign /></div>
+              <div className={styles.metricCard} onClick={() => setActiveTab('payouts')}>
+                <div className={styles.metricIconSuccess}>
+                  <FiDollarSign />
+                </div>
                 <div className={styles.metricContent}>
                   <span className={styles.metricValue}>${metrics.totalSales.toLocaleString()}</span>
                   <span className={styles.metricLabel}>Total Sales</span>
@@ -467,13 +502,16 @@ const VendorDashboard = () => {
               <h2 className={styles.editHeading}>Quick Actions</h2>
             </div>
             <div className={styles.quickActions}>
-              <button className={styles.quickActionButton} onClick={() => setActiveTab("inventory")}>
+              <button
+                className={styles.quickActionButton}
+                onClick={() => setActiveTab('inventory')}
+              >
                 <FiPlus /> Add New Item
               </button>
-              <button className={styles.quickActionButton} onClick={() => setActiveTab("offers")}>
+              <button className={styles.quickActionButton} onClick={() => setActiveTab('offers')}>
                 <FiEye /> View Offers
               </button>
-              <button className={styles.quickActionButton} onClick={() => setActiveTab("orders")}>
+              <button className={styles.quickActionButton} onClick={() => setActiveTab('orders')}>
                 <FiTruck /> Manage Orders
               </button>
             </div>
@@ -486,16 +524,17 @@ const VendorDashboard = () => {
               {vendorAssets.slice(0, 5).map((asset: any) => (
                 <div key={asset._id} className={styles.activityItem}>
                   <div className={styles.activityIcon}>
-                    {asset.status === "pending" ? <FiClock /> : <FiCheckCircle />}
+                    {asset.status === 'pending' ? <FiClock /> : <FiCheckCircle />}
                   </div>
                   <div className={styles.activityContent}>
                     <span className={styles.activityTitle}>{asset.title || asset.model}</span>
                     <span className={styles.activityMeta}>
-                      {asset.status === "pending" ? "Pending review" : "Listed"} • ${asset.priceUSD?.toLocaleString()}
+                      {asset.status === 'pending' ? 'Pending review' : 'Listed'} • $
+                      {asset.priceUSD?.toLocaleString()}
                     </span>
                   </div>
                   <span className={styles.activityDate}>
-                    {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : "—"}
+                    {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : '—'}
                   </span>
                 </div>
               ))}
@@ -510,7 +549,7 @@ const VendorDashboard = () => {
       )}
 
       {/* Inventory Tab */}
-      {activeTab === "inventory" && (
+      {activeTab === 'inventory' && (
         <div className={styles.tabContentColumn}>
           <div className={styles.tabContentRow}>
             <div className={styles.tabContentLeft}>
@@ -525,7 +564,9 @@ const VendorDashboard = () => {
 
             {assetsLoading ? (
               <div className={styles.assetGrid}>
-                {[1, 2, 3, 4].map(i => <AssetSkeleton key={i} />)}
+                {[1, 2, 3, 4].map((i) => (
+                  <AssetSkeleton key={i} />
+                ))}
               </div>
             ) : vendorAssets.length === 0 ? (
               <div className={styles.emptyState}>
@@ -534,56 +575,45 @@ const VendorDashboard = () => {
               </div>
             ) : (
               <div className={styles.assetGrid}>
-                {vendorAssets.map((asset: any) => (
-                  <div key={asset._id} className={styles.assetCard}>
-                    {asset.imageIpfsUrls?.[0] || asset.imageBase64s?.[0] ? (
-                      <img
-                        src={
-                          asset.imageIpfsUrls?.[0]
-                            ? `${process.env.NEXT_PUBLIC_GATEWAY_URL}${asset.imageIpfsUrls[0]}`
-                            : asset.imageBase64s?.[0]
-                        }
-                        alt={asset.model || asset.title}
-                        className={styles.assetImage}
-                      />
-                    ) : (
-                      <div className={styles.assetImagePlaceholder}>
-                        <span>No image</span>
-                      </div>
-                    )}
-                    <div className={styles.assetInfo}>
-                      <h4 className={styles.assetTitle}>{asset.model || asset.title || "Untitled"}</h4>
-                      <p className={styles.assetDetail}>
-                        {asset.brand && <span className={styles.assetBrand}>{asset.brand}</span>}
-                      </p>
-                      <p className={styles.assetDetail}>
-                        Ref: {asset.reference || asset.serialNumber || "—"}
-                      </p>
-                      <p className={styles.assetPrice}>
-                        ${asset.priceUSD?.toLocaleString() || "0"}
-                      </p>
-                      <div className={styles.assetMeta}>
-                        <div className={`${styles.statusBadge} ${
-                          asset.status === "pending" ? styles.statusPending :
-                          asset.status === "listed" ? styles.statusListed :
-                          asset.status === "rejected" ? styles.statusRejected : ""
-                        }`}>
-                          {asset.status === "pending" ? "Pending Review" :
-                           asset.status === "listed" ? "Listed" :
-                           asset.status === "rejected" ? "Rejected" : asset.status}
-                        </div>
-                        {asset.createdAt && (
-                          <span className={styles.assetDate}>
-                            {new Date(asset.createdAt).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
+                {vendorAssets.map((asset: any) => {
+                  // Map asset status to NFTStatus
+                  const mapAssetStatus = (status: string): NFTStatus => {
+                    switch (status) {
+                      case 'pending':
+                        return 'pending';
+                      case 'listed':
+                        return 'listed';
+                      case 'rejected':
+                        return 'error';
+                      case 'sold':
+                        return 'sold';
+                      case 'in_escrow':
+                        return 'escrow';
+                      default:
+                        return 'pending';
+                    }
+                  };
 
-                      {asset.status === "pending" && (
-                        <div className={styles.assetActions}>
+                  const imageUrl = asset.imageIpfsUrls?.[0]
+                    ? `${process.env.NEXT_PUBLIC_GATEWAY_URL}${asset.imageIpfsUrls[0]}`
+                    : asset.imageBase64s?.[0] || undefined;
+
+                  return (
+                    <div key={asset._id} className={styles.assetCardWrapper}>
+                      <NFTGridCard
+                        title={asset.model || asset.title || 'Untitled'}
+                        image={imageUrl}
+                        price={asset.priceUSD || 0}
+                        priceLabel="USD"
+                        brand={asset.brand}
+                        status={mapAssetStatus(asset.status)}
+                        subtitle={asset.reference || asset.serialNumber}
+                      />
+                      {asset.status === 'pending' && (
+                        <div className={styles.assetCardActions}>
                           <button
                             className={styles.editButton}
-                            onClick={() => toast("Edit feature coming soon")}
+                            onClick={() => toast('Edit feature coming soon')}
                             title="Edit asset"
                           >
                             <FiEdit2 />
@@ -603,8 +633,8 @@ const VendorDashboard = () => {
                         </div>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -612,7 +642,7 @@ const VendorDashboard = () => {
       )}
 
       {/* Orders Tab */}
-      {activeTab === "orders" && (
+      {activeTab === 'orders' && (
         <div className={styles.tabContentColumn}>
           <div className={styles.tabContent}>
             <div className={styles.sectionHeading}>
@@ -636,25 +666,35 @@ const VendorDashboard = () => {
                   <div key={order._id} className={styles.orderCard}>
                     <div className={styles.orderHeader}>
                       <span className={styles.orderId}>Order #{order._id?.slice(-8)}</span>
-                      <span className={`${styles.orderStatus} ${
-                        order.status === "in_escrow" ? styles.statusPending :
-                        order.status === "shipped" ? styles.statusInfo :
-                        order.status === "delivered" ? styles.statusListed : ""
-                      }`}>
-                        {order.status?.replace("_", " ").toUpperCase()}
+                      <span
+                        className={`${styles.orderStatus} ${
+                          order.status === 'in_escrow'
+                            ? styles.statusPending
+                            : order.status === 'shipped'
+                              ? styles.statusInfo
+                              : order.status === 'delivered'
+                                ? styles.statusListed
+                                : ''
+                        }`}
+                      >
+                        {order.status?.replace('_', ' ').toUpperCase()}
                       </span>
                     </div>
                     <div className={styles.orderBody}>
                       <div className={styles.orderItem}>
-                        <span className={styles.orderItemTitle}>{order.assetTitle || "Asset"}</span>
-                        <span className={styles.orderItemPrice}>${order.amount?.toLocaleString()}</span>
+                        <span className={styles.orderItemTitle}>{order.assetTitle || 'Asset'}</span>
+                        <span className={styles.orderItemPrice}>
+                          ${order.amount?.toLocaleString()}
+                        </span>
                       </div>
                       <div className={styles.orderMeta}>
                         <span>Buyer: {order.buyerWallet?.slice(0, 8)}...</span>
-                        <span>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}</span>
+                        <span>
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
+                        </span>
                       </div>
                     </div>
-                    {order.status === "in_escrow" && (
+                    {order.status === 'in_escrow' && (
                       <div className={styles.orderActions}>
                         <button className={styles.primaryButton}>
                           <FiTruck /> Add Tracking
@@ -670,7 +710,7 @@ const VendorDashboard = () => {
       )}
 
       {/* Offers Tab */}
-      {activeTab === "offers" && (
+      {activeTab === 'offers' && (
         <div className={styles.tabContentColumn}>
           <div className={styles.tabContent}>
             <div className={styles.sectionHeading}>
@@ -693,12 +733,18 @@ const VendorDashboard = () => {
                 {offers.map((offer: any) => (
                   <div key={offer._id} className={styles.offerCard}>
                     <div className={styles.offerHeader}>
-                      <span className={styles.offerAsset}>{offer.assetTitle || "Asset"}</span>
-                      <span className={`${styles.offerStatus} ${
-                        offer.status === "pending" ? styles.statusPending :
-                        offer.status === "accepted" ? styles.statusListed :
-                        offer.status === "rejected" ? styles.statusRejected : ""
-                      }`}>
+                      <span className={styles.offerAsset}>{offer.assetTitle || 'Asset'}</span>
+                      <span
+                        className={`${styles.offerStatus} ${
+                          offer.status === 'pending'
+                            ? styles.statusPending
+                            : offer.status === 'accepted'
+                              ? styles.statusListed
+                              : offer.status === 'rejected'
+                                ? styles.statusRejected
+                                : ''
+                        }`}
+                      >
                         {offer.status?.toUpperCase()}
                       </span>
                     </div>
@@ -706,19 +752,25 @@ const VendorDashboard = () => {
                       <div className={styles.offerPrices}>
                         <div className={styles.offerPrice}>
                           <span className={styles.offerPriceLabel}>Offer</span>
-                          <span className={styles.offerPriceValue}>${offer.offerAmount?.toLocaleString()}</span>
+                          <span className={styles.offerPriceValue}>
+                            ${offer.offerAmount?.toLocaleString()}
+                          </span>
                         </div>
                         <div className={styles.offerPrice}>
                           <span className={styles.offerPriceLabel}>Listed</span>
-                          <span className={styles.offerPriceOriginal}>${offer.listPrice?.toLocaleString()}</span>
+                          <span className={styles.offerPriceOriginal}>
+                            ${offer.listPrice?.toLocaleString()}
+                          </span>
                         </div>
                       </div>
                       <div className={styles.offerMeta}>
                         <span>From: {offer.buyerWallet?.slice(0, 8)}...</span>
-                        <span>{offer.createdAt ? new Date(offer.createdAt).toLocaleDateString() : ""}</span>
+                        <span>
+                          {offer.createdAt ? new Date(offer.createdAt).toLocaleDateString() : ''}
+                        </span>
                       </div>
                     </div>
-                    {offer.status === "pending" && (
+                    {offer.status === 'pending' && (
                       <div className={styles.offerActions}>
                         <button className={styles.acceptButton}>Accept</button>
                         <button className={styles.counterButton}>Counter</button>
@@ -734,7 +786,7 @@ const VendorDashboard = () => {
       )}
 
       {/* Payouts Tab */}
-      {activeTab === "payouts" && (
+      {activeTab === 'payouts' && (
         <div className={styles.tabContentColumn}>
           <div className={styles.tabContent}>
             <div className={styles.sectionHeading}>
@@ -749,15 +801,21 @@ const VendorDashboard = () => {
               </div>
               <div className={styles.earningsCard}>
                 <span className={styles.earningsLabel}>Platform Fee (3%)</span>
-                <span className={styles.earningsDeduction}>-${(metrics.totalSales * 0.03).toLocaleString()}</span>
+                <span className={styles.earningsDeduction}>
+                  -${(metrics.totalSales * 0.03).toLocaleString()}
+                </span>
               </div>
               <div className={styles.earningsCard}>
                 <span className={styles.earningsLabel}>Net Earnings</span>
-                <span className={styles.earningsNet}>${(metrics.totalSales * 0.97).toLocaleString()}</span>
+                <span className={styles.earningsNet}>
+                  ${(metrics.totalSales * 0.97).toLocaleString()}
+                </span>
               </div>
               <div className={styles.earningsCard}>
                 <span className={styles.earningsLabel}>Pending Payout</span>
-                <span className={styles.earningsPending}>${metrics.pendingPayouts.toLocaleString()}</span>
+                <span className={styles.earningsPending}>
+                  ${metrics.pendingPayouts.toLocaleString()}
+                </span>
               </div>
             </div>
 
@@ -783,17 +841,26 @@ const VendorDashboard = () => {
                       <div className={styles.payoutInfo}>
                         <span className={styles.payoutTitle}>{payout.assetTitle}</span>
                         <span className={styles.payoutDate}>
-                          {payout.createdAt ? new Date(payout.createdAt).toLocaleDateString() : ""}
+                          {payout.createdAt ? new Date(payout.createdAt).toLocaleDateString() : ''}
                         </span>
                       </div>
                       <div className={styles.payoutAmount}>
-                        <span className={styles.payoutGross}>${payout.grossAmount?.toLocaleString()}</span>
-                        <span className={styles.payoutNet}>Net: ${payout.netAmount?.toLocaleString()}</span>
+                        <span className={styles.payoutGross}>
+                          ${payout.grossAmount?.toLocaleString()}
+                        </span>
+                        <span className={styles.payoutNet}>
+                          Net: ${payout.netAmount?.toLocaleString()}
+                        </span>
                       </div>
-                      <span className={`${styles.payoutStatus} ${
-                        payout.status === "completed" ? styles.statusListed :
-                        payout.status === "pending" ? styles.statusPending : ""
-                      }`}>
+                      <span
+                        className={`${styles.payoutStatus} ${
+                          payout.status === 'completed'
+                            ? styles.statusListed
+                            : payout.status === 'pending'
+                              ? styles.statusPending
+                              : ''
+                        }`}
+                      >
                         {payout.status}
                       </span>
                     </div>
@@ -806,7 +873,7 @@ const VendorDashboard = () => {
       )}
 
       {/* Profile Tab */}
-      {activeTab === "profile" && (
+      {activeTab === 'profile' && (
         <div className={styles.tabContentColumn}>
           <div className={styles.tabContent}>
             <div className={styles.sectionHeading}>
@@ -831,27 +898,31 @@ const VendorDashboard = () => {
                     }));
                   }}
                 />
-                <div className={styles.sectionHeading}><h2>Profile Info</h2></div>
+                <div className={styles.sectionHeading}>
+                  <h2>Profile Info</h2>
+                </div>
 
                 <div className={styles.formField}>
                   <p>NAME *</p>
                   <input
                     placeholder="Name"
-                    value={formData.name || ""}
+                    value={formData.name || ''}
                     onChange={(e) => {
                       setFormData({ ...formData, name: e.target.value });
-                      clearFieldError("name");
+                      clearFieldError('name');
                     }}
-                    className={fieldErrors.name ? styles.inputError : ""}
+                    className={fieldErrors.name ? styles.inputError : ''}
                   />
-                  {fieldErrors.name && <span className={styles.inputErrorMsg}>{fieldErrors.name}</span>}
+                  {fieldErrors.name && (
+                    <span className={styles.inputErrorMsg}>{fieldErrors.name}</span>
+                  )}
                 </div>
 
                 <div className={styles.formField}>
                   <p>USERNAME</p>
                   <input
                     placeholder="Username"
-                    value={formData.username || ""}
+                    value={formData.username || ''}
                     disabled
                     className={styles.inputDisabled}
                   />
@@ -861,21 +932,23 @@ const VendorDashboard = () => {
                   <p>BIO *</p>
                   <textarea
                     placeholder="Bio"
-                    value={formData.bio || ""}
+                    value={formData.bio || ''}
                     onChange={(e) => {
                       setFormData({ ...formData, bio: e.target.value });
-                      clearFieldError("bio");
+                      clearFieldError('bio');
                     }}
-                    className={fieldErrors.bio ? styles.inputError : ""}
+                    className={fieldErrors.bio ? styles.inputError : ''}
                   />
-                  {fieldErrors.bio && <span className={styles.inputErrorMsg}>{fieldErrors.bio}</span>}
+                  {fieldErrors.bio && (
+                    <span className={styles.inputErrorMsg}>{fieldErrors.bio}</span>
+                  )}
                 </div>
 
                 <div className={styles.formField}>
                   <p>INSTAGRAM</p>
                   <input
                     placeholder="Instagram username or full URL"
-                    value={formData.socialLinks?.instagram || ""}
+                    value={formData.socialLinks?.instagram || ''}
                     onChange={(e) => {
                       setFormData({
                         ...formData,
@@ -884,18 +957,20 @@ const VendorDashboard = () => {
                           instagram: e.target.value,
                         },
                       });
-                      clearFieldError("instagram");
+                      clearFieldError('instagram');
                     }}
-                    className={fieldErrors.instagram ? styles.inputError : ""}
+                    className={fieldErrors.instagram ? styles.inputError : ''}
                   />
-                  {fieldErrors.instagram && <span className={styles.inputErrorMsg}>{fieldErrors.instagram}</span>}
+                  {fieldErrors.instagram && (
+                    <span className={styles.inputErrorMsg}>{fieldErrors.instagram}</span>
+                  )}
                 </div>
 
                 <div className={styles.formField}>
                   <p>X ACCOUNT</p>
                   <input
                     placeholder="X username or full link"
-                    value={formData.socialLinks?.x || ""}
+                    value={formData.socialLinks?.x || ''}
                     onChange={(e) => {
                       setFormData({
                         ...formData,
@@ -904,9 +979,9 @@ const VendorDashboard = () => {
                           x: e.target.value,
                         },
                       });
-                      clearFieldError("x");
+                      clearFieldError('x');
                     }}
-                    className={fieldErrors.x ? styles.inputError : ""}
+                    className={fieldErrors.x ? styles.inputError : ''}
                   />
                   {fieldErrors.x && <span className={styles.inputErrorMsg}>{fieldErrors.x}</span>}
                 </div>
@@ -915,7 +990,7 @@ const VendorDashboard = () => {
                   <p>WEBSITE</p>
                   <input
                     placeholder="Website URL"
-                    value={formData.socialLinks?.website || ""}
+                    value={formData.socialLinks?.website || ''}
                     onChange={(e) => {
                       setFormData({
                         ...formData,
@@ -924,17 +999,19 @@ const VendorDashboard = () => {
                           website: e.target.value,
                         },
                       });
-                      clearFieldError("website");
+                      clearFieldError('website');
                     }}
-                    className={fieldErrors.website ? styles.inputError : ""}
+                    className={fieldErrors.website ? styles.inputError : ''}
                   />
-                  {fieldErrors.website && <span className={styles.inputErrorMsg}>{fieldErrors.website}</span>}
+                  {fieldErrors.website && (
+                    <span className={styles.inputErrorMsg}>{fieldErrors.website}</span>
+                  )}
                 </div>
 
                 <button
                   onClick={handleUpdate}
                   disabled={saving}
-                  className={saving ? styles.buttonDisabled : ""}
+                  className={saving ? styles.buttonDisabled : ''}
                 >
                   {saving ? (
                     <>
@@ -942,17 +1019,19 @@ const VendorDashboard = () => {
                       SAVING...
                     </>
                   ) : (
-                    "SAVE PROFILE"
+                    'SAVE PROFILE'
                   )}
                 </button>
               </div>
 
               <div className={styles.tabContentRight}>
-                <div className={styles.sectionHeading}><h2>Tips</h2></div>
+                <div className={styles.sectionHeading}>
+                  <h2>Tips</h2>
+                </div>
                 <p>A complete profile builds trust with buyers.</p>
-                <SlArrowDown/>
+                <SlArrowDown />
                 <p>Add social links to verify your identity.</p>
-                <SlArrowDown/>
+                <SlArrowDown />
                 <p>Use a professional banner and avatar.</p>
               </div>
             </div>

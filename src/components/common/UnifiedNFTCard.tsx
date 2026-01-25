@@ -1,0 +1,375 @@
+// src/components/common/UnifiedNFTCard.tsx
+// Unified NFT Card component for consistent styling across LuxHub
+import React, { useState, memo, useMemo, useCallback } from 'react';
+import styles from '../../styles/UnifiedNFTCard.module.css';
+import { FaCheck, FaClock, FaLock, FaShoppingCart, FaFire, FaEye } from 'react-icons/fa';
+import { LuShield, LuBadgeCheck, LuSparkles } from 'react-icons/lu';
+
+// Status types for NFT badges
+export type NFTStatus =
+  | 'verified'
+  | 'pending'
+  | 'escrow'
+  | 'listed'
+  | 'sold'
+  | 'pooled'
+  | 'burned'
+  | 'preview'
+  | 'minting'
+  | 'ready'
+  | 'error';
+
+// Card size variants
+export type CardVariant = 'default' | 'compact' | 'large' | 'list';
+
+export interface UnifiedNFTCardProps {
+  // Core data
+  title: string;
+  image?: string;
+  imageCid?: string;
+  price?: number;
+  priceLabel?: string; // e.g., "SOL" or "USD"
+  priceUSD?: number; // Fixed USD price of the watch
+
+  // Identity
+  mintAddress?: string;
+  owner?: string;
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+
+  // Status
+  status?: NFTStatus;
+  isVerified?: boolean;
+  poolEligible?: boolean;
+
+  // Display options
+  variant?: CardVariant;
+  showBadge?: boolean;
+  showPrice?: boolean;
+  showOwner?: boolean;
+  showOverlay?: boolean;
+  showBuyButton?: boolean;
+
+  // Actions
+  onClick?: () => void;
+  onViewDetails?: () => void;
+  onQuickBuy?: () => void;
+
+  // Additional
+  description?: string;
+  attributes?: { trait_type: string; value: string }[];
+  className?: string;
+}
+
+const PLACEHOLDER_IMAGE = '/images/purpleLGG.png';
+const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
+
+// Status badge configuration
+const statusConfig: Record<NFTStatus, { label: string; icon: React.ReactNode; className: string }> =
+  {
+    verified: { label: 'Verified', icon: <LuBadgeCheck />, className: styles.badgeVerified },
+    pending: { label: 'Pending', icon: <FaClock />, className: styles.badgePending },
+    escrow: { label: 'In Escrow', icon: <FaLock />, className: styles.badgeEscrow },
+    listed: { label: 'Listed', icon: <FaShoppingCart />, className: styles.badgeListed },
+    sold: { label: 'Sold', icon: <FaCheck />, className: styles.badgeSold },
+    pooled: { label: 'Pooled', icon: <LuSparkles />, className: styles.badgePooled },
+    burned: { label: 'Burned', icon: <FaFire />, className: styles.badgeBurned },
+    preview: { label: 'Preview', icon: <FaEye />, className: styles.badgePreview },
+    minting: { label: 'Minting', icon: <LuSparkles />, className: styles.badgeMinting },
+    ready: { label: 'Ready', icon: <FaCheck />, className: styles.badgeReady },
+    error: { label: 'Error', icon: null, className: styles.badgeError },
+  };
+
+const UnifiedNFTCard = memo(
+  ({
+    title,
+    image,
+    imageCid,
+    price,
+    priceLabel = 'SOL',
+    priceUSD,
+    mintAddress,
+    owner,
+    brand,
+    model,
+    status = 'verified',
+    isVerified = true,
+    poolEligible,
+    variant = 'default',
+    showBadge = true,
+    showPrice = true,
+    showOwner = true,
+    showOverlay = true,
+    showBuyButton = false,
+    onClick,
+    onViewDetails,
+    onQuickBuy,
+    description,
+    className,
+  }: UnifiedNFTCardProps) => {
+    const [imgError, setImgError] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
+
+    // Compute image URL
+    const imageUrl = useMemo(() => {
+      if (imgError) return PLACEHOLDER_IMAGE;
+      if (image) return image;
+      if (imageCid) return `${GATEWAY_URL}${imageCid}`;
+      return PLACEHOLDER_IMAGE;
+    }, [image, imageCid, imgError]);
+
+    // Truncate wallet addresses
+    const truncateAddress = useCallback((addr: string) => {
+      if (!addr || addr.length < 10) return addr || 'N/A';
+      return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+    }, []);
+
+    // Get status badge config
+    const badgeConfig = statusConfig[status];
+
+    // Handle click
+    const handleClick = useCallback(() => {
+      if (onClick) onClick();
+      else if (onViewDetails) onViewDetails();
+    }, [onClick, onViewDetails]);
+
+    // Variant class
+    const variantClass = styles[`variant${variant.charAt(0).toUpperCase() + variant.slice(1)}`];
+
+    return (
+      <div
+        className={`${styles.card} ${variantClass} ${className || ''}`}
+        onClick={handleClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Glow effect on hover */}
+        <div className={styles.glowEffect} />
+
+        {/* Image Container */}
+        <div className={styles.imageContainer}>
+          <img
+            src={imageUrl}
+            alt={title}
+            className={styles.image}
+            onError={() => setImgError(true)}
+            loading="lazy"
+          />
+
+          {/* Image shine effect */}
+          <div className={styles.imageShine} />
+
+          {/* Status Badge - Top Left */}
+          {showBadge && (
+            <div className={`${styles.statusBadge} ${badgeConfig.className}`}>
+              {badgeConfig.icon}
+              <span>{badgeConfig.label}</span>
+            </div>
+          )}
+
+          {/* Verified Shield - Top Right */}
+          {isVerified && (
+            <div className={styles.verifiedBadge}>
+              <LuShield />
+            </div>
+          )}
+
+          {/* Pool Eligible Badge */}
+          {poolEligible && (
+            <div className={styles.poolBadge}>
+              <LuSparkles /> Pool
+            </div>
+          )}
+
+          {/* Hover Overlay */}
+          {showOverlay && (
+            <div className={`${styles.overlay} ${isHovered ? styles.overlayVisible : ''}`}>
+              <div className={styles.overlayContent}>
+                <h3 className={styles.overlayTitle}>{title}</h3>
+
+                {brand && (
+                  <div className={styles.overlayRow}>
+                    <span>Brand</span>
+                    <span>{brand}</span>
+                  </div>
+                )}
+
+                {model && (
+                  <div className={styles.overlayRow}>
+                    <span>Model</span>
+                    <span>{model}</span>
+                  </div>
+                )}
+
+                {showOwner && owner && (
+                  <div className={styles.overlayRow}>
+                    <span>Owner</span>
+                    <span>{truncateAddress(owner)}</span>
+                  </div>
+                )}
+
+                {showPrice && price !== undefined && (
+                  <div className={styles.overlayPriceContainer}>
+                    <div className={styles.overlayPrice}>
+                      <LuSparkles className={styles.priceIcon} />
+                      <span>
+                        {price.toFixed(2)} {priceLabel}
+                      </span>
+                    </div>
+                    {priceUSD !== undefined && (
+                      <div className={styles.overlayPriceUSD}>${priceUSD.toLocaleString()}</div>
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.overlayActions}>
+                  {onViewDetails && (
+                    <button
+                      className={styles.viewButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewDetails();
+                      }}
+                    >
+                      View Details
+                    </button>
+                  )}
+                  {onQuickBuy && status === 'listed' && (
+                    <button
+                      className={styles.buyButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onQuickBuy();
+                      }}
+                    >
+                      Quick Buy
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Card Footer - Always visible */}
+        <div className={styles.footer}>
+          <div className={styles.footerMain}>
+            <h4 className={styles.title}>{title}</h4>
+            {brand && <span className={styles.brand}>{brand}</span>}
+          </div>
+
+          <div className={styles.footerRight}>
+            {showPrice && price !== undefined && (
+              <div className={styles.priceTag}>
+                <div className={styles.priceSol}>
+                  <span className={styles.priceValue}>{price.toFixed(2)}</span>
+                  <span className={styles.priceLabel}>{priceLabel}</span>
+                </div>
+                {priceUSD !== undefined && (
+                  <span className={styles.priceUSD}>${priceUSD.toLocaleString()}</span>
+                )}
+              </div>
+            )}
+
+            {showBuyButton && onQuickBuy && status === 'listed' && (
+              <button
+                className={styles.footerBuyButton}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickBuy();
+                }}
+              >
+                Buy
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+UnifiedNFTCard.displayName = 'UnifiedNFTCard';
+
+export default UnifiedNFTCard;
+
+// Export a simple card for bulk/grid displays
+export const NFTGridCard = memo(
+  ({
+    title,
+    image,
+    imageUrl,
+    price,
+    priceLabel = 'SOL',
+    priceUSD,
+    brand,
+    subtitle,
+    status = 'ready',
+    isValid = true,
+    onClick,
+  }: {
+    title: string;
+    image?: string;
+    imageUrl?: string;
+    price?: number | string;
+    priceLabel?: string;
+    priceUSD?: number;
+    brand?: string;
+    subtitle?: string;
+    status?: NFTStatus;
+    isValid?: boolean;
+    onClick?: () => void;
+  }) => {
+    const [imgError, setImgError] = useState(false);
+    const finalImage = imgError ? PLACEHOLDER_IMAGE : image || imageUrl || PLACEHOLDER_IMAGE;
+    const badgeConfig = statusConfig[status];
+
+    return (
+      <div
+        className={`${styles.gridCard} ${!isValid ? styles.gridCardInvalid : ''}`}
+        onClick={onClick}
+      >
+        <div className={styles.gridImageWrapper}>
+          {finalImage ? (
+            <img
+              src={finalImage}
+              alt={title}
+              className={styles.gridImage}
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className={styles.gridImagePlaceholder}>
+              <LuSparkles />
+            </div>
+          )}
+
+          <div className={`${styles.gridBadge} ${badgeConfig.className}`}>
+            {badgeConfig.icon}
+            <span>{badgeConfig.label}</span>
+          </div>
+        </div>
+
+        <div className={styles.gridContent}>
+          <h4 className={styles.gridTitle}>{title || 'Untitled'}</h4>
+          <div className={styles.gridMeta}>
+            {brand && <span className={styles.gridBrand}>{brand}</span>}
+            {subtitle && <span className={styles.gridSubtitle}>{subtitle}</span>}
+            {price !== undefined && (
+              <div className={styles.gridPriceContainer}>
+                <span className={styles.gridPrice}>
+                  {typeof price === 'number' ? price.toFixed(2) : price} {priceLabel}
+                </span>
+                {priceUSD !== undefined && (
+                  <span className={styles.gridPriceUSD}>${priceUSD.toLocaleString()}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+NFTGridCard.displayName = 'NFTGridCard';

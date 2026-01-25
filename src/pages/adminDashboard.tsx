@@ -10,7 +10,24 @@ import { uploadToPinata } from '../utils/pinata';
 import { updateNftMetadata } from '../utils/metadata';
 import styles from '../styles/AdminDashboard.module.css';
 import toast from 'react-hot-toast';
-import { CiSearch } from 'react-icons/ci';
+import {
+  HiOutlineClipboardList,
+  HiOutlineCog,
+  HiOutlineShieldCheck,
+  HiOutlineTruck,
+  HiOutlineDocumentText,
+  HiOutlineUserGroup,
+  HiOutlineCollection,
+  HiOutlineRefresh,
+  HiOutlineLockClosed,
+  HiOutlineSearch,
+  HiOutlineChevronLeft,
+  HiOutlineChevronRight,
+  HiOutlineExternalLink,
+  HiOutlineCube,
+  HiOutlineKey,
+  HiOutlineDatabase,
+} from 'react-icons/hi';
 import { VendorProfile } from '../lib/models/VendorProfile';
 
 // Lazy load tab components to reduce initial bundle size (~45KB saved)
@@ -636,11 +653,13 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const refreshData = async () => {
     setLoading(true);
-    await fetchConfigAndAdmins();
-    await fetchActiveEscrowsByMint();
-    await fetchSaleRequests();
-    await fetchSquadsProposals(squadsFilter);
-    await fetchSquadsMultisigInfo();
+    await Promise.all([
+      fetchConfigAndAdmins(),
+      fetchActiveEscrowsByMint(),
+      fetchSaleRequests(),
+      fetchSquadsProposals(squadsFilter),
+      fetchSquadsMultisigInfo(),
+    ]);
     setLoading(false);
   };
 
@@ -1177,217 +1196,248 @@ const AdminDashboard: React.FC = () => {
     switch (tabIndex) {
       case 2:
         return (
-          <div>
-            <div className={styles.header}>
-              <h2>Active Escrows</h2>
-            </div>
+          <div className={styles.section}>
             {activeEscrows.length === 0 ? (
-              <p>No active escrows found.</p>
+              <div className={styles.emptyState}>
+                <HiOutlineLockClosed className={styles.emptyIcon} />
+                <h3 className={styles.emptyTitle}>No Active Escrows</h3>
+                <p className={styles.emptyDescription}>
+                  There are no active escrow accounts at the moment.
+                </p>
+              </div>
             ) : (
-              activeEscrows.map((escrow, idx) => {
-                if (Number(escrow.seed.toString()) === 0) return null;
+              <div className={styles.cardsGrid}>
+                {activeEscrows.map((escrow, idx) => {
+                  if (Number(escrow.seed.toString()) === 0) return null;
 
-                const initializerAmountSol = Number(escrow.initializer_amount) / LAMPORTS_PER_SOL;
-                const takerAmountSol = Number(escrow.taker_amount) / LAMPORTS_PER_SOL;
-                const salePriceSol = Number(escrow.salePrice) / LAMPORTS_PER_SOL;
+                  const initializerAmountSol = Number(escrow.initializer_amount) / LAMPORTS_PER_SOL;
+                  const takerAmountSol = Number(escrow.taker_amount) / LAMPORTS_PER_SOL;
+                  const salePriceSol = Number(escrow.salePrice) / LAMPORTS_PER_SOL;
 
-                if (!program) return null;
+                  if (!program) return null;
 
-                const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
-                const [escrowPda] = PublicKey.findProgramAddressSync(
-                  [Buffer.from('state'), seedBuffer],
-                  program.programId
-                );
+                  const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
+                  const [escrowPda] = PublicKey.findProgramAddressSync(
+                    [Buffer.from('state'), seedBuffer],
+                    program.programId
+                  );
 
-                return (
-                  <div key={idx} className={styles.listingCard}>
-                    <h3>{escrow.name || 'Unnamed NFT'}</h3>
-
-                    <div className={styles.listingCardInfo}>
+                  return (
+                    <div
+                      key={idx}
+                      className={`${styles.dataCard} ${escrow.image ? styles.cardWithImage : ''}`}
+                    >
                       {escrow.image && (
-                        <div className={styles.nftImageWrapper}>
-                          <img src={escrow.image} alt={escrow.name} className={styles.nftImage} />
+                        <div className={styles.cardImageArea}>
+                          <img src={escrow.image} alt={escrow.name} className={styles.cardImage} />
+                          <div className={styles.cardImageOverlay} />
                         </div>
                       )}
 
-                      <p className={styles.nftDescription}>
-                        {escrow.description || 'No description available.'}
-                      </p>
-
-                      <p>
-                        <strong>Seed:</strong> {escrow.seed.toString()}
-                      </p>
-
-                      <p>
-                        <strong>Escrow PDA:</strong>{' '}
-                        <a
-                          href={`https://solscan.io/account/${escrowPda.toBase58()}?cluster=devnet`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {escrowPda.toBase58().slice(0, 4)} . . . {escrowPda.toBase58().slice(-4)}
-                        </a>
-                      </p>
-
-                      <p>
-                        <strong>Vault ATA:</strong>{' '}
-                        <code>
-                          {escrow.vaultATA?.slice(0, 4) || 'Loading...'} . . .{' '}
-                          {escrow.vaultATA?.slice(-4)}
-                        </code>
-                      </p>
-
-                      <p>
-                        <strong>Mint Address:</strong> {escrow.mintB.slice(0, 4)} . . .{' '}
-                        {escrow.mintB.slice(-4)}
-                      </p>
-                      <p>
-                        <strong>Initializer Wallet:</strong> {escrow.initializer.slice(0, 4)} . . .{' '}
-                        {escrow.initializer.slice(-4)}
-                      </p>
-                      <p>
-                        <strong>Initializer Amount:</strong> {initializerAmountSol.toFixed(2)} SOL
-                      </p>
-                      <p>
-                        <strong>Taker Amount:</strong> {takerAmountSol.toFixed(2)} SOL
-                      </p>
-                      <p>
-                        <strong>Sale Price:</strong> {salePriceSol.toFixed(2)} SOL
-                      </p>
-                      <p>
-                        <strong>Royalty (3%):</strong> {(salePriceSol * 0.03).toFixed(2)} SOL
-                      </p>
-                      <p>
-                        <strong>File CID:</strong> {escrow.file_cid.slice(0, 4)} . . .{' '}
-                        {escrow.file_cid.slice(-4)}
-                      </p>
-
-                      {escrow.attributes && escrow.attributes.length > 0 && (
-                        <div className={styles.attributesSection}>
-                          <h4>Attributes:</h4>
-                          <ul>
-                            {escrow.attributes.map((attr: any, i: number) => (
-                              <li key={i}>
-                                <strong>{attr.trait_type}:</strong> {attr.value}
-                              </li>
-                            ))}
-                          </ul>
+                      <div className={styles.cardContentArea}>
+                        <div className={styles.cardHeader}>
+                          <div className={styles.cardTitleArea}>
+                            <h3 className={styles.cardTitle}>{escrow.name || 'Unnamed NFT'}</h3>
+                            <span className={styles.cardSubtitle}>
+                              Seed: {escrow.seed.toString()}
+                            </span>
+                          </div>
+                          <span className={`${styles.cardStatus} ${styles.active}`}>Active</span>
                         </div>
-                      )}
 
-                      <div className={styles.actions}>
-                        <button onClick={() => confirmDelivery(escrow)}>Confirm Delivery</button>
-                        <button onClick={() => cancelEscrow(escrow)}>Cancel Escrow</button>
+                        <div className={styles.cardBody}>
+                          <div className={styles.cardRow}>
+                            <span className={styles.cardLabel}>Sale Price</span>
+                            <span className={`${styles.cardValue} ${styles.cardHighlight}`}>
+                              {salePriceSol.toFixed(2)} SOL
+                            </span>
+                          </div>
+                          <div className={styles.cardRow}>
+                            <span className={styles.cardLabel}>Escrow PDA</span>
+                            <span className={styles.cardValue}>
+                              <a
+                                href={`https://solscan.io/account/${escrowPda.toBase58()}?cluster=devnet`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {escrowPda.toBase58().slice(0, 6)}...
+                                {escrowPda.toBase58().slice(-4)}
+                                <HiOutlineExternalLink
+                                  style={{ marginLeft: 4, verticalAlign: 'middle' }}
+                                />
+                              </a>
+                            </span>
+                          </div>
+                          <div className={styles.cardRow}>
+                            <span className={styles.cardLabel}>Seller</span>
+                            <span className={styles.cardValue}>
+                              {escrow.initializer.slice(0, 6)}...{escrow.initializer.slice(-4)}
+                            </span>
+                          </div>
+                          <div className={styles.cardRow}>
+                            <span className={styles.cardLabel}>Mint</span>
+                            <span className={styles.cardValue}>
+                              {escrow.mintB.slice(0, 6)}...{escrow.mintB.slice(-4)}
+                            </span>
+                          </div>
+                          <div className={styles.cardRow}>
+                            <span className={styles.cardLabel}>Royalty (5%)</span>
+                            <span className={styles.cardValue}>
+                              {(salePriceSol * 0.05).toFixed(2)} SOL
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className={styles.cardFooter}>
+                          <button
+                            className={`${styles.cardBtn} ${styles.success}`}
+                            onClick={() => confirmDelivery(escrow)}
+                          >
+                            Confirm Delivery
+                          </button>
+                          <button
+                            className={`${styles.cardBtn} ${styles.danger}`}
+                            onClick={() => cancelEscrow(escrow)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
         );
       case 5:
         return (
-          <div>
-            <div className={styles.header}>
-              <h2>Marketplace Listing Requests</h2>
-            </div>
-
-            <div className={styles.inputGroupContainer}>
-              <div className={styles.inputGroup}>
-                <div className={styles.searchContainer}>
-                  <button onClick={() => fetchSaleRequests(1, sellerFilter)}>
-                    <CiSearch className={styles.searchIcon} />
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="Filter by Seller Wallet"
-                    value={sellerFilter}
-                    className={styles.searchBar}
-                    onChange={(e) => setSellerFilter(e.target.value)}
-                  />
-                </div>
+          <div className={styles.section}>
+            {/* Filter Bar */}
+            <div className={styles.filterBar}>
+              <div className={styles.searchInput}>
+                <HiOutlineSearch className={styles.searchIcon} />
+                <input
+                  type="text"
+                  placeholder="Search by seller wallet address..."
+                  value={sellerFilter}
+                  onChange={(e) => setSellerFilter(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && fetchSaleRequests(1, sellerFilter)}
+                />
               </div>
+              <button
+                className={styles.refreshBtn}
+                onClick={() => fetchSaleRequests(1, sellerFilter)}
+              >
+                Search
+              </button>
             </div>
 
-            <div className={styles.paginationControls}>
-              <button
-                disabled={currentPage === 1}
-                onClick={() => fetchSaleRequests(currentPage - 1, sellerFilter)}
-              >
-                Prev
-              </button>
-              <span>Page {currentPage}</span>
-              <button
-                disabled={isLastPage}
-                onClick={() => fetchSaleRequests(currentPage + 1, sellerFilter)}
-              >
-                Next
-              </button>
-            </div>
+            {/* Cards Grid */}
             {saleRequests.length === 0 ? (
-              <p>No pending sale requests.</p>
+              <div className={styles.emptyState}>
+                <HiOutlineClipboardList className={styles.emptyIcon} />
+                <h3 className={styles.emptyTitle}>No Pending Requests</h3>
+                <p className={styles.emptyDescription}>
+                  There are no sale requests waiting for approval.
+                </p>
+              </div>
             ) : (
-              saleRequests.map((req, idx) => {
-                const currentSeed = req.seed ?? dynamicSeeds.get(req.nftId) ?? Date.now();
+              <div className={styles.cardsGrid}>
+                {saleRequests.map((req, idx) => {
+                  const currentSeed = req.seed ?? dynamicSeeds.get(req.nftId) ?? Date.now();
 
-                const updateSeed = () => {
-                  const newSeed = Date.now();
-                  setDynamicSeeds((prev) => {
-                    const updated = new Map(prev);
-                    updated.set(req.nftId, newSeed); // override the seed for this NFT
-                    return updated;
-                  });
-                };
+                  const updateSeed = () => {
+                    const newSeed = Date.now();
+                    setDynamicSeeds((prev) => {
+                      const updated = new Map(prev);
+                      updated.set(req.nftId, newSeed);
+                      return updated;
+                    });
+                  };
 
-                return (
-                  <div key={idx} className={styles.listingCard}>
-                    <div className={styles.statusBadge}>
-                      <div>PENDING</div>
-                    </div>
-                    <div className={styles.listingCardInfo}>
-                      <p>
-                        <strong>NFT Mint:</strong> {req.nftId.slice(0, 4)} . . .{' '}
-                        {req.nftId.slice(-4)}
-                      </p>
-                      <p>
-                        <strong>Seller:</strong> {req.seller.slice(0, 4)} . . .{' '}
-                        {req.seller.slice(-4)}
-                      </p>
-                      <p>
-                        <strong>Seed:</strong> {currentSeed}
-                      </p>
-                      <p>
-                        <strong>Initializer Amount (SOL):</strong> {req.initializerAmount}
-                      </p>
-                      <p>
-                        <strong>Taker Amount (SOL):</strong> {req.takerAmount}
-                      </p>
-                      <p>
-                        <strong>Sale Price (SOL):</strong> {req.salePrice}
-                      </p>
-                      <p>
-                        <strong>File CID:</strong> {req.fileCid.slice(0, 4)} . . .{' '}
-                        {req.fileCid.slice(-4)}
-                      </p>
-                      <p>
-                        <strong>Requested at:</strong> {new Date(req.timestamp).toLocaleString()}
-                      </p>
-                      <div className={styles.actions}>
+                  return (
+                    <div key={idx} className={styles.dataCard}>
+                      <div className={styles.cardHeader}>
+                        <div className={styles.cardTitleArea}>
+                          <h3 className={styles.cardTitle}>Sale Request #{idx + 1}</h3>
+                          <span className={styles.cardSubtitle}>
+                            {req.nftId.slice(0, 6)}...{req.nftId.slice(-6)}
+                          </span>
+                        </div>
+                        <span className={`${styles.cardStatus} ${styles.pending}`}>Pending</span>
+                      </div>
+
+                      <div className={styles.cardBody}>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>Seller</span>
+                          <span className={styles.cardValue}>
+                            {req.seller.slice(0, 6)}...{req.seller.slice(-6)}
+                          </span>
+                        </div>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>Sale Price</span>
+                          <span className={`${styles.cardValue} ${styles.cardHighlight}`}>
+                            {req.salePrice} SOL
+                          </span>
+                        </div>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>Initializer Amount</span>
+                          <span className={styles.cardValue}>{req.initializerAmount} SOL</span>
+                        </div>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>Taker Amount</span>
+                          <span className={styles.cardValue}>{req.takerAmount} SOL</span>
+                        </div>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>Seed</span>
+                          <span className={styles.cardValue}>{currentSeed}</span>
+                        </div>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>Requested</span>
+                          <span className={styles.cardValue}>
+                            {new Date(req.timestamp).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={styles.cardFooter}>
                         <button
+                          className={`${styles.cardBtn} ${styles.primary}`}
                           disabled={!req.seller}
                           onClick={() => handleApproveSale({ ...req, seed: currentSeed })}
                         >
-                          Approve Sale
+                          Approve
                         </button>
-                        <button onClick={updateSeed}>Generate New Seed</button>
-                        <button>Cancel Escrow</button>
+                        <button className={styles.cardBtn} onClick={updateSeed}>
+                          New Seed
+                        </button>
+                        <button className={`${styles.cardBtn} ${styles.danger}`}>Cancel</button>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
+
+            {/* Pagination */}
+            <div className={styles.pagination}>
+              <button
+                className={styles.paginationBtn}
+                disabled={currentPage === 1}
+                onClick={() => fetchSaleRequests(currentPage - 1, sellerFilter)}
+              >
+                <HiOutlineChevronLeft /> Previous
+              </button>
+              <span className={styles.paginationInfo}>Page {currentPage}</span>
+              <button
+                className={styles.paginationBtn}
+                disabled={isLastPage}
+                onClick={() => fetchSaleRequests(currentPage + 1, sellerFilter)}
+              >
+                Next <HiOutlineChevronRight />
+              </button>
+            </div>
           </div>
         );
       case 6:
@@ -1404,65 +1454,102 @@ const AdminDashboard: React.FC = () => {
         );
       case 0:
         return (
-          <div>
-            <div className={styles.configInputGroupContainer}>
-              <div className={styles.configInputGroup}>
-                <label>Current LuxHub Wallet:</label>
-                <div className={styles.luxhubWallet}>
-                  {currentEscrowConfig.slice(0, 4)}...{currentEscrowConfig.slice(-4)}
+          <div className={styles.section}>
+            <div className={styles.configPanel}>
+              {/* Treasury Wallet Configuration */}
+              <div className={styles.configSection}>
+                <h3 className={styles.configTitle}>
+                  <HiOutlineDatabase /> Treasury Configuration
+                </h3>
+                <div className={styles.configRow}>
+                  <span className={styles.configLabel}>Current Wallet</span>
+                  <div className={styles.configValue}>
+                    {currentEscrowConfig
+                      ? `${currentEscrowConfig.slice(0, 8)}...${currentEscrowConfig.slice(-8)}`
+                      : 'Not initialized'}
+                  </div>
+                </div>
+                <div className={styles.configRow}>
+                  <span className={styles.configLabel}>Initialize</span>
+                  <input
+                    type="text"
+                    className={styles.configInput}
+                    placeholder="Enter wallet address to initialize..."
+                    value={luxhubWallet}
+                    onChange={(e) => setLuxhubWallet(e.target.value)}
+                  />
+                  <button className={styles.configBtn} onClick={initializeEscrowConfig}>
+                    Initialize
+                  </button>
+                </div>
+                <div className={styles.configRow}>
+                  <span className={styles.configLabel}>Update</span>
+                  <input
+                    type="text"
+                    className={styles.configInput}
+                    placeholder="Enter new wallet address..."
+                    value={newLuxhubWallet}
+                    onChange={(e) => setNewLuxhubWallet(e.target.value)}
+                  />
+                  <button className={styles.configBtn} onClick={updateEscrowConfig}>
+                    Update
+                  </button>
                 </div>
               </div>
-              <div className={styles.configInputGroup}>
-                <label>Set LuxHub Wallet:</label>
-                <input
-                  type="text"
-                  placeholder="Initialize LuxHub Wallet Address"
-                  value={luxhubWallet}
-                  onChange={(e) => setLuxhubWallet(e.target.value)}
-                />
-                <button onClick={initializeEscrowConfig}>Initialize Config</button>
-              </div>
-              <div className={styles.configInputGroup}>
-                <label>New LuxHub Wallet:</label>
-                <input
-                  type="text"
-                  placeholder="Enter New LuxHub Wallet Address"
-                  value={newLuxhubWallet}
-                  onChange={(e) => setNewLuxhubWallet(e.target.value)}
-                />
-                <button onClick={updateEscrowConfig}>Update Config</button>
-              </div>
-              <div className={styles.configInputGroup}>
-                <label>Admin List</label>
+
+              {/* Admin Management */}
+              <div className={styles.configSection}>
+                <h3 className={styles.configTitle}>
+                  <HiOutlineUserGroup /> Admin Management
+                </h3>
+                <div className={styles.configRow}>
+                  <span className={styles.configLabel}>Current Admins</span>
+                </div>
                 {adminList.length === 0 ? (
-                  <p>No admins found.</p>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                    No admins found in the admin list.
+                  </p>
                 ) : (
-                  adminList.map((adminStr, idx) => (
-                    <div key={idx} className={styles.listItem}>
-                      {adminStr.slice(0, 4)}...{adminStr.slice(-4)}
-                    </div>
-                  ))
+                  <div className={styles.adminList}>
+                    {adminList.map((adminStr, idx) => (
+                      <div key={idx} className={styles.adminTag}>
+                        <HiOutlineKey style={{ opacity: 0.5 }} />
+                        {adminStr.slice(0, 6)}...{adminStr.slice(-6)}
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </div>
-              <div className={styles.configInputGroup}>
-                <label>Add Admin (Wallet Address):</label>
-                <input
-                  type="text"
-                  placeholder="Enter New Admin Wallet Address"
-                  value={newAdmin}
-                  onChange={(e) => setNewAdmin(e.target.value)}
-                />
-                <button onClick={addAdmin}>Add Admin</button>
-              </div>
-              <div className={styles.configInputGroup}>
-                <label>Remove Admin (Wallet Address):</label>
-                <input
-                  type="text"
-                  placeholder="Remove Admin (Enter Admin Wallet Address)"
-                  value={removeAdminAddr}
-                  onChange={(e) => setRemoveAdminAddr(e.target.value)}
-                />
-                <button onClick={removeAdmin}>Remove Admin</button>
+
+                <div className={styles.configRow} style={{ marginTop: 20 }}>
+                  <span className={styles.configLabel}>Add Admin</span>
+                  <input
+                    type="text"
+                    className={styles.configInput}
+                    placeholder="Enter wallet address..."
+                    value={newAdmin}
+                    onChange={(e) => setNewAdmin(e.target.value)}
+                  />
+                  <button className={styles.configBtn} onClick={addAdmin}>
+                    Add
+                  </button>
+                </div>
+                <div className={styles.configRow}>
+                  <span className={styles.configLabel}>Remove Admin</span>
+                  <input
+                    type="text"
+                    className={styles.configInput}
+                    placeholder="Enter wallet address..."
+                    value={removeAdminAddr}
+                    onChange={(e) => setRemoveAdminAddr(e.target.value)}
+                  />
+                  <button
+                    className={styles.configBtn}
+                    onClick={removeAdmin}
+                    style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1475,50 +1562,64 @@ const AdminDashboard: React.FC = () => {
         );
       case 9:
         return (
-          <div>
-            <div className={styles.header}>
-              <h2>Squads Multisig Proposals</h2>
-            </div>
-
-            {/* Multisig Info Card */}
+          <div className={styles.section}>
+            {/* Multisig Info Panel */}
             {squadsMultisigInfo && (
-              <div className={`${styles.listingCard} ${styles.multisigCard}`}>
-                <div className={styles.listingCardInfo}>
-                  <h3 className={styles.multisigTitle}>Multisig Configuration</h3>
-                  <p>
-                    <strong>Address:</strong>{' '}
+              <div className={styles.multisigPanel}>
+                <div className={styles.multisigHeader}>
+                  <h3 className={styles.multisigTitle}>
+                    <HiOutlineShieldCheck className="icon" />
+                    Multisig Configuration
+                  </h3>
+                  {squadsMultisigInfo.squadsUrl && (
                     <a
                       href={squadsMultisigInfo.squadsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      className={styles.multisigLink}
                     >
-                      {squadsMultisigInfo.multisigPda?.slice(0, 8)}...
-                      {squadsMultisigInfo.multisigPda?.slice(-8)}
+                      Open in Squads <HiOutlineExternalLink />
                     </a>
-                  </p>
-                  <p>
-                    <strong>Threshold:</strong> {squadsMultisigInfo.threshold} of{' '}
-                    {squadsMultisigInfo.members?.length} members
-                  </p>
-                  <p>
-                    <strong>Total Proposals:</strong> {squadsMultisigInfo.transactionIndex}
-                  </p>
+                  )}
+                </div>
 
+                <div className={styles.multisigStats}>
+                  <div className={styles.multisigStat}>
+                    <div className={styles.multisigStatValue}>
+                      {squadsMultisigInfo.threshold || 0}
+                    </div>
+                    <div className={styles.multisigStatLabel}>Threshold</div>
+                  </div>
+                  <div className={styles.multisigStat}>
+                    <div className={styles.multisigStatValue}>
+                      {squadsMultisigInfo.members?.length || 0}
+                    </div>
+                    <div className={styles.multisigStatLabel}>Members</div>
+                  </div>
+                  <div className={styles.multisigStat}>
+                    <div className={styles.multisigStatValue}>
+                      {squadsMultisigInfo.transactionIndex || 0}
+                    </div>
+                    <div className={styles.multisigStatLabel}>Total Proposals</div>
+                  </div>
+                </div>
+
+                <div className={styles.multisigDetails}>
                   <details className={styles.detailsToggle}>
                     <summary className={styles.detailsSummary}>
-                      Members ({squadsMultisigInfo.members?.length})
+                      View Members ({squadsMultisigInfo.members?.length})
                     </summary>
                     <ul className={styles.membersList}>
                       {squadsMultisigInfo.members?.map((m, i) => (
                         <li key={i} className={styles.memberItem}>
                           <code>
-                            {m.pubkey.slice(0, 6)}...{m.pubkey.slice(-6)}
-                          </code>{' '}
-                          <span className={styles.permissionBadge}>
-                            [{m.permissions.initiate && 'I'}
-                            {m.permissions.vote && 'V'}
-                            {m.permissions.execute && 'E'}]
-                          </span>
+                            {m.pubkey.slice(0, 8)}...{m.pubkey.slice(-8)}
+                          </code>
+                          <div className={styles.permissionBadge}>
+                            {m.permissions.initiate && <span>Initiate</span>}
+                            {m.permissions.vote && <span>Vote</span>}
+                            {m.permissions.execute && <span>Execute</span>}
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -1527,15 +1628,17 @@ const AdminDashboard: React.FC = () => {
                   {squadsMultisigInfo.vaults && squadsMultisigInfo.vaults.length > 0 && (
                     <details className={styles.detailsToggle}>
                       <summary className={styles.detailsSummary}>
-                        Vaults ({squadsMultisigInfo.vaults.length})
+                        View Vaults ({squadsMultisigInfo.vaults.length})
                       </summary>
                       <ul className={styles.membersList}>
                         {squadsMultisigInfo.vaults.map((v, i) => (
                           <li key={i} className={styles.memberItem}>
-                            <strong>Vault {v.index}:</strong>{' '}
-                            <code>
-                              {v.pda.slice(0, 6)}...{v.pda.slice(-6)}
-                            </code>
+                            <span>
+                              <strong>Vault {v.index}:</strong>{' '}
+                              <code>
+                                {v.pda.slice(0, 8)}...{v.pda.slice(-8)}
+                              </code>
+                            </span>
                             {v.balance !== undefined && (
                               <span className={styles.vaultBalance}>
                                 {(v.balance / 1e9).toFixed(4)} SOL
@@ -1550,152 +1653,158 @@ const AdminDashboard: React.FC = () => {
               </div>
             )}
 
-            <div className={styles.inputGroupContainer}>
-              <div className={styles.inputGroup}>
-                <select
-                  value={squadsFilter}
-                  onChange={(e) => {
-                    setSquadsFilter(e.target.value);
-                    fetchSquadsProposals(e.target.value);
-                  }}
-                  className={`${styles.searchBar} ${styles.filterSelect}`}
-                >
-                  <option value="pending">Pending (Active/Approved)</option>
-                  <option value="active">Active Only</option>
-                  <option value="approved">Approved Only</option>
-                  <option value="executed">Executed</option>
-                  <option value="all">All Proposals</option>
-                </select>
-                <button
-                  onClick={() => fetchSquadsProposals(squadsFilter)}
-                  disabled={squadsLoading}
-                  className={styles.refreshBtn}
-                >
-                  {squadsLoading ? 'Loading...' : 'Refresh'}
-                </button>
-              </div>
+            {/* Filter Bar */}
+            <div className={styles.filterBar}>
+              <select
+                value={squadsFilter}
+                onChange={(e) => {
+                  setSquadsFilter(e.target.value);
+                  fetchSquadsProposals(e.target.value);
+                }}
+                className={styles.filterSelect}
+              >
+                <option value="pending">Pending (Active/Approved)</option>
+                <option value="active">Active Only</option>
+                <option value="approved">Approved Only</option>
+                <option value="executed">Executed</option>
+                <option value="all">All Proposals</option>
+              </select>
+              <button
+                onClick={() => fetchSquadsProposals(squadsFilter)}
+                disabled={squadsLoading}
+                className={styles.refreshBtn}
+              >
+                <HiOutlineRefresh />
+                {squadsLoading ? 'Loading...' : 'Refresh'}
+              </button>
             </div>
 
-            {squadsLoading && <p>Loading proposals...</p>}
-
-            {!squadsLoading && squadsProposals.length === 0 ? (
-              <p>No proposals found for the selected filter.</p>
+            {/* Proposals Grid */}
+            {squadsLoading ? (
+              <div className={styles.loading}>
+                <div className={styles.loadingSpinner} />
+                <span className={styles.loadingText}>Loading proposals...</span>
+              </div>
+            ) : squadsProposals.length === 0 ? (
+              <div className={styles.emptyState}>
+                <HiOutlineShieldCheck className={styles.emptyIcon} />
+                <h3 className={styles.emptyTitle}>No Proposals Found</h3>
+                <p className={styles.emptyDescription}>
+                  No proposals match the selected filter criteria.
+                </p>
+              </div>
             ) : (
-              squadsProposals.map((proposal, idx) => {
-                const canExecute =
-                  proposal.status === 'approved' ||
-                  (proposal.status === 'active' && proposal.approvals >= proposal.threshold);
-                const isExecuted = proposal.status === 'executed';
+              <div className={styles.cardsGrid}>
+                {squadsProposals.map((proposal, idx) => {
+                  const canExecute =
+                    proposal.status === 'approved' ||
+                    (proposal.status === 'active' && proposal.approvals >= proposal.threshold);
+                  const isExecuted = proposal.status === 'executed';
 
-                return (
-                  <div key={idx} className={styles.listingCard}>
-                    <div className={styles.statusBadge}>
-                      <div
-                        className={
-                          proposal.status === 'executed'
-                            ? styles.statusExecuted
-                            : proposal.status === 'approved'
-                              ? styles.statusApproved
-                              : proposal.status === 'rejected'
-                                ? styles.statusRejected
-                                : proposal.status === 'cancelled'
-                                  ? styles.statusCancelled
-                                  : styles.statusActive
-                        }
-                      >
-                        {proposal.status.toUpperCase()}
+                  const statusClass =
+                    proposal.status === 'executed'
+                      ? styles.executed
+                      : proposal.status === 'approved'
+                        ? styles.approved
+                        : proposal.status === 'rejected'
+                          ? styles.rejected
+                          : proposal.status === 'cancelled'
+                            ? styles.cancelled
+                            : styles.active;
+
+                  return (
+                    <div key={idx} className={styles.dataCard}>
+                      <div className={styles.cardHeader}>
+                        <div className={styles.cardTitleArea}>
+                          <h3 className={styles.cardTitle}>
+                            Proposal #{proposal.transactionIndex}
+                          </h3>
+                          <span className={styles.cardSubtitle}>
+                            {proposal.proposalPda.slice(0, 8)}...{proposal.proposalPda.slice(-6)}
+                          </span>
+                        </div>
+                        <span className={`${styles.cardStatus} ${statusClass}`}>
+                          {proposal.status}
+                        </span>
                       </div>
-                    </div>
-                    <div className={styles.listingCardInfo}>
-                      <p>
-                        <strong>Transaction Index:</strong> {proposal.transactionIndex}
-                      </p>
-                      <p>
-                        <strong>Approvals:</strong> {proposal.approvals} / {proposal.threshold}
-                      </p>
-                      <p>
-                        <strong>Rejections:</strong> {proposal.rejections}
-                      </p>
-                      <p>
-                        <strong>Proposal PDA:</strong>{' '}
-                        <a
-                          href={`https://solscan.io/account/${proposal.proposalPda}?cluster=devnet`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {proposal.proposalPda.slice(0, 4)}...{proposal.proposalPda.slice(-4)}
-                        </a>
-                      </p>
-                      <p>
-                        <strong>Squads UI:</strong>{' '}
-                        <a
-                          href={`https://v4.squads.so/squads/${process.env.NEXT_PUBLIC_SQUADS_MSIG}/tx/${proposal.transactionIndex}?cluster=devnet`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View in Squads
-                        </a>
-                      </p>
 
-                      <div className={styles.actions}>
+                      <div className={styles.cardBody}>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>Approvals</span>
+                          <span className={`${styles.cardValue} ${styles.cardHighlight}`}>
+                            {proposal.approvals} / {proposal.threshold}
+                          </span>
+                        </div>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>Rejections</span>
+                          <span className={styles.cardValue}>{proposal.rejections}</span>
+                        </div>
+                        <div className={styles.cardRow}>
+                          <span className={styles.cardLabel}>View on Solscan</span>
+                          <span className={styles.cardValue}>
+                            <a
+                              href={`https://solscan.io/account/${proposal.proposalPda}?cluster=devnet`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Open <HiOutlineExternalLink style={{ verticalAlign: 'middle' }} />
+                            </a>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={styles.cardFooter}>
                         <button
+                          className={styles.cardBtn}
                           onClick={() => refreshProposalStatus(proposal.transactionIndex)}
                           disabled={squadsLoading}
                         >
-                          Refresh Status
+                          Refresh
                         </button>
-                        {/* Approve/Reject buttons for active proposals */}
                         {(proposal.status === 'active' || proposal.status === 'draft') && (
                           <>
                             <button
+                              className={`${styles.cardBtn} ${styles.success}`}
                               onClick={() => approveSquadsProposal(proposal.transactionIndex)}
                               disabled={squadsLoading}
-                              className={styles.btnApprove}
                             >
                               Approve
                             </button>
                             <button
+                              className={`${styles.cardBtn} ${styles.danger}`}
                               onClick={() => rejectSquadsProposal(proposal.transactionIndex)}
                               disabled={squadsLoading}
-                              className={styles.btnReject}
                             >
                               Reject
-                            </button>
-                            <button
-                              onClick={() => cancelSquadsProposal(proposal.transactionIndex)}
-                              disabled={squadsLoading}
-                              className={styles.btnCancel}
-                            >
-                              Cancel
                             </button>
                           </>
                         )}
                         {canExecute && !isExecuted && (
                           <button
+                            className={`${styles.cardBtn} ${styles.primary}`}
                             onClick={() => executeSquadsProposal(proposal.transactionIndex)}
                             disabled={squadsLoading}
-                            className={styles.btnExecute}
                           >
-                            Execute Proposal
+                            Execute
                           </button>
                         )}
                         {isExecuted && (
                           <button
+                            className={`${styles.cardBtn} ${styles.success}`}
                             onClick={() => {
                               const seed = prompt('Enter escrow seed to sync:');
                               if (seed) syncEscrowState(seed);
                             }}
                             disabled={squadsLoading}
-                            className={styles.btnSync}
                           >
-                            Sync to MongoDB
+                            Sync DB
                           </button>
                         )}
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
         );
@@ -1716,89 +1825,200 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Navigation items configuration
+  const navItems = [
+    { id: 5, label: 'Sale Requests', icon: HiOutlineClipboardList, badge: saleRequests.length },
+    { id: 2, label: 'Active Escrows', icon: HiOutlineLockClosed, badge: activeEscrows.length },
+    { id: 10, label: 'Shipments', icon: HiOutlineTruck },
+    { id: 11, label: 'Pool Custody', icon: HiOutlineCube },
+  ];
+
+  const nftNavItems = [
+    { id: 6, label: 'Metadata Editor', icon: HiOutlineDocumentText },
+    { id: 7, label: 'Change Requests', icon: HiOutlineCollection },
+  ];
+
+  const securityNavItems = [
+    { id: 9, label: 'Squads Multisig', icon: HiOutlineShieldCheck, badge: squadsProposals.length },
+    { id: 8, label: 'Vendor Approvals', icon: HiOutlineUserGroup },
+    { id: 0, label: 'Configuration', icon: HiOutlineCog },
+  ];
+
+  // Page titles for each tab
+  const pageTitles: Record<number, { title: string; subtitle: string }> = {
+    5: { title: 'Sale Requests', subtitle: 'Review and approve marketplace listing requests' },
+    2: { title: 'Active Escrows', subtitle: 'Manage on-chain escrow accounts and deliveries' },
+    10: { title: 'Shipment Verification', subtitle: 'Verify delivery proofs and shipment status' },
+    11: { title: 'Pool Custody', subtitle: 'Manage fractional ownership pool custody' },
+    6: { title: 'NFT Metadata Editor', subtitle: 'Edit NFT metadata and attributes' },
+    7: { title: 'Metadata Change Requests', subtitle: 'Review pending metadata update requests' },
+    9: { title: 'Squads Multisig', subtitle: 'Manage treasury proposals and multisig approvals' },
+    8: { title: 'Vendor Approvals', subtitle: 'Review and approve vendor applications' },
+    0: { title: 'Configuration', subtitle: 'Manage escrow config and admin permissions' },
+  };
+
+  // Render sidebar nav item
+  const renderNavItem = (item: { id: number; label: string; icon: any; badge?: number }) => {
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.id}
+        className={`${styles.navItem} ${tabIndex === item.id ? styles.active : ''}`}
+        onClick={() => setTabIndex(item.id)}
+      >
+        <Icon className={styles.navIcon} />
+        <span>{item.label}</span>
+        {item.badge !== undefined && item.badge > 0 && (
+          <span className={styles.navBadge}>{item.badge}</span>
+        )}
+      </button>
+    );
+  };
+
+  // Not connected state
+  if (!wallet.publicKey) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.accessDenied}>
+          <HiOutlineKey className={styles.accessDeniedIcon} />
+          <h1 className={styles.accessDeniedTitle}>Connect Wallet</h1>
+          <p className={styles.accessDeniedText}>
+            Please connect your wallet to access the admin dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not admin state
+  if (isAdmin === false) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.accessDenied}>
+          <HiOutlineLockClosed className={styles.accessDeniedIcon} />
+          <h1 className={styles.accessDeniedTitle}>Access Denied</h1>
+          <p className={styles.accessDeniedText}>
+            Your wallet is not authorized as an admin. If you believe this is an error, check your
+            admin config or switch wallets.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isAdmin === null) {
+    return (
+      <div className={styles.dashboard}>
+        <div className={styles.loading}>
+          <div className={styles.loadingSpinner} />
+          <span className={styles.loadingText}>Verifying admin access...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.container}>
-      <div className={styles.title}>
-        <h2>Admin Dashboard</h2>
-      </div>
-      {!wallet.publicKey ? (
-        <p>Please connect your wallet.</p>
-      ) : isAdmin === false ? (
-        <>
-          <h1>Admin Dashboard</h1>
-          <p>If you believe this is an error, check your admin config or switch wallets.</p>
-        </>
-      ) : isAdmin === null ? (
-        <>
-          <h1>Admin Dashboard</h1>
-          <p>Loading admin information...</p>
-        </>
-      ) : (
-        <>
-          <div className={styles.tabContainer}>
-            <button
-              className={`${styles.tab} ${tabIndex === 5 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(5)}
-            >
-              Sale Requests
-            </button>
-            <button
-              className={`${styles.tab} ${tabIndex === 2 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(2)}
-            >
-              Escrow Management
-            </button>
-            <button
-              className={`${styles.tab} ${tabIndex === 10 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(10)}
-            >
-              Shipment Verification
-            </button>
-            <button
-              className={`${styles.tab} ${tabIndex === 11 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(11)}
-            >
-              Pool Custody
-            </button>
-            <button
-              className={`${styles.tab} ${tabIndex === 6 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(6)}
-            >
-              NFT Metadata Editor
-            </button>
-            <button
-              className={`${styles.tab} ${tabIndex === 7 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(7)}
-            >
-              Metadata Change Requests
+    <div className={styles.dashboard}>
+      {/* Sidebar Navigation */}
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>
+          <div className={styles.sidebarLogo}>
+            <div className={styles.logoIcon}>L</div>
+            <div className={styles.logoText}>
+              Lux<span>Hub</span>
+            </div>
+          </div>
+        </div>
+
+        <nav className={styles.sidebarNav}>
+          <div className={styles.navSection}>
+            <div className={styles.navSectionLabel}>Marketplace</div>
+            {navItems.map(renderNavItem)}
+          </div>
+
+          <div className={styles.navSection}>
+            <div className={styles.navSectionLabel}>NFT Management</div>
+            {nftNavItems.map(renderNavItem)}
+          </div>
+
+          <div className={styles.navSection}>
+            <div className={styles.navSectionLabel}>Security & Admin</div>
+            {securityNavItems.map(renderNavItem)}
+          </div>
+        </nav>
+
+        <div className={styles.sidebarFooter}>
+          <div className={styles.walletInfo}>
+            <div className={styles.walletAvatar}>
+              <HiOutlineKey />
+            </div>
+            <div className={styles.walletDetails}>
+              <div className={styles.walletLabel}>Admin Wallet</div>
+              <div className={styles.walletAddress}>
+                {wallet.publicKey.toBase58().slice(0, 4)}...{wallet.publicKey.toBase58().slice(-4)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className={styles.mainContent}>
+        <header className={styles.contentHeader}>
+          <div className={styles.pageTitle}>
+            <h1>{pageTitles[tabIndex]?.title || 'Dashboard'}</h1>
+            <p>{pageTitles[tabIndex]?.subtitle || ''}</p>
+          </div>
+          <div className={styles.headerActions}>
+            <button className={styles.refreshBtn} onClick={refreshData} disabled={loading}>
+              <HiOutlineRefresh className={loading ? styles.spinning : ''} />
+              {loading ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
-          <div className={styles.subTabWrapper}>
-            <button
-              className={`${styles.tab} ${tabIndex === 9 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(9)}
-            >
-              Squads Proposals
-            </button>
-            <button
-              className={`${styles.tab} ${tabIndex === 8 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(8)}
-            >
-              Vendor Approvals
-            </button>
-            <button
-              className={`${styles.tab} ${tabIndex === 0 ? styles.activeTab : ''}`}
-              onClick={() => setTabIndex(0)}
-            >
-              Configuration
-            </button>
-          </div>
-          <div className={styles.content}>{renderTabContent()}</div>
-        </>
-      )}
-      <div className={styles.status}>
-        <p>{status}</p>
-      </div>
+        </header>
+
+        <div className={styles.contentBody}>
+          {/* Quick Stats Overview */}
+          {tabIndex === 5 && (
+            <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon}>
+                  <HiOutlineClipboardList />
+                </div>
+                <div className={styles.statValue}>{saleRequests.length}</div>
+                <div className={styles.statLabel}>Pending Requests</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon}>
+                  <HiOutlineLockClosed />
+                </div>
+                <div className={styles.statValue}>{activeEscrows.length}</div>
+                <div className={styles.statLabel}>Active Escrows</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon}>
+                  <HiOutlineShieldCheck />
+                </div>
+                <div className={styles.statValue}>{squadsProposals.length}</div>
+                <div className={styles.statLabel}>Squads Proposals</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon}>
+                  <HiOutlineUserGroup />
+                </div>
+                <div className={styles.statValue}>{adminList.length}</div>
+                <div className={styles.statLabel}>Active Admins</div>
+              </div>
+            </div>
+          )}
+
+          {renderTabContent()}
+        </div>
+      </main>
+
+      {/* Status Bar */}
+      {status && <div className={styles.statusBar}>{status}</div>}
     </div>
   );
 };

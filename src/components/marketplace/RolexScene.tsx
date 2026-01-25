@@ -1,16 +1,14 @@
-import { useGLTF } from "@react-three/drei";
-import { useEffect } from "react";
-import * as THREE from "three";
+import { useGLTF } from '@react-three/drei';
+import { useEffect } from 'react';
+import { Mesh } from 'three';
 
 const RolexScene = () => {
-  const { scene } = useGLTF("/3Dmodels/RolexSub.glb");
-
-  
+  const { scene } = useGLTF('/3Dmodels/RolexSub.glb');
 
   useEffect(() => {
     scene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
+      if ((child as Mesh).isMesh) {
+        const mesh = child as Mesh;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
       }

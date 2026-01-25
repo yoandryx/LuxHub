@@ -1,56 +1,52 @@
 // pages/vendor/onboard.tsx
-import { useRouter } from "next/router";
-import { useEffect, useMemo, useState, useLayoutEffect } from "react";
+import { useRouter } from 'next/router';
+import { useEffect, useMemo, useState, useLayoutEffect } from 'react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import AvatarBannerUploader from '../../components/vendor/AvatarBannerUploader';
+import styles from '../../styles/VendorOnboard.module.css';
+import toast from 'react-hot-toast';
+
+import * as multisig from '@sqds/multisig';
+import { Keypair, PublicKey, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
+import bs58 from 'bs58';
+
 import {
-  useConnection,
-  useWallet,
-} from "@solana/wallet-adapter-react";
-import AvatarBannerUploader from "../../components/vendor/AvatarBannerUploader";
-import styles from "../../styles/VendorDashboard.module.css";
-import { SlArrowDown } from "react-icons/sl";
-import toast from "react-hot-toast";
-
-import * as multisig from "@sqds/multisig";
-import {
-  Keypair,
-  PublicKey,
-  TransactionMessage,
-  VersionedTransaction,
-} from "@solana/web3.js";
-import bs58 from "bs58";
-
-import { LuShieldAlert } from "react-icons/lu";
-import { IoKeyOutline } from "react-icons/io5";
-import { BiHide } from "react-icons/bi";
-import { FaTimes, FaCopy } from "react-icons/fa";
-
-const getBase58SecretKey = (keypair: Keypair) => {
-  return bs58.encode(keypair.secretKey);
-};
+  FaUser,
+  FaImage,
+  FaCheckCircle,
+  FaArrowLeft,
+  FaArrowRight,
+  FaCopy,
+  FaDownload,
+  FaShieldAlt,
+  FaCheck,
+  FaInfoCircle,
+  FaExclamationTriangle,
+} from 'react-icons/fa';
+import { HiSparkles } from 'react-icons/hi';
+import { BiLoaderAlt } from 'react-icons/bi';
 
 const { Permission, Permissions } = multisig.types;
 
-export default function OnboardingForm() {
+export default function VendorOnboard() {
   const router = useRouter();
   const { query } = router;
   const { publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
 
-  // Wizard step state
+  // Wizard step state (0: Account Info, 1: Images, 2: Review)
   const [currentStep, setCurrentStep] = useState(0);
-
-  const [showRecoveryKey, setShowRecoveryKey] = useState(true);
 
   /* ---------- PROFILE STATE ---------- */
   const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    bio: "",
-    instagram: "",
-    x: "",
-    website: "",
-    avatarUrl: "",
-    bannerUrl: "",
+    name: '',
+    username: '',
+    bio: '',
+    instagram: '',
+    x: '',
+    website: '',
+    avatarUrl: '',
+    bannerUrl: '',
   });
 
   const [errors, setErrors] = useState({
@@ -63,132 +59,80 @@ export default function OnboardingForm() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [usernameChecking, setUsernameChecking] = useState(false);
 
-  /* ---------- MULTISIG STATE ---------- */
+  /* ---------- OPTIONAL TREASURY STATE ---------- */
+  const [enableTreasury, setEnableTreasury] = useState(false);
   const [multisigState, setMultisigState] = useState({
-    pda: "",
+    pda: '',
     members: publicKey ? [publicKey.toBase58()] : [],
     threshold: 1,
   });
   const [multisigLoading, setMultisigLoading] = useState(false);
   const [multisigCreated, setMultisigCreated] = useState(false);
-  const [multisigError, setMultisigError] = useState("");
-  const [createKey, setCreateKey] = useState<Keypair | null>(null); // ← Store temporarily
-  const [lastTxSignature, setLastTxSignature] = useState<string>("");
+  const [multisigError, setMultisigError] = useState('');
+  const [createKey, setCreateKey] = useState<Keypair | null>(null);
+  const [lastTxSignature, setLastTxSignature] = useState<string>('');
   const [backupConfirmed, setBackupConfirmed] = useState(false);
 
-  /* ---------- AUTO-LOAD SAVED PDA ---------- */
-  // useEffect(() => {
-  //   if (!publicKey) return;
-
-  //   const savedPda = localStorage.getItem("luxhub_multisig_pda");
-  //   if (savedPda) {
-  //     setMultisigState((prev) => ({
-  //       ...prev,
-  //       pda: savedPda,
-  //       members: [publicKey.toBase58()],
-  //       threshold: 1,
-  //     }));
-  //     setMultisigCreated(true);
-  //     toast.success("Multisig vault loaded from previous session!");
-  //   }
-  // }, [publicKey]);
-
   /* ---------- VALIDATION HELPERS ---------- */
-  const isBlobUrl = (url: string) => url.startsWith("blob:");
+  const isBlobUrl = (url: string) => url.startsWith('blob:');
   const isValidUrl = (url: string) => {
-    try { new URL(url); return true; } catch { return false; }
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
   };
-  const isSocialHandleValid = (h: string) =>
-    /^[a-zA-Z0-9._]{2,30}$/.test(h);
+  const isSocialHandleValid = (h: string) => /^[a-zA-Z0-9._]{2,30}$/.test(h);
 
-  /* ---------- DEBUG LOGGER ---------- */
-  const debugLog = (label: string, data: any) => {
-    const entry = {
-      timestamp: new Date().toISOString(),
-      label,
-      data: typeof data === "object" ? JSON.parse(JSON.stringify(data)) : data,
-    };
-    const logs = JSON.parse(localStorage.getItem("multisigDebug") || "[]");
-    logs.push(entry);
-    localStorage.setItem("multisigDebug", JSON.stringify(logs.slice(-50)));
-    console.log(`[DEBUG] ${label}`, data);
-  };
-
-  /* ---------- VALIDATION LOGIC ---------- */
-  const profileValid = useMemo(() => {
+  /* ---------- STEP VALIDATION ---------- */
+  const isStep1Valid = useMemo(() => {
     return (
       publicKey &&
       formData.name.trim() &&
       formData.username.trim() &&
       formData.bio.trim() &&
-      formData.avatarUrl &&
-      formData.bannerUrl &&
-      !isBlobUrl(formData.avatarUrl) &&
-      !isBlobUrl(formData.bannerUrl) &&
-      Object.values(errors).every((e) => !e)
+      !errors.name &&
+      !errors.username &&
+      !errors.bio &&
+      !errors.instagram &&
+      !errors.x &&
+      !errors.website
     );
   }, [formData, errors, publicKey]);
 
-  const multisigValid = useMemo(() => {
-    const membersOk = multisigState.members.every((m) => {
-      try { new PublicKey(m); return true; } catch { return false; }
-    });
+  const isStep2Valid = useMemo(() => {
     return (
-      multisigState.threshold >= 1 &&
-      multisigState.threshold <= multisigState.members.length &&
-      membersOk &&
-      multisigState.members.length >= 1
+      formData.avatarUrl &&
+      formData.bannerUrl &&
+      !isBlobUrl(formData.avatarUrl) &&
+      !isBlobUrl(formData.bannerUrl)
     );
-  }, [multisigState]);
+  }, [formData.avatarUrl, formData.bannerUrl]);
 
-  /* ---------- STEP VALIDATION (must be BEFORE isCurrentStepValid) ---------- */
+  // Treasury is optional - only validate if enabled
+  const isTreasuryValid = useMemo(() => {
+    if (!enableTreasury) return true;
+    return multisigCreated && backupConfirmed;
+  }, [enableTreasury, multisigCreated, backupConfirmed]);
 
-  const isBusinessInfoStepValid =
-    formData.name.trim() &&
-    formData.username.trim() &&
-    formData.bio.trim() &&
-    Object.values(errors).every((e) => !e);
-
-  const isImagesStepValid =
-    formData.avatarUrl &&
-    formData.bannerUrl &&
-    !isBlobUrl(formData.avatarUrl) &&
-    !isBlobUrl(formData.bannerUrl);
-
-    const isMultisigStepValid = multisigCreated && backupConfirmed;
-
-  /* ---------- NOW we can safely reference them ---------- */
-  const isCurrentStepValid = useMemo(() => {
-    if (currentStep === 0) return isBusinessInfoStepValid;   // Business Info
-    if (currentStep === 1) return isImagesStepValid;         // Images
-    if (currentStep === 2) return isMultisigStepValid;       // Multisig
-    return true;                                            // Submit step
-  }, [
-    currentStep,
-    isBusinessInfoStepValid,
-    isImagesStepValid,
-    isMultisigStepValid,
-  ]);
-    
+  const canSubmit = isStep1Valid && isStep2Valid && isTreasuryValid;
 
   /* ---------- UPDATE ERRORS ---------- */
   useEffect(() => {
     setErrors((prev) => ({
       ...prev,
-      name: !formData.name.trim(),
-      username: !formData.username.trim(),
-      bio: !formData.bio.trim(),
-      instagram:
-        formData.instagram.trim() !== "" &&
-        !isSocialHandleValid(formData.instagram),
-      x: formData.x.trim() !== "" && !isSocialHandleValid(formData.x),
-      website:
-        formData.website.trim() !== "" && !isValidUrl(formData.website),
+      name: formData.name.trim() !== '' && formData.name.trim().length < 2,
+      bio: formData.bio.trim() !== '' && formData.bio.trim().length < 10,
+      instagram: formData.instagram.trim() !== '' && !isSocialHandleValid(formData.instagram),
+      x: formData.x.trim() !== '' && !isSocialHandleValid(formData.x),
+      website: formData.website.trim() !== '' && !isValidUrl(formData.website),
     }));
   }, [formData]);
 
-  /* ---------- SYNC FIRST MEMBER WITH WALLET ---------- */
+  /* ---------- SYNC WALLET ---------- */
   useEffect(() => {
     if (publicKey) {
       setMultisigState((prev) => {
@@ -201,111 +145,109 @@ export default function OnboardingForm() {
     }
   }, [publicKey]);
 
-  // NEW EFFECT 
+  /* ---------- SCROLL TO TOP ON STEP CHANGE ---------- */
   useLayoutEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
-  /* ---------- MULTISIG UI HELPERS ---------- */
-  const addMember = () => {
-    setMultisigState((s) => ({ ...s, members: [...s.members, ""] }));
-  };
+  /* ---------- CHECK USERNAME AVAILABILITY ---------- */
+  const checkUsername = async (username: string) => {
+    if (!username.trim()) {
+      setErrors((prev) => ({ ...prev, username: true }));
+      return;
+    }
 
-  const removeMember = (i: number) => {
-    setMultisigState((s) => ({
-      ...s,
-      members: s.members.filter((_, idx) => idx !== i),
-    }));
-  };
-
-  const updateMember = (i: number, val: string) => {
-    if (i === 0) return;
-    setMultisigState((s) => {
-      const m = [...s.members];
-      m[i] = val;
-      return { ...s, members: m };
-    });
+    setUsernameChecking(true);
+    try {
+      const res = await fetch('/api/vendor/checkUsername', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      const data = await res.json();
+      setErrors((prev) => ({ ...prev, username: !data.available }));
+    } catch {
+      setErrors((prev) => ({ ...prev, username: true }));
+    } finally {
+      setUsernameChecking(false);
+    }
   };
 
   /* ---------- DOWNLOAD BACKUP ---------- */
   const downloadVaultBackup = () => {
     if (!publicKey || !createKey || !multisigState.pda) {
-      toast.error("Missing required data");
+      toast.error('Missing required data');
       return;
     }
 
-    const isDevnet = connection.rpcEndpoint.includes("devnet");
+    const isDevnet = connection.rpcEndpoint.includes('devnet');
     const programConfigPda = new PublicKey(
       isDevnet
-        ? "HM5y4mz3Bt9JY9mr1hkyhnvqxSH4H2u2451j7Hc2dtvK"
-        : "BSTq9w3kZwNwpBXJEvTZz2G9ZTNyKBvoSeXMvwb4cNZr"
+        ? 'HM5y4mz3Bt9JY9mr1hkyhnvqxSH4H2u2451j7Hc2dtvK'
+        : 'BSTq9w3kZwNwpBXJEvTZz2G9ZTNyKBvoSeXMvwb4cNZr'
     );
 
     const txt = [
-      "=== LUXHUB VENDOR MULTISIG VAULT BACKUP ===",
-      "",
-      `Network: ${isDevnet ? "Devnet" : "Mainnet Beta"}`,
+      '=== LUXHUB VENDOR TREASURY BACKUP ===',
+      '',
+      `Network: ${isDevnet ? 'Devnet' : 'Mainnet Beta'}`,
       `Date: ${new Date().toISOString()}`,
-      `Your Wallet: ${publicKey.toBase58()}`,
-      "",
-      "VAULT PDA (Multisig Address):",
+      `Vendor: ${formData.name}`,
+      `Wallet: ${publicKey.toBase58()}`,
+      '',
+      'TREASURY VAULT ADDRESS:',
       multisigState.pda,
-      "",
-      "RECOVERY KEY (Create Key - SAVE THIS!):",
+      '',
+      'RECOVERY KEY (KEEP THIS SAFE!):',
       bs58.encode(createKey.secretKey),
-      "",
-      "CREATION TRANSACTION:",
+      '',
+      'CREATION TRANSACTION:',
       lastTxSignature,
-      "",
-      "TREASURY CONFIG PDA:",
+      '',
+      'TREASURY CONFIG PDA:',
       programConfigPda.toBase58(),
-      "",
-      "=== SECURITY WARNING ===",
-      "• This recovery key controls your vault.",
-      "• LuxHub does NOT store it.",
-      "• Store offline. Never share.",
-      "• Import into Squads.so to recover.",
-      "",
-      "Backup generated by LuxHub onboarding.",
-    ].join("\n");
+      '',
+      '=== IMPORTANT ===',
+      '- This recovery key controls your treasury vault',
+      '- LuxHub does NOT store this key',
+      '- Store this file offline in a secure location',
+      '- Import into app.squads.so to manage your vault',
+      '',
+      'Generated by LuxHub Vendor Onboarding',
+    ].join('\n');
 
-    const blob = new Blob([txt], { type: "text/plain" });
+    const blob = new Blob([txt], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `luxhub-vault-backup-${publicKey.toBase58().slice(0, 8)}.txt`;
+    a.download = `luxhub-treasury-${formData.username || publicKey.toBase58().slice(0, 8)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
 
-    setShowRecoveryKey(false);
     setBackupConfirmed(true);
-    toast.success("Backup saved as .txt – key hidden!");
+    toast.success('Backup downloaded successfully!');
   };
 
-  /* ---------- CREATE MULTISIG ON-CHAIN ---------- */
-  const createMultisig = async () => {
-    if (!publicKey || !signTransaction) return toast.error("Wallet not connected");
-    if (!multisigValid) return toast.error("Fix multisig fields first");
+  /* ---------- CREATE TREASURY (MULTISIG) ---------- */
+  const createTreasury = async () => {
+    if (!publicKey || !signTransaction) {
+      toast.error('Please connect your wallet');
+      return;
+    }
 
     setMultisigLoading(true);
-    setMultisigError("");
+    setMultisigError('');
 
     try {
-      const isDevnet = connection.rpcEndpoint.includes("devnet");
+      const isDevnet = connection.rpcEndpoint.includes('devnet');
       const programConfigPda = new PublicKey(
         isDevnet
-          ? "HM5y4mz3Bt9JY9mr1hkyhnvqxSH4H2u2451j7Hc2dtvK"
-          : "BSTq9w3kZwNwpBXJEvTZz2G9ZTNyKBvoSeXMvwb4cNZr"
+          ? 'HM5y4mz3Bt9JY9mr1hkyhnvqxSH4H2u2451j7Hc2dtvK'
+          : 'BSTq9w3kZwNwpBXJEvTZz2G9ZTNyKBvoSeXMvwb4cNZr'
       );
 
       const newCreateKey = Keypair.generate();
       const [multisigPda] = multisig.getMultisigPda({ createKey: newCreateKey.publicKey });
-
-      debugLog("Create Key", newCreateKey.publicKey.toBase58());
-      debugLog("Multisig PDA", multisigPda.toBase58());
 
       const members = multisigState.members.map((addr, idx) => ({
         key: new PublicKey(addr),
@@ -337,24 +279,20 @@ export default function OnboardingForm() {
       const sig = await connection.sendTransaction(signed, { skipPreflight: false });
 
       setLastTxSignature(sig);
-      debugLog("Transaction Sent", sig);
 
       await connection.confirmTransaction(
         { signature: sig, blockhash, lastValidBlockHeight },
-        "processed"
+        'processed'
       );
-
-      debugLog("Multisig Created", { pda: multisigPda.toBase58(), signature: sig });
 
       setCreateKey(newCreateKey);
       setMultisigState((s) => ({ ...s, pda: multisigPda.toBase58() }));
       setMultisigCreated(true);
-      // localStorage.setItem("luxhub_multisig_pda", multisigPda.toBase58());
-      toast.success(`Multisig created! PDA: ${multisigPda.toBase58().slice(0, 8)}…`);
+      toast.success('Treasury vault created!');
     } catch (e: any) {
-      debugLog("ERROR", { message: e.message, logs: e.logs?.join("\n") });
-      setMultisigError(e?.message ?? "Unknown error");
-      toast.error("Multisig creation failed");
+      console.error('Treasury creation error:', e);
+      setMultisigError(e?.message ?? 'Failed to create treasury');
+      toast.error('Treasury creation failed');
     } finally {
       setMultisigLoading(false);
     }
@@ -362,8 +300,8 @@ export default function OnboardingForm() {
 
   /* ---------- FINAL SUBMIT ---------- */
   const handleSubmit = async () => {
-    if (!profileValid) {
-      toast.error("Please fill all required fields and upload images.");
+    if (!canSubmit) {
+      toast.error('Please complete all required fields');
       return;
     }
 
@@ -376,576 +314,525 @@ export default function OnboardingForm() {
         x: formData.x,
         website: formData.website,
       },
-      multisigPda: multisigState.pda || null,
+      multisigPda: enableTreasury ? multisigState.pda : null,
     };
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/vendor/onboard-api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/vendor/onboard-api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       const text = await res.text();
-      console.log("API RESPONSE:", res.status, text);
+      console.log('API RESPONSE:', res.status, text);
 
       if (res.ok) {
-        localStorage.removeItem("multisigDebug");
-        toast.success("Vendor profile submitted!");
+        toast.success('Application submitted successfully!');
         router.push(`/vendor/${publicKey?.toBase58()}`);
       } else {
         const data = text ? JSON.parse(text) : {};
-        toast.error(data?.error ?? "Server error");
+        toast.error(data?.error ?? 'Submission failed');
       }
     } catch (e) {
       console.error(e);
-      toast.error("Submission failed – check your connection.");
+      toast.error('Submission failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const progressPercent = useMemo(() => {
-    if (currentStep === 0) return isBusinessInfoStepValid ? 25 : 0;
-    if (currentStep === 1) return isImagesStepValid ? 50 : 25;
-    if (currentStep === 2) return isMultisigStepValid ? 75 : 50;
-    return 100;
-  }, [
-    currentStep,
-    isBusinessInfoStepValid,
-    isImagesStepValid,
-    isMultisigStepValid,
-  ]);
-
-  // Navigation
+  /* ---------- NAVIGATION ---------- */
   const handleNext = () => {
-    if (currentStep === 0 && !isBusinessInfoStepValid) {
-      toast.error("Please fill all business info.");
+    if (currentStep === 0 && !isStep1Valid) {
+      toast.error('Please fill in all required fields');
       return;
     }
-    if (currentStep === 1 && !isImagesStepValid) {
-      toast.error("Please upload both images.");
+    if (currentStep === 1 && !isStep2Valid) {
+      toast.error('Please upload both profile images');
       return;
     }
-    if (currentStep === 2 && !isMultisigStepValid) {
-      toast.error("Please create your multisig and confirm backup.");
-      return;
-    }
-
-    setCurrentStep(currentStep + 1);
+    setCurrentStep((prev) => Math.min(prev + 1, 2));
   };
 
   const handleBack = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
   /* ---------- RENDER ---------- */
   return (
-    <div className={styles.dashboardContainer}>
-      {/* <h2>Vendor Account</h2> */}
-
-      {/* Progress Bar */}
-      {/* <div className={styles.progressBarContainer}>
-        <div className={styles.progressBar}>
-          <div
-            className={styles.progress}
-            style={{ width: `${progressPercent}%` }}
-          />
+    <div className={styles.onboardContainer}>
+      <div className={styles.wizardWrapper}>
+        {/* Page Header */}
+        <div className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>Become a LuxHub Vendor</h1>
+          <p className={styles.pageSubtitle}>
+            Join our marketplace and reach luxury collectors worldwide
+          </p>
         </div>
-      </div> */}
 
-      <div className={styles.tabContentColumn}>
-        <div className={styles.tabContentMain}>
-          <div className={styles.tabContentRow}>
-            <div className={styles.tabContentLeft}>
+        {/* Progress Stepper */}
+        <div className={styles.progressStepper}>
+          {[
+            { label: 'Account', icon: <FaUser /> },
+            { label: 'Images', icon: <FaImage /> },
+            { label: 'Review', icon: <FaCheckCircle /> },
+          ].map((step, idx) => (
+            <div key={idx} className={styles.stepItem}>
+              {idx > 0 && (
+                <div
+                  className={`${styles.stepConnector} ${
+                    currentStep > idx - 1 ? styles.completed : ''
+                  }`}
+                />
+              )}
+              <div
+                className={`${styles.stepCircle} ${
+                  currentStep === idx ? 'active' : ''
+                } ${currentStep > idx ? styles.completed : ''} ${
+                  currentStep === idx ? styles.active : ''
+                }`}
+              >
+                {currentStep > idx ? <FaCheck /> : idx + 1}
+              </div>
+              <span
+                className={`${styles.stepLabel} ${
+                  currentStep === idx ? styles.active : ''
+                } ${currentStep > idx ? styles.completed : ''}`}
+              >
+                {step.label}
+              </span>
+            </div>
+          ))}
+        </div>
 
-              {/* Step 1: Business Info */}
-              {currentStep === 0 && (
-                <>
-                  <div className={styles.sectionHeading}><h2>Account Info</h2></div>
+        {/* Wizard Card */}
+        <div className={styles.wizardCard}>
+          {/* STEP 1: Account Info */}
+          {currentStep === 0 && (
+            <>
+              <div className={styles.sectionHeading}>
+                <FaUser className={styles.sectionIcon} />
+                <h2>Business Information</h2>
+              </div>
+              <p className={styles.sectionSubtext}>
+                Tell us about your business. This information will be displayed on your vendor
+                profile.
+              </p>
 
-                  <p>NAME</p>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Business Name *</label>
+                <input
+                  type="text"
+                  className={`${styles.formInput} ${errors.name ? styles.inputError : ''}`}
+                  placeholder="Your brand or business name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+                {errors.name && (
+                  <span className={styles.errorMessage}>Name must be at least 2 characters</span>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Username *</label>
+                <input
+                  type="text"
+                  className={`${styles.formInput} ${errors.username ? styles.inputError : ''}`}
+                  placeholder="@yourusername"
+                  value={formData.username}
+                  onChange={(e) => {
+                    const value = e.target.value.trim().toLowerCase();
+                    setFormData({ ...formData, username: value });
+                  }}
+                  onBlur={(e) => checkUsername(e.target.value.trim())}
+                />
+                {usernameChecking && (
+                  <span className={styles.errorMessage} style={{ color: 'var(--text-muted)' }}>
+                    Checking availability...
+                  </span>
+                )}
+                {errors.username && !usernameChecking && formData.username.trim() && (
+                  <span className={styles.errorMessage}>This username is not available</span>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Bio *</label>
+                <textarea
+                  className={`${styles.formTextarea} ${errors.bio ? styles.inputError : ''}`}
+                  placeholder="Tell collectors about your brand, what you sell, and your expertise..."
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  rows={4}
+                />
+                {errors.bio && (
+                  <span className={styles.errorMessage}>Bio must be at least 10 characters</span>
+                )}
+              </div>
+
+              <div className={styles.sectionHeading}>
+                <HiSparkles className={styles.sectionIcon} />
+                <h2>Social Links</h2>
+              </div>
+              <p className={styles.sectionSubtext}>
+                Optional: Add your social media profiles for verification and credibility.
+              </p>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Instagram</label>
                   <input
-                    id="name"
-                    required
-                    className={errors.name ? styles.inputError : ""}
-                    placeholder="Business Name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-
-                  <p>USERNAME</p>
-                  <input
-                    id="username"
-                    required
-                    className={errors.username ? styles.inputError : ""}
-                    placeholder="@username"
-                    value={formData.username}
-                    onChange={async (e) => {
-                      const value = e.target.value.trim();
-                      setFormData((prev) => ({ ...prev, username: value }));
-                      if (!value) return setErrors((prev) => ({ ...prev, username: true }));
-                      setErrors((prev) => ({ ...prev, username: false }));
-
-                      try {
-                        const res = await fetch("/api/vendor/checkUsername", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ username: value }),
-                        });
-                        const data = await res.json();
-                        setErrors((prev) => ({ ...prev, username: !data.available }));
-                      } catch (err) {
-                        setErrors((prev) => ({ ...prev, username: true }));
-                      }
-                    }}
-                  />
-                  {errors.username && formData.username.trim() && (
-                    <p className={styles.inputErrorMsg}>This username is already taken.</p>
-                  )}
-
-                  <p>BIO</p>
-                  <textarea
-                    id="bio"
-                    required
-                    className={errors.bio ? styles.inputError : ""}
-                    placeholder="Your brand story"
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  />
-
-                  <p>INSTAGRAM</p>
-                  <input
-                    id="instagram"
-                    className={errors.instagram ? styles.inputError : ""}
-                    placeholder="Instagram handle"
+                    type="text"
+                    className={`${styles.formInput} ${errors.instagram ? styles.inputError : ''}`}
+                    placeholder="username (without @)"
                     value={formData.instagram}
                     onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
                   />
+                </div>
 
-                  <p>X</p>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>X (Twitter)</label>
                   <input
-                    id="x"
-                    className={errors.x ? styles.inputError : ""}
-                    placeholder="x handle"
+                    type="text"
+                    className={`${styles.formInput} ${errors.x ? styles.inputError : ''}`}
+                    placeholder="username (without @)"
                     value={formData.x}
                     onChange={(e) => setFormData({ ...formData, x: e.target.value })}
                   />
+                </div>
+              </div>
 
-                  <p>WEBSITE (optional)</p>
-                  <input
-                    id="website"
-                    className={errors.website ? styles.inputError : ""}
-                    placeholder="Website URL"
-                    value={formData.website}
-                    onChange={(e) => {
-                      let value = e.target.value.trim();
-                      if (value && !/^https?:\/\//i.test(value)) value = "https://" + value;
-                      setFormData({ ...formData, website: value });
-                    }}
-                  />
-
-                  {!isBusinessInfoStepValid && (
-                    <p style={{ color: "#ff6b6b", marginTop: "0.5rem" }}>
-                      Fill all required business info fields.
-                    </p>
-                  )}
-                </>
-              )}
-
-
-              {/* Step 2: Images */}
-              {currentStep === 1 && (
-                <>
-                  {/* <h2>Upload Profile Images</h2> */}
-                  {/* <AvatarBannerUploader
-                    onUploadComplete={(avatar, banner) => {
-                      setFormData((p) => ({
-                        ...p,
-                        avatarUrl: avatar || p.avatarUrl,
-                        bannerUrl: banner || p.bannerUrl,
-                      }));
-                    }}
-                    onPreviewUpdate={() => {}}
-                  /> */}
-
-                  <div className={styles.sectionHeading}><h2>Preview</h2></div>
-
-                  {formData.bannerUrl ? (
-                    <img src={formData.bannerUrl} className={` ${styles.skeletonImgBanner}`} alt="Banner" />
-                  ) : (
-                    <div className={`${styles.skeleton} ${styles.skeletonImgBanner}`} />
-                  )}
-
-                  {formData.avatarUrl ? (
-                    <img src={formData.avatarUrl} className={`${styles.skeletonImgAvatar}`} alt="Avatar" />
-                  ) : (
-                    <div className={`${styles.skeleton} ${styles.skeletonImgAvatar}`} />
-                  )}
-                    {/* {formData.name ? <h1 className={styles.profileHeader}>{formData.name}</h1> : <div className={`${styles.skeleton} ${styles.skeletonText}`} />}
-                  <div>
-                    {formData.username ? <p className={styles.profileContent}>@{formData.username}</p> : <div className={`${styles.skeleton} ${styles.skeletonText}`} />}
-                    <p>
-                      {publicKey
-                        ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
-                        : "No wallet"}
-                    </p>
-                    {formData.bio ? <p className={styles.bioContent}>{formData.bio}</p> : <div className={`${styles.skeleton} ${styles.skeletonText}`} />}
-                  </div> */}
-
-                  <div className={styles.sectionHeading}><h2>Upload Profile Images</h2></div>
-                  
-                  <AvatarBannerUploader
-                    onUploadComplete={(avatar, banner) => {
-                      setFormData((p) => ({
-                        ...p,
-                        avatarUrl: avatar || p.avatarUrl,
-                        bannerUrl: banner || p.bannerUrl,
-                      }));
-                    }}
-                    onPreviewUpdate={() => {}}
-                  />
-
-                  {!isImagesStepValid && (
-                    <p style={{ color: "#ff6b6b", margin:"0px"}}>
-                      Upload both avatar and banner images.
-                    </p>
-                  )}
-                </>
-              )}
-
-              {/* Step 2: Multisig */}
-              {currentStep === 2 && (
-                <>
-                  <div className={styles.sectionHeading}><h2>Create Vendor Treasurary</h2></div>
-                  {/* <p>
-                    Your vault starts as a 1/1 multisig meaning you control it fully. <br />
-                    You can add team members later from your dashboard.
-                  </p> */}
-                  {/* <p>Approval threshold</p> */}
-                  <input type="hidden" value={1} />
-                  {/* <input
-                    type="number"
-                    min={1}
-                    max={multisigState.members.length}
-                    value={multisigState.threshold}
-                    onChange={(e) =>
-                      setMultisigState((s) => ({
-                        ...s,
-                        threshold: Math.min(
-                          s.members.length,
-                          Math.max(1, Number(e.target.value))
-                        ),
-                      }))
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Website</label>
+                <input
+                  type="text"
+                  className={`${styles.formInput} ${errors.website ? styles.inputError : ''}`}
+                  placeholder="https://yourwebsite.com"
+                  value={formData.website}
+                  onChange={(e) => {
+                    let value = e.target.value.trim();
+                    if (value && !/^https?:\/\//i.test(value)) {
+                      value = 'https://' + value;
                     }
-                    style={{ width: "80px" }}
-                  /> */}
+                    setFormData({ ...formData, website: value });
+                  }}
+                />
+              </div>
+            </>
+          )}
 
-                  {/* SUCCESS PANEL */}
-                  {multisigCreated && (
-                    <div className={styles.tabContent}>
-                      <h2>Secure Treasurary</h2>
+          {/* STEP 2: Images */}
+          {currentStep === 1 && (
+            <>
+              <div className={styles.sectionHeading}>
+                <FaImage className={styles.sectionIcon} />
+                <h2>Profile Images</h2>
+              </div>
+              <p className={styles.sectionSubtext}>
+                Upload a profile picture and banner image. These will be displayed on your vendor
+                page.
+              </p>
 
-                      {/* 1. Vault Address (PDA) */}
-                      <div style={{ marginBottom: "1rem" }}>
-                        <div>
-                          <p style={{ color: "#ffffffff" }}>Treasurary Vault Address: 
-                            <code
-                              style={{
-                                fontSize: "12.5px",
-                                background: "#ffffff14",
-                                padding: "0.15rem 0.35rem",
-                                borderRadius: "4px",
-                                color: "#ffffffff",
-                                width: "100%",
-                              }}
-                            >
-                              <FaCopy/>{multisigState.pda.slice(0, 10)}...{multisigState.pda.slice(-10)}
-                            </code>
-                          </p>
-                          
-                        </div>
-                        
-                        <div className={styles.rowItems}>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(multisigState.pda);
-                              toast.success("Vault address copied!");
-                            }}
-                            
-                          >
-                            Copy Address
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              downloadVaultBackup();
-                              setShowRecoveryKey(false); // Hide key after download
-                            }}
-                          >
-                            Download Backup File
-                          </button>
-                        </div>
-
-                        {/* <p className={styles.recoveryHint}>
-                          Includes vault address, recovery key, and transaction proof.
-                        </p> */}
-
-                      </div>
-                      
-                      {/* 3. Links */}
-                      {/* <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", fontSize: "13.5px", marginBottom: "1.5rem" }}>
-                        <a
-                          href={`https://app.squads.so/squads`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: "#ffffffff", textDecoration: "underline" }}
-                        >
-                          Open in Squads
-                        </a>
-                        <span style={{ color: "#ffffffff" }}>|</span>
-                        <a
-                          href={`https://explorer.solana.com/address/${multisigState.pda}?cluster=devnet`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: "#ffffffff", textDecoration: "underline" }}
-                        >
-                          View on Explorer
-                        </a>
-                        <span style={{ color: "#ffffffff" }}>|</span>
-                        <a
-                          href={`https://explorer.solana.com/tx/${lastTxSignature}?cluster=devnet`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: "#ffffffff", textDecoration: "underline" }}
-                        >
-                          Creation Transaction
-                        </a>
-                      </div> */}
-
-                      <div className={styles.rowItems}>
-                        {/* 4. Recovery Key (Shown Once) */}
-                        {showRecoveryKey && createKey && (
-                          <div className={styles.recoveryKeyContainer}>
-                            <h2>Recovery Key</h2>
-                            
-                            <div>
-                              <code className={styles.recoveryKey}>
-                                Key is hidden for privacy.
-                              </code>
-                            </div>
-                            <div>
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(bs58.encode(createKey.secretKey));
-                                  toast.success("Recovery key copied!");
-                                }}
-                                className={styles.recoveryButton}
-                              >
-                                Copy Key
-                              </button>
-                              {/* <button
-                                onClick={() => setShowRecoveryKey(false)}
-                                className={styles.recoveryButton}
-                              >
-                                Hide Key
-                              </button> */}
-                            </div>
-                            <p className={styles.recoveryWarning}>
-                              This key is only shown once and will disappear after you download the backup.
-                            </p>
-                           
-                          </div>
-                        )}
-
-                        {/* 5. Critical Warning */}
-                        <div className={styles.recoveryKeyContainer}>
-                          
-                          <h2>
-                            Keep Your Recovery Key Secured
-                          </h2>
-                          <p className={styles.recoveryInfo}>
-                            <IoKeyOutline className={styles.recoverIcons}/>Your Recovery Key Is Like A Master Key To Your Vault.
-                          </p>
-                          <p className={styles.recoveryInfo}>
-                            <LuShieldAlert className={styles.recoverIcons}/>Anyone with this key can access and control the funds in your multisig vault.
-                          </p>
-                          <p className={styles.recoveryInfo}>
-                            <BiHide className={styles.recoverIcons}/> NEVER share it with anyone. No person, website or app.
-                          </p>
-                        </div>
-                      </div>
-
-                      
-
-                      {/* 6. Confirmation Checkbox */}
-                      <div style={{ marginTop: "1.5rem", display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
-                        <input
-                          type="checkbox"
-                          id="backup-confirmed"
-                          checked={backupConfirmed}
-                          onChange={(e) => setBackupConfirmed(e.target.checked)}
-                          style={{ marginTop: "0.15rem" }}
-                        />
-                        <label
-                          htmlFor="backup-confirmed"
-                          className={styles.recoveryHint}
-                        >
-                          I have downloaded and securely stored my backup file
-                        </label>
-                      </div>
-                    </div>
-                    
-                    
-                  )}
-                  <p>Vault Member</p>
-                  {multisigState.members.map((m, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: "0.5rem",
-                      }}
-                    >
-                      <input
-                        placeholder={
-                          i === 0
-                            ? "Your connected wallet (auto-filled)"
-                            : "SOL address"
-                        }
-                        value={i === 0 ? publicKey?.toBase58() ?? "" : m}
-                        disabled={i === 0}
-                        onChange={(e) => updateMember(i, e.target.value)}
-                        style={{ flex: 1, marginRight: "0.5rem" }}
-                      />
-                      {/* {i > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => removeMember(i)}
-                          style={{ width: "80px" }}
-                        >
-                          Remove
-                        </button>
-                      )} */}
-                    </div>
-                  ))}
-
-                  {/* <button
-                    type="button"
-                    onClick={addMember}
-                    style={{ marginTop: "0.5rem" }}
-                  >
-                    + Add member
-                  </button> */}
-
-                  {multisigError && (
-                    <p className={styles.inputErrorMsg}>{multisigError}</p>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={createMultisig}
-                    disabled={!multisigValid || multisigLoading || multisigCreated}
-                    className={`
-                      ${styles.buttonNoBorderWhenDisabled}
-                      ${!multisigValid || multisigLoading ? styles.buttonDisabled : ""}
-                    `.trim()}
-                    style={{ marginTop: "1rem" }}
-                  >
-                    {multisigLoading
-                      ? "Creating…"
-                      : multisigCreated
-                      ? "Treasury ready"
-                      : "Create Treasury"}
-                  </button>
-
-                  {!multisigValid && !multisigLoading && !multisigCreated && (
-                    <p style={{ color: "#ff6b6b", fontSize: "14px", marginTop: "0.5rem" }}>
-                      Fix wallet addresses or threshold to enable.
-                    </p>
-                  )}
-                </>
-              )}  
-
-              {/* Step 3: Submit */}
-              {currentStep === 3 && (
-                <>
-                  <h2>Review and Submit</h2>
-                  {formData.bannerUrl ? (
-                    <img src={formData.bannerUrl} className={styles.bannerPreview} alt="Banner" />
-                  ) : (
-                    <div className={`${styles.skeleton} ${styles.skeletonImgBanner}`} />
-                  )}
-
-                  {formData.avatarUrl ? (
-                    <img src={formData.avatarUrl} className={styles.avatarPreview} alt="Avatar" />
-                  ) : (
-                    <div className={`${styles.skeleton} ${styles.skeletonImgAvatar}`} />
-                  )}
-
-                  {formData.name ? <h1 className={styles.profileHeader}>{formData.name}</h1> : <div className={`${styles.skeleton} ${styles.skeletonText}`} />}
-
-                  <div>
-                    {formData.username ? <p className={styles.profileContent}>@{formData.username}</p> : <div className={`${styles.skeleton} ${styles.skeletonText}`} />}
-                    <p>
-                      {publicKey
-                        ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
-                        : "No wallet"}
-                    </p>
-                    {formData.bio ? <p className={styles.bioContent}>{formData.bio}</p> : <div className={`${styles.skeleton} ${styles.skeletonText}`} />}
+              {/* Preview Section */}
+              <div className={styles.previewSection}>
+                {formData.bannerUrl ? (
+                  <img src={formData.bannerUrl} className={styles.bannerPreview} alt="Banner" />
+                ) : (
+                  <div className={`${styles.bannerPlaceholder} ${styles.imagePlaceholder}`}>
+                    Banner Preview
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className={submitting ? styles.buttonDisabled : ""}
-                    style={{ marginTop: "2rem" }}
-                  >
-                    {submitting ? "Submitting…" : "Submit Profile"}
-                  </button>
-                </>
-              )}
-
-              {/* Navigation */}
-              <div
-                style={{
-                  marginTop: "2rem",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                {currentStep > 0 && (
-                  <button type="button" onClick={handleBack}>
-                    Back
-                  </button>
                 )}
-                {currentStep < 3 && (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    disabled={!isCurrentStepValid}
-                    className={!isCurrentStepValid ? styles.buttonDisabled : ""}
-                  >
-                    Next
-                  </button>
+                {formData.avatarUrl ? (
+                  <img src={formData.avatarUrl} className={styles.avatarPreview} alt="Avatar" />
+                ) : (
+                  <div className={`${styles.avatarPlaceholder} ${styles.imagePlaceholder}`}>
+                    Avatar
+                  </div>
                 )}
               </div>
-            </div>
 
-            {/* Instructions */}
-            {/* <div className={styles.tabContentRight}>
-              <h3>Onboarding Steps</h3>
-              <p>1. Create Multisig Vault</p>
-              <SlArrowDown />
-              <p>2. Fill Business Info</p>
-              <SlArrowDown />
-              <p>3. Upload Images & Preview</p>
-              <SlArrowDown />
-              <p>4. Submit for Review</p>
-            </div> */}
+              <div className={styles.sectionHeading}>
+                <HiSparkles className={styles.sectionIcon} />
+                <h2>Upload Images</h2>
+              </div>
+
+              <AvatarBannerUploader
+                onUploadComplete={(avatar, banner) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    avatarUrl: avatar || prev.avatarUrl,
+                    bannerUrl: banner || prev.bannerUrl,
+                  }));
+                }}
+                onPreviewUpdate={() => {}}
+              />
+
+              {!isStep2Valid && (
+                <div className={styles.infoCallout}>
+                  <FaInfoCircle />
+                  <span className={styles.infoText}>
+                    Please upload both an avatar and banner image to continue.
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* STEP 3: Review & Optional Treasury */}
+          {currentStep === 2 && (
+            <>
+              <div className={styles.sectionHeading}>
+                <FaCheckCircle className={styles.sectionIcon} />
+                <h2>Review Your Profile</h2>
+              </div>
+
+              {/* Profile Preview Card */}
+              <div className={styles.profilePreview}>
+                {formData.bannerUrl && (
+                  <img src={formData.bannerUrl} className={styles.profileBanner} alt="Banner" />
+                )}
+                <div className={styles.profileInfo}>
+                  {formData.avatarUrl && (
+                    <img src={formData.avatarUrl} className={styles.profileAvatar} alt="Avatar" />
+                  )}
+                  <h3 className={styles.profileName}>{formData.name || 'Your Business Name'}</h3>
+                  <p className={styles.profileUsername}>@{formData.username || 'username'}</p>
+                  <p className={styles.profileBio}>
+                    {formData.bio || 'Your bio will appear here...'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Review Details */}
+              <div className={styles.reviewGrid}>
+                <div className={styles.reviewItem}>
+                  <span className={styles.reviewLabel}>Wallet</span>
+                  <span className={`${styles.reviewValue} ${styles.truncate}`}>
+                    {publicKey
+                      ? `${publicKey.toBase58().slice(0, 6)}...${publicKey.toBase58().slice(-4)}`
+                      : 'Not connected'}
+                  </span>
+                </div>
+                {formData.instagram && (
+                  <div className={styles.reviewItem}>
+                    <span className={styles.reviewLabel}>Instagram</span>
+                    <span className={styles.reviewValue}>@{formData.instagram}</span>
+                  </div>
+                )}
+                {formData.x && (
+                  <div className={styles.reviewItem}>
+                    <span className={styles.reviewLabel}>X (Twitter)</span>
+                    <span className={styles.reviewValue}>@{formData.x}</span>
+                  </div>
+                )}
+                {formData.website && (
+                  <div className={styles.reviewItem}>
+                    <span className={styles.reviewLabel}>Website</span>
+                    <span className={`${styles.reviewValue} ${styles.truncate}`}>
+                      {formData.website}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Optional Treasury Section */}
+              <div className={styles.sectionHeading}>
+                <FaShieldAlt className={styles.sectionIcon} />
+                <h2>Vendor Treasury</h2>
+              </div>
+
+              {!multisigCreated ? (
+                <div className={styles.treasuryOption}>
+                  <div className={styles.treasuryHeader}>
+                    <div className={styles.treasuryTitle}>
+                      <FaShieldAlt />
+                      Squads Treasury Vault
+                    </div>
+                    <span className={styles.treasuryBadge}>Optional</span>
+                  </div>
+                  <p className={styles.treasuryDescription}>
+                    Create a dedicated treasury vault to manage your LuxHub earnings. Great for
+                    tracking sales, managing taxes, and separating business funds.
+                  </p>
+
+                  <div className={styles.treasuryBenefits}>
+                    <div className={styles.benefitItem}>
+                      <FaCheck /> Separate business from personal funds
+                    </div>
+                    <div className={styles.benefitItem}>
+                      <FaCheck /> Easier tax tracking & reporting
+                    </div>
+                    <div className={styles.benefitItem}>
+                      <FaCheck /> Add team members later (accountant, partner)
+                    </div>
+                    <div className={styles.benefitItem}>
+                      <FaCheck /> Institutional-grade security via Squads Protocol
+                    </div>
+                  </div>
+
+                  <div
+                    className={styles.treasuryToggle}
+                    onClick={() => setEnableTreasury(!enableTreasury)}
+                  >
+                    <div
+                      className={`${styles.toggleSwitch} ${enableTreasury ? styles.active : ''}`}
+                    />
+                    <span className={styles.toggleLabel}>
+                      {enableTreasury ? 'Treasury enabled' : 'Enable treasury vault'}
+                    </span>
+                  </div>
+
+                  {enableTreasury && (
+                    <div className={styles.mt20}>
+                      <div className={styles.infoCallout}>
+                        <FaInfoCircle />
+                        <span className={styles.infoText}>
+                          Your wallet ({publicKey?.toBase58().slice(0, 8)}...) will be the sole
+                          owner of this vault. You can add more members later from your dashboard.
+                        </span>
+                      </div>
+
+                      {multisigError && (
+                        <div className={styles.warningBox}>
+                          <FaExclamationTriangle />
+                          <span className={styles.warningText}>{multisigError}</span>
+                        </div>
+                      )}
+
+                      <button
+                        className={styles.secondaryButton}
+                        onClick={createTreasury}
+                        disabled={multisigLoading}
+                      >
+                        {multisigLoading ? (
+                          <>
+                            <BiLoaderAlt className={styles.loadingSpinner} />
+                            Creating Vault...
+                          </>
+                        ) : (
+                          <>
+                            <FaShieldAlt />
+                            Create Treasury Vault
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className={styles.treasurySuccess}>
+                  <div className={styles.successHeader}>
+                    <FaCheckCircle />
+                    Treasury Vault Created
+                  </div>
+
+                  <div className={styles.vaultAddress}>
+                    <code>
+                      {multisigState.pda.slice(0, 12)}...{multisigState.pda.slice(-8)}
+                    </code>
+                    <button
+                      className={styles.copyButton}
+                      onClick={() => {
+                        navigator.clipboard.writeText(multisigState.pda);
+                        toast.success('Address copied!');
+                      }}
+                    >
+                      <FaCopy />
+                    </button>
+                  </div>
+
+                  <div className={styles.warningBox}>
+                    <FaExclamationTriangle />
+                    <span className={styles.warningText}>
+                      <strong>Important:</strong> Download your backup file now. It contains your
+                      recovery key. LuxHub cannot recover this for you.
+                    </span>
+                  </div>
+
+                  <div className={styles.actionButtons}>
+                    <button className={styles.secondaryButton} onClick={downloadVaultBackup}>
+                      <FaDownload />
+                      Download Backup
+                    </button>
+                    <a
+                      href={`https://explorer.solana.com/address/${multisigState.pda}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.secondaryButton}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      View on Explorer
+                    </a>
+                  </div>
+
+                  <div className={styles.checkboxGroup}>
+                    <input
+                      type="checkbox"
+                      id="backup-confirmed"
+                      checked={backupConfirmed}
+                      onChange={(e) => setBackupConfirmed(e.target.checked)}
+                    />
+                    <label htmlFor="backup-confirmed" className={styles.checkboxLabel}>
+                      I have downloaded and securely stored my backup file
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Skip Treasury Notice */}
+              {!enableTreasury && !multisigCreated && (
+                <div className={styles.infoCallout}>
+                  <FaInfoCircle />
+                  <span className={styles.infoText}>
+                    You can skip the treasury for now. Sales proceeds will be sent directly to your
+                    connected wallet. You can set up a treasury later from your vendor dashboard.
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className={styles.navButtons}>
+            {currentStep > 0 ? (
+              <button className={styles.backButton} onClick={handleBack}>
+                <FaArrowLeft />
+                Back
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {currentStep < 2 ? (
+              <button
+                className={styles.nextButton}
+                onClick={handleNext}
+                disabled={currentStep === 0 ? !isStep1Valid : !isStep2Valid}
+              >
+                Continue
+                <FaArrowRight />
+              </button>
+            ) : (
+              <button
+                className={styles.submitButton}
+                onClick={handleSubmit}
+                disabled={submitting || !canSubmit}
+              >
+                {submitting ? (
+                  <>
+                    <BiLoaderAlt className={styles.loadingSpinner} />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <FaCheckCircle />
+                    Submit Profile
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

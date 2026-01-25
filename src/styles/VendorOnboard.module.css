@@ -1,0 +1,899 @@
+/* ========================================
+   LUXHUB VENDOR ONBOARDING
+   Premium Glass-Morphism Design System
+   Clean, Easy-to-Follow Wizard
+   ======================================== */
+
+/* ========== CSS VARIABLES ========== */
+.onboardContainer {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.4);
+  --accent-glow: rgba(200, 161, 255, 0.12);
+  --accent-bright: #d8bcff;
+  --success: #04ffc4;
+  --success-dim: rgba(4, 255, 196, 0.2);
+  --warning: #ffc107;
+  --warning-dim: rgba(255, 193, 7, 0.2);
+  --error: #ff4d4f;
+  --error-dim: rgba(255, 77, 79, 0.2);
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --border: #222222;
+  --border-accent: rgba(200, 161, 255, 0.3);
+  --glass: rgba(13, 13, 13, 0.85);
+  --glass-light: rgba(30, 30, 35, 0.6);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+
+  min-height: 100vh;
+  padding: 100px 16px 40px;
+  background: linear-gradient(135deg, #0a0a0a 0%, #0d0d0d 50%, #0a0a0a 100%);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.onboardContainer *,
+.onboardContainer *::before,
+.onboardContainer *::after {
+  box-sizing: border-box;
+}
+
+/* Animated Background */
+.onboardContainer::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse at 20% 30%, var(--accent-glow) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, var(--accent-glow) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media screen and (min-width: 769px) {
+  .onboardContainer {
+    padding: 120px 40px 60px;
+  }
+}
+
+/* ========== WIZARD WRAPPER ========== */
+.wizardWrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* ========== PAGE HEADER ========== */
+.pageHeader {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+  background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, #fff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}
+
+.pageSubtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ========== PROGRESS STEPPER ========== */
+.progressStepper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 32px;
+  padding: 0 16px;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--glass-light);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+}
+
+.stepCircle.active {
+  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
+  border-color: var(--accent);
+  color: #000;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.stepCircle.completed {
+  background: var(--success);
+  border-color: var(--success);
+  color: #000;
+}
+
+.stepLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  display: none;
+  transition: color 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stepLabel.active {
+  color: var(--text-primary);
+}
+
+.stepLabel.completed {
+  color: var(--success);
+}
+
+.stepConnector {
+  width: 40px;
+  height: 2px;
+  background: var(--border);
+  margin: 0 8px;
+  transition: background 0.3s ease;
+}
+
+.stepConnector.completed {
+  background: var(--success);
+}
+
+@media screen and (min-width: 576px) {
+  .stepLabel {
+    display: block;
+  }
+  .stepConnector {
+    width: 60px;
+  }
+}
+
+/* ========== WIZARD CARD (Main Content Area) ========== */
+.wizardCard {
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.6) 0%, rgba(20, 20, 25, 0.8) 100%);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border-accent);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media screen and (min-width: 576px) {
+  .wizardCard {
+    padding: 32px;
+  }
+}
+
+/* Ensure all children respect box model */
+.wizardCard * {
+  box-sizing: border-box;
+}
+
+/* ========== SECTION HEADING (The style you like!) ========== */
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(87, 87, 87, 0.09);
+  border-radius: 10px;
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  box-shadow: 0 4px 0px 0px #3f3a46;
+}
+
+.sectionHeading + .sectionHeading {
+  margin-top: 28px;
+}
+
+.sectionHeading h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.sectionIcon {
+  font-size: 1.1rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.sectionSubtext {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0 0 24px;
+  line-height: 1.55;
+}
+
+/* ========== FORM ELEMENTS ========== */
+.formGroup {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.formLabel {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.formInput,
+.formTextarea {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.formInput:hover,
+.formTextarea:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(25, 25, 25, 0.95);
+}
+
+.formInput:focus,
+.formTextarea:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+  background: rgba(30, 30, 30, 1);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.formInput::placeholder,
+.formTextarea::placeholder {
+  color: var(--text-muted);
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 110px;
+  line-height: 1.5;
+}
+
+.inputError {
+  border-color: var(--error) !important;
+  background: rgba(255, 77, 79, 0.08) !important;
+}
+
+.inputError:focus {
+  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.15) !important;
+}
+
+.errorMessage {
+  font-size: 0.8rem;
+  color: var(--error);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Two-column layout for social fields */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.formRow .formGroup {
+  margin-bottom: 0;
+}
+
+@media screen and (min-width: 576px) {
+  .formRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ========== IMAGE PREVIEW SECTION ========== */
+.previewSection {
+  margin-bottom: 24px;
+}
+
+.bannerPreview {
+  width: 100%;
+  height: 150px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.avatarPreview {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid var(--bg-dark);
+  margin-top: -40px;
+  margin-left: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.imagePlaceholder {
+  background: rgba(60, 60, 60, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.bannerPlaceholder {
+  width: 100%;
+  height: 150px;
+  border-radius: 12px;
+  border: 2px dashed var(--border);
+}
+
+.avatarPlaceholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  margin-top: -40px;
+  margin-left: 16px;
+  border: 2px dashed var(--border);
+}
+
+/* ========== TREASURY SECTION (Optional) ========== */
+.treasuryOption {
+  background: rgba(200, 161, 255, 0.05);
+  border: 1px solid var(--border-accent);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.treasuryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.treasuryTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.treasuryTitle svg {
+  color: var(--accent);
+}
+
+.treasuryBadge {
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: 20px;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.treasuryDescription {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.treasuryBenefits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.benefitItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.benefitItem svg {
+  color: var(--success);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.treasuryToggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  background: var(--border);
+  border-radius: 13px;
+  transition: background 0.3s ease;
+}
+
+.toggleSwitch.active {
+  background: var(--accent);
+}
+
+.toggleSwitch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.toggleSwitch.active::after {
+  transform: translateX(22px);
+}
+
+.toggleLabel {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Treasury Created Success State */
+.treasurySuccess {
+  background: rgba(4, 255, 196, 0.05);
+  border: 1px solid rgba(4, 255, 196, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.successHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.vaultAddress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.vaultAddress code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copyButton {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.copyButton:hover {
+  transform: scale(1.1);
+}
+
+.warningBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.warningBox svg {
+  color: var(--warning);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.warningText {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.actionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ========== REVIEW SECTION ========== */
+.reviewGrid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.reviewItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(26, 26, 26, 0.6);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.reviewLabel {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.reviewValue {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  max-width: 60%;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reviewValue.truncate {
+  max-width: 180px;
+  white-space: nowrap;
+}
+
+.profilePreview {
+  background: rgba(26, 26, 26, 0.6);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.profileBanner {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+.profileInfo {
+  padding: 16px;
+  padding-top: 0;
+}
+
+.profileAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid var(--bg-dark);
+  margin-top: -32px;
+}
+
+.profileName {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+
+.profileUsername {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.profileBio {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ========== NAVIGATION BUTTONS ========== */
+.navButtons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.backButton:hover {
+  border-color: var(--accent-dim);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.nextButton,
+.submitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.25);
+  white-space: nowrap;
+}
+
+.nextButton:hover,
+.submitButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(200, 161, 255, 0.35);
+}
+
+.nextButton:disabled,
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.nextButton:disabled:hover,
+.submitButton:disabled:hover {
+  transform: none;
+}
+
+.skipButton {
+  padding: 12px 20px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.skipButton:hover {
+  border-color: var(--text-muted);
+  color: var(--text-secondary);
+}
+
+/* Secondary/Ghost Buttons */
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.secondaryButton:hover {
+  background: rgba(200, 161, 255, 0.2);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading State */
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== CHECKBOX STYLES ========== */
+.checkboxGroup {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(26, 26, 26, 0.5);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.checkboxGroup input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+/* ========== INFO CALLOUT ========== */
+.infoCallout {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+
+.infoCallout svg {
+  color: #60a5fa;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.infoText {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ========== SUCCESS SCREEN ========== */
+.successScreen {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.successIcon {
+  font-size: 4rem;
+  color: var(--success);
+  margin-bottom: 20px;
+}
+
+.successTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.successMessage {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* ========== UTILITY ========== */
+.hidden {
+  display: none;
+}
+
+.mb0 {
+  margin-bottom: 0;
+}
+.mb12 {
+  margin-bottom: 12px;
+}
+.mb20 {
+  margin-bottom: 20px;
+}
+.mt20 {
+  margin-top: 20px;
+}

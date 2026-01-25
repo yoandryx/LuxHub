@@ -1,5 +1,7 @@
-import React, { useState, memo, useMemo } from 'react';
-import styles from '../../styles/NFTCard.module.css';
+// src/components/marketplace/NFTCard.tsx
+// Wrapper for UnifiedNFTCard to maintain backwards compatibility
+import React, { memo, useMemo } from 'react';
+import UnifiedNFTCard, { NFTStatus } from '../common/UnifiedNFTCard';
 
 interface NFT {
   nftId: string;
@@ -19,11 +21,22 @@ interface NFTCardProps {
   onClick: () => void;
 }
 
-const PLACEHOLDER_IMAGE = '/images/purpleLGG.png';
+// Map legacy status to new status type
+const mapStatus = (status: string): NFTStatus => {
+  const statusMap: Record<string, NFTStatus> = {
+    pending: 'pending',
+    reviewed: 'verified',
+    listed: 'listed',
+    in_escrow: 'escrow',
+    pooled: 'pooled',
+    sold: 'sold',
+    burned: 'burned',
+    invalid: 'error',
+  };
+  return statusMap[status] || 'verified';
+};
 
 const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
-  const [imgError, setImgError] = useState(false);
-
   // Memoized price calculation
   const price = useMemo(
     () =>
@@ -41,48 +54,39 @@ const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
       nft.attributes?.find((attr) => attr.trait_type === 'Current Owner')?.value ??
       (nft as any).currentOwner ??
       nft.seller ??
-      'N/A',
+      undefined,
     [nft.buyer, nft.attributes, nft.seller]
   );
 
-  const imageUrl = imgError || !nft.image ? PLACEHOLDER_IMAGE : nft.image;
+  // Get brand from attributes
+  const brand = nft.attributes?.find((attr) => attr.trait_type === 'Brand')?.value;
+
+  // Get USD price from attributes (fixed watch price)
+  const priceUSD = useMemo(() => {
+    const usdAttr = nft.attributes?.find(
+      (attr) => attr.trait_type === 'Price USD' || attr.trait_type === 'Estimated Value'
+    )?.value;
+    return usdAttr ? parseFloat(usdAttr.replace(/[^0-9.]/g, '')) : (nft as any).priceUSD;
+  }, [nft.attributes]);
 
   return (
-    <div className={styles.holderCard}>
-      <div className={styles.holderContent}>
-        {/* Image */}
-        <img
-          src={imageUrl}
-          alt={nft.title}
-          className={styles.holderImage}
-          onError={() => setImgError(true)}
-        />
-
-        {/* Overlay */}
-        <div className={styles.overlay}>
-          <div className={styles.overlayTitle}>{nft.title}</div>
-          <div className={styles.overlayRow}>
-            <span>Owner:</span>
-            <span>{owner !== 'N/A' ? `${owner.slice(0, 4)}...${owner.slice(-4)}` : 'N/A'}</span>
-          </div>
-          <div className={styles.overlayRow}>
-            <span>Price:</span>
-            <span>{price.toFixed(2)} SOL</span>
-          </div>
-          <button className={styles.overlayButton} onClick={onClick}>
-            View Details
-          </button>
-        </div>
-      </div>
-
-      {/* Badges */}
-      {/* <div className={styles.badge}>
-        <img src="/images/purpleLGG.png" alt="Verified" className={styles.badgeIcon} />
-        {nft.marketStatus === "invalid" ? "Unverified" : "Verified"}
-      </div> */}
-
-      <div className={styles.collectionTag}>{nft.title}</div>
-    </div>
+    <UnifiedNFTCard
+      title={nft.title || 'Untitled NFT'}
+      image={nft.image}
+      imageCid={nft.fileCid}
+      price={price}
+      priceLabel="SOL"
+      priceUSD={priceUSD}
+      owner={owner}
+      brand={brand}
+      status={mapStatus(nft.marketStatus)}
+      isVerified={nft.marketStatus !== 'invalid'}
+      onViewDetails={onClick}
+      showOverlay={true}
+      showBadge={true}
+      showPrice={true}
+      showOwner={true}
+    />
   );
 });
 

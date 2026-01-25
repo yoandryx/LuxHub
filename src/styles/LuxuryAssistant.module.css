@@ -521,13 +521,13 @@
 /* ========== MOBILE RESPONSIVE ========== */
 @media screen and (max-width: 480px) {
   .floatingButton {
-    bottom: 16px;
+    bottom: 28px;
     right: 16px;
     padding: 10px 14px;
   }
 
   .chatPanel {
-    bottom: 70px;
+    bottom: 80px;
     right: 12px;
     left: 12px;
     width: auto;

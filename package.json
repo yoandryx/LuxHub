@@ -30,7 +30,9 @@
     ]
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@coral-xyz/anchor": "^0.31.0",
+    "@irys/sdk": "^0.2.11",
     "@metaplex-foundation/js": "^0.20.1",
     "@metaplex-foundation/mpl-core": "^1.7.0",
     "@metaplex-foundation/umi-bundle-defaults": "^1.4.1",
@@ -52,6 +54,7 @@
     "@sqds/multisig": "^2.1.4",
     "@types/react-dom": "^19.0.4",
     "@vercel/edge-config": "^1.4.0",
+    "arweave": "^1.15.7",
     "aws-sdk": "^2.1693.0",
     "axios": "^1.8.1",
     "babel-plugin-glsl": "^1.0.0",

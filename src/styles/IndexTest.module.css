@@ -13,6 +13,8 @@
   --glass: rgba(13, 13, 13, 0.85);
   --text-primary: #ffffff;
   --text-secondary: #a1a1a1;
+  --side-spacing: 24px;
+  --max-content-width: 1200px;
 
   display: flex;
   flex-direction: column;
@@ -22,6 +24,25 @@
   color: var(--text-primary);
   overflow-x: hidden;
   background: var(--bg-dark);
+}
+
+/* Main content wrapper */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* Floating particles canvas */
+.particleCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ========== HERO SECTION - Split Layout ========== */
@@ -117,7 +138,8 @@
 .heroStats {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .heroStat {
@@ -127,23 +149,32 @@
 }
 
 .heroStatValue {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Accent the first stat value for emphasis */
+.heroStat:first-of-type .heroStatValue {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .heroStatLabel {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 
 .heroStatDivider {
   width: 1px;
-  height: 40px;
-  background: var(--border);
+  height: 32px;
+  background: linear-gradient(180deg, transparent, var(--accent-dim), transparent);
 }
 
 .heroTitle {
@@ -151,7 +182,10 @@
   font-weight: 800;
   letter-spacing: 2px;
   margin: 0 0 24px;
-  color: var(--text-primary);
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -190,6 +224,131 @@
     opacity: 1;
     transform: scaleY(1);
   }
+}
+
+/* ========== FEATURES GLASS CARDS ========== */
+.featuresSection {
+  width: 100%;
+  max-width: var(--max-content-width);
+  padding: 50px var(--side-spacing);
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.featuresHeader {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.featuresTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.featuresGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: center;
+}
+
+.featureCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 28px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: all 0.3s ease;
+  flex: 1 1 200px;
+  max-width: 240px;
+  min-width: 180px;
+  overflow: hidden;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.featureShine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.03) 40%,
+    rgba(200, 161, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 60%,
+    transparent 80%
+  );
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.featureCard:hover .featureShine {
+  left: 100%;
+}
+
+.featureCard:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(200, 161, 255, 0.3);
+  transform: translateY(-4px);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.35),
+    0 0 30px rgba(200, 161, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.featureIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.2) 0%, rgba(200, 161, 255, 0.05) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 14px;
+  color: var(--accent);
+  font-size: 1.4rem;
+  box-shadow: 0 4px 12px rgba(200, 161, 255, 0.15);
+}
+
+.featureText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.featureText h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.featureText p {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* ========== BUTTONS - Matching index.tsx style ========== */
@@ -399,9 +558,10 @@
 .flowSection {
   width: 100%;
   max-width: 900px;
-  padding: 40px 16px;
+  padding: 40px var(--side-spacing);
   position: relative;
   z-index: 2;
+  box-sizing: border-box;
 }
 
 .flowDiagram {
@@ -468,9 +628,10 @@
 /* ========== MARKETPLACE SHOWCASE - Tabbed ========== */
 .showcaseSection {
   width: 100%;
-  max-width: 1200px;
-  padding: 40px 16px;
+  max-width: var(--max-content-width);
+  padding: 40px var(--side-spacing);
   z-index: 2;
+  box-sizing: border-box;
 }
 
 .showcaseHeader {
@@ -484,32 +645,52 @@
 
 .tabSwitcher {
   display: flex;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.03);
+  gap: 6px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 4px;
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .tabBtn {
-  padding: 10px 20px;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-secondary);
   background: transparent;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tabBtn:hover {
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.activeTab {
-  color: var(--bg-dark);
-  background: var(--accent);
+.tabBtn.activeTab {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.25) 0%, rgba(138, 43, 226, 0.2) 100%);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 0 20px rgba(200, 161, 255, 0.15);
+}
+
+.tabIcon {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.tabBtn.activeTab .tabIcon {
+  opacity: 1;
+  color: var(--accent);
 }
 
 .viewAllContainer {
@@ -557,151 +738,174 @@
   width: 100%;
 }
 
-/* NFT Cards */
+/* NFT Cards - Wrapper for UnifiedNFTCard (no additional styling needed) */
 .nftScrollCard {
   width: 100%;
-  background: var(--glass);
+  /* Let UnifiedNFTCard handle all visual styling */
+  /* Wrapper only handles grid placement and animation container */
+}
+
+/* Pool Cards - Matching UnifiedNFTCard Theme */
+.poolCard {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nftScrollCard:hover {
-  border-color: var(--accent-dim);
-  transform: translateY(-4px);
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.3),
-    0 0 40px rgba(200, 161, 255, 0.1);
-}
-
-.nftCardImage {
-  position: relative;
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-}
-
-.nftCardImage img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s ease;
-}
-
-.nftScrollCard:hover .nftCardImage img {
-  transform: scale(1.08);
-}
-
-.nftCardContent {
-  padding: 16px;
-}
-
-.nftCardContent h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nftCardPrice {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.nftCardPrice svg {
-  color: var(--accent);
-  font-size: 1rem;
-}
-
-/* Pool Cards */
-.poolCard {
-  width: 100%;
-  background: var(--glass);
-  border: 1px solid var(--border);
+/* Glow effect on hover */
+.poolCard::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
   border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  position: relative;
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    transparent 40%,
+    transparent 60%,
+    var(--accent) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .poolCard:hover {
-  border-color: var(--accent-dim);
   transform: translateY(-4px);
+  border-color: var(--accent-dim);
   box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.3),
-    0 0 30px rgba(200, 161, 255, 0.08);
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 0 30px var(--accent-glow);
+}
+
+.poolCard:hover::before {
+  opacity: 0.15;
 }
 
 .poolDemoBadge {
   position: absolute;
   top: 12px;
   right: 12px;
-  padding: 4px 10px;
-  font-size: 0.6rem;
+  padding: 5px 10px;
+  font-size: 0.65rem;
   font-weight: 600;
-  color: var(--text-primary);
-  background: var(--accent-dim);
-  border-radius: 10px;
+  color: var(--bg-dark);
+  background: linear-gradient(135deg, var(--accent) 0%, #d4b8ff 100%);
+  border-radius: 20px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   z-index: 5;
+  box-shadow: 0 2px 8px rgba(200, 161, 255, 0.3);
 }
 
 .poolImage {
   position: relative;
   width: 100%;
-  height: 150px;
+  aspect-ratio: 4/3;
   overflow: hidden;
+  background: var(--bg-elevated, #181818);
 }
 
 .poolImage img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .poolCard:hover .poolImage img {
   transform: scale(1.05);
 }
 
+/* Shimmer effect on image hover */
+.poolImage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.03) 55%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.poolCard:hover .poolImage::after {
+  opacity: 1;
+  animation: poolShineMove 2s ease-in-out;
+}
+
+@keyframes poolShineMove {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .poolBrandTag {
   position: absolute;
   bottom: 12px;
   left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 12px;
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-primary);
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
-  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+}
+
+/* Pool Status Badge - Top Left */
+.poolStatusBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--success, #4ade80);
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 5;
 }
 
 .poolContent {
+  position: relative;
   padding: 16px;
+  z-index: 1;
 }
 
 .poolContent h4 {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -709,18 +913,19 @@
 
 .poolProgressBar {
   width: 100%;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .poolProgressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #d4b8ff 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, #d4b8ff 50%, var(--success, #4ade80) 100%);
   border-radius: 3px;
-  transition: width 0.6s ease;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(200, 161, 255, 0.4);
 }
 
 .poolProgressLabel {
@@ -736,44 +941,59 @@
   font-weight: 600;
 }
 
+.poolProgressLabel span:last-child {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+}
+
 .poolStats {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   margin-bottom: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .poolStatItem {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
 }
 
 .poolStatItem svg {
   color: var(--accent);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+}
+
+.poolStatItem span {
+  font-weight: 500;
 }
 
 .poolInvestBtn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 12px;
-  text-align: center;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--bg-dark);
-  background: linear-gradient(135deg, var(--accent) 0%, #d4b8ff 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(200, 161, 255, 0.25);
 }
 
 .poolInvestBtn:hover {
-  transform: scale(1.02);
-  box-shadow: 0 8px 20px rgba(200, 161, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(200, 161, 255, 0.4);
 }
 
 /* Empty & Loading States */
@@ -841,11 +1061,22 @@
   }
 }
 
+/* ========== CTA SECTION ========== */
+.ctaSection {
+  width: 100%;
+  max-width: var(--max-content-width);
+  padding: 60px var(--side-spacing);
+  display: flex;
+  justify-content: center;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
 /* ========== TRUST FOOTER ========== */
 .trustFooter {
   width: 100%;
-  max-width: 1000px;
-  padding: 40px 16px 30px;
+  max-width: var(--max-content-width);
+  padding: 40px var(--side-spacing) 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -921,22 +1152,23 @@
   transform: scale(1.1);
 }
 
-/* CTA Card in Trust Footer */
+/* CTA Card */
 .ctaCard {
   background: var(--glass);
-  border: 1px solid var(--border);
+  border: 1px solid var(--accent-dim);
   border-radius: 24px;
-  padding: 50px 40px;
+  padding: 56px 48px;
   text-align: center;
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   position: relative;
   overflow: hidden;
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-shadow: 0 0 60px rgba(200, 161, 255, 0.08);
 }
 
 .ctaCard::before {
@@ -1006,6 +1238,10 @@
 
 /* ========== RESPONSIVE ========== */
 @media screen and (max-width: 1200px) {
+  .container {
+    --side-spacing: 20px;
+  }
+
   .heroContent {
     padding: 0 40px;
     max-width: 550px;
@@ -1041,6 +1277,27 @@
     font-size: 1.6rem;
   }
 
+  .featuresSection {
+    padding: 36px var(--side-spacing);
+  }
+
+  .featuresTitle {
+    font-size: 1.6rem;
+  }
+
+  .featureCard {
+    flex: 1 1 180px;
+    max-width: 220px;
+    padding: 22px 18px;
+  }
+
+  .featureIcon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    font-size: 1.25rem;
+  }
+
   .showcaseHeader {
     flex-direction: column;
     align-items: flex-start;
@@ -1048,11 +1305,13 @@
 
   .tabSwitcher {
     width: 100%;
+    padding: 5px;
   }
 
   .tabBtn {
     flex: 1;
-    text-align: center;
+    padding: 10px 16px;
+    font-size: 0.85rem;
   }
 
   .trustStats {
@@ -1061,6 +1320,10 @@
 }
 
 @media screen and (max-width: 768px) {
+  .container {
+    --side-spacing: 16px;
+  }
+
   .heroSection {
     min-height: auto;
     height: auto;
@@ -1134,11 +1397,9 @@
   }
 
   .heroStats {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 24px;
     width: 100%;
   }
 
@@ -1150,16 +1411,14 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    min-width: auto;
-    flex: 0 0 auto;
   }
 
   .heroStatValue {
-    font-size: 1.2rem;
+    font-size: 0.95rem;
   }
 
   .heroStatLabel {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
   }
 
   .scrollIndicator {
@@ -1167,7 +1426,7 @@
   }
 
   .flowSection {
-    padding: 50px 20px;
+    padding: 50px var(--side-spacing);
   }
 
   .flowDiagram {
@@ -1178,6 +1437,45 @@
 
   .flowStep {
     max-width: 280px;
+  }
+
+  .featuresSection {
+    padding: 32px var(--side-spacing);
+  }
+
+  .featuresHeader {
+    margin-bottom: 24px;
+  }
+
+  .featuresTitle {
+    font-size: 1.4rem;
+  }
+
+  .featuresGrid {
+    gap: 14px;
+  }
+
+  .featureCard {
+    flex: 1 1 calc(50% - 7px);
+    max-width: none;
+    min-width: auto;
+    padding: 20px 16px;
+    gap: 10px;
+  }
+
+  .featureIcon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    font-size: 1.1rem;
+  }
+
+  .featureText h4 {
+    font-size: 0.8rem;
+  }
+
+  .featureText p {
+    font-size: 0.68rem;
   }
 
   .sectionTitle {
@@ -1253,9 +1551,13 @@
     height: 20px;
   }
 
+  .ctaSection {
+    padding: 40px var(--side-spacing);
+  }
+
   .ctaCard {
-    padding: 32px 20px;
-    margin: 0 10px;
+    padding: 36px 24px;
+    border-radius: 20px;
   }
 
   .ctaCard h2 {
@@ -1269,6 +1571,7 @@
   .ctaButtons {
     flex-direction: column;
     gap: 12px;
+    width: 100%;
   }
 
   .ctaButtons a {
@@ -1276,7 +1579,7 @@
   }
 
   .showcaseSection {
-    padding: 40px 16px;
+    padding: 40px var(--side-spacing);
   }
 
   .viewAllContainer {
@@ -1290,6 +1593,10 @@
 }
 
 @media screen and (max-width: 480px) {
+  .container {
+    --side-spacing: 12px;
+  }
+
   .heroContent {
     padding: 0 16px;
     padding-top: 200px;
@@ -1310,20 +1617,20 @@
 
   .primaryBtn,
   .secondaryBtn {
-    padding: 12px 20px;
+    padding: 12px 0px;
     font-size: 0.85rem;
   }
 
   .heroStats {
-    gap: 16px;
+    gap: 12px 20px;
   }
 
   .heroStatValue {
-    font-size: 1rem;
+    font-size: 0.85rem;
   }
 
   .heroStatLabel {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
   }
 
   .sectionTitle {
@@ -1349,6 +1656,33 @@
     font-size: 0.8rem;
   }
 
+  .featuresTitle {
+    font-size: 1.2rem;
+  }
+
+  .featureCard {
+    flex: 1 1 calc(50% - 6px);
+    padding: 16px 12px;
+    gap: 8px;
+  }
+
+  .featureIcon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 0.95rem;
+    border-radius: 10px;
+  }
+
+  .featureText h4 {
+    font-size: 0.72rem;
+  }
+
+  .featureText p {
+    font-size: 0.6rem;
+    line-height: 1.4;
+  }
+
   .trustStats {
     gap: 16px;
   }
@@ -1366,9 +1700,23 @@
     letter-spacing: 1px;
   }
 
+  .tabSwitcher {
+    gap: 4px;
+    padding: 4px;
+  }
+
   .tabBtn {
-    padding: 8px 10px;
-    font-size: 0.75rem;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    gap: 6px;
+  }
+
+  .tabBtn span {
+    display: none;
+  }
+
+  .tabIcon {
+    font-size: 1.1rem;
   }
 
   .scroller {
@@ -1386,6 +1734,10 @@
 }
 
 @media screen and (max-width: 360px) {
+  .container {
+    --side-spacing: 10px;
+  }
+
   .heroTitle {
     font-size: 1.5rem;
   }
@@ -1399,11 +1751,29 @@
   }
 
   .heroStats {
-    gap: 12px;
+    gap: 10px 16px;
   }
 
   .heroStatValue {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
+  }
+
+  .heroStatLabel {
+    font-size: 0.45rem;
+    letter-spacing: 1px;
+  }
+
+  .ctaSection {
+    padding: 32px var(--side-spacing);
+  }
+
+  .ctaCard {
+    padding: 28px 16px;
+    border-radius: 16px;
+  }
+
+  .ctaCard h2 {
+    font-size: 1.2rem;
   }
 
   .scroller {

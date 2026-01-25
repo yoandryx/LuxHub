@@ -1,20 +1,44 @@
 .dashboardContainer {
-  padding: 110px 16px 40px 16px;
+  /* LuxHub Theme Variables - Consistent with UnifiedNFTCard */
+  --accent: #c8a1ff;
+  --accent-bright: #a855f7;
+  --accent-dim: rgba(200, 161, 255, 0.4);
+  --accent-glow: rgba(200, 161, 255, 0.12);
+  --success: #04ffc4;
+  --success-dim: rgba(4, 255, 196, 0.4);
+  --warning: #ffc107;
+  --warning-dim: rgba(255, 193, 7, 0.4);
+  --error: #ff4d4f;
+  --error-dim: rgba(255, 77, 79, 0.4);
+  --info: #17a2b8;
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --border: #222222;
+  --border-light: rgba(255, 255, 255, 0.1);
+  --glass: rgba(13, 13, 13, 0.85);
+  --glass-light: rgba(30, 30, 35, 0.6);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  --navbar-height: 50px;
+  --tab-bar-height: 50px;
+
+  padding: calc(var(--navbar-height) + var(--tab-bar-height) + 10px) 16px 40px 16px;
   background: linear-gradient(135deg, #1f1f1f65 0%, #13131350 50%, #1515158e 100%);
-  min-height: 100vh;
-  color: #ffffff;
+  min-height: calc(100vh - var(--navbar-height));
+  color: var(--text-primary);
   box-sizing: border-box;
 }
 
 @media screen and (min-width: 769px) {
   .dashboardContainer {
-    padding: 120px 40px 60px 40px;
+    padding: calc(var(--navbar-height) + var(--tab-bar-height) + 20px) 40px 60px 40px;
   }
 }
 
 @media screen and (min-width: 1200px) {
   .dashboardContainer {
-    padding: 120px 80px 60px 80px;
+    padding: calc(var(--navbar-height) + var(--tab-bar-height) + 20px) 80px 60px 80px;
     max-width: 1600px;
     margin: 0 auto;
   }
@@ -41,7 +65,7 @@
 /* Tab Navigation - Matches Navbar Glass Pill Style */
 .tabButtons {
   position: fixed;
-  top: 50px;
+  top: var(--navbar-height, 50px);
   left: 0;
   right: 0;
   display: flex;
@@ -49,13 +73,13 @@
   align-items: center;
   gap: 0;
   padding: 0;
-  height: 50px;
+  height: var(--tab-bar-height, 50px);
   background: #43434352;
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   border-bottom: 1px solid #e8d7ff21;
   box-shadow: 0px 2px 10px #1b1b1bdb;
-  z-index: 100;
+  z-index: 90;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -297,8 +321,6 @@
   transition: background-color 0.3s ease;
 }
 
-
-
 .tabContent button:hover {
   background: #d6b4ff;
 }
@@ -461,7 +483,7 @@
 }
 
 .tabContentMain .avatarPreview {
-  position:relative;
+  position: relative;
   width: 100px;
   height: 100px;
   border-radius: 5px;
@@ -592,7 +614,6 @@
   transition: all 0.3s ease;
   height: 50px;
   width: 25px;
-  
 }
 
 .fileIcon:hover {
@@ -652,7 +673,7 @@
   margin-left: 0px;
   /* margin-bottom: 1rem; */
   border: 1px solid #1a1a1a;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes pulse {
@@ -695,7 +716,7 @@
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
-  
+
   text-shadow: #000000 0px 1px 3px;
 }
 
@@ -817,7 +838,6 @@
   background: linear-gradient(90deg, #c8a1ff, #b991ff);
   border-radius: 3px;
   transition: width 0.4s ease;
-  
 }
 
 .progress {
@@ -837,7 +857,7 @@
 .profileHeader {
   display: flex;
   flex-direction: column;
-  text-align:start;
+  text-align: start;
   align-items: flex-start !important;
   margin-top: 20px;
   border-radius: 8px;
@@ -967,7 +987,7 @@
   border-color: #c8a1ff;
 }
 
-.fileInput button{
+.fileInput button {
   margin-top: 1rem;
   padding: 0.8rem 1.5rem;
   background: #c8a1ff;
@@ -1086,10 +1106,7 @@
   font-weight: 500;
 }
 
-
-
 /* Guided instructions panel – matches onboard.tsx */
-
 
 .instructionsPanel h3 {
   font-size: 1.6rem;
@@ -1108,7 +1125,7 @@
   margin-bottom: 0.5rem;
 }
 
- .arrow {
+.arrow {
   text-align: center;
   color: #c8a1ff;
   font-size: 16px;
@@ -1386,6 +1403,34 @@
   cursor: not-allowed;
 }
 
+/* Asset Card Wrapper for UnifiedNFTCard */
+.assetCardWrapper {
+  position: relative;
+}
+
+.assetCardActions {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.assetCardWrapper:hover .assetCardActions {
+  opacity: 1;
+}
+
+.assetCardActions .editButton,
+.assetCardActions .deleteButton {
+  width: 32px;
+  height: 32px;
+  background: rgba(13, 13, 13, 0.9);
+  backdrop-filter: blur(10px);
+}
+
 /* Loading States */
 .loadingState,
 .emptyState,
@@ -1395,7 +1440,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 250px;
+  min-height: calc(100vh - var(--navbar-height) - var(--tab-bar-height) - 120px);
   text-align: center;
   padding: 24px 16px;
 }
@@ -2109,4 +2154,3 @@
   color: #17a2b8;
   border: 1px solid rgba(23, 162, 184, 0.4);
 }
-

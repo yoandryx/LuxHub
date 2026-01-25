@@ -1,50 +1,31 @@
-/* HeroScene.module.css - Extracted inline styles for performance */
+/* ============================================
+   LUXHUB HERO SCENE - Premium 3D Experience
+   Glass-morphism • Purple Accent • Futuristic Luxury
+   ============================================ */
 
 /* ============================================
    CSS Variables
    ============================================ */
 .heroContainer {
   --accent: #c8a1ff;
+  --accent-bright: #a855f7;
   --accent-dim: rgba(200, 161, 255, 0.4);
   --accent-glow: rgba(200, 161, 255, 0.15);
   --accent-subtle: rgba(200, 161, 255, 0.2);
   --bg-glass: rgba(13, 13, 13, 0.8);
-  --bg-glass-dark: rgba(13, 13, 13, 0.9);
+  --bg-glass-dark: rgba(13, 13, 13, 0.92);
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.85);
   --text-muted: rgba(255, 255, 255, 0.6);
-  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-fast: all 0.3s ease;
-  --font-mono: 'SF Mono', 'Fira Code', monospace;
-  --font-system: system-ui, -apple-system, sans-serif;
+  --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.25s ease;
+  --font-mono: 'SF Mono', 'Fira Code', 'Monaco', monospace;
+  --font-system: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 
   width: 100%;
   height: 100%;
   position: relative;
-}
-
-/* ============================================
-   Loader Component
-   ============================================ */
-.loaderContainer {
-  color: var(--accent);
-  font-size: 14px;
-  font-family: system-ui;
-  text-align: center;
-}
-
-.loaderTrack {
-  width: 100px;
-  height: 2px;
-  background: var(--accent-subtle);
-  border-radius: 2px;
   overflow: hidden;
-}
-
-.loaderProgress {
-  height: 100%;
-  background: var(--accent);
-  transition: width 0.2s ease;
 }
 
 /* ============================================
@@ -52,6 +33,74 @@
    ============================================ */
 .canvas {
   background: transparent;
+  cursor: grab;
+}
+
+.canvas:active {
+  cursor: grabbing;
+}
+
+/* ============================================
+   Loader Component - Circular Progress
+   ============================================ */
+.loaderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loaderRing {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.loaderRing svg {
+  width: 100%;
+  height: 100%;
+  animation: loaderSpin 8s linear infinite;
+}
+
+.loaderPercent {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+}
+
+.loaderText {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin: 0;
+  animation: loaderPulse 2s ease-in-out infinite;
+}
+
+@keyframes loaderSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loaderPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ============================================
@@ -64,7 +113,7 @@
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   z-index: 10;
   pointer-events: none;
 }
@@ -74,46 +123,60 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(13, 13, 13, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--accent-glow);
-  border-radius: 6px;
+  background: var(--bg-glass-dark);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--accent-subtle);
+  border-radius: 8px;
   transition: var(--transition-smooth);
-  opacity: 0.7;
+  opacity: 0.6;
+  transform: translateX(0);
 }
 
 .mobileLabelCard.active {
   padding: 10px 14px;
-  background: rgba(200, 161, 255, 0.12);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.15) 0%, var(--bg-glass-dark) 100%);
   border-color: var(--accent-dim);
-  transform: translateX(4px) scale(1.02);
-  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.15);
+  transform: translateX(6px) scale(1.03);
+  box-shadow:
+    0 4px 24px rgba(200, 161, 255, 0.2),
+    0 0 0 1px rgba(200, 161, 255, 0.1);
+  opacity: 1;
+}
+
+.mobileLabelIcon {
+  font-size: 14px;
+  opacity: 0.7;
+  transition: var(--transition-fast);
+}
+
+.mobileLabelCard.active .mobileLabelIcon {
   opacity: 1;
 }
 
 .mobileLabelBadge {
-  padding: 3px 6px;
-  background: rgba(200, 161, 255, 0.1);
-  border: 1px solid rgba(200, 161, 255, 0.3);
-  border-radius: 3px;
+  padding: 3px 7px;
+  background: rgba(200, 161, 255, 0.08);
+  border: 1px solid rgba(200, 161, 255, 0.25);
+  border-radius: 4px;
   font-size: 0.55rem;
   font-weight: 700;
-  color: rgba(200, 161, 255, 0.7);
+  color: rgba(200, 161, 255, 0.6);
   letter-spacing: 1px;
   font-family: var(--font-mono);
   transition: var(--transition-fast);
 }
 
 .mobileLabelCard.active .mobileLabelBadge {
-  background: rgba(200, 161, 255, 0.25);
+  background: rgba(200, 161, 255, 0.2);
+  border-color: var(--accent-dim);
   color: var(--accent);
 }
 
 .mobileLabelText {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.5);
   letter-spacing: 0.5px;
   white-space: nowrap;
   overflow: hidden;
@@ -124,7 +187,7 @@
 
 .mobileLabelCard.active .mobileLabelText {
   color: var(--text-primary);
-  max-width: 120px;
+  max-width: 130px;
   opacity: 1;
 }
 
@@ -133,30 +196,38 @@
    ============================================ */
 .tabletLabelsBar {
   position: absolute;
-  bottom: 16px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   z-index: 10;
   pointer-events: none;
 }
 
 .tabletDetailBox {
-  padding: 8px 16px;
-  background: rgba(13, 13, 13, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(200, 161, 255, 0.25);
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: var(--bg-glass-dark);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 10px;
   text-align: center;
-  min-width: 200px;
+  min-width: 220px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.tabletDetailIcon {
+  font-size: 16px;
 }
 
 .tabletDetailText {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   margin: 0;
   line-height: 1.4;
@@ -165,37 +236,39 @@
 .tabletBadgeRow {
   display: flex;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--accent-subtle);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .tabletBadgeItem {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: var(--transition-fast);
 }
 
 .tabletBadgeItem.active {
-  padding: 6px 12px;
-  background: var(--accent-glow);
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%);
   border-color: var(--accent-dim);
+  box-shadow: 0 2px 12px rgba(200, 161, 255, 0.15);
 }
 
 .tabletBadgeCode {
   font-size: 0.6rem;
   font-weight: 600;
-  color: rgba(200, 161, 255, 0.6);
+  color: rgba(200, 161, 255, 0.5);
   letter-spacing: 1px;
   font-family: var(--font-mono);
+  transition: var(--transition-fast);
 }
 
 .tabletBadgeItem.active .tabletBadgeCode {
@@ -211,7 +284,17 @@
 }
 
 /* ============================================
-   Floating Label (Desktop)
+   Desktop Labels Container
+   ============================================ */
+.desktopLabelsContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ============================================
+   Floating Label (Desktop) - Futuristic HUD
    ============================================ */
 .floatingLabel {
   position: absolute;
@@ -226,74 +309,87 @@
 
 .floatingLabelMain {
   position: relative;
-  padding: 8px 14px;
+  padding: 10px 16px;
   background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--accent-glow);
-  border-radius: 2px;
-  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--accent-subtle);
+  border-radius: 3px;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
   transition: var(--transition-smooth);
 }
 
 .floatingLabel.hovered .floatingLabelMain {
-  padding: 12px 18px;
+  padding: 14px 20px;
   background: linear-gradient(135deg, rgba(200, 161, 255, 0.12) 0%, var(--bg-glass-dark) 100%);
   border-color: var(--accent-dim);
   box-shadow:
-    0 0 30px rgba(200, 161, 255, 0.2),
-    inset 0 0 20px rgba(200, 161, 255, 0.05);
+    0 0 40px rgba(200, 161, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 0 30px rgba(200, 161, 255, 0.05);
 }
 
-/* Corner accents */
-.cornerAccentH,
-.cornerAccentV {
+/* Corner accents - Top Left */
+.cornerAccentTL {
   position: absolute;
   top: 0;
   left: 0;
-  background: rgba(200, 161, 255, 0.4);
+  width: 14px;
+  height: 14px;
+  border-left: 1px solid var(--accent-dim);
+  border-top: 1px solid var(--accent-dim);
   transition: var(--transition-fast);
 }
 
-.cornerAccentH {
-  width: 12px;
-  height: 1px;
+/* Corner accents - Bottom Right */
+.cornerAccentBR {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-right: 1px solid var(--accent-dim);
+  border-bottom: 1px solid var(--accent-dim);
+  transition: var(--transition-fast);
 }
 
-.cornerAccentV {
-  width: 1px;
-  height: 12px;
-}
-
-.floatingLabel.hovered .cornerAccentH,
-.floatingLabel.hovered .cornerAccentV {
-  background: var(--accent);
+.floatingLabel.hovered .cornerAccentTL,
+.floatingLabel.hovered .cornerAccentBR {
+  border-color: var(--accent);
 }
 
 .floatingLabelContent {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .floatingLabelCode {
-  padding: 3px 6px;
+  padding: 4px 8px;
   background: transparent;
   border: 1px solid var(--accent-dim);
   font-size: 0.6rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   font-family: var(--font-mono);
   transition: var(--transition-fast);
 }
 
 .floatingLabel.hovered .floatingLabelCode {
-  background: var(--accent-subtle);
+  background: rgba(200, 161, 255, 0.15);
+  border-color: var(--accent);
 }
 
 .floatingLabelText {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: 1.5px;
@@ -306,7 +402,7 @@
   color: var(--text-primary);
 }
 
-/* Expanded detail */
+/* Expanded detail on hover */
 .floatingLabelDetail {
   max-height: 0;
   overflow: hidden;
@@ -317,9 +413,9 @@
 }
 
 .floatingLabel.hovered .floatingLabelDetail {
-  max-height: 50px;
-  margin-top: 8px;
-  padding-top: 8px;
+  max-height: 60px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top-color: var(--accent-subtle);
 }
 
@@ -327,47 +423,68 @@
   font-size: 0.65rem;
   color: var(--text-muted);
   margin: 0;
-  line-height: 1.5;
-  max-width: 220px;
+  line-height: 1.6;
+  max-width: 240px;
   letter-spacing: 0.3px;
 }
 
-/* Connector line */
+/* Connector - Line and Dot */
 .floatingLabelConnector {
-  width: 20px;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(200, 161, 255, 0.3), transparent);
+  display: flex;
+  align-items: center;
+  gap: 0;
   transition: var(--transition-fast);
 }
 
-.floatingLabel.hovered .floatingLabelConnector {
-  width: 35px;
-  background: linear-gradient(90deg, rgba(200, 161, 255, 0.6), transparent);
+.connectorLine {
+  width: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-dim), transparent);
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .connectorLine {
+  width: 40px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+.connectorDot {
+  width: 4px;
+  height: 4px;
+  background: var(--accent-dim);
+  border-radius: 50%;
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .connectorDot {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
 }
 
 /* Target reticle */
 .floatingLabelReticle {
   position: relative;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   transition: var(--transition-fast);
 }
 
 .floatingLabel.hovered .floatingLabelReticle {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .reticleOuter {
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(200, 161, 255, 0.5);
+  border: 1px solid rgba(200, 161, 255, 0.4);
   border-radius: 50%;
   transition: var(--transition-fast);
 }
 
 .floatingLabel.hovered .reticleOuter {
   border-color: var(--accent);
+  animation: reticlePulse 2s ease-in-out infinite;
 }
 
 .reticleInner {
@@ -375,57 +492,219 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 3px;
-  height: 3px;
+  width: 4px;
+  height: 4px;
   background: var(--accent);
   border-radius: 50%;
   transition: var(--transition-fast);
 }
 
 .floatingLabel.hovered .reticleInner {
-  width: 4px;
-  height: 4px;
-  box-shadow: 0 0 10px var(--accent);
+  width: 5px;
+  height: 5px;
+  box-shadow: 0 0 12px var(--accent);
 }
 
-/* ============================================
-   Desktop Labels Container
-   ============================================ */
-.desktopLabelsContainer {
+.reticlePulse {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
+  inset: -4px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  transition: var(--transition-fast);
+}
+
+.floatingLabel.hovered .reticlePulse {
+  animation: reticlePulseRing 1.5s ease-out infinite;
+}
+
+@keyframes reticlePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+@keyframes reticlePulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 
 /* ============================================
-   Radial Glow
+   Radial Glow Background
    ============================================ */
 .radialGlow {
   position: absolute;
   transform: translate(50%, -50%);
-  background: radial-gradient(circle, rgba(200, 161, 255, 0.12) 0%, transparent 55%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(200, 161, 255, 0.15) 0%,
+    rgba(168, 85, 247, 0.08) 30%,
+    transparent 60%
+  );
   pointer-events: none;
-  filter: blur(60px);
+  filter: blur(80px);
+  animation: glowPulse 8s ease-in-out infinite;
 }
 
 .radialGlow.mobile {
   top: 40%;
-  right: 40%;
-  width: 280px;
-  height: 280px;
+  right: 35%;
+  width: 300px;
+  height: 300px;
 }
 
 .radialGlow.tablet {
   top: 45%;
   right: 50%;
-  width: 400px;
-  height: 400px;
+  width: 450px;
+  height: 450px;
 }
 
 .radialGlow.desktop {
   top: 40%;
-  right: 15%;
-  width: 600px;
-  height: 600px;
+  right: 12%;
+  width: 700px;
+  height: 700px;
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translate(50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate(50%, -50%) scale(1.05);
+  }
+}
+
+/* ============================================
+   Corner Decorations
+   ============================================ */
+.cornerDecorTL,
+.cornerDecorBR {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.cornerDecorTL {
+  top: 20px;
+  left: 20px;
+  border-left: 1px solid var(--accent-dim);
+  border-top: 1px solid var(--accent-dim);
+}
+
+.cornerDecorBR {
+  bottom: 20px;
+  right: 20px;
+  border-right: 1px solid var(--accent-dim);
+  border-bottom: 1px solid var(--accent-dim);
+}
+
+/* ============================================
+   Scan Lines Overlay
+   ============================================ */
+.scanLines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(200, 161, 255, 0.01) 2px,
+    rgba(200, 161, 255, 0.01) 4px
+  );
+  opacity: 0.5;
+  z-index: 4;
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+@media (max-width: 768px) {
+  .cornerDecorTL,
+  .cornerDecorBR {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cornerDecorTL {
+    top: 12px;
+    left: 12px;
+  }
+
+  .cornerDecorBR {
+    bottom: 12px;
+    right: 12px;
+  }
+
+  .scanLines {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobileLabelsStack {
+    left: 8px;
+    gap: 5px;
+  }
+
+  .mobileLabelCard {
+    padding: 6px 10px;
+  }
+
+  .mobileLabelCard.active {
+    padding: 8px 12px;
+  }
+
+  .mobileLabelBadge {
+    font-size: 0.5rem;
+    padding: 2px 5px;
+  }
+
+  .mobileLabelText {
+    font-size: 0.55rem;
+  }
+
+  .mobileLabelCard.active .mobileLabelText {
+    max-width: 100px;
+  }
+
+  .cornerDecorTL,
+  .cornerDecorBR {
+    display: none;
+  }
+}
+
+/* ============================================
+   Accessibility - Reduced Motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .loaderRing svg,
+  .radialGlow,
+  .floatingLabel,
+  .mobileLabelCard,
+  .tabletBadgeItem,
+  .reticleOuter,
+  .reticlePulse {
+    animation: none;
+    transition: none;
+  }
 }
