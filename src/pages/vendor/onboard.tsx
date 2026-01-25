@@ -125,6 +125,7 @@ export default function VendorOnboard() {
     setErrors((prev) => ({
       ...prev,
       name: formData.name.trim() !== '' && formData.name.trim().length < 2,
+      username: formData.username.trim() !== '' && formData.username.trim().length < 3,
       bio: formData.bio.trim() !== '' && formData.bio.trim().length < 10,
       instagram: formData.instagram.trim() !== '' && !isSocialHandleValid(formData.instagram),
       x: formData.x.trim() !== '' && !isSocialHandleValid(formData.x),
@@ -152,7 +153,8 @@ export default function VendorOnboard() {
 
   /* ---------- CHECK USERNAME AVAILABILITY ---------- */
   const checkUsername = async (username: string) => {
-    if (!username.trim()) {
+    const trimmed = username.trim();
+    if (!trimmed || trimmed.length < 3) {
       setErrors((prev) => ({ ...prev, username: true }));
       return;
     }
@@ -162,7 +164,7 @@ export default function VendorOnboard() {
       const res = await fetch('/api/vendor/checkUsername', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify({ username: trimmed }),
       });
       const data = await res.json();
       setErrors((prev) => ({ ...prev, username: !data.available }));
@@ -454,7 +456,11 @@ export default function VendorOnboard() {
                   </span>
                 )}
                 {errors.username && !usernameChecking && formData.username.trim() && (
-                  <span className={styles.errorMessage}>This username is not available</span>
+                  <span className={styles.errorMessage}>
+                    {formData.username.trim().length < 3
+                      ? 'Username must be at least 3 characters'
+                      : 'This username is not available'}
+                  </span>
                 )}
               </div>
 
