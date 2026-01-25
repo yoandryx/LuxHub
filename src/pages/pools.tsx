@@ -1,8 +1,19 @@
 // src/pages/pools.tsx
-// Investment Pools Page - Fractional ownership of luxury watches
+// Investment Pools - Trading Terminal for Watch Pools
+// LuxHub x Bags Collaboration - Blockchain Native Trading View
 import React, { useState } from 'react';
 import Head from 'next/head';
 import { useWallet } from '@solana/wallet-adapter-react';
+import {
+  FiSearch,
+  FiTrendingUp,
+  FiShield,
+  FiDollarSign,
+  FiActivity,
+  FiLock,
+  FiZap,
+  FiTarget,
+} from 'react-icons/fi';
 import PoolList from '../components/marketplace/PoolList';
 import PoolDetail from '../components/marketplace/PoolDetail';
 import WalletGuide from '../components/common/WalletGuide';
@@ -50,7 +61,6 @@ const PoolsPage: React.FC = () => {
   const [showWalletModal, setShowWalletModal] = useState(false);
 
   const handlePoolSelect = (pool: Pool) => {
-    // If not connected, prompt to connect first
     if (!wallet.connected) {
       setShowWalletModal(true);
       return;
@@ -64,96 +74,141 @@ const PoolsPage: React.FC = () => {
 
   const handleInvestmentComplete = () => {
     // Could trigger a refresh of the pool list here
-    // For now, the detail modal handles its own refresh
   };
 
   return (
     <>
       <Head>
-        <title>Investment Pools | LuxHub</title>
+        <title>Trading Terminal | LuxHub x Bags</title>
         <meta
           name="description"
-          content="Invest in fractional ownership of authenticated luxury watches. Join investment pools and earn returns when assets are resold."
+          content="Blockchain-native trading terminal for luxury watch pools. Fractional ownership, on-chain escrow, and transparent returns."
         />
       </Head>
 
       <div className={styles.pageContainer}>
-        {/* Wallet Connection Banner */}
-        {!wallet.connected && (
-          <div className={styles.walletBanner}>
-            <div className={styles.walletBannerContent}>
-              <span>Connect your wallet to invest in pools</span>
+        {/* Terminal Header */}
+        <header className={styles.terminalHeader}>
+          <div className={styles.terminalBrand}>
+            <div className={styles.terminalLogo}>
+              <FiActivity className={styles.terminalIcon} />
+            </div>
+            <div className={styles.terminalTitle}>
+              <h1>WATCH POOLS</h1>
+              <span className={styles.terminalSubtitle}>TRADING TERMINAL</span>
+            </div>
+          </div>
+
+          <div className={styles.terminalStats}>
+            <div className={styles.statPill}>
+              <span className={styles.statDot} />
+              <span className={styles.statLabel}>LIVE</span>
+            </div>
+            <div className={styles.statPill}>
+              <FiTrendingUp />
+              <span>97% TO INVESTORS</span>
+            </div>
+            <div className={styles.statPill}>
+              <FiShield />
+              <span>3% FEE</span>
+            </div>
+          </div>
+
+          {/* Wallet Connection */}
+          {!wallet.connected && (
+            <div className={styles.connectWallet}>
               <WalletGuide compact />
             </div>
-          </div>
-        )}
+          )}
+        </header>
 
-        {/* Hero Section */}
-        <div className={styles.hero}>
-          <div className={styles.heroContent}>
-            <h1 className={styles.heroTitle}>Investment Pools</h1>
-            <p className={styles.heroSubtitle}>
-              Own a piece of authenticated luxury timepieces through fractional ownership. Invest in
-              pools, and earn returns when assets are resold.
-            </p>
-            <div className={styles.heroStats}>
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>97%</span>
-                <span className={styles.heroStatLabel}>To Investors</span>
+        {/* How It Works - Badge Icons */}
+        <section className={styles.howItWorks}>
+          <div className={styles.stepsContainer}>
+            <div className={styles.stepBadge}>
+              <div className={styles.badgeIcon}>
+                <FiSearch />
               </div>
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>3%</span>
-                <span className={styles.heroStatLabel}>Platform Fee</span>
+              <div className={styles.badgeContent}>
+                <span className={styles.badgeNumber}>01</span>
+                <span className={styles.badgeLabel}>BROWSE</span>
               </div>
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>100%</span>
-                <span className={styles.heroStatLabel}>Authenticated</span>
+            </div>
+
+            <div className={styles.stepConnector} />
+
+            <div className={styles.stepBadge}>
+              <div className={styles.badgeIcon}>
+                <FiDollarSign />
+              </div>
+              <div className={styles.badgeContent}>
+                <span className={styles.badgeNumber}>02</span>
+                <span className={styles.badgeLabel}>INVEST</span>
+              </div>
+            </div>
+
+            <div className={styles.stepConnector} />
+
+            <div className={styles.stepBadge}>
+              <div className={styles.badgeIcon}>
+                <FiLock />
+              </div>
+              <div className={styles.badgeContent}>
+                <span className={styles.badgeNumber}>03</span>
+                <span className={styles.badgeLabel}>SECURED</span>
+              </div>
+            </div>
+
+            <div className={styles.stepConnector} />
+
+            <div className={styles.stepBadge}>
+              <div className={styles.badgeIcon}>
+                <FiZap />
+              </div>
+              <div className={styles.badgeContent}>
+                <span className={styles.badgeNumber}>04</span>
+                <span className={styles.badgeLabel}>RETURNS</span>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* How It Works Section */}
-        <div className={styles.howItWorks}>
-          <h2 className={styles.sectionTitle}>How It Works</h2>
-          <div className={styles.stepsGrid}>
-            <div className={styles.step}>
-              <div className={styles.stepNumber}>1</div>
-              <h3>Browse Pools</h3>
-              <p>
-                Explore open investment pools for authenticated luxury watches from verified
-                vendors.
-              </p>
+        {/* Quick Stats Bar */}
+        <div className={styles.quickStats}>
+          <div className={styles.quickStat}>
+            <FiTarget className={styles.quickStatIcon} />
+            <div className={styles.quickStatInfo}>
+              <span className={styles.quickStatValue}>$2.4M+</span>
+              <span className={styles.quickStatLabel}>TVL</span>
             </div>
-            <div className={styles.step}>
-              <div className={styles.stepNumber}>2</div>
-              <h3>Invest</h3>
-              <p>
-                Purchase shares in pools that match your investment goals. Minimum investments vary
-                by pool.
-              </p>
+          </div>
+          <div className={styles.quickStat}>
+            <FiActivity className={styles.quickStatIcon} />
+            <div className={styles.quickStatInfo}>
+              <span className={styles.quickStatValue}>24</span>
+              <span className={styles.quickStatLabel}>ACTIVE POOLS</span>
             </div>
-            <div className={styles.step}>
-              <div className={styles.stepNumber}>3</div>
-              <h3>Watch Secured</h3>
-              <p>
-                Once funded, the vendor ships the watch to LuxHub for secure custody and
-                authentication.
-              </p>
+          </div>
+          <div className={styles.quickStat}>
+            <FiTrendingUp className={styles.quickStatIcon} />
+            <div className={styles.quickStatInfo}>
+              <span className={styles.quickStatValue}>+18.5%</span>
+              <span className={styles.quickStatLabel}>AVG ROI</span>
             </div>
-            <div className={styles.step}>
-              <div className={styles.stepNumber}>4</div>
-              <h3>Earn Returns</h3>
-              <p>
-                When the watch is resold, 97% of proceeds are distributed to investors
-                proportionally.
-              </p>
+          </div>
+          <div className={styles.quickStat}>
+            <FiShield className={styles.quickStatIcon} />
+            <div className={styles.quickStatInfo}>
+              <span className={styles.quickStatValue}>100%</span>
+              <span className={styles.quickStatLabel}>VERIFIED</span>
             </div>
           </div>
         </div>
 
         {/* Pool List */}
-        <PoolList onPoolSelect={handlePoolSelect} />
+        <main className={styles.terminalMain}>
+          <PoolList onPoolSelect={handlePoolSelect} />
+        </main>
 
         {/* Pool Detail Modal */}
         {selectedPool && (
@@ -171,13 +226,34 @@ const PoolsPage: React.FC = () => {
               <button className={styles.walletModalClose} onClick={() => setShowWalletModal(false)}>
                 ×
               </button>
+              <div className={styles.modalHeader}>
+                <FiLock className={styles.modalIcon} />
+                <h3>CONNECT WALLET</h3>
+              </div>
               <p className={styles.walletModalMessage}>
-                Connect your wallet to view pool details and invest
+                Connect your Solana wallet to access pool details and invest
               </p>
               <WalletGuide onConnected={() => setShowWalletModal(false)} showSteps={false} />
             </div>
           </div>
         )}
+
+        {/* Terminal Footer */}
+        <footer className={styles.terminalFooter}>
+          <div className={styles.footerLeft}>
+            <span className={styles.footerBrand}>LUXHUB × BAGS</span>
+            <span className={styles.footerDivider}>|</span>
+            <span className={styles.footerNetwork}>
+              <span className={styles.networkDot} />
+              SOLANA DEVNET
+            </span>
+          </div>
+          <div className={styles.footerRight}>
+            <span>ON-CHAIN ESCROW</span>
+            <span className={styles.footerDivider}>|</span>
+            <span>MULTISIG SECURED</span>
+          </div>
+        </footer>
       </div>
     </>
   );
