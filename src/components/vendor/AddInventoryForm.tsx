@@ -3,14 +3,12 @@
 import React, { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Papa, { ParseResult } from 'papaparse';
-import pLimit from 'p-limit';
 import JSZip from 'jszip';
-import { uploadToPinata } from '@/utils/pinata';
-import styles from '../../styles/VendorDashboard.module.css';
+import styles from '../../styles/AddInventoryForm.module.css';
 import RadixSelect from '../admins/RadixSelect';
 import toast from 'react-hot-toast';
-import { SlArrowDown } from 'react-icons/sl';
-import { FaFileDownload } from 'react-icons/fa';
+import { FaEdit, FaLayerGroup, FaUpload, FaFileDownload, FaSpinner, FaImage } from 'react-icons/fa';
+import { HiOutlinePhotograph, HiOutlineDocumentText, HiOutlineCheckCircle } from 'react-icons/hi';
 
 type Mode = 'single' | 'bulk';
 
@@ -23,8 +21,8 @@ interface AssetRow {
   priceUSD: number;
   primary_image_url: string;
   gallery_image_urls?: string;
-  primary_image_file?: string; // New: local filename in zip
-  gallery_image_files?: string; // New: comma-separated local filenames
+  primary_image_file?: string;
+  gallery_image_files?: string;
   condition?: string;
   productionYear?: string;
   boxPapers?: string;
@@ -68,7 +66,6 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
   });
 
   const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<AssetRow[]>([]);
   const [previewRows, setPreviewRows] = useState<AssetRow[]>([]);
 
@@ -84,23 +81,6 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
       reader.readAsDataURL(file);
     });
   };
-
-  // const handleCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const file = e.target.files?.[0];
-  //   if (!file) return;
-  //   setCsvFile(file);
-  //   Papa.parse<AssetRow>(file, {
-  //     header: true,
-  //     skipEmptyLines: true,
-  //     complete: (results: ParseResult<AssetRow>) => {
-  //       const valid = results.data.filter(row => row.brand && row.model && row.priceUSD && row.primary_image_url);
-  //       setParsedRows(valid);
-  //       setPreviewRows(valid.slice(0, 10));
-  //       toast.success(`Loaded ${valid.length} valid assets${valid.length > 10 ? " (showing first 10)" : ""}`);
-  //     },
-  //     error: () => toast.error("Invalid CSV file"),
-  //   });
-  // };
 
   const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -138,21 +118,18 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
         throw new Error('Please upload .csv or .zip');
       }
 
-      // Convert images to base64 for pending storage
       setProgress('Preparing images...');
       const processedRows = await Promise.all(
         rows.map(async (row) => {
           let primaryBase64 = '';
           let galleryBase64s: string[] = [];
 
-          // Primary image
           if (row.primary_image_file && imageFiles[row.primary_image_file]) {
             primaryBase64 = await fileToBase64(imageFiles[row.primary_image_file]);
           } else if (row.primary_image_url) {
-            primaryBase64 = row.primary_image_url; // Keep URL for admin to verify/upload
+            primaryBase64 = row.primary_image_url;
           }
 
-          // Gallery images
           if (row.gallery_image_files) {
             const filenames = row.gallery_image_files.split(',').map((f) => f.trim());
             galleryBase64s = await Promise.all(
@@ -173,7 +150,7 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
       );
 
       setParsedRows(processedRows);
-      setPreviewRows(processedRows.slice(0, 10));
+      setPreviewRows(processedRows.slice(0, 5));
       setProgress('');
       toast.success(`Processed ${rows.length} assets – ready to submit`);
     } catch (err: any) {
@@ -187,6 +164,8 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
   const submitSingle = async () => {
     if (!publicKey || single.images.length === 0)
       return toast.error('Complete required fields and upload images');
+    if (!single.brand || !single.model) return toast.error('Brand and Model are required');
+
     setLoading(true);
     try {
       const imageBase64s = await Promise.all(single.images.map(fileToBase64));
@@ -204,14 +183,29 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
           priceUSD: single.priceUSD,
           imageBase64s,
           attributes: [
-            /* build from single state */
-          ],
+            { trait_type: 'Condition', value: single.condition },
+            { trait_type: 'Production Year', value: single.productionYear },
+            { trait_type: 'Box & Papers', value: single.boxPapers },
+            { trait_type: 'Material', value: single.material },
+            { trait_type: 'Movement', value: single.movement },
+            { trait_type: 'Water Resistance', value: single.waterResistance },
+            { trait_type: 'Dial Color', value: single.dialColor },
+            { trait_type: 'Country', value: single.country },
+          ].filter((attr) => attr.value),
         }),
       });
 
       toast.success('Asset submitted for review!');
       onSuccess();
-      setSingle((prev) => ({ ...prev, images: [] }));
+      setSingle((prev) => ({
+        ...prev,
+        images: [],
+        brand: '',
+        model: '',
+        title: '',
+        description: '',
+        priceUSD: 0,
+      }));
     } catch (err) {
       toast.error('Submission failed');
     } finally {
@@ -222,8 +216,13 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
   const submitBulk = async () => {
     if (parsedRows.length === 0) return toast.error('No assets to submit');
     setLoading(true);
+    setProgress(`Submitting 0/${parsedRows.length}...`);
+
     try {
-      for (const row of parsedRows) {
+      for (let i = 0; i < parsedRows.length; i++) {
+        const row = parsedRows[i];
+        setProgress(`Submitting ${i + 1}/${parsedRows.length}...`);
+
         await fetch('/api/asset/createPending', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -237,451 +236,490 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
             priceUSD: row.priceUSD,
             imageBase64s: (row as any).imageBase64s || [],
             attributes: [
-              /* build from row */
-            ],
+              { trait_type: 'Condition', value: row.condition },
+              { trait_type: 'Production Year', value: row.productionYear },
+              { trait_type: 'Box & Papers', value: row.boxPapers },
+              { trait_type: 'Material', value: row.material },
+              { trait_type: 'Movement', value: row.movement },
+              { trait_type: 'Water Resistance', value: row.waterResistance },
+              { trait_type: 'Dial Color', value: row.dialColor },
+              { trait_type: 'Country', value: row.country },
+            ].filter((attr) => attr.value),
           }),
         });
       }
 
       toast.success('Bulk submission complete!');
       onSuccess();
+      setParsedRows([]);
+      setPreviewRows([]);
+      setBulkFile(null);
     } catch (err) {
       toast.error('Bulk submission failed');
     } finally {
       setLoading(false);
+      setProgress('');
     }
   };
 
-  const buildMetadata = (data: typeof single | AssetRow, cids: string[]) => ({
-    name: data.title || `${data.brand} ${data.model}`,
-    description: data.description || '',
-    image: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${cids[0]}`,
-    attributes: [
-      { trait_type: 'Brand', value: data.brand },
-      { trait_type: 'Model', value: data.model },
-      { trait_type: 'Reference', value: data.reference || '' },
-      { trait_type: 'Condition', value: data.condition || 'Excellent' },
-      { trait_type: 'Production Year', value: data.productionYear || '' },
-      { trait_type: 'Box & Papers', value: data.boxPapers || 'No' },
-      { trait_type: 'Material', value: data.material || '' },
-      { trait_type: 'Movement', value: data.movement || '' },
-      { trait_type: 'Water Resistance', value: data.waterResistance || '' },
-      { trait_type: 'Dial Color', value: data.dialColor || '' },
-      { trait_type: 'Country', value: data.country || '' },
-      { trait_type: 'Release Date', value: data.releaseDate || '' },
-      { trait_type: 'Limited Edition', value: data.limitedEdition || '' },
-      { trait_type: 'Certificate', value: data.certificate || '' },
-      { trait_type: 'Warranty Info', value: data.warrantyInfo || '' },
-    ],
-    properties: {
-      files: cids.map((cid) => ({
-        uri: `${process.env.NEXT_PUBLIC_GATEWAY_URL}${cid}`,
-        type: 'image/jpeg',
-      })),
-      category: 'image',
-    },
-  });
-
-  const renderField = (label: string, input: React.ReactNode) => (
-    <div className={styles.formField}>
-      <label className={styles.formLabel}>{label}</label>
-      {input}
-    </div>
-  );
-
-  const singleInstructions = (
-    <>
-      <div className={styles.sectionHeading}>
-        <h2 className={styles.editHeading}>How to Add a Single Asset</h2>
-      </div>
-      <div className={styles.step}>
-        <p>Fill in all required fields with accurate details about your asset.</p>
-      </div>
-      <SlArrowDown className={styles.arrow} />
-      <div className={styles.step}>
-        <p>Upload high-quality images</p>
-      </div>
-      <SlArrowDown className={styles.arrow} />
-      <div className={styles.step}>
-        <p>Review your entry and click "Submit for Review".</p>
-      </div>
-      <SlArrowDown className={styles.arrow} />
-      <div className={styles.step}>
-        <p>
-          LuxHub admins will verify authenticity and mint the NFT directly to your wallet or store
-          vault.
-        </p>
-      </div>
-      <p className={styles.instructionsTip}>
-        Tip: Provide as much detail as possible for better marketplace visibility.
-      </p>
-    </>
-  );
-
-  const bulkInstructions = (
-    <>
-      <div className={styles.sectionHeading}>
-        <h2 className={styles.editHeading}>How to Bulk Upload Inventory</h2>
-      </div>
-      <div className={styles.step}>
-        <p>
-          Download our template and fill it with your inventory data, or upload an exported CSV file
-        </p>
-      </div>
-      <SlArrowDown className={styles.arrow} />
-      <div className={styles.step}>
-        <p>
-          Ensure image URLs are public direct links to high-quality photos, or include your photos
-          on your upload.
-        </p>
-      </div>
-      <SlArrowDown className={styles.arrow} />
-      <div className={styles.step}>
-        <p>Upload the completed CSV file below.</p>
-      </div>
-      <SlArrowDown className={styles.arrow} />
-      <div className={styles.step}>
-        <p>Preview the data and submit for review.</p>
-      </div>
-      <p className={styles.instructionsTip}>
-        Luxhub will handle blockchain listing after verification and mint the Asset directly to your
-        wallet or store vault.
-      </p>
-    </>
-  );
-
   return (
-    <div className={styles.tabContentColumn}>
-      <div className={styles.tabContent}>
-        <div className={styles.sectionHeading}>
-          <h2 className={styles.editHeading}>Add Inventory</h2>
-        </div>
-
-        <div className={styles.tabContentRow}>
-          <div className={styles.tabContentLeft}>
-            {' '}
-            {/* Tab Content*/}
-            {mode === 'single' && (
-              <div>
-                <div className={styles.formSection}>
-                  <div className={styles.sectionHeading}>
-                    <h2 className={styles.editHeading}>Basic Information</h2>
-                  </div>
-                  <div className={styles.formGrid}>
-                    {renderField(
-                      'Brand *',
-                      <input
-                        className={styles.formInput}
-                        value={single.brand}
-                        onChange={(e) => setSingle((p) => ({ ...p, brand: e.target.value }))}
-                        placeholder="Rolex"
-                        required
-                      />
-                    )}
-                    {renderField(
-                      'Model *',
-                      <input
-                        className={styles.formInput}
-                        value={single.model}
-                        onChange={(e) => setSingle((p) => ({ ...p, model: e.target.value }))}
-                        placeholder="Submariner"
-                        required
-                      />
-                    )}
-                    {renderField(
-                      'Reference',
-                      <input
-                        className={styles.formInput}
-                        value={single.reference}
-                        onChange={(e) => setSingle((p) => ({ ...p, reference: e.target.value }))}
-                        placeholder="126610LN"
-                      />
-                    )}
-                    {renderField(
-                      'Title',
-                      <input
-                        className={styles.formInput}
-                        value={single.title}
-                        onChange={(e) => setSingle((p) => ({ ...p, title: e.target.value }))}
-                        placeholder="Custom display title"
-                      />
-                    )}
-                    <div className={styles.formFullWidth}>
-                      {renderField(
-                        'Description',
-                        <textarea
-                          className={styles.formTextarea}
-                          rows={4}
-                          value={single.description}
-                          onChange={(e) =>
-                            setSingle((p) => ({ ...p, description: e.target.value }))
-                          }
-                          placeholder="Detailed description..."
-                        />
-                      )}
-                    </div>
-                    <div className={styles.formFullWidth}>
-                      {renderField(
-                        'Price USD *',
-                        <input
-                          className={styles.formInput}
-                          type="number"
-                          value={single.priceUSD || ''}
-                          onChange={(e) =>
-                            setSingle((p) => ({ ...p, priceUSD: Number(e.target.value) || 0 }))
-                          }
-                          required
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.formSection}>
-                  <div className={styles.sectionHeading}>
-                    <h2 className={styles.editHeading}>Specifications</h2>
-                  </div>
-                  <div className={styles.formGrid}>
-                    {renderField(
-                      'Condition',
-                      <RadixSelect
-                        value={single.condition}
-                        onValueChange={(v) => setSingle((p) => ({ ...p, condition: v }))}
-                        options={['New', 'Mint', 'Excellent', 'Very Good', 'Good', 'Fair']}
-                        placeholder={single.condition}
-                      />
-                    )}
-                    {renderField(
-                      'Production Year',
-                      <input
-                        className={styles.formInput}
-                        value={single.productionYear}
-                        onChange={(e) =>
-                          setSingle((p) => ({ ...p, productionYear: e.target.value }))
-                        }
-                        placeholder="2023"
-                      />
-                    )}
-                    {renderField(
-                      'Box & Papers',
-                      <RadixSelect
-                        value={single.boxPapers}
-                        onValueChange={(v) => setSingle((p) => ({ ...p, boxPapers: v }))}
-                        options={['Yes', 'No']}
-                        placeholder="Included?"
-                      />
-                    )}
-                    {renderField(
-                      'Material',
-                      <input
-                        className={styles.formInput}
-                        value={single.material}
-                        onChange={(e) => setSingle((p) => ({ ...p, material: e.target.value }))}
-                        placeholder="Steel"
-                      />
-                    )}
-                    {renderField(
-                      'Movement',
-                      <input
-                        className={styles.formInput}
-                        value={single.movement}
-                        onChange={(e) => setSingle((p) => ({ ...p, movement: e.target.value }))}
-                        placeholder="Automatic"
-                      />
-                    )}
-                    {renderField(
-                      'Water Resistance',
-                      <input
-                        className={styles.formInput}
-                        value={single.waterResistance}
-                        onChange={(e) =>
-                          setSingle((p) => ({ ...p, waterResistance: e.target.value }))
-                        }
-                        placeholder="300m"
-                      />
-                    )}
-                    {renderField(
-                      'Dial Color',
-                      <input
-                        className={styles.formInput}
-                        value={single.dialColor}
-                        onChange={(e) => setSingle((p) => ({ ...p, dialColor: e.target.value }))}
-                        placeholder="Black"
-                      />
-                    )}
-                    {renderField(
-                      'Country',
-                      <input
-                        className={styles.formInput}
-                        value={single.country}
-                        onChange={(e) => setSingle((p) => ({ ...p, country: e.target.value }))}
-                        placeholder="Switzerland"
-                      />
-                    )}
-                    {renderField(
-                      'Release Date',
-                      <input
-                        className={styles.formInput}
-                        type="date"
-                        value={single.releaseDate}
-                        onChange={(e) => setSingle((p) => ({ ...p, releaseDate: e.target.value }))}
-                      />
-                    )}
-                    {renderField(
-                      'Limited Edition',
-                      <input
-                        className={styles.formInput}
-                        value={single.limitedEdition}
-                        onChange={(e) =>
-                          setSingle((p) => ({ ...p, limitedEdition: e.target.value }))
-                        }
-                        placeholder="No"
-                      />
-                    )}
-                    {renderField(
-                      'Certificate',
-                      <input
-                        className={styles.formInput}
-                        value={single.certificate}
-                        onChange={(e) => setSingle((p) => ({ ...p, certificate: e.target.value }))}
-                        placeholder="Original certificate"
-                      />
-                    )}
-                    {renderField(
-                      'Warranty Info',
-                      <input
-                        className={styles.formInput}
-                        value={single.warrantyInfo}
-                        onChange={(e) => setSingle((p) => ({ ...p, warrantyInfo: e.target.value }))}
-                        placeholder="2-year warranty remaining"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className={styles.formSection}>
-                  <div className={styles.sectionHeading}>
-                    <h2 className={styles.editHeading}>Images</h2>
-                  </div>
-                  <div className={styles.formFullWidth}>
-                    {renderField(
-                      '1 Image per asset *',
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleSingleImage}
-                        className={styles.fileInput}
-                        required
-                      />
-                    )}
-                    {single.images.length > 0 && (
-                      <p className="mt-3 text-cyan-300">{single.images.length} images selected</p>
-                    )}
-                  </div>
-                </div>
-
-                <button onClick={submitSingle} disabled={loading} className={styles.mintButton}>
-                  {loading ? 'Submitting...' : 'Submit to Luxhub'}
-                </button>
+    <div className={styles.inventoryContainer}>
+      {/* Single Mode */}
+      {mode === 'single' && (
+        <div className={styles.formLayout}>
+          <div className={styles.formColumn}>
+            {/* Image Upload Section */}
+            <div className={styles.formCard}>
+              <div className={styles.formSectionTitle}>
+                <HiOutlinePhotograph />
+                <span>Asset Images</span>
               </div>
-            )}
-            {mode === 'bulk' && (
-              <div>
-                <div className={styles.downloadZone}>
-                  <p> Inventory template Download </p>
-                  <FaFileDownload className={styles.fileIcon} />
-                  .csv{' '}
-                  <a href="/templates/luxhub_inventory_template.csv" download>
-                    {/* <FaFileDownload  /> */}
-                  </a>{' '}
-                </div>
-                <div className={styles.sectionHeading}>
-                  <h2 className={styles.editHeading}>Upload Files</h2>
-                </div>
 
-                <div>
-                  To upload your inventory in bulk, please provide a CSV file, or a ZIP file
-                  containing a CSV and associated images
-                </div>
+              <div className={styles.imageUploadZone}>
+                <input
+                  type="file"
+                  id="imageUpload"
+                  multiple
+                  accept="image/*"
+                  onChange={handleSingleImage}
+                  className={styles.hiddenInput}
+                />
+                <label htmlFor="imageUpload" className={styles.uploadLabel}>
+                  <FaImage className={styles.uploadIcon} />
+                  <span className={styles.uploadText}>
+                    {single.images.length > 0
+                      ? `${single.images.length} image${single.images.length > 1 ? 's' : ''} selected`
+                      : 'Click to upload images'}
+                  </span>
+                  <span className={styles.uploadHint}>PNG, JPG, WEBP up to 10MB each</span>
+                </label>
+              </div>
 
-                <div className={styles.formSection}>
-                  {/* <h2 >Upload Inventory here</h2> */}
+              {single.images.length > 0 && (
+                <div className={styles.imagePreviewGrid}>
+                  {single.images.map((file, idx) => (
+                    <div key={idx} className={styles.imagePreviewItem}>
+                      <img src={URL.createObjectURL(file)} alt={`Preview ${idx + 1}`} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Basic Information */}
+            <div className={styles.formCard}>
+              <div className={styles.formSectionTitle}>
+                <HiOutlineDocumentText />
+                <span>Basic Information</span>
+              </div>
+
+              <div className={styles.formGrid}>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Brand *</label>
                   <input
-                    type="file"
-                    accept=".csv,.zip"
-                    onChange={handleBulkUpload}
-                    className={styles.fileInput}
+                    className={styles.formInput}
+                    value={single.brand}
+                    onChange={(e) => setSingle((p) => ({ ...p, brand: e.target.value }))}
+                    placeholder="Rolex"
                   />
-                  {progress && <p>{progress}</p>}
                 </div>
 
-                {previewRows.length > 0 && (
-                  <div className={styles.previewTable}>
-                    <h4>Preview</h4>
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr>
-                          {Object.keys(previewRows[0]).map((key) => (
-                            <th key={key} className="border border-gray-600 p-2 text-left">
-                              {key}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {previewRows.map((row, i) => (
-                          <tr key={i}>
-                            {Object.values(row).map((val, j) => (
-                              <td key={j} className="border border-gray-600 p-2">
-                                {String(val ?? '')}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Model *</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.model}
+                    onChange={(e) => setSingle((p) => ({ ...p, model: e.target.value }))}
+                    placeholder="Submariner"
+                  />
+                </div>
 
-                <button
-                  onClick={submitBulk}
-                  disabled={loading || parsedRows.length === 0}
-                  className={styles.mintButton}
-                >
-                  {loading ? 'Processing...' : `Submit ${parsedRows.length} Assets`}
-                </button>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Reference</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.reference}
+                    onChange={(e) => setSingle((p) => ({ ...p, reference: e.target.value }))}
+                    placeholder="126610LN"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Price (USD) *</label>
+                  <input
+                    className={styles.formInput}
+                    type="number"
+                    value={single.priceUSD || ''}
+                    onChange={(e) =>
+                      setSingle((p) => ({ ...p, priceUSD: Number(e.target.value) || 0 }))
+                    }
+                    placeholder="15000"
+                  />
+                </div>
+
+                <div className={styles.formFieldFull}>
+                  <label className={styles.formLabel}>Title (Optional)</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.title}
+                    onChange={(e) => setSingle((p) => ({ ...p, title: e.target.value }))}
+                    placeholder="Custom display title"
+                  />
+                </div>
+
+                <div className={styles.formFieldFull}>
+                  <label className={styles.formLabel}>Description</label>
+                  <textarea
+                    className={styles.formTextarea}
+                    rows={4}
+                    value={single.description}
+                    onChange={(e) => setSingle((p) => ({ ...p, description: e.target.value }))}
+                    placeholder="Detailed description of the asset..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Specifications */}
+            <div className={styles.formCard}>
+              <div className={styles.formSectionTitle}>
+                <HiOutlineCheckCircle />
+                <span>Specifications</span>
+              </div>
+
+              <div className={styles.formGrid}>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Condition</label>
+                  <RadixSelect
+                    value={single.condition}
+                    onValueChange={(v) => setSingle((p) => ({ ...p, condition: v }))}
+                    options={['New', 'Mint', 'Excellent', 'Very Good', 'Good', 'Fair']}
+                    placeholder={single.condition}
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Production Year</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.productionYear}
+                    onChange={(e) => setSingle((p) => ({ ...p, productionYear: e.target.value }))}
+                    placeholder="2023"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Box & Papers</label>
+                  <RadixSelect
+                    value={single.boxPapers}
+                    onValueChange={(v) => setSingle((p) => ({ ...p, boxPapers: v }))}
+                    options={['Yes', 'Box Only', 'Papers Only', 'No']}
+                    placeholder="Included?"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Material</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.material}
+                    onChange={(e) => setSingle((p) => ({ ...p, material: e.target.value }))}
+                    placeholder="Stainless Steel"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Movement</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.movement}
+                    onChange={(e) => setSingle((p) => ({ ...p, movement: e.target.value }))}
+                    placeholder="Automatic"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Water Resistance</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.waterResistance}
+                    onChange={(e) => setSingle((p) => ({ ...p, waterResistance: e.target.value }))}
+                    placeholder="300m"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Dial Color</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.dialColor}
+                    onChange={(e) => setSingle((p) => ({ ...p, dialColor: e.target.value }))}
+                    placeholder="Black"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Country</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.country}
+                    onChange={(e) => setSingle((p) => ({ ...p, country: e.target.value }))}
+                    placeholder="Switzerland"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button onClick={submitSingle} disabled={loading} className={styles.submitButton}>
+              {loading ? (
+                <>
+                  <FaSpinner className={styles.spinner} />
+                  <span>SUBMITTING...</span>
+                </>
+              ) : (
+                <span>SUBMIT FOR REVIEW</span>
+              )}
+            </button>
+          </div>
+
+          {/* Instructions Sidebar */}
+          <div className={styles.instructionsColumn}>
+            <div className={styles.instructionsCard}>
+              <h3 className={styles.instructionsTitle}>How It Works</h3>
+
+              <div className={styles.stepsList}>
+                <div className={styles.step}>
+                  <div className={styles.stepNumber}>1</div>
+                  <div className={styles.stepContent}>
+                    <h4>Upload Images</h4>
+                    <p>Add high-quality photos of your asset</p>
+                  </div>
+                </div>
+
+                <div className={styles.step}>
+                  <div className={styles.stepNumber}>2</div>
+                  <div className={styles.stepContent}>
+                    <h4>Fill Details</h4>
+                    <p>Provide accurate information about your asset</p>
+                  </div>
+                </div>
+
+                <div className={styles.step}>
+                  <div className={styles.stepNumber}>3</div>
+                  <div className={styles.stepContent}>
+                    <h4>Submit for Review</h4>
+                    <p>LuxHub admins will verify authenticity</p>
+                  </div>
+                </div>
+
+                <div className={styles.step}>
+                  <div className={styles.stepNumber}>4</div>
+                  <div className={styles.stepContent}>
+                    <h4>NFT Minted</h4>
+                    <p>Once approved, NFT is minted to your wallet</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.tipBox}>
+                <strong>Tip:</strong> Provide as much detail as possible for better marketplace
+                visibility and faster approval.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Mode */}
+      {mode === 'bulk' && (
+        <div className={styles.formLayout}>
+          <div className={styles.formColumn}>
+            {/* Download Template */}
+            <div className={styles.formCard}>
+              <div className={styles.formSectionTitle}>
+                <FaFileDownload />
+                <span>Download Template</span>
+              </div>
+
+              <p className={styles.templateDescription}>
+                Download our inventory template to ensure your data is formatted correctly.
+              </p>
+
+              <a
+                href="/templates/luxhub_inventory_template.csv"
+                download
+                className={styles.downloadButton}
+              >
+                <FaFileDownload />
+                <span>Download CSV Template</span>
+              </a>
+            </div>
+
+            {/* Upload Section */}
+            <div className={styles.formCard}>
+              <div className={styles.formSectionTitle}>
+                <FaUpload />
+                <span>Upload Inventory</span>
+              </div>
+
+              <p className={styles.uploadDescription}>
+                Upload a CSV file with your inventory data, or a ZIP file containing CSV and images.
+              </p>
+
+              <div className={styles.bulkUploadZone}>
+                <input
+                  type="file"
+                  id="bulkUpload"
+                  accept=".csv,.zip"
+                  onChange={handleBulkUpload}
+                  disabled={loading}
+                  className={styles.hiddenInput}
+                />
+                <label htmlFor="bulkUpload" className={styles.uploadLabel}>
+                  <FaUpload className={styles.uploadIcon} />
+                  <span className={styles.uploadText}>
+                    {bulkFile ? bulkFile.name : 'Click to upload CSV or ZIP'}
+                  </span>
+                  <span className={styles.uploadHint}>Supports .csv and .zip files</span>
+                </label>
+              </div>
+
+              {progress && (
+                <div className={styles.progressBar}>
+                  <div className={styles.progressText}>{progress}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Preview Table */}
+            {previewRows.length > 0 && (
+              <div className={styles.formCard}>
+                <div className={styles.formSectionTitle}>
+                  <HiOutlineDocumentText />
+                  <span>Preview ({parsedRows.length} assets)</span>
+                </div>
+
+                <div className={styles.previewTableWrapper}>
+                  <table className={styles.previewTable}>
+                    <thead>
+                      <tr>
+                        <th>Brand</th>
+                        <th>Model</th>
+                        <th>Reference</th>
+                        <th>Price</th>
+                        <th>Condition</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row, i) => (
+                        <tr key={i}>
+                          <td>{row.brand}</td>
+                          <td>{row.model}</td>
+                          <td>{row.reference || '-'}</td>
+                          <td>${Number(row.priceUSD).toLocaleString()}</td>
+                          <td>{row.condition || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {parsedRows.length > 5 && (
+                  <p className={styles.previewNote}>
+                    Showing first 5 of {parsedRows.length} assets
+                  </p>
+                )}
               </div>
             )}
+
+            {/* Submit Button */}
+            <button
+              onClick={submitBulk}
+              disabled={loading || parsedRows.length === 0}
+              className={styles.submitButton}
+            >
+              {loading ? (
+                <>
+                  <FaSpinner className={styles.spinner} />
+                  <span>{progress || 'PROCESSING...'}</span>
+                </>
+              ) : (
+                <span>SUBMIT {parsedRows.length} ASSETS FOR REVIEW</span>
+              )}
+            </button>
           </div>
 
-          <div className={styles.tabContentRight}>
-            {' '}
-            {/* Insstruction Content*/}
-            {mode === 'single' ? singleInstructions : bulkInstructions}
+          {/* Instructions Sidebar */}
+          <div className={styles.instructionsColumn}>
+            <div className={styles.instructionsCard}>
+              <h3 className={styles.instructionsTitle}>Bulk Upload Guide</h3>
+
+              <div className={styles.stepsList}>
+                <div className={styles.step}>
+                  <div className={styles.stepNumber}>1</div>
+                  <div className={styles.stepContent}>
+                    <h4>Download Template</h4>
+                    <p>Get the CSV template with all required columns</p>
+                  </div>
+                </div>
+
+                <div className={styles.step}>
+                  <div className={styles.stepNumber}>2</div>
+                  <div className={styles.stepContent}>
+                    <h4>Fill Your Data</h4>
+                    <p>Add your inventory with image URLs or filenames</p>
+                  </div>
+                </div>
+
+                <div className={styles.step}>
+                  <div className={styles.stepNumber}>3</div>
+                  <div className={styles.stepContent}>
+                    <h4>Upload Files</h4>
+                    <p>Upload CSV or ZIP (with images) file</p>
+                  </div>
+                </div>
+
+                <div className={styles.step}>
+                  <div className={styles.stepNumber}>4</div>
+                  <div className={styles.stepContent}>
+                    <h4>Review & Submit</h4>
+                    <p>Verify preview and submit for admin review</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.tipBox}>
+                <strong>Tip:</strong> For ZIP uploads, include images in the same folder as your CSV
+                and reference them by filename.
+              </div>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className={styles.modeTabs}>
-          <button
-            className={mode === 'single' ? styles.active : ''}
-            onClick={() => {
-              setMode('single');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            Manual
-          </button>
-          <button
-            className={mode === 'bulk' ? styles.active : ''}
-            onClick={() => {
-              setMode('bulk');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            Bulk
-          </button>
-        </div>
+      {/* Mode Switcher */}
+      <div className={styles.modeTabs}>
+        <button
+          className={mode === 'single' ? styles.active : ''}
+          onClick={() => {
+            setMode('single');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <FaEdit className={styles.modeIcon} />
+          <span>Manual</span>
+        </button>
+        <button
+          className={mode === 'bulk' ? styles.active : ''}
+          onClick={() => {
+            setMode('bulk');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <FaLayerGroup className={styles.modeIcon} />
+          <span>Bulk</span>
+        </button>
       </div>
     </div>
   );

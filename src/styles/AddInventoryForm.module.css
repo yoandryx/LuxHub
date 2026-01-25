@@ -1,0 +1,546 @@
+/* ========================================
+   LUXHUB ADD INVENTORY FORM
+   Premium Glass-Morphism Design System
+   ======================================== */
+
+/* ========== CSS VARIABLES ========== */
+.inventoryContainer {
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --accent-bright: #d8bcff;
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --bg-elevated: #1a1a1a;
+  --border: #222222;
+  --border-light: #333333;
+  --glass: rgba(13, 13, 13, 0.85);
+  --glass-light: rgba(30, 30, 30, 0.6);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+  --text-muted: #666666;
+  --success: #4ade80;
+  --error: #f87171;
+
+  position: relative;
+  padding-bottom: 100px;
+  font-family:
+    'Clash Display',
+    'Inter',
+    -apple-system,
+    sans-serif;
+}
+
+/* ========== FORM LAYOUT ========== */
+.formLayout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  justify-content: center;
+  align-items: flex-start;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.formColumn {
+  flex: 1 1 500px;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.instructionsColumn {
+  position: sticky;
+  top: 100px;
+  flex: 0 0 320px;
+  max-width: 360px;
+  align-self: flex-start;
+}
+
+@media (max-width: 1024px) {
+  .instructionsColumn {
+    position: relative;
+    top: 0;
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+}
+
+/* ========== FORM CARD ========== */
+.formCard {
+  background: var(--glass);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.formSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.formSectionTitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-dim) 0%, transparent 100%);
+}
+
+.formSectionTitle svg {
+  font-size: 1.2rem;
+}
+
+/* ========== FORM GRID ========== */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formFieldFull {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.formInput,
+.formTextarea {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.formInput::placeholder,
+.formTextarea::placeholder {
+  color: var(--text-muted);
+}
+
+.formInput:focus,
+.formTextarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(200, 161, 255, 0.05);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.formTextarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* ========== IMAGE UPLOAD ========== */
+.imageUploadZone,
+.bulkUploadZone {
+  position: relative;
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.uploadLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.05) 0%, rgba(138, 43, 226, 0.03) 100%);
+  border: 2px dashed var(--accent-dim);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.uploadLabel:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1) 0%, rgba(138, 43, 226, 0.06) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(200, 161, 255, 0.15);
+}
+
+.uploadIcon {
+  font-size: 2.5rem;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.uploadText {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.uploadHint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ========== IMAGE PREVIEW GRID ========== */
+.imagePreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.imagePreviewItem {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.imagePreviewItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ========== INSTRUCTIONS CARD ========== */
+.instructionsCard {
+  background: var(--glass);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.instructionsTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 24px 0;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stepsList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.stepNumber {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent) 0%, #9333ea 100%);
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bg-dark);
+}
+
+.stepContent h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stepContent p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tipBox {
+  margin-top: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1) 0%, rgba(138, 43, 226, 0.05) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.tipBox strong {
+  color: var(--accent);
+}
+
+/* ========== SUBMIT BUTTON ========== */
+.submitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 18px 32px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 50%, #9333ea 100%);
+  background-size: 200% auto;
+  border: none;
+  border-radius: 14px;
+  color: var(--bg-dark);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 40px rgba(200, 161, 255, 0.4);
+  background-position: right center;
+}
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== DOWNLOAD BUTTON ========== */
+.templateDescription,
+.uploadDescription {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.downloadButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.15) 0%, rgba(138, 43, 226, 0.1) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 12px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.downloadButton:hover {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.25) 0%, rgba(138, 43, 226, 0.2) 100%);
+  border-color: var(--accent);
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+/* ========== PROGRESS BAR ========== */
+.progressBar {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid var(--accent-dim);
+  border-radius: 10px;
+}
+
+.progressText {
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ========== PREVIEW TABLE ========== */
+.previewTableWrapper {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.previewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.previewTable th,
+.previewTable td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.previewTable th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  background: rgba(200, 161, 255, 0.05);
+}
+
+.previewTable td {
+  color: var(--text-secondary);
+}
+
+.previewTable tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.previewNote {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ========== MODE TABS ========== */
+.modeTabs {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(13, 13, 13, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(200, 161, 255, 0.1);
+  z-index: 100;
+}
+
+.modeTabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modeTabs button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.modeTabs button.active {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.25) 0%, rgba(138, 43, 226, 0.2) 100%);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(200, 161, 255, 0.2);
+}
+
+.modeIcon {
+  font-size: 1rem;
+}
+
+@media (max-width: 480px) {
+  .modeTabs {
+    bottom: 16px;
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .modeTabs button {
+    padding: 10px 16px;
+    font-size: 0.8rem;
+  }
+}

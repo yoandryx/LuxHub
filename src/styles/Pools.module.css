@@ -1,11 +1,14 @@
-/* src/styles/Pools.module.css */
-/* LuxHub Glassmorphic Theme - Matching WatchMarket */
+/* ========================================
+   LUXHUB POOLS PAGE
+   Premium Glass-Morphism Design System
+   ======================================== */
 
 .pageContainer {
   --accent: #c8a1ff;
   --accent-dim: #c8a1ff40;
   --accent-glow: #c8a1ff20;
   --bg-dark: #0d0d0d;
+  --bg-card: #111111;
   --border: #222222;
   --glass: rgba(13, 13, 13, 0.85);
   --text-primary: #ffffff;
@@ -13,208 +16,186 @@
   --text-muted: rgba(255, 255, 255, 0.5);
 
   min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    rgba(13, 13, 13, 1) 0%,
-    rgba(15, 10, 20, 1) 50%,
-    rgba(10, 10, 15, 1) 100%
-  );
-  padding: 70px 16px 60px;
-  box-sizing: border-box;
-  overflow-x: hidden;
+  background: var(--bg-dark);
+  padding: 80px 20px 60px;
+  font-family:
+    'Clash Display',
+    'Inter',
+    -apple-system,
+    sans-serif;
 }
 
-/* ============================================
-   HERO SECTION
-   ============================================ */
-.hero {
-  position: relative;
-  padding: 40px 20px 50px;
-  text-align: center;
-  overflow: hidden;
-}
-
-.hero::before {
+/* Ambient glow effect */
+.pageContainer::before {
   content: '';
-  position: absolute;
-  top: -100px;
+  position: fixed;
+  top: -200px;
   left: 50%;
   transform: translateX(-50%);
   width: 800px;
-  height: 400px;
-  background: radial-gradient(ellipse, rgba(200, 161, 255, 0.12) 0%, transparent 70%);
+  height: 500px;
+  background: radial-gradient(ellipse, rgba(200, 161, 255, 0.08) 0%, transparent 60%);
   pointer-events: none;
+  z-index: 0;
+}
+
+/* ============================================
+   COMPACT HERO SECTION
+   ============================================ */
+.hero {
+  position: relative;
+  padding: 20px 20px 30px;
+  text-align: center;
+  z-index: 1;
 }
 
 .heroContent {
-  position: relative;
-  max-width: 900px;
+  max-width: 800px;
   margin: 0 auto;
 }
 
 .heroTitle {
-  font-size: 2.8rem;
+  font-size: 2rem;
   font-weight: 700;
-  margin: 0 0 16px 0;
-  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #ffffff 0%, #c8a1ff 50%, #a855f7 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-transform: uppercase;
-  letter-spacing: 2px;
 }
 
 .heroSubtitle {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
-  margin: 0 0 40px 0;
-  line-height: 1.7;
-  max-width: 700px;
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+  max-width: 600px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .heroStats {
-  display: flex;
-  justify-content: center;
-  gap: 50px;
-  flex-wrap: wrap;
+  display: inline-flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
 }
 
 .heroStat {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 20px 30px;
-  background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(15, 15, 20, 0.9) 100%);
-  border: 1px solid var(--accent-dim);
-  border-radius: 16px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
   transition: all 0.3s ease;
 }
 
 .heroStat:hover {
-  border-color: var(--accent);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(200, 161, 255, 0.15);
+  background: rgba(200, 161, 255, 0.1);
 }
 
 .heroStatValue {
-  font-size: 2rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--accent);
 }
 
 .heroStatLabel {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-}
-
-/* ============================================
-   HOW IT WORKS SECTION
-   ============================================ */
-.howItWorks {
-  max-width: 1200px;
-  margin: 0 auto 50px;
-  padding: 0 16px;
-}
-
-.sectionTitle {
-  font-size: 1.6rem;
-  font-weight: 600;
-  text-align: center;
-  margin: 0 0 40px 0;
-  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
+/* ============================================
+   COMPACT HOW IT WORKS - INLINE
+   ============================================ */
+.howItWorks {
+  max-width: 1000px;
+  margin: 0 auto 32px;
+  padding: 0 16px;
+}
+
+.sectionTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 20px 0;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
 .stepsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .step {
-  position: relative;
-  background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(15, 15, 20, 0.9) 100%);
-  border: 1px solid var(--accent-dim);
-  border-radius: 20px;
-  padding: 28px 20px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.6) 0%, rgba(20, 20, 25, 0.8) 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  overflow: hidden;
-}
-
-.step::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
 }
 
 .step:hover {
-  border-color: var(--accent);
-  transform: translateY(-6px);
-  box-shadow: 0 12px 40px rgba(200, 161, 255, 0.15);
-}
-
-.step:hover::before {
-  opacity: 1;
+  border-color: var(--accent-dim);
+  transform: translateY(-2px);
 }
 
 .stepNumber {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 18px;
-  background: linear-gradient(135deg, var(--accent) 0%, #a87de8 100%);
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--accent) 0%, #9333ea 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #000;
-  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.4);
+  color: var(--bg-dark);
+  flex-shrink: 0;
 }
 
 .step h3 {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 10px 0;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .step p {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin: 0;
-  line-height: 1.6;
+  display: none;
 }
 
 /* ============================================
-   WALLET CONNECTION BANNER & MODAL
+   WALLET BANNER & MODAL
    ============================================ */
 .walletBanner {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1) 0%, rgba(138, 43, 226, 0.08) 100%);
   border: 1px solid var(--accent-dim);
-  border-radius: 16px;
-  padding: 14px 24px;
-  margin: 0 auto 30px;
-  max-width: 700px;
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin: 0 auto 20px;
+  max-width: 500px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -224,15 +205,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
 }
 
 .walletBannerContent span {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Wallet Modal Overlay */
+/* Wallet Modal */
 .walletModalOverlay {
   position: fixed;
   top: 0;
@@ -253,12 +235,10 @@
   position: relative;
   background: linear-gradient(135deg, rgba(20, 20, 25, 0.95) 0%, rgba(15, 15, 20, 0.98) 100%);
   border: 1px solid var(--accent-dim);
-  border-radius: 24px;
+  border-radius: 20px;
   padding: 32px;
-  max-width: 500px;
+  max-width: 450px;
   width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
   box-shadow:
     0 24px 80px rgba(0, 0, 0, 0.6),
     0 0 60px rgba(200, 161, 255, 0.1);
@@ -274,8 +254,8 @@
   border: 1px solid var(--accent-dim);
   color: var(--text-primary);
   font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -293,222 +273,86 @@
 .walletModalMessage {
   text-align: center;
   color: var(--text-secondary);
-  font-size: 1.1rem;
+  font-size: 1rem;
   margin-bottom: 24px;
-  padding: 0 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* ============================================
-   RESPONSIVE DESIGN
+   RESPONSIVE
    ============================================ */
-
-/* Tablets */
-@media (max-width: 1024px) {
-  .stepsGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-
-  .heroStats {
-    gap: 30px;
-  }
-
-  .heroStat {
-    padding: 16px 24px;
-  }
-}
-
-/* Mobile */
 @media (max-width: 768px) {
   .pageContainer {
-    padding: 60px 12px 50px;
+    padding: 70px 12px 50px;
   }
 
   .hero {
-    padding: 30px 16px 40px;
+    padding: 16px 12px 24px;
   }
 
   .heroTitle {
-    font-size: 2rem;
+    font-size: 1.5rem;
     letter-spacing: 1px;
   }
 
   .heroSubtitle {
-    font-size: 1rem;
-    margin-bottom: 30px;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
   }
 
   .heroStats {
     flex-direction: column;
-    gap: 16px;
-    align-items: center;
+    width: 100%;
+    max-width: 280px;
   }
 
   .heroStat {
-    width: 100%;
-    max-width: 280px;
-    padding: 16px 20px;
-    flex-direction: row;
     justify-content: space-between;
-  }
-
-  .heroStatValue {
-    font-size: 1.6rem;
-  }
-
-  .heroStatLabel {
-    font-size: 0.7rem;
-  }
-
-  .howItWorks {
-    margin-bottom: 40px;
-  }
-
-  .sectionTitle {
-    font-size: 1.3rem;
-    margin-bottom: 30px;
+    width: 100%;
   }
 
   .stepsGrid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .step {
-    padding: 24px 20px;
-    display: flex;
     flex-direction: column;
     align-items: center;
   }
 
-  .stepNumber {
-    width: 44px;
-    height: 44px;
-    font-size: 1.1rem;
-    margin-bottom: 14px;
-  }
-
-  .step h3 {
-    font-size: 1rem;
-  }
-
-  .step p {
-    font-size: 0.85rem;
+  .step {
+    width: 100%;
+    max-width: 320px;
   }
 
   .walletBanner {
-    padding: 12px 16px;
-    margin: 0 8px 24px;
-    border-radius: 12px;
+    margin: 0 8px 16px;
   }
 
   .walletBannerContent {
     flex-direction: column;
     text-align: center;
-    gap: 12px;
-  }
-
-  .walletBannerContent span {
-    font-size: 0.9rem;
-  }
-
-  .walletModalContent {
-    padding: 24px 20px;
-    margin: 10px;
-    border-radius: 20px;
-  }
-
-  .walletModalMessage {
-    font-size: 1rem;
-    padding: 0 10px;
-  }
-
-  .walletModalClose {
-    width: 36px;
-    height: 36px;
-    font-size: 1.3rem;
-    top: 12px;
-    right: 12px;
+    gap: 10px;
   }
 }
 
-/* Small Mobile */
 @media (max-width: 480px) {
-  .pageContainer {
-    padding: 55px 10px 40px;
-  }
-
-  .hero {
-    padding: 20px 12px 30px;
-  }
-
   .heroTitle {
-    font-size: 1.6rem;
-  }
-
-  .heroSubtitle {
-    font-size: 0.9rem;
+    font-size: 1.3rem;
   }
 
   .heroStatValue {
-    font-size: 1.4rem;
+    font-size: 1.1rem;
   }
 
   .heroStatLabel {
     font-size: 0.65rem;
   }
 
-  .sectionTitle {
-    font-size: 1.1rem;
-  }
-
   .stepNumber {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
   }
 
   .step h3 {
-    font-size: 0.95rem;
-  }
-
-  .step p {
     font-size: 0.8rem;
   }
-}
-
-/* ============================================
-   ANIMATIONS
-   ============================================ */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.heroContent {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.step {
-  animation: fadeInUp 0.5s ease-out;
-  animation-fill-mode: both;
-}
-
-.step:nth-child(1) {
-  animation-delay: 0.1s;
-}
-.step:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.step:nth-child(3) {
-  animation-delay: 0.3s;
-}
-.step:nth-child(4) {
-  animation-delay: 0.4s;
 }
