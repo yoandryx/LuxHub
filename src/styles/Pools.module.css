@@ -1,227 +1,337 @@
 /* ========================================
-   LUXHUB POOLS PAGE
-   Premium Glass-Morphism Design System
+   LUXHUB × BAGS TRADING TERMINAL
+   Watch Pools - Blockchain Native UI
    ======================================== */
 
 .pageContainer {
+  /* Core Colors */
   --accent: #c8a1ff;
   --accent-dim: #c8a1ff40;
   --accent-glow: #c8a1ff20;
+
+  /* Bags Green Accents */
+  --green: #00ff88;
+  --green-dim: #00ff8840;
+  --green-glow: #00ff8820;
+  --green-dark: #00cc6a;
+
+  /* Terminal Colors */
+  --bg-terminal: #0a0a0a;
   --bg-dark: #0d0d0d;
   --bg-card: #111111;
-  --border: #222222;
-  --glass: rgba(13, 13, 13, 0.85);
+  --bg-elevated: #151515;
+  --border: #1a1a1a;
+  --border-light: #252525;
+  --glass: rgba(10, 10, 10, 0.9);
+  --glass-light: rgba(20, 20, 20, 0.8);
+
+  /* Text */
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-muted: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.4);
 
   min-height: 100vh;
-  background: var(--bg-dark);
-  padding: 80px 20px 60px;
-  font-family:
-    'Clash Display',
-    'Inter',
-    -apple-system,
-    sans-serif;
+  background: var(--bg-terminal);
+  font-family: 'Clash Display', 'SF Mono', 'Fira Code', monospace;
+  overflow-x: hidden;
 }
 
-/* Ambient glow effect */
+/* Terminal Grid Background */
 .pageContainer::before {
   content: '';
   position: fixed;
-  top: -200px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ambient Glow */
+.pageContainer::after {
+  content: '';
+  position: fixed;
+  top: -300px;
   left: 50%;
   transform: translateX(-50%);
-  width: 800px;
-  height: 500px;
-  background: radial-gradient(ellipse, rgba(200, 161, 255, 0.08) 0%, transparent 60%);
+  width: 1000px;
+  height: 600px;
+  background: radial-gradient(ellipse, rgba(0, 255, 136, 0.08) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
 
 /* ============================================
-   COMPACT HERO SECTION
+   TERMINAL HEADER
    ============================================ */
-.hero {
+.terminalHeader {
   position: relative;
-  padding: 20px 20px 30px;
-  text-align: center;
-  z-index: 1;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(180deg, rgba(0, 255, 136, 0.05) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
 }
 
-.heroContent {
-  max-width: 800px;
-  margin: 0 auto;
+.terminalBrand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.heroTitle {
-  font-size: 2rem;
+.terminalLogo {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+  border-radius: 12px;
+  box-shadow: 0 0 30px var(--green-glow);
+}
+
+.terminalIcon {
+  font-size: 1.5rem;
+  color: var(--bg-terminal);
+}
+
+.terminalTitle h1 {
+  font-size: 1.5rem;
   font-weight: 700;
-  margin: 0 0 10px 0;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, #ffffff 0%, #c8a1ff 50%, #a855f7 100%);
+  letter-spacing: 3px;
+  margin: 0;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--green) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.heroSubtitle {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  margin: 0 0 24px 0;
-  line-height: 1.6;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+.terminalSubtitle {
+  font-size: 0.65rem;
+  letter-spacing: 4px;
+  color: var(--green);
+  opacity: 0.8;
 }
 
-.heroStats {
-  display: inline-flex;
-  gap: 8px;
-  padding: 8px;
-  background: var(--glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-}
-
-.heroStat {
+.terminalStats {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: transparent;
-  border: none;
-  border-radius: 10px;
-  transition: all 0.3s ease;
-}
-
-.heroStat:hover {
-  background: rgba(200, 161, 255, 0.1);
-}
-
-.heroStatValue {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.heroStatLabel {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* ============================================
-   COMPACT HOW IT WORKS - INLINE
-   ============================================ */
-.howItWorks {
-  max-width: 1000px;
-  margin: 0 auto 32px;
-  padding: 0 16px;
-}
-
-.sectionTitle {
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-align: center;
-  margin: 0 0 20px 0;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-.stepsGrid {
-  display: flex;
-  justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.step {
+.statPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--glass);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.statPill:hover {
+  border-color: var(--green-dim);
+  background: rgba(0, 255, 136, 0.05);
+}
+
+.statPill svg {
+  color: var(--green);
+  font-size: 0.9rem;
+}
+
+.statDot {
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 10px var(--green);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+}
+
+.statLabel {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.connectWallet {
+  margin-left: auto;
+}
+
+/* ============================================
+   HOW IT WORKS - BADGE ICONS
+   ============================================ */
+.howItWorks {
+  position: relative;
+  z-index: 10;
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.stepsContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: fit-content;
+}
+
+.stepBadge {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  background: linear-gradient(135deg, rgba(30, 30, 35, 0.6) 0%, rgba(20, 20, 25, 0.8) 100%);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.08) 0%, rgba(10, 10, 10, 0.9) 100%);
+  border: 1px solid var(--green-dim);
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
 }
 
-.step:hover {
-  border-color: var(--accent-dim);
+.stepBadge:hover {
   transform: translateY(-2px);
+  border-color: var(--green);
+  box-shadow: 0 8px 30px rgba(0, 255, 136, 0.15);
 }
 
-.stepNumber {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, var(--accent) 0%, #9333ea 100%);
-  border-radius: 50%;
+.badgeIcon {
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+  border-radius: 10px;
+  color: var(--bg-terminal);
+  font-size: 1.1rem;
+  box-shadow: 0 0 20px var(--green-glow);
+}
+
+.badgeContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.badgeNumber {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--green);
   font-weight: 700;
-  color: var(--bg-dark);
+}
+
+.badgeLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+}
+
+.stepConnector {
+  width: 32px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green-dim), var(--green), var(--green-dim));
+  border-radius: 1px;
   flex-shrink: 0;
 }
 
-.step h3 {
-  font-size: 0.85rem;
-  font-weight: 600;
+/* ============================================
+   QUICK STATS BAR
+   ============================================ */
+.quickStats {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.quickStat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--bg-dark);
+  transition: all 0.2s ease;
+}
+
+.quickStat:hover {
+  background: rgba(0, 255, 136, 0.03);
+}
+
+.quickStatIcon {
+  font-size: 1.2rem;
+  color: var(--green);
+  opacity: 0.8;
+}
+
+.quickStatInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quickStatValue {
+  font-size: 1.1rem;
+  font-weight: 700;
   color: var(--text-primary);
-  margin: 0;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.step p {
-  display: none;
+.quickStatLabel {
+  font-size: 0.6rem;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
 }
 
 /* ============================================
-   WALLET BANNER & MODAL
+   TERMINAL MAIN
    ============================================ */
-.walletBanner {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1) 0%, rgba(138, 43, 226, 0.08) 100%);
-  border: 1px solid var(--accent-dim);
-  border-radius: 12px;
-  padding: 12px 20px;
-  margin: 0 auto 20px;
-  max-width: 500px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+.terminalMain {
+  position: relative;
+  z-index: 10;
+  padding: 24px;
+  min-height: 60vh;
 }
 
-.walletBannerContent {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.walletBannerContent span {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Wallet Modal */
+/* ============================================
+   WALLET MODAL
+   ============================================ */
 .walletModalOverlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -233,25 +343,23 @@
 
 .walletModalContent {
   position: relative;
-  background: linear-gradient(135deg, rgba(20, 20, 25, 0.95) 0%, rgba(15, 15, 20, 0.98) 100%);
-  border: 1px solid var(--accent-dim);
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-terminal) 100%);
+  border: 1px solid var(--green-dim);
   border-radius: 20px;
   padding: 32px;
-  max-width: 450px;
+  max-width: 420px;
   width: 100%;
   box-shadow:
     0 24px 80px rgba(0, 0, 0, 0.6),
-    0 0 60px rgba(200, 161, 255, 0.1);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+    0 0 60px rgba(0, 255, 136, 0.1);
 }
 
 .walletModalClose {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: rgba(200, 161, 255, 0.1);
-  border: 1px solid var(--accent-dim);
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid var(--green-dim);
   color: var(--text-primary);
   font-size: 1.5rem;
   width: 36px;
@@ -265,94 +373,247 @@
 }
 
 .walletModalClose:hover {
-  background: rgba(200, 161, 255, 0.2);
-  border-color: var(--accent);
+  background: rgba(0, 255, 136, 0.2);
+  border-color: var(--green);
   transform: rotate(90deg);
 }
 
-.walletModalMessage {
-  text-align: center;
-  color: var(--text-secondary);
+.modalHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modalHeader h3 {
   font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.modalIcon {
+  font-size: 1.2rem;
+  color: var(--green);
+}
+
+.walletModalMessage {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
   margin-bottom: 24px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  line-height: 1.6;
 }
 
 /* ============================================
-   RESPONSIVE
+   TERMINAL FOOTER
    ============================================ */
-@media (max-width: 768px) {
-  .pageContainer {
-    padding: 70px 12px 50px;
-  }
+.terminalFooter {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--bg-dark);
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
 
-  .hero {
-    padding: 16px 12px 24px;
-  }
+.footerLeft,
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-  .heroTitle {
-    font-size: 1.5rem;
-    letter-spacing: 1px;
-  }
+.footerBrand {
+  color: var(--green);
+  font-weight: 700;
+  letter-spacing: 2px;
+}
 
-  .heroSubtitle {
-    font-size: 0.85rem;
-    margin-bottom: 20px;
-  }
+.footerDivider {
+  opacity: 0.3;
+}
 
-  .heroStats {
-    flex-direction: column;
-    width: 100%;
-    max-width: 280px;
-  }
+.footerNetwork {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
-  .heroStat {
-    justify-content: space-between;
-    width: 100%;
-  }
+.networkDot {
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
 
-  .stepsGrid {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .step {
-    width: 100%;
-    max-width: 320px;
-  }
-
-  .walletBanner {
-    margin: 0 8px 16px;
-  }
-
-  .walletBannerContent {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
+/* ============================================
+   RESPONSIVE - TABLET
+   ============================================ */
+@media (max-width: 900px) {
+  .quickStats {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 480px) {
-  .heroTitle {
-    font-size: 1.3rem;
+/* ============================================
+   RESPONSIVE - MOBILE
+   ============================================ */
+@media (max-width: 640px) {
+  .terminalHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
   }
 
-  .heroStatValue {
-    font-size: 1.1rem;
+  .terminalLogo {
+    width: 40px;
+    height: 40px;
   }
 
-  .heroStatLabel {
-    font-size: 0.65rem;
+  .terminalTitle h1 {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
   }
 
-  .stepNumber {
-    width: 24px;
-    height: 24px;
+  .terminalSubtitle {
+    font-size: 0.55rem;
+    letter-spacing: 3px;
+  }
+
+  .terminalStats {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .statPill {
+    padding: 6px 12px;
+    font-size: 0.6rem;
+    white-space: nowrap;
+  }
+
+  .connectWallet {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* How It Works - Stack on Mobile */
+  .howItWorks {
+    padding: 16px;
+  }
+
+  .stepsContainer {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stepBadge {
+    width: 100%;
+    max-width: 280px;
+    padding: 14px 18px;
+  }
+
+  .stepConnector {
+    width: 2px;
+    height: 16px;
+    background: linear-gradient(180deg, var(--green-dim), var(--green), var(--green-dim));
+  }
+
+  .badgeIcon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  /* Quick Stats - Stack */
+  .quickStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quickStat {
+    padding: 12px 16px;
+  }
+
+  .quickStatIcon {
+    font-size: 1rem;
+  }
+
+  .quickStatValue {
+    font-size: 0.95rem;
+  }
+
+  .quickStatLabel {
+    font-size: 0.55rem;
+  }
+
+  /* Main Content */
+  .terminalMain {
+    padding: 16px;
+  }
+
+  /* Footer */
+  .terminalFooter {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .footerLeft,
+  .footerRight {
+    justify-content: center;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - SMALL MOBILE
+   ============================================ */
+@media (max-width: 380px) {
+  .terminalTitle h1 {
+    font-size: 1rem;
+  }
+
+  .stepBadge {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .badgeIcon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .badgeNumber {
+    font-size: 0.6rem;
+  }
+
+  .badgeLabel {
     font-size: 0.7rem;
   }
 
-  .step h3 {
-    font-size: 0.8rem;
+  .quickStats {
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+  }
+
+  .quickStat {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .quickStatValue {
+    font-size: 0.85rem;
   }
 }
