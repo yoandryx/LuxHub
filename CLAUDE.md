@@ -133,6 +133,7 @@ anchor deploy        # Deploy to configured cluster
 - `NEXT_PUBLIC_PINATA_API_KEY`, `NEXT_PUBLIC_PINATA_SECRET_KEY` - Pinata credentials
 - `JWT_SECRET` - JWT signing secret
 - `NEXT_PUBLIC_LUXHUB_WALLET` - Treasury wallet address
+- `ANTHROPIC_API_KEY` - Claude API key for AI watch analysis feature
 
 ## Key Entry Points
 
@@ -227,6 +228,55 @@ All CSS modules follow this variable pattern at the component root:
 | `AdminDashboard` | `src/pages/adminDashboard.tsx` | Glass panels, accent highlights |
 | `SellerDashboard` | `src/pages/sellerDashboard.tsx` | Glass cards, status badges |
 | `Navbar` | `src/components/common/Navbar.tsx` | Glass nav, purple wallet button |
+| `UnifiedNFTCard` | `src/components/common/` | Unified NFT card with status badges |
+| `CreateNFT` | `src/pages/createNFT.tsx` | Glass tabs, AI analysis, mode switcher |
+
+### LuxHub Theme Reference
+
+Complete design system saved in `src/styles/LuxHubTheme.css`:
+- CSS Variables for all colors, shadows, and transitions
+- Glass-morphism patterns (`.lux-glass-card`, `.lux-glass-panel`)
+- Button patterns (`.lux-btn-primary`, `.lux-btn-secondary`, `.lux-btn-ghost`)
+- Tab patterns (`.lux-section-tabs`, `.lux-fixed-tabs`)
+- Badge patterns (`.lux-badge-verified`, `.lux-badge-pending`, etc.)
+- NFT card patterns with overlay
+- Animation keyframes (shimmer, pulse, glow, spin)
+
+**Use this file as reference when styling new pages to maintain consistency.**
+
+## AI Watch Analysis
+
+The platform includes AI-powered watch image analysis for auto-filling NFT mint forms.
+
+**API Endpoint:** `POST /api/ai/analyze-watch`
+
+**Request:**
+```json
+{ "imageUrl": "https://gateway.pinata.cloud/ipfs/..." }
+```
+
+**Response:**
+```json
+{
+  "brand": "Rolex",
+  "model": "Submariner",
+  "title": "Rolex Submariner Date 41mm",
+  "description": "Iconic diving watch...",
+  "material": "Stainless Steel",
+  "dialColor": "Black",
+  "caseSize": "41mm",
+  "movement": "Automatic",
+  "waterResistance": "300m",
+  "productionYear": "2023",
+  "condition": "Excellent",
+  "features": "Date, Rotating Bezel, Luminous",
+  "country": "Switzerland",
+  "estimatedPriceSol": 85.5,
+  "confidence": 92
+}
+```
+
+**Requires:** `ANTHROPIC_API_KEY` environment variable
 
 ## Additional Documentation
 

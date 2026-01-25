@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FaShieldAlt, FaLock, FaArrowRight, FaChartLine } from 'react-icons/fa';
+import {
+  FaShieldAlt,
+  FaLock,
+  FaArrowRight,
+  FaChartLine,
+  FaCheckCircle,
+  FaClock,
+} from 'react-icons/fa';
+import { HiCube } from 'react-icons/hi2';
+import { MdVerified } from 'react-icons/md';
 import { SiSolana } from 'react-icons/si';
 import { BiTargetLock } from 'react-icons/bi';
-import { MdWatch } from 'react-icons/md';
 import Footer from '../components/common/Footer';
 import NFTCard from '../components/marketplace/NFTCard';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
@@ -51,25 +59,27 @@ interface Pool {
   participants?: Array<{ wallet: string; shares: number }>;
 }
 
-// Flow steps data - simplified to 3 core steps
-const flowSteps = [
+// Features data
+const features = [
   {
-    num: '01',
-    title: 'List',
-    desc: 'Submit your timepiece with documentation',
-    icon: MdWatch,
+    icon: MdVerified,
+    title: 'Verified Authenticity',
+    desc: 'Every timepiece authenticated by certified experts',
   },
   {
-    num: '02',
-    title: 'Verify',
-    desc: 'Admin authenticates and mints on Solana',
-    icon: FaShieldAlt,
-  },
-  {
-    num: '03',
-    title: 'Trade',
-    desc: 'Buy or sell with escrow protection',
     icon: FaLock,
+    title: 'Secure Escrow',
+    desc: 'Funds locked until delivery confirmation',
+  },
+  {
+    icon: HiCube,
+    title: 'Fractional Ownership',
+    desc: 'Own shares of premium watches from $500',
+  },
+  {
+    icon: FaChartLine,
+    title: 'Real-Time Analytics',
+    desc: 'Track portfolio performance and trends',
   },
 ];
 
@@ -142,6 +152,74 @@ export default function IndexTest() {
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
   const [isLoadingPools, setIsLoadingPools] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Floating particles animation
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles: Array<{
+      x: number;
+      y: number;
+      size: number;
+      speedX: number;
+      speedY: number;
+      opacity: number;
+    }> = [];
+
+    for (let i = 0; i < 50; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: (Math.random() - 0.5) * 0.3,
+        opacity: Math.random() * 0.5 + 0.1,
+      });
+    }
+
+    let animationId: number;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p) => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 161, 255, ${p.opacity})`;
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Delayed 3D scene load for performance
   useEffect(() => {
@@ -228,329 +306,349 @@ export default function IndexTest() {
 
   return (
     <div className={styles.container}>
+      {/* Ambient floating particles */}
+      <canvas ref={canvasRef} className={styles.particleCanvas} />
+
       {/* ===== NAVBAR ===== */}
       {/* <Navbar /> */}
 
-      {/* ===== HERO SECTION - Split Layout ===== */}
-      <section className={styles.heroSection}>
-        <div className={styles.hero3DBackground}>{show3DScene && <HeroScene />}</div>
+      {/* ===== MAIN CONTENT WRAPPER ===== */}
+      <div className={styles.wrapper}>
+        {/* ===== HERO SECTION - Split Layout ===== */}
+        <section className={styles.heroSection}>
+          <div className={styles.hero3DBackground}>{show3DScene && <HeroScene />}</div>
 
-        {/* Left side - Text content */}
-        <div className={styles.heroContent}>
-          <motion.div
-            className={styles.heroBadge}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <SiSolana />
-            <span>Powered by Solana</span>
-          </motion.div>
-
-          <motion.h1
-            className={styles.heroTitle}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-          >
-            Authenticated
-            <br />
-            <span className={styles.heroTitleAccent}>Luxury</span>
-            <br />
-            On-Chain
-          </motion.h1>
-
-          <motion.p
-            className={styles.heroSubtitle}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            NFT-backed luxury timepieces with verified provenance, secure escrow, and fractional
-            ownership.
-          </motion.p>
-
-          <motion.div
-            className={styles.heroButtons}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-          >
-            <Link href="/watchMarket" className={styles.primaryBtn}>
-              Explore Marketplace
-              <FaArrowRight />
-            </Link>
-            <Link href="/pools" className={styles.secondaryBtn}>
-              View Pools
-            </Link>
-          </motion.div>
-
-          {/* Quick stats */}
-          <motion.div
-            className={styles.heroStats}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-          >
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatValue}>$2M+</span>
-              <span className={styles.heroStatLabel}>Volume</span>
-            </div>
-            <div className={styles.heroStatDivider} />
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatValue}>100+</span>
-              <span className={styles.heroStatLabel}>Watches</span>
-            </div>
-            <div className={styles.heroStatDivider} />
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatValue}>&lt;400ms</span>
-              <span className={styles.heroStatLabel}>Finality</span>
-            </div>
-          </motion.div>
-        </div>
-
-        <div className={styles.scrollIndicator}>
-          <span />
-        </div>
-      </section>
-
-      {/* ===== HOW IT WORKS - 3 Steps ===== */}
-      <section className={styles.flowSection}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionBadge}>How It Works</span>
-          <h2 className={styles.sectionTitle}>Simple. Secure. On-Chain.</h2>
-        </div>
-
-        <div className={styles.flowDiagram}>
-          {flowSteps.map((step, index) => {
-            const IconComponent = step.icon;
-            return (
-              <motion.div
-                key={step.num}
-                className={styles.flowStep}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.15 }}
-                viewport={{ once: true }}
-              >
-                <div className={styles.flowIcon}>
-                  <IconComponent />
-                </div>
-                <span className={styles.flowNum}>{step.num}</span>
-                <h4 className={styles.flowTitle}>{step.title}</h4>
-                <p className={styles.flowDesc}>{step.desc}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ===== MARKETPLACE SHOWCASE - Tabbed ===== */}
-      <section className={styles.showcaseSection}>
-        <div className={styles.showcaseHeader}>
-          <div>
-            <span className={styles.sectionBadge}>Marketplace</span>
-            <h2 className={styles.sectionTitle}>Browse & Invest</h2>
-          </div>
-          <div className={styles.tabSwitcher}>
-            <button
-              className={`${styles.tabBtn} ${activeTab === 'watches' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('watches')}
+          {/* Left side - Text content */}
+          <div className={styles.heroContent}>
+            <motion.div
+              className={styles.heroBadge}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
             >
-              Watches
-            </button>
-            <button
-              className={`${styles.tabBtn} ${activeTab === 'pools' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('pools')}
+              <SiSolana />
+              <span>Powered by Solana</span>
+            </motion.div>
+
+            <motion.h1
+              className={styles.heroTitle}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
             >
-              Investment Pools
-            </button>
+              Authenticated
+              <br />
+              <span className={styles.heroTitleAccent}>Luxury</span>
+              <br />
+              On-Chain
+            </motion.h1>
+
+            <motion.p
+              className={styles.heroSubtitle}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+            >
+              NFT-backed luxury timepieces with verified provenance, secure escrow, and fractional
+              ownership.
+            </motion.p>
+
+            <motion.div
+              className={styles.heroButtons}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+            >
+              <Link href="/watchMarket" className={styles.primaryBtn}>
+                Explore Marketplace
+                <FaArrowRight />
+              </Link>
+              <Link href="/pools" className={styles.secondaryBtn}>
+                View Pools
+              </Link>
+            </motion.div>
+
+            {/* Security & Features Stats */}
+            <motion.div
+              className={styles.heroStats}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.7 }}
+            >
+              <div className={styles.heroStat}>
+                <span className={styles.heroStatValue}>Full or Fractional</span>
+                <span className={styles.heroStatLabel}>Ownership</span>
+              </div>
+              <div className={styles.heroStatDivider} />
+              <div className={styles.heroStat}>
+                <span className={styles.heroStatValue}>Multisig</span>
+                <span className={styles.heroStatLabel}>Secured</span>
+              </div>
+              <div className={styles.heroStatDivider} />
+              <div className={styles.heroStat}>
+                <span className={styles.heroStatValue}>Escrow</span>
+                <span className={styles.heroStatLabel}>Protected</span>
+              </div>
+              <div className={styles.heroStatDivider} />
+              <div className={styles.heroStat}>
+                <span className={styles.heroStatValue}>On-Chain</span>
+                <span className={styles.heroStatLabel}>Provenance</span>
+              </div>
+            </motion.div>
           </div>
-        </div>
 
-        <div className={styles.scroller}>
-          {activeTab === 'watches' ? (
-            <>
-              {isLoadingNFTs ? (
-                renderSkeletonCards(4)
-              ) : featuredNFTs.length > 0 ? (
-                featuredNFTs.map((nft, i) => (
-                  <motion.div
-                    key={`nft-${nft.nftId}-${i}`}
-                    className={styles.nftScrollCard}
-                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
-                    viewport={{ once: true, margin: '-50px' }}
-                  >
-                    <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
-                  </motion.div>
-                ))
-              ) : (
-                <div className={styles.emptyState}>No timepieces available</div>
-              )}
-            </>
-          ) : (
-            <>
-              {isLoadingPools ? (
-                renderSkeletonCards(4)
-              ) : pools.length > 0 ? (
-                pools.map((pool, i) => {
-                  const fundingPercent = Math.round((pool.sharesSold / pool.totalShares) * 100);
-                  const imageUrl =
-                    pool.asset?.images?.[0] ||
-                    pool.asset?.imageIpfsUrls?.[0] ||
-                    '/images/purpleLGG.png';
-                  const isDemo = pool._id.startsWith('pool_');
+          <div className={styles.scrollIndicator}>
+            <span />
+          </div>
+        </section>
 
-                  return (
-                    <motion.div
-                      key={pool._id}
-                      className={styles.poolCard}
-                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
-                      viewport={{ once: true, margin: '-50px' }}
-                    >
-                      {isDemo && <span className={styles.poolDemoBadge}>Demo</span>}
-                      <div className={styles.poolImage}>
-                        <img
-                          src={imageUrl}
-                          alt={pool.title || pool.asset?.model}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                          }}
-                        />
-                        <span className={styles.poolBrandTag}>{pool.asset?.brand}</span>
-                      </div>
-                      <div className={styles.poolContent}>
-                        <h4>{pool.title || pool.asset?.model}</h4>
-                        <div className={styles.poolProgressBar}>
-                          <div
-                            className={styles.poolProgressFill}
-                            style={{ width: `${fundingPercent}%` }}
-                          />
-                        </div>
-                        <div className={styles.poolProgressLabel}>
-                          <span>{fundingPercent}% Funded</span>
-                          <span>
-                            ${((pool.sharesSold * pool.sharePriceUSD) / 1000).toFixed(0)}K / $
-                            {(pool.targetAmountUSD / 1000).toFixed(0)}K
-                          </span>
-                        </div>
-                        <div className={styles.poolStats}>
-                          <div className={styles.poolStatItem}>
-                            <BiTargetLock />
-                            <span>${pool.sharePriceUSD.toLocaleString()}/share</span>
-                          </div>
-                          <div className={styles.poolStatItem}>
-                            <FaChartLine />
-                            <span>+{((pool.projectedROI - 1) * 100).toFixed(0)}% ROI</span>
-                          </div>
-                        </div>
-                        <Link href={`/pool/${pool._id}`} className={styles.poolInvestBtn}>
-                          Invest Now
-                        </Link>
-                      </div>
-                    </motion.div>
-                  );
-                })
-              ) : (
-                <div className={styles.emptyState}>No pools available</div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className={styles.viewAllContainer}>
-          <Link
-            href={activeTab === 'watches' ? '/watchMarket' : '/pools'}
-            className={styles.viewAllLink}
-          >
-            View All {activeTab === 'watches' ? 'Watches' : 'Pools'} <FaArrowRight />
-          </Link>
-        </div>
-      </section>
-
-      {/* ===== TRUST FOOTER - Combined Stats, Partners, CTA ===== */}
-      <section className={styles.trustFooter}>
-        <div className={styles.trustStats}>
+        {/* ===== FEATURES GLASS CARDS ===== */}
+        <section className={styles.featuresSection}>
           <motion.div
-            className={styles.trustStat}
+            className={styles.featuresHeader}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
           >
-            <span className={styles.statValue}>$2M+</span>
-            <span className={styles.statLabel}>Volume</span>
+            <h2 className={styles.featuresTitle}>Why LuxHub</h2>
           </motion.div>
+          <div className={styles.featuresGrid}>
+            {features.map((feature, index) => {
+              const IconComponent = feature.icon;
+              return (
+                <motion.div
+                  key={index}
+                  className={styles.featureCard}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <div className={styles.featureShine} />
+                  <div className={styles.featureIcon}>
+                    <IconComponent />
+                  </div>
+                  <div className={styles.featureText}>
+                    <h4>{feature.title}</h4>
+                    <p>{feature.desc}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ===== MARKETPLACE SHOWCASE - Tabbed ===== */}
+        <section className={styles.showcaseSection}>
+          <div className={styles.showcaseHeader}>
+            <div>
+              <span className={styles.sectionBadge}>Marketplace</span>
+              <h2 className={styles.sectionTitle}>Browse & Invest</h2>
+            </div>
+            <div className={styles.tabSwitcher}>
+              <button
+                className={`${styles.tabBtn} ${activeTab === 'watches' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('watches')}
+              >
+                <FaClock className={styles.tabIcon} />
+                <span>Watches</span>
+              </button>
+              <button
+                className={`${styles.tabBtn} ${activeTab === 'pools' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('pools')}
+              >
+                <FaChartLine className={styles.tabIcon} />
+                <span>Investment Pools</span>
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.scroller}>
+            {activeTab === 'watches' ? (
+              <>
+                {isLoadingNFTs ? (
+                  renderSkeletonCards(4)
+                ) : featuredNFTs.length > 0 ? (
+                  featuredNFTs.map((nft, i) => (
+                    <motion.div
+                      key={`nft-${nft.nftId}-${i}`}
+                      className={styles.nftScrollCard}
+                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
+                      viewport={{ once: true, margin: '-50px' }}
+                    >
+                      <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className={styles.emptyState}>No timepieces available</div>
+                )}
+              </>
+            ) : (
+              <>
+                {isLoadingPools ? (
+                  renderSkeletonCards(4)
+                ) : pools.length > 0 ? (
+                  pools.map((pool, i) => {
+                    const fundingPercent = Math.round((pool.sharesSold / pool.totalShares) * 100);
+                    const imageUrl =
+                      pool.asset?.images?.[0] ||
+                      pool.asset?.imageIpfsUrls?.[0] ||
+                      '/images/purpleLGG.png';
+                    const isDemo = pool._id.startsWith('pool_');
+
+                    return (
+                      <motion.div
+                        key={pool._id}
+                        className={styles.poolCard}
+                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
+                        viewport={{ once: true, margin: '-50px' }}
+                      >
+                        {isDemo && <span className={styles.poolDemoBadge}>Demo</span>}
+                        <div className={styles.poolImage}>
+                          <img
+                            src={imageUrl}
+                            alt={pool.title || pool.asset?.model}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
+                            }}
+                          />
+                          <span className={styles.poolBrandTag}>{pool.asset?.brand}</span>
+                        </div>
+                        <div className={styles.poolContent}>
+                          <h4>{pool.title || pool.asset?.model}</h4>
+                          <div className={styles.poolProgressBar}>
+                            <div
+                              className={styles.poolProgressFill}
+                              style={{ width: `${fundingPercent}%` }}
+                            />
+                          </div>
+                          <div className={styles.poolProgressLabel}>
+                            <span>{fundingPercent}% Funded</span>
+                            <span>
+                              ${((pool.sharesSold * pool.sharePriceUSD) / 1000).toFixed(0)}K / $
+                              {(pool.targetAmountUSD / 1000).toFixed(0)}K
+                            </span>
+                          </div>
+                          <div className={styles.poolStats}>
+                            <div className={styles.poolStatItem}>
+                              <BiTargetLock />
+                              <span>${pool.sharePriceUSD.toLocaleString()}/share</span>
+                            </div>
+                            <div className={styles.poolStatItem}>
+                              <FaChartLine />
+                              <span>+{((pool.projectedROI - 1) * 100).toFixed(0)}% ROI</span>
+                            </div>
+                          </div>
+                          <Link href={`/pool/${pool._id}`} className={styles.poolInvestBtn}>
+                            Invest Now
+                          </Link>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                ) : (
+                  <div className={styles.emptyState}>No pools available</div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className={styles.viewAllContainer}>
+            <Link
+              href={activeTab === 'watches' ? '/watchMarket' : '/pools'}
+              className={styles.viewAllLink}
+            >
+              View All {activeTab === 'watches' ? 'Watches' : 'Pools'} <FaArrowRight />
+            </Link>
+          </div>
+        </section>
+
+        {/* ===== CTA SECTION ===== */}
+        <section className={styles.ctaSection}>
           <motion.div
-            className={styles.trustStat}
-            initial={{ opacity: 0, y: 20 }}
+            className={styles.ctaCard}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <span className={styles.statValue}>100+</span>
-            <span className={styles.statLabel}>Timepieces</span>
+            <h2>Start Your Collection</h2>
+            <p>Join the future of authenticated luxury asset ownership on Solana.</p>
+            <div className={styles.ctaButtons}>
+              <Link href="/watchMarket" className={styles.primaryBtn}>
+                Browse Marketplace
+                <FaArrowRight />
+              </Link>
+              <Link href="/sellerDashboard" className={styles.secondaryBtn}>
+                Become a Dealer
+              </Link>
+            </div>
           </motion.div>
-          <motion.div
-            className={styles.trustStat}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            <span className={styles.statValue}>3%</span>
-            <span className={styles.statLabel}>Royalty</span>
-          </motion.div>
-        </div>
+        </section>
 
-        <div className={styles.poweredBy}>
-          <span className={styles.poweredLabel}>Powered by</span>
-          <div className={styles.partnerLogos}>
-            <a href="https://squads.xyz" target="_blank" rel="noopener noreferrer">
-              <img src="/images/squads-logo.svg" alt="Squads" />
-            </a>
-            <a href="https://helius.dev" target="_blank" rel="noopener noreferrer">
-              <img src="/images/helius-logo.svg" alt="Helius" />
-            </a>
-            <a href="https://www.metaplex.com" target="_blank" rel="noopener noreferrer">
-              <img src="/images/metaplex-logo.svg" alt="Metaplex" />
-            </a>
-            <a href="https://www.privy.io" target="_blank" rel="noopener noreferrer">
-              <img src="/images/privy-logo.svg" alt="Privy" />
-            </a>
-            <a href="https://pinata.cloud" target="_blank" rel="noopener noreferrer">
-              <img src="/images/ipfs-logo.svg" alt="Pinata" />
-            </a>
+        {/* ===== TRUST FOOTER - Stats & Partners ===== */}
+        <section className={styles.trustFooter}>
+          <div className={styles.trustStats}>
+            <motion.div
+              className={styles.trustStat}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
+              <span className={styles.statValue}>&lt;$0.01</span>
+              <span className={styles.statLabel}>Gas Fees</span>
+            </motion.div>
+            <motion.div
+              className={styles.trustStat}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              viewport={{ once: true }}
+            >
+              <span className={styles.statValue}>Verified</span>
+              <span className={styles.statLabel}>Vendors</span>
+            </motion.div>
+            <motion.div
+              className={styles.trustStat}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <span className={styles.statValue}>&lt;400ms</span>
+              <span className={styles.statLabel}>Settlement</span>
+            </motion.div>
           </div>
-        </div>
 
-        <motion.div
-          className={styles.ctaCard}
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-        >
-          <h2>Start Your Collection</h2>
-          <p>Join the future of authenticated luxury asset ownership on Solana.</p>
-          <div className={styles.ctaButtons}>
-            <Link href="/watchMarket" className={styles.primaryBtn}>
-              Browse Marketplace
-              <FaArrowRight />
-            </Link>
-            <Link href="/sellerDashboard" className={styles.secondaryBtn}>
-              Become a Dealer
-            </Link>
+          <div className={styles.poweredBy}>
+            <span className={styles.poweredLabel}>Powered by</span>
+            <div className={styles.partnerLogos}>
+              <a href="https://squads.xyz" target="_blank" rel="noopener noreferrer">
+                <img src="/images/Squads Logomark White.svg" alt="Squads" />
+              </a>
+              <a href="https://helius.dev" target="_blank" rel="noopener noreferrer">
+                <img src="/images/helius-logo.svg" alt="Helius" />
+              </a>
+              <a href="https://www.metaplex.com" target="_blank" rel="noopener noreferrer">
+                <img src="/images/metaplex-logo.svg" alt="Metaplex" />
+              </a>
+              <a href="https://www.privy.io" target="_blank" rel="noopener noreferrer">
+                <img src="/images/Privy_Brandmark_White.png" alt="Privy" />
+              </a>
+            </div>
           </div>
-        </motion.div>
-      </section>
+        </section>
+      </div>
+      {/* End of wrapper */}
 
       {/* ===== FOOTER ===== */}
-      <Footer />
+      {/* <Footer /> */}
 
       {/* ===== NFT DETAIL MODAL ===== */}
       {selectedNFT && (

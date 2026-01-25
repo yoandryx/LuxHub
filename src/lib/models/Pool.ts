@@ -96,6 +96,27 @@ const PoolSchema = new Schema(
     bagsTokenMint: { type: String }, // Pool share token mint via Bags
     bagsFeeShareConfigId: { type: String }, // Bags fee share config ID
     bagsTokenCreatedAt: { type: Date },
+    bagsPoolAddress: { type: String }, // Bags AMM pool address
+    bagsPoolCreatedAt: { type: Date },
+    bagsTokenName: { type: String },
+    bagsTokenSymbol: { type: String },
+    bagsTotalSupply: { type: String },
+
+    // Bags trading stats (updated via webhooks)
+    totalTrades: { type: Number, default: 0 },
+    totalVolumeUSD: { type: Number, default: 0 },
+    lastTradeAt: { type: Date },
+    lastMarketCap: { type: Number },
+    lastPriceUSD: { type: Number },
+    lastUpdatedAt: { type: Date },
+    totalLiquidityEvents: { type: Number, default: 0 },
+    lastLiquidityEventAt: { type: Date },
+
+    // Bags graduation (bonding curve completed)
+    graduated: { type: Boolean, default: false },
+    graduatedAt: { type: Date },
+    graduationMarketCap: { type: Number },
+    graduationPriceUSD: { type: Number },
 
     // ========== TOKENIZATION & LIQUIDITY ==========
     // Token status - tokens minted on pool creation but locked until conditions met

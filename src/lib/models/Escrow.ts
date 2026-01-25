@@ -84,6 +84,22 @@ const EscrowSchema = new Schema(
     confirmDeliveryProposalIndex: { type: String }, // Squads proposal for confirm_delivery
     confirmDeliveryProposedAt: { type: Date },
     confirmDeliveryExecutedAt: { type: Date },
+
+    // ========== WEBHOOK TRACKING ==========
+    lastSyncedAt: { type: Date }, // Last webhook sync timestamp
+    lastTxSignature: { type: String }, // Last processed transaction signature
+    fundedAt: { type: Date }, // When buyer funded the escrow
+    fundedAmount: { type: Number }, // Amount funded in lamports
+    releasedAt: { type: Date }, // When funds were released
+    buyerWallet: { type: String, index: true }, // Buyer wallet address
+    listedAt: { type: Date }, // When NFT was listed
+    listingTxSignature: { type: String }, // Listing transaction signature
+    cancelledAt: { type: Date }, // When escrow was cancelled
+    cancelReason: { type: String }, // Reason for cancellation
+
+    // ========== ROYALTY TRACKING ==========
+    royaltyPaid: { type: Boolean, default: false }, // Treasury fee paid
+    royaltyTxSignature: { type: String }, // Royalty payment transaction
   },
   { timestamps: true }
 );

@@ -1,104 +1,339 @@
+/* ========================================
+   LUXHUB FOOTER - Glassmorphic Theme
+   Purple accent luxury design
+   ======================================== */
+
 .footer {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: var(--border);
-    color: var(--primary);
-    padding: 40px 0;
-    text-align: center;
-    z-index: 10;
-  }
-  
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --bg-dark: #0a0a0a;
+  --bg-card: #111111;
+  --border: #1a1a1a;
+  --glass: rgba(10, 10, 10, 0.95);
+  --text-primary: #ffffff;
+  --text-secondary: #6b6b6b;
+  --text-muted: #404040;
+
+  position: relative;
+  width: 100%;
+  background: var(--bg-dark);
+  border-top: 1px solid var(--border);
+  padding: 0;
+  z-index: 10;
+}
+
+/* Subtle gradient overlay */
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 24px 40px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 48px;
+}
+
+/* ========== BRAND COLUMN ========== */
+.brandColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.brandLogo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.brandName {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.brandTagline {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 280px;
+  margin: 0;
+}
+
+.socialIcons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.socialIcons a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.socialIcons a:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  background: var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+/* ========== LINK COLUMNS ========== */
+.linkColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.linkColumn h4 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 0 8px 0;
+}
+
+.linkColumn a {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  padding: 4px 0;
+}
+
+.linkColumn a:hover {
+  color: var(--text-primary);
+  padding-left: 4px;
+}
+
+/* ========== CONNECT COLUMN ========== */
+.connectColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.connectColumn h4 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 0 8px 0;
+}
+
+.emailLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--accent);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.emailLink:hover {
+  opacity: 0.8;
+}
+
+.networkBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: var(--accent);
+  width: fit-content;
+  margin-top: 8px;
+}
+
+.networkBadge svg {
+  font-size: 0.9rem;
+}
+
+/* ========== BOTTOM BAR ========== */
+.bottomBar {
+  border-top: 1px solid var(--border);
+  padding: 24px;
+}
+
+.bottomContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.copyright {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.copyright span {
+  color: var(--accent);
+}
+
+.bottomLinks {
+  display: flex;
+  gap: 24px;
+}
+
+.bottomLinks a {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.bottomLinks a:hover {
+  color: var(--text-secondary);
+}
+
+/* ========== LANGUAGE SELECTOR ========== */
+.language {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.language svg {
+  font-size: 1rem;
+}
+
+.language select {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.language select:hover {
+  border-color: var(--accent-dim);
+}
+
+.language select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ========== RESPONSIVE ========== */
+@media screen and (max-width: 1024px) {
   .container {
-    max-width: 1200px;
-    margin: auto;
-    display: flex;
-    flex-direction: column;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px 32px;
+  }
+
+  .brandColumn {
+    grid-column: span 2;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .container {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px 24px;
+    padding: 48px 20px 32px;
+  }
+
+  .brandColumn {
+    grid-column: span 2;
     align-items: center;
-    gap: 20px;
+    text-align: center;
   }
-  
-  /* Branding Section */
-  .branding {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+
+  .brandTagline {
+    max-width: 100%;
   }
-  
-  .logo {
-    width: 120px;
-    margin-top: 10px;
-  }
-  
-  /* Social Icons */
+
   .socialIcons {
-    display: flex;
-    gap: 15px;
-  }
-  
-  .socialIcons a {
-    font-size: 24px;
-    color: var(--secondary);
-    transition: color 0.3s;
-  }
-  
-  .socialIcons a:hover {
-    color: var(--primary);
-  }
-  
-  /* Footer Links */
-  .footerLinks {
-    display: flex;
     justify-content: center;
-    gap: 40px;
-    text-align: left;
   }
-  
-  .footerLinks h4 {
-    color: var(--primary);
-    margin-bottom: 25px;
-    letter-spacing: 1px;
+
+  .linkColumn,
+  .connectColumn {
+    align-items: flex-start;
   }
-  
-  .footerLinks a {
-    display: block;
-    color: var(--secondary);
-    text-decoration: none;
-    margin-bottom: 20px;
-    transition: color 0.3s;
+
+  .bottomContent {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
   }
-  
-  .footerLinks a:hover {
-    color: var(--primary);
+
+  .bottomLinks {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
   }
-  
-  /* Language Selector */
-  .language {
-    display: flex;
+}
+
+@media screen and (max-width: 480px) {
+  .container {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 40px 16px 28px;
+  }
+
+  .brandColumn {
+    grid-column: span 1;
+  }
+
+  .linkColumn,
+  .connectColumn {
     align-items: center;
-    gap: 8px;
+    text-align: center;
   }
-  
-  .language select {
-    background: var(--foreground);
-    color: var(--primary);
-    border: none;
-    padding: 5px;
-    cursor: pointer;
+
+  .socialIcons a {
+    width: 44px;
+    height: 44px;
   }
-  
-  /* Copyright */
-  .copyright {
-    margin-top: 20px;
-    font-size: 14px;
-    color: var(--secondary);
+
+  .bottomBar {
+    padding: 20px 16px;
   }
-  
-  /* Responsive */
-  @media (max-width: 768px) {
-    .footerLinks {
-      flex-direction: row;
-      gap: 40px;
-    }
+
+  .bottomLinks {
+    gap: 12px;
   }
-  
+}

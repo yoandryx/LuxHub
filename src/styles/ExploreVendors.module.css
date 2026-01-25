@@ -1,201 +1,309 @@
+/* src/styles/ExploreVendors.module.css */
+/* LuxHub Glassmorphic Theme - Vendors Page */
+
 .pageContainer {
+  --accent: #c8a1ff;
+  --accent-bright: #a855f7;
+  --accent-dim: rgba(200, 161, 255, 0.4);
+  --accent-glow: rgba(200, 161, 255, 0.12);
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --border: #222222;
+  --border-light: rgba(255, 255, 255, 0.1);
+  --glass: rgba(13, 13, 13, 0.85);
+  --glass-light: rgba(30, 30, 35, 0.6);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+
   min-height: 100vh;
-  padding: 75px 24px 80px;
-  margin: 0 auto;
+  padding: 80px 20px 100px;
+  background: linear-gradient(
+    135deg,
+    rgba(13, 13, 13, 1) 0%,
+    rgba(15, 10, 20, 1) 50%,
+    rgba(10, 10, 15, 1) 100%
+  );
+  position: relative;
+  overflow-x: hidden;
 }
 
-.pageContainer h2  {
-  letter-spacing: 0.1rem;
+/* Background glow effect */
+.pageContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 500px;
+  background: radial-gradient(ellipse at center top, rgba(200, 161, 255, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ============================================
+   TITLE SECTION
+   ============================================ */
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
   text-align: center;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  font-size: 2rem;
-  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  background: linear-gradient(
+    135deg,
+    var(--text-primary) 0%,
+    var(--accent) 50%,
+    var(--text-primary) 100%
+  );
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin: 0 0 20px 0;
-}
-
-.sectionHeading {
-  font-size: 18px;
-  text-transform: uppercase;
-  letter-spacing: 0.2rem;
-  padding: 5px 0px;
-  margin: 4rem 0 2rem;
+  background-clip: text;
+  animation: shimmerText 4s linear infinite;
+  margin: 0 0 16px 0;
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 1.5rem;
-  color: #ffffff;
 }
 
+@keyframes shimmerText {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 48px;
+  line-height: 1.7;
+}
+
+/* ============================================
+   SECTION HEADINGS
+   ============================================ */
 .sectionHeading {
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  background-color: #57575717;
-  border-radius: 5px;
-  margin: 0px;
-  width: 100%;
-  box-shadow: 0 5px 0px 0px #3f3a46;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 48px 0 24px;
+  position: relative;
+}
+
+.sectionHeading::before,
+.sectionHeading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+  max-width: 200px;
 }
 
 .sectionHeading h2 {
-  font-size: 1.5rem;
-  padding: 0px 10px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--glass-light) 0%, rgba(20, 20, 25, 0.8) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
   margin: 0;
-  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
+/* ============================================
+   VENDOR GRID
+   ============================================ */
 .vendorList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 15px;
-  list-style: none;
-  padding: 0px 5px;
-  margin: 0px;
-  margin: 50px 0px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 16px 0;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
+@media (min-width: 768px) {
+  .vendorList {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+}
+
+/* ============================================
+   VENDOR CARD
+   ============================================ */
 .vendorCard {
   position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid rgba(200, 161, 255, 0.2);
-  backdrop-filter: blur(16px);
-  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, var(--glass-light) 0%, rgba(20, 20, 25, 0.8) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-  max-height: 100px;
-  box-shadow: -5px 0px 0px 0px #c8a1ff63;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.vendorCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .vendorCard:hover {
-  transform: translateY(-5px) scale(1.0);
-  border-color: #c8a1ff;
-  box-shadow: 0 0px 0px 0px #c8a1ff;
+  border-color: var(--accent-dim);
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(200, 161, 255, 0.1);
 }
 
-.banner {
-  width: 100%;
-  height: 140px;
-  object-fit: cover;
-  transition: transform 0.8s ease;
-  z-index: -1;
-  background-color: #000000;
+.vendorCard:hover::before {
+  opacity: 1;
 }
 
-.vendorCard:hover .banner {
-  transform: scale(1.1);
-}
-
+/* Row layout inside card */
 .rowItems {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  padding: 0px 5px;
-  background-color: #00000017;
-  z-index: 10;
-  backdrop-filter: blur(5px);
+  display: none; /* Hidden, using new layout */
 }
 
 .actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  background-color: var(--foreground);
+  gap: 16px;
+  width: 100%;
 }
 
+/* ============================================
+   AVATAR
+   ============================================ */
 .avatar {
-  width: 75px;
-  height: 75px;
-  margin: 5px 5px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   object-fit: cover;
-  z-index: 10;
-  border: 1px solid rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--accent-dim);
+  flex-shrink: 0;
+  background: var(--bg-card);
+  transition: border-color 0.3s ease;
 }
 
-.vendorInfo {
-  z-index: 10;
-  min-height: 75px;
-  padding: 10px 0px;
-  text-align: end;
-  text-transform: uppercase;
-  color: #fff;
+.vendorCard:hover .avatar {
+  border-color: var(--accent);
+}
+
+/* ============================================
+   VENDOR INFO
+   ============================================ */
+.viewLink {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .nameWrapper {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 8px;
-  letter-spacing: 1px;
-  font-weight: 500;
-  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .verifiedIcon {
-  color: #c8a1ff;
-  filter: drop-shadow(0 0 8px #c8a1ff);
+  color: var(--accent);
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .username {
-   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  font-weight: 400;
-  color: #f3eaff;
-  font-size: 12px;
-  letter-spacing: 1px;
-  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
 }
 
-.wallet {
-  font-family: 'Courier New', monospace;
-  font-size: 0.85rem;
-  color: #aaa;
-  letter-spacing: 1px;
-  padding: 6px 12px;
-  background: #c8a1ff17;
-  transition: all 0.3s ease;
+/* ============================================
+   BANNER (if used)
+   ============================================ */
+.banner {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px 12px 0 0;
 }
 
-.wallet:hover {
-  color: #c8a1ff;
-  background: rgba(200, 161, 255, 0.2);
-}
-
-
-.viewLink {
-  display: flex;
-  justify-content: center;
-  text-align: center;
-  flex-direction: column;
-  align-items: flex-end;
-  padding: 10px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.15rem;
-  text-transform: uppercase;
-  backdrop-filter: blur(12px);
-  color: white;
-  border-radius: 0 0 20px 20px;
-  /* transition: all 0.6s ease; */
-}
-
-.vendorCard:hover .viewLink {
-  text-shadow: 0 0 1px #ffffff;
-}
-
-/* Empty state */
-.empty {
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.emptyState {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 4rem;
-  color: #777;
-  font-size: 1.2rem;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  font-size: 1rem;
 }
 
+.emptyStateIcon {
+  font-size: 3rem;
+  color: var(--accent-dim);
+  margin-bottom: 16px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 640px) {
+  .pageContainer {
+    padding: 70px 16px 80px;
+  }
+
+  .title {
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+  }
+
+  .sectionHeading h2 {
+    font-size: 1rem;
+    padding: 10px 16px;
+  }
+
+  .sectionHeading::before,
+  .sectionHeading::after {
+    max-width: 60px;
+  }
+
+  .vendorList {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .vendorCard {
+    padding: 16px;
+  }
+
+  .avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .nameWrapper {
+    font-size: 1rem;
+  }
+}
