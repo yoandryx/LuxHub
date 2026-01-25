@@ -1579,3 +1579,147 @@
 .statusActive {
   composes: cardStatus active;
 }
+
+/* ==================== ACTIVITY FEED ==================== */
+.activityFeed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.activityItem:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-elevated);
+}
+
+.activityIcon {
+  width: 36px;
+  height: 36px;
+  background: var(--accent-glow);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.activityContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.activityMessage {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activityTime {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ==================== QUICK ACTIONS ==================== */
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.quickActionCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px;
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.quickActionCard:hover {
+  border-color: var(--accent-border);
+  color: var(--text-primary);
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 24px var(--accent-glow);
+}
+
+.quickActionCard svg {
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
+}
+
+.quickActionBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  background: var(--accent);
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--bg-dark);
+}
+
+/* ==================== SPINNING ANIMATION ==================== */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@media screen and (max-width: 768px) {
+  .quickActions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quickActionCard {
+    padding: 16px 12px;
+    font-size: 0.8rem;
+  }
+
+  .quickActionCard svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .activityItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .activityTime {
+    align-self: flex-end;
+  }
+}
