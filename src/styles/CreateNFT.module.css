@@ -950,6 +950,67 @@
   margin-top: 24px;
 }
 
+/* Responsive Grid for Bulk Mint - Works on all screens */
+.bulkGridResponsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+@media screen and (min-width: 480px) {
+  .bulkGridResponsive {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .bulkGridResponsive {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .bulkGridResponsive {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+  }
+}
+
+/* Bulk Card Wrapper with Validation Indicators */
+.bulkCardWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bulkCardError,
+.bulkCardWarning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bulkCardError {
+  background: var(--error-dim);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+
+.bulkCardWarning {
+  background: var(--warning-dim);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
 .bulkPreviewCardLarge {
   position: relative;
   background: var(--glass);
@@ -1170,6 +1231,10 @@
   color: var(--warning);
 }
 
+.bulkStatValue.error {
+  color: var(--error);
+}
+
 .bulkStatLabel {
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -1213,6 +1278,62 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   margin: 4px 0;
+}
+
+.bulkEmptyNote {
+  margin-top: 16px !important;
+  padding: 8px 16px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  color: var(--accent) !important;
+  font-size: 0.8rem !important;
+}
+
+.bulkFieldsInfo {
+  display: flex;
+  gap: 32px;
+  margin-top: 16px;
+  text-align: left;
+}
+
+.bulkFieldsColumn {
+  flex: 1;
+}
+
+.bulkFieldsTitle {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bulkFieldsColumn ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.bulkFieldsColumn li {
+  margin-bottom: 2px;
+}
+
+.fieldNote {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media screen and (max-width: 640px) {
+  .bulkFieldsInfo {
+    flex-direction: column;
+    gap: 16px;
+  }
 }
 
 /* Bulk Mint Layout */
@@ -1449,6 +1570,517 @@
   }
 }
 
+/* ========== BULK NFT DETAIL MODAL (with NftDetailCard) ========== */
+.bulkDetailWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 600px;
+  width: 100%;
+  max-height: 95vh;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bulkDetailNavHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.bulkNavBtn {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulkNavBtn:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.bulkNavCount {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.bulkStatusBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.bulkMintLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'SF Mono', 'Monaco', monospace;
+  font-size: 0.8rem;
+  color: var(--success);
+  cursor: pointer;
+  padding: 4px 10px;
+  background: var(--success-glow);
+  border-radius: 6px;
+  transition: opacity 0.2s ease;
+}
+
+.bulkMintLink:hover {
+  opacity: 0.8;
+}
+
+/* Validation Boxes */
+.bulkValidationBox,
+.bulkWarningBox {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.bulkValidationBox {
+  background: var(--error-dim);
+  border: 1px solid var(--error);
+}
+
+.bulkWarningBox {
+  background: var(--warning-dim);
+  border: 1px solid var(--warning);
+}
+
+.bulkValidationTitle,
+.bulkWarningTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.bulkValidationTitle {
+  color: var(--error);
+}
+
+.bulkWarningTitle {
+  color: var(--warning);
+}
+
+.bulkValidationList {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.bulkValidationBox .bulkValidationList {
+  color: #fca5a5;
+}
+
+.bulkWarningBox .bulkValidationList {
+  color: #fcd34d;
+}
+
+/* Legacy bulk detail styles kept for potential fallback */
+.bulkDetailOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.bulkDetailModal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--glass);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bulkDetailModal::-webkit-scrollbar {
+  width: 4px;
+}
+
+.bulkDetailModal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bulkDetailModal::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.bulkDetailClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.bulkDetailClose:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.bulkDetailHeader {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bulkDetailImageWrapper {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+.bulkDetailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bulkDetailImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 2rem;
+}
+
+.bulkDetailTitleSection {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bulkDetailTitleSection h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  word-break: break-word;
+}
+
+.bulkDetailBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bulkBadgeSuccess,
+.bulkBadgeMinting,
+.bulkBadgeError,
+.bulkBadgeReady,
+.bulkBadgePending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.bulkBadgeSuccess {
+  background: var(--success-glow);
+  border: 1px solid var(--success-dim);
+  color: var(--success);
+}
+
+.bulkBadgeMinting {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+}
+
+.bulkBadgeError {
+  background: var(--error-dim);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+
+.bulkBadgeReady {
+  background: var(--success-glow);
+  border: 1px solid var(--success-dim);
+  color: var(--success);
+}
+
+.bulkBadgePending {
+  background: var(--warning-dim);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
+.bulkDetailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.bulkDetailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.bulkDetailLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.bulkDetailValue {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.bulkDetailValue.priceHighlight {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.bulkDetailDescription {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.bulkDetailDescription p {
+  margin: 8px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.bulkDetailError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--error-dim);
+  border: 1px solid var(--error);
+  border-radius: 10px;
+  color: var(--error);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.bulkDetailMint {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--success-glow);
+  border: 1px solid var(--success-dim);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.bulkDetailMintAddress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'SF Mono', 'Monaco', monospace;
+  font-size: 0.85rem;
+  color: var(--success);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.bulkDetailMintAddress:hover {
+  opacity: 0.8;
+}
+
+.bulkDetailNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.bulkNavButton {
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulkNavButton:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.bulkNavCounter {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Mobile responsive for bulk detail modal */
+@media screen and (max-width: 640px) {
+  .bulkDetailWrapper {
+    padding: 0 8px;
+  }
+
+  .bulkDetailNavHeader {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .bulkNavBtn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .bulkNavCount {
+    font-size: 0.8rem;
+  }
+
+  .bulkStatusBanner {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .bulkDetailModal {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .bulkDetailHeader {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .bulkDetailImageWrapper {
+    width: 120px;
+    height: 120px;
+  }
+
+  .bulkDetailTitleSection {
+    align-items: center;
+  }
+
+  .bulkDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .bulkDetailNav {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bulkNavButton {
+    width: 100%;
+    text-align: center;
+  }
+
+  .bulkNavCounter {
+    order: -1;
+    padding: 8px 0;
+  }
+
+  /* Bulk detail with NftDetailCard */
+  .bulkDetailNavHeader {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .bulkNavBtn {
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+  }
+}
+
 /* Bulk Progress Summary */
 .bulkProgressSummary {
   display: flex;
@@ -1664,7 +2296,7 @@
 /* ========== MODE TABS (Manual/Bulk) - Fixed WatchMarket Style ========== */
 .modeTabs {
   position: fixed;
-  bottom: 24px;
+  bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1716,7 +2348,7 @@
 
 @media (max-width: 480px) {
   .modeTabs {
-    bottom: 16px;
+    bottom: 80px;
     gap: 4px;
     padding: 6px;
   }

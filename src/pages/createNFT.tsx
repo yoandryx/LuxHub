@@ -27,6 +27,7 @@ import {
   FaLayerGroup,
   FaMagic,
   FaSpinner,
+  FaClock,
 } from 'react-icons/fa';
 import { HiOutlineSparkles, HiOutlineCollection, HiOutlineSwitchHorizontal } from 'react-icons/hi';
 import pLimit from 'p-limit';
@@ -51,18 +52,23 @@ interface MintedNFT {
   escrowPda: string | null;
 }
 
-// CSV Row interface for bulk minting
+// CSV Row interface for bulk minting (USD-first approach)
 interface CsvRow {
+  // Required fields
   title: string;
-  description: string;
   brand: string;
   model: string;
   serialNumber: string;
-  material?: string;
-  productionYear?: string;
-  priceSol: string;
+  priceUSD: string; // USD as source of truth (numeric)
+
+  // Optional fields - image (at least one recommended)
   imageCid?: string;
-  imageUrl?: string; // Support local images
+  imageUrl?: string;
+
+  // Optional fields - details
+  description?: string;
+  material?: string;
+  productionYear?: string; // numeric (year)
   movement?: string;
   caseSize?: string;
   waterResistance?: string;
@@ -70,8 +76,29 @@ interface CsvRow {
   country?: string;
   condition?: string;
   boxPapers?: string;
+  limitedEdition?: string;
+  certificate?: string;
+  warrantyInfo?: string;
+  features?: string;
+
+  // Legacy support
+  priceSol?: string; // Will be converted to USD if priceUSD not present
+
   [key: string]: string | undefined;
 }
+
+// Validation result for a single CSV row
+interface CsvValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// Required fields for CSV validation
+const CSV_REQUIRED_FIELDS = ['title', 'brand', 'model', 'serialNumber', 'priceUSD'] as const;
+
+// Numeric fields that should only contain numbers (and optionally decimal point)
+const CSV_NUMERIC_FIELDS = ['priceUSD', 'priceSol', 'productionYear'] as const;
 
 // Bulk mint result tracking
 interface BulkMintResult {
@@ -142,6 +169,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [bulkMintResults, setBulkMintResults] = useState<BulkMintResult[]>([]);
   const [isBulkMinting, setIsBulkMinting] = useState(false);
   const [parsedCsvRows, setParsedCsvRows] = useState<CsvRow[]>([]);
+  const [selectedBulkNftIndex, setSelectedBulkNftIndex] = useState<number | null>(null);
 
   // Escrow creation state
   const [creatingEscrow, setCreatingEscrow] = useState<string | null>(null);
@@ -566,7 +594,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     [parseCsvFile]
   );
 
-  // Bulk mint single item
+  // Bulk mint single item (USD-first approach)
   const mintSingleFromRow = useCallback(
     async (row: CsvRow, index: number): Promise<BulkMintResult> => {
       const result: BulkMintResult = {
@@ -582,7 +610,13 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
         const umi = getUmi();
 
-        // Create metadata
+        // Get USD price (source of truth) and convert to SOL for metadata
+        const priceUSD = row.priceUSD
+          ? parseFloat(row.priceUSD) || 0
+          : (parseFloat(row.priceSol || '0') || 0) * solPrice; // Legacy fallback
+        const priceSolConverted = solPrice > 0 ? priceUSD / solPrice : 0;
+
+        // Create metadata (stores both USD and SOL equivalent)
         const metadataJson = createMetadata(
           row.title,
           row.description || '',
@@ -597,17 +631,17 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           '',
           '',
           wallet.publicKey.toBase58(),
-          '',
-          '',
-          '',
-          '',
-          '',
+          row.movement || '',
+          row.caseSize || '',
+          row.waterResistance || '',
+          row.dialColor || '',
+          row.country || '',
           '',
           wallet.publicKey.toBase58(),
           'inactive',
-          parseFloat(row.priceSol) || 0,
-          '',
-          ''
+          priceSolConverted, // SOL equivalent at mint time (for display)
+          row.boxPapers || '',
+          row.condition || ''
         );
 
         // Upload metadata
@@ -623,7 +657,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
         const mintAddress = assetSigner.publicKey.toString();
 
-        // Save to DB
+        // Save to DB with USD as source of truth
         await fetch('/api/assets/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -632,22 +666,33 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
             model: row.model,
             serial: row.serialNumber,
             description: row.description,
-            priceUSD: (parseFloat(row.priceSol) || 0) * solPrice,
+            priceUSD, // USD is the source of truth
             imageIpfsUrls: row.imageCid ? [row.imageCid] : [],
             metadataIpfsUrl: metadataUri,
             nftMint: mintAddress,
             nftOwnerWallet: wallet.publicKey.toBase58(),
             status: 'inactive',
-            poolEligible: true, // All NFTs are pool eligible by default
+            poolEligible: true,
+            // Additional metadata for the asset
+            brand: row.brand,
+            material: row.material,
+            productionYear: row.productionYear,
+            movement: row.movement,
+            caseSize: row.caseSize,
+            dialColor: row.dialColor,
+            waterResistance: row.waterResistance,
+            condition: row.condition,
+            boxPapers: row.boxPapers,
+            country: row.country,
           }),
         });
 
-        // Add to minted list
+        // Add to minted list (display SOL equivalent)
         const newNft: MintedNFT = {
           title: row.title,
           description: row.description || '',
           image: row.imageCid ? `${gateway}${row.imageCid}` : '/fallback.png',
-          priceSol: parseFloat(row.priceSol) || 0,
+          priceSol: priceSolConverted,
           metadataUri,
           mintAddress,
           currentOwner: wallet.publicKey.toBase58(),
@@ -935,13 +980,108 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     [mintedNFTs, adminWallet]
   );
 
-  // Validate CSV rows for bulk minting
+  // Helper to get USD price from row (supports both priceUSD and legacy priceSol)
+  const getRowPriceUSD = useCallback(
+    (row: CsvRow): number => {
+      // Prefer priceUSD, fall back to priceSol converted to USD
+      if (row.priceUSD) {
+        return parseFloat(row.priceUSD) || 0;
+      }
+      // Legacy support: if only priceSol exists, convert to USD
+      if (row.priceSol) {
+        return (parseFloat(row.priceSol) || 0) * solPrice;
+      }
+      return 0;
+    },
+    [solPrice]
+  );
+
+  // Helper to convert USD to SOL
+  const usdToSol = useCallback(
+    (usd: number): number => {
+      if (!solPrice || solPrice === 0) return 0;
+      return usd / solPrice;
+    },
+    [solPrice]
+  );
+
+  // Validate a single CSV row
+  const validateCsvRow = useCallback((row: CsvRow): CsvValidationResult => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Check required fields
+    CSV_REQUIRED_FIELDS.forEach((field) => {
+      const value = row[field];
+      // Special case: priceUSD can fall back to priceSol
+      if (field === 'priceUSD' && !value && row.priceSol) {
+        return; // priceSol is acceptable as fallback
+      }
+      if (!value || value.trim() === '') {
+        errors.push(`Missing required field: ${field}`);
+      }
+    });
+
+    // Validate numeric fields - should only contain numbers (and decimal point)
+    CSV_NUMERIC_FIELDS.forEach((field) => {
+      const value = row[field];
+      if (value && value.trim() !== '') {
+        // Remove commas and spaces for validation
+        const cleanValue = value.replace(/[,\s]/g, '');
+        // Check if it's a valid number (allows decimals)
+        if (!/^-?\d*\.?\d+$/.test(cleanValue)) {
+          errors.push(`${field} must be a number (got: "${value}")`);
+        }
+      }
+    });
+
+    // Validate productionYear is a reasonable year if provided
+    if (row.productionYear && row.productionYear.trim() !== '') {
+      const year = parseInt(row.productionYear, 10);
+      if (isNaN(year) || year < 1800 || year > new Date().getFullYear() + 1) {
+        errors.push(`productionYear must be a valid year (got: "${row.productionYear}")`);
+      }
+    }
+
+    // Warnings for recommended but optional fields
+    if (!row.imageCid && !row.imageUrl) {
+      warnings.push('No image provided (imageCid or imageUrl recommended)');
+    }
+    if (!row.description) {
+      warnings.push('No description provided');
+    }
+    if (!row.condition) {
+      warnings.push('No condition specified');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }, []);
+
+  // Validate all CSV rows and get validation results
+  const csvValidationResults = useMemo(
+    () => parsedCsvRows.map((row) => validateCsvRow(row)),
+    [parsedCsvRows, validateCsvRow]
+  );
+
+  // Get valid rows (those with no errors)
   const validCsvRows = useMemo(
-    () =>
-      parsedCsvRows.filter(
-        (row) => row.title && row.brand && row.model && row.serialNumber && row.priceSol
-      ),
-    [parsedCsvRows]
+    () => parsedCsvRows.filter((_, idx) => csvValidationResults[idx]?.isValid),
+    [parsedCsvRows, csvValidationResults]
+  );
+
+  // Count rows with errors vs warnings only
+  const csvErrorCount = useMemo(
+    () => csvValidationResults.filter((r) => !r.isValid).length,
+    [csvValidationResults]
+  );
+
+  const csvWarningCount = useMemo(
+    () => csvValidationResults.filter((r) => r.isValid && r.warnings.length > 0).length,
+    [csvValidationResults]
   );
 
   const allRowsValid = parsedCsvRows.length > 0 && validCsvRows.length === parsedCsvRows.length;
@@ -1109,22 +1249,32 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                       </span>
                       <span className={styles.bulkStatLabel}>Ready</span>
                     </div>
-                    <div className={styles.bulkStatItem}>
-                      <span className={`${styles.bulkStatValue} ${styles.warning}`}>
-                        {parsedCsvRows.length - validCsvRows.length}
-                      </span>
-                      <span className={styles.bulkStatLabel}>Issues</span>
-                    </div>
+                    {csvErrorCount > 0 && (
+                      <div className={styles.bulkStatItem}>
+                        <span className={`${styles.bulkStatValue} ${styles.error}`}>
+                          {csvErrorCount}
+                        </span>
+                        <span className={styles.bulkStatLabel}>Errors</span>
+                      </div>
+                    )}
+                    {csvWarningCount > 0 && (
+                      <div className={styles.bulkStatItem}>
+                        <span className={`${styles.bulkStatValue} ${styles.warning}`}>
+                          {csvWarningCount}
+                        </span>
+                        <span className={styles.bulkStatLabel}>Warnings</span>
+                      </div>
+                    )}
                     <button
                       className={styles.mintButton}
                       onClick={bulkMintFromCsv}
-                      disabled={isBulkMinting || !allRowsValid}
+                      disabled={isBulkMinting || validCsvRows.length === 0}
                     >
                       {isBulkMinting
                         ? 'Minting...'
-                        : allRowsValid
+                        : validCsvRows.length > 0
                           ? `Mint ${validCsvRows.length} NFTs`
-                          : `Fix ${parsedCsvRows.length - validCsvRows.length} Issues`}
+                          : `Fix ${csvErrorCount} Errors`}
                     </button>
                   </div>
                 )}
@@ -1135,49 +1285,302 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                 <div className={styles.bulkEmptyState}>
                   <FaUpload className={styles.bulkEmptyIcon} />
                   <h3>Upload a CSV to Get Started</h3>
-                  <p>Required: title, brand, model, serialNumber, priceSol</p>
-                  <p>Optional: description, imageUrl, material, movement, condition</p>
+                  <div className={styles.bulkFieldsInfo}>
+                    <div className={styles.bulkFieldsColumn}>
+                      <span className={styles.bulkFieldsTitle}>Required Fields</span>
+                      <ul>
+                        <li>title</li>
+                        <li>brand</li>
+                        <li>model</li>
+                        <li>serialNumber</li>
+                        <li>
+                          priceUSD <span className={styles.fieldNote}>(numbers only)</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className={styles.bulkFieldsColumn}>
+                      <span className={styles.bulkFieldsTitle}>Optional Fields</span>
+                      <ul>
+                        <li>imageCid / imageUrl</li>
+                        <li>description</li>
+                        <li>material, movement, caseSize</li>
+                        <li>dialColor, waterResistance</li>
+                        <li>
+                          productionYear <span className={styles.fieldNote}>(numbers only)</span>
+                        </li>
+                        <li>condition, boxPapers, country</li>
+                        <li>limitedEdition, certificate</li>
+                        <li>warrantyInfo, features</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p className={styles.bulkEmptyNote}>
+                    Prices in USD - converted to SOL at transaction time
+                  </p>
                 </div>
               )}
 
-              {/* Large Preview Grid */}
+              {/* Responsive Preview Grid */}
               {parsedCsvRows.length > 0 && (
-                <div className={styles.bulkPreviewGridLarge}>
+                <div className={styles.bulkGridResponsive}>
                   {parsedCsvRows.map((row, idx) => {
                     const result = bulkMintResults[idx];
+                    const validation = csvValidationResults[idx];
                     const imageUrl = row.imageCid
                       ? `${gateway}${row.imageCid}`
                       : row.imageUrl || undefined;
-                    const isValid = !!(
-                      row.title &&
-                      row.brand &&
-                      row.model &&
-                      row.serialNumber &&
-                      row.priceSol
-                    );
+                    const priceUSD = getRowPriceUSD(row);
+                    const priceSolConverted = usdToSol(priceUSD);
 
                     // Map bulk mint status to NFTStatus
                     const getStatus = (): NFTStatus => {
                       if (result?.status === 'minting') return 'minting';
                       if (result?.status === 'success') return 'verified';
                       if (result?.status === 'error') return 'error';
-                      if (isValid) return 'ready';
-                      return 'pending';
+                      if (!validation?.isValid) return 'error';
+                      if (validation?.warnings.length > 0) return 'pending';
+                      return 'ready';
                     };
 
                     return (
-                      <NFTGridCard
-                        key={idx}
-                        title={row.title || 'Untitled'}
-                        image={imageUrl}
-                        price={row.priceSol ? parseFloat(row.priceSol) : 0}
-                        priceLabel="SOL"
-                        brand={row.brand}
-                        status={getStatus()}
-                        isValid={isValid}
-                      />
+                      <div key={idx} className={styles.bulkCardWrapper}>
+                        <NFTGridCard
+                          title={row.title || 'Untitled'}
+                          image={imageUrl}
+                          price={priceUSD}
+                          priceLabel="USD"
+                          priceUSD={priceUSD}
+                          brand={row.brand}
+                          subtitle={
+                            priceSolConverted > 0
+                              ? `≈ ${priceSolConverted.toFixed(2)} SOL`
+                              : undefined
+                          }
+                          status={getStatus()}
+                          isValid={validation?.isValid ?? false}
+                          onClick={() => setSelectedBulkNftIndex(idx)}
+                        />
+                        {/* Validation indicator */}
+                        {validation && !validation.isValid && (
+                          <div className={styles.bulkCardError}>
+                            <FaTimes /> {validation.errors.length} error
+                            {validation.errors.length > 1 ? 's' : ''}
+                          </div>
+                        )}
+                        {validation && validation.isValid && validation.warnings.length > 0 && (
+                          <div className={styles.bulkCardWarning}>
+                            <FaClock /> {validation.warnings.length} warning
+                            {validation.warnings.length > 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Bulk NFT Detail Modal using NftDetailCard */}
+              {selectedBulkNftIndex !== null && parsedCsvRows[selectedBulkNftIndex] && (
+                <div className={styles.modalBackdrop} onClick={() => setSelectedBulkNftIndex(null)}>
+                  <div className={styles.bulkDetailWrapper} onClick={(e) => e.stopPropagation()}>
+                    {/* Navigation Header */}
+                    <div className={styles.bulkDetailNavHeader}>
+                      <button
+                        className={styles.bulkNavBtn}
+                        onClick={() =>
+                          setSelectedBulkNftIndex(
+                            selectedBulkNftIndex > 0
+                              ? selectedBulkNftIndex - 1
+                              : parsedCsvRows.length - 1
+                          )
+                        }
+                      >
+                        ← Prev
+                      </button>
+                      <span className={styles.bulkNavCount}>
+                        {selectedBulkNftIndex + 1} / {parsedCsvRows.length}
+                      </span>
+                      <button
+                        className={styles.bulkNavBtn}
+                        onClick={() =>
+                          setSelectedBulkNftIndex(
+                            selectedBulkNftIndex < parsedCsvRows.length - 1
+                              ? selectedBulkNftIndex + 1
+                              : 0
+                          )
+                        }
+                      >
+                        Next →
+                      </button>
+                    </div>
+
+                    {/* Status Badge and Validation */}
+                    {(() => {
+                      const result = bulkMintResults[selectedBulkNftIndex];
+                      const validation = csvValidationResults[selectedBulkNftIndex];
+
+                      if (result?.status === 'success') {
+                        return (
+                          <div className={styles.bulkStatusBanner}>
+                            <span className={styles.bulkBadgeSuccess}>
+                              <FaCheck /> Minted
+                            </span>
+                            {result.mintAddress && (
+                              <span
+                                className={styles.bulkMintLink}
+                                onClick={() => handleCopy('bulk-mint', result.mintAddress || '')}
+                              >
+                                {result.mintAddress.slice(0, 6)}...{result.mintAddress.slice(-6)}
+                                <FaCopy />
+                              </span>
+                            )}
+                          </div>
+                        );
+                      }
+                      if (result?.status === 'minting') {
+                        return (
+                          <div className={styles.bulkStatusBanner}>
+                            <span className={styles.bulkBadgeMinting}>
+                              <FaSpinner className={styles.spinningIcon} /> Minting...
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (result?.status === 'error') {
+                        return (
+                          <div className={styles.bulkStatusBanner}>
+                            <span className={styles.bulkBadgeError}>
+                              <FaTimes /> {result.error || 'Error'}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      // Show validation errors/warnings
+                      return (
+                        <>
+                          {validation && !validation.isValid && (
+                            <div className={styles.bulkValidationBox}>
+                              <div className={styles.bulkValidationTitle}>
+                                <FaTimes /> {validation.errors.length} Validation Error
+                                {validation.errors.length > 1 ? 's' : ''}
+                              </div>
+                              <ul className={styles.bulkValidationList}>
+                                {validation.errors.map((error, i) => (
+                                  <li key={i}>{error}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {validation && validation.isValid && validation.warnings.length > 0 && (
+                            <div className={styles.bulkWarningBox}>
+                              <div className={styles.bulkWarningTitle}>
+                                <FaClock /> {validation.warnings.length} Warning
+                                {validation.warnings.length > 1 ? 's' : ''}
+                              </div>
+                              <ul className={styles.bulkValidationList}>
+                                {validation.warnings.map((warning, i) => (
+                                  <li key={i}>{warning}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {validation?.isValid && validation.warnings.length === 0 && (
+                            <div className={styles.bulkStatusBanner}>
+                              <span className={styles.bulkBadgeReady}>
+                                <FaCheck /> Ready to Mint
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+
+                    {/* NftDetailCard with preview data (USD-first) */}
+                    {(() => {
+                      const row = parsedCsvRows[selectedBulkNftIndex];
+                      const priceUSD = getRowPriceUSD(row);
+                      const priceSolConverted = usdToSol(priceUSD);
+
+                      return (
+                        <NftDetailCard
+                          onClose={() => setSelectedBulkNftIndex(null)}
+                          mintAddress={
+                            bulkMintResults[selectedBulkNftIndex]?.mintAddress || undefined
+                          }
+                          previewData={{
+                            title: row.title || 'Untitled',
+                            description: row.description || '',
+                            image: row.imageCid
+                              ? `${gateway}${row.imageCid}`
+                              : row.imageUrl || '/images/purpleLGG.png',
+                            priceSol: priceSolConverted,
+                            attributes: [
+                              {
+                                trait_type: 'Price (USD)',
+                                value: priceUSD > 0 ? `$${priceUSD.toLocaleString()}` : '',
+                              },
+                              {
+                                trait_type: 'Price (SOL)',
+                                value:
+                                  priceSolConverted > 0
+                                    ? `≈ ${priceSolConverted.toFixed(2)} SOL`
+                                    : '',
+                              },
+                              {
+                                trait_type: 'Brand',
+                                value: row.brand || '',
+                              },
+                              {
+                                trait_type: 'Model',
+                                value: row.model || '',
+                              },
+                              {
+                                trait_type: 'Serial Number',
+                                value: row.serialNumber || '',
+                              },
+                              {
+                                trait_type: 'Material',
+                                value: row.material || '',
+                              },
+                              {
+                                trait_type: 'Production Year',
+                                value: row.productionYear || '',
+                              },
+                              {
+                                trait_type: 'Movement',
+                                value: row.movement || '',
+                              },
+                              {
+                                trait_type: 'Case Size',
+                                value: row.caseSize || '',
+                              },
+                              {
+                                trait_type: 'Dial Color',
+                                value: row.dialColor || '',
+                              },
+                              {
+                                trait_type: 'Water Resistance',
+                                value: row.waterResistance || '',
+                              },
+                              {
+                                trait_type: 'Condition',
+                                value: row.condition || '',
+                              },
+                              {
+                                trait_type: 'Box & Papers',
+                                value: row.boxPapers || '',
+                              },
+                              {
+                                trait_type: 'Country',
+                                value: row.country || '',
+                              },
+                            ].filter((attr) => attr.value),
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
             </div>
