@@ -53,12 +53,13 @@ interface MintedNFT {
 }
 
 // CSV Row interface for bulk minting (USD-first approach)
+// Includes ALL form fields for minting
 interface CsvRow {
   // Required fields
   title: string;
   brand: string;
   model: string;
-  serialNumber: string;
+  referenceNumber: string; // Can include letters and numbers (e.g., "116595RBOW-2024")
   priceUSD: string; // USD as source of truth (numeric)
 
   // Optional fields - image (at least one recommended)
@@ -80,9 +81,11 @@ interface CsvRow {
   certificate?: string;
   warrantyInfo?: string;
   features?: string;
+  releaseDate?: string;
 
   // Legacy support
   priceSol?: string; // Will be converted to USD if priceUSD not present
+  serialNumber?: string; // Legacy - maps to referenceNumber
 
   [key: string]: string | undefined;
 }
@@ -95,7 +98,7 @@ interface CsvValidationResult {
 }
 
 // Required fields for CSV validation
-const CSV_REQUIRED_FIELDS = ['title', 'brand', 'model', 'serialNumber', 'priceUSD'] as const;
+const CSV_REQUIRED_FIELDS = ['title', 'brand', 'model', 'referenceNumber', 'priceUSD'] as const;
 
 // Numeric fields that should only contain numbers (and optionally decimal point)
 const CSV_NUMERIC_FIELDS = ['priceUSD', 'priceSol', 'productionYear'] as const;
@@ -616,6 +619,9 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           : (parseFloat(row.priceSol || '0') || 0) * solPrice; // Legacy fallback
         const priceSolConverted = solPrice > 0 ? priceUSD / solPrice : 0;
 
+        // Get reference number (supports legacy serialNumber)
+        const refNumber = row.referenceNumber || row.serialNumber || '';
+
         // Create metadata (stores both USD and SOL equivalent)
         const metadataJson = createMetadata(
           row.title,
@@ -624,19 +630,19 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           wallet.publicKey.toBase58(),
           row.brand,
           row.model,
-          row.serialNumber,
+          refNumber,
           row.material || '',
           row.productionYear || '',
-          '',
-          '',
-          '',
+          row.limitedEdition || '',
+          row.certificate || '',
+          row.warrantyInfo || '',
           wallet.publicKey.toBase58(),
           row.movement || '',
           row.caseSize || '',
           row.waterResistance || '',
           row.dialColor || '',
           row.country || '',
-          '',
+          row.releaseDate || '',
           wallet.publicKey.toBase58(),
           'inactive',
           priceSolConverted, // SOL equivalent at mint time (for display)
@@ -664,7 +670,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           body: JSON.stringify({
             vendor: currentVendorId,
             model: row.model,
-            serial: row.serialNumber,
+            serial: refNumber, // Reference number (supports alphanumeric)
             description: row.description,
             priceUSD, // USD is the source of truth
             imageIpfsUrls: row.imageCid ? [row.imageCid] : [],
@@ -684,6 +690,11 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
             condition: row.condition,
             boxPapers: row.boxPapers,
             country: row.country,
+            limitedEdition: row.limitedEdition,
+            certificate: row.certificate,
+            warrantyInfo: row.warrantyInfo,
+            features: row.features,
+            releaseDate: row.releaseDate,
           }),
         });
 
@@ -1005,6 +1016,11 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     [solPrice]
   );
 
+  // Helper to get reference number from row (supports legacy serialNumber)
+  const getRowReferenceNumber = useCallback((row: CsvRow): string => {
+    return row.referenceNumber || row.serialNumber || '';
+  }, []);
+
   // Validate a single CSV row
   const validateCsvRow = useCallback((row: CsvRow): CsvValidationResult => {
     const errors: string[] = [];
@@ -1012,11 +1028,18 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
     // Check required fields
     CSV_REQUIRED_FIELDS.forEach((field) => {
-      const value = row[field];
+      let value = row[field];
+
       // Special case: priceUSD can fall back to priceSol
       if (field === 'priceUSD' && !value && row.priceSol) {
         return; // priceSol is acceptable as fallback
       }
+
+      // Special case: referenceNumber can fall back to serialNumber (legacy)
+      if (field === 'referenceNumber' && !value && row.serialNumber) {
+        return; // serialNumber is acceptable as fallback
+      }
+
       if (!value || value.trim() === '') {
         errors.push(`Missing required field: ${field}`);
       }
@@ -1292,7 +1315,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                         <li>title</li>
                         <li>brand</li>
                         <li>model</li>
-                        <li>serialNumber</li>
+                        <li>referenceNumber</li>
                         <li>
                           priceUSD <span className={styles.fieldNote}>(numbers only)</span>
                         </li>
@@ -1310,7 +1333,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                         </li>
                         <li>condition, boxPapers, country</li>
                         <li>limitedEdition, certificate</li>
-                        <li>warrantyInfo, features</li>
+                        <li>warrantyInfo, features, releaseDate</li>
                       </ul>
                     </div>
                   </div>
@@ -1536,8 +1559,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                                 value: row.model || '',
                               },
                               {
-                                trait_type: 'Serial Number',
-                                value: row.serialNumber || '',
+                                trait_type: 'Reference Number',
+                                value: row.referenceNumber || row.serialNumber || '',
                               },
                               {
                                 trait_type: 'Material',
@@ -1574,6 +1597,26 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                               {
                                 trait_type: 'Country',
                                 value: row.country || '',
+                              },
+                              {
+                                trait_type: 'Limited Edition',
+                                value: row.limitedEdition || '',
+                              },
+                              {
+                                trait_type: 'Certificate',
+                                value: row.certificate || '',
+                              },
+                              {
+                                trait_type: 'Warranty Info',
+                                value: row.warrantyInfo || '',
+                              },
+                              {
+                                trait_type: 'Features',
+                                value: row.features || '',
+                              },
+                              {
+                                trait_type: 'Release Date',
+                                value: row.releaseDate || '',
                               },
                             ].filter((attr) => attr.value),
                           }}
