@@ -1,6 +1,5 @@
 // src/pages/WatchMarket.tsx
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import Head from 'next/head';
 import { useWallet } from '@solana/wallet-adapter-react';
 import WalletGuide from '../components/common/WalletGuide';
 import {
@@ -848,56 +847,54 @@ const Marketplace = () => {
   const totalSelected = getTotalFiltersSelected();
 
   return (
-    <>
-      <Head>
-        <title>Marketplace | LuxHub</title>
-        <meta
-          name="description"
-          content="Browse luxury watches and timepieces. Direct sales, fractional investment pools, and verified custody items."
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </Head>
-      <div className={styles.container}>
-        <div className={styles.title}>
-          <h2>Marketplace</h2>
+    <div className={styles.container}>
+      {/* Wallet Connection Banner - show when not connected */}
+      {!wallet.connected && (
+        <div className={styles.walletBanner}>
+          <div className={styles.walletBannerContent}>
+            <span>Connect your wallet to purchase NFTs and make offers</span>
+            <WalletGuide compact />
+          </div>
+        </div>
+      )}
 
-          <div className={styles.titleSeparator}>
-            <div className={styles.inputGroupContainer}>
-              <div className={styles.inputGroup}>
-                <div className={styles.searchContainer}>
-                  <button>
-                    <CiSearch className={styles.searchIcon} />
+      <div className={styles.title}>
+        <h2>Marketplace</h2>
+
+        <div className={styles.titleSeparator}>
+          <div className={styles.inputGroupContainer}>
+            <div className={styles.inputGroup}>
+              <div className={styles.searchContainer}>
+                <button>
+                  <CiSearch className={styles.searchIcon} />
+                </button>
+                <input
+                  type="text"
+                  placeholder="Search by brand or mint address"
+                  className={styles.searchBar}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className={styles.clearButton}>
+                    ×
                   </button>
-                  <input
-                    type="text"
-                    placeholder="Search by brand or mint address"
-                    className={styles.searchBar}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className={styles.clearButton}>
-                      ×
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
             </div>
-
-            <button className={styles.filterToggle} onClick={() => setShowFilters(true)}>
-              Filters{' '}
-              {totalSelected > 0 ? (
-                <span className={styles.filterCount}>({totalSelected})</span>
-              ) : (
-                <FaAngleRight />
-              )}
-            </button>
           </div>
 
-          {/* <div className={styles.inputGroupContainer}>
+          <button className={styles.filterToggle} onClick={() => setShowFilters(true)}>
+            Filters{' '}
+            {totalSelected > 0 ? (
+              <span className={styles.filterCount}>({totalSelected})</span>
+            ) : (
+              <FaAngleRight />
+            )}
+          </button>
+        </div>
+
+        {/* <div className={styles.inputGroupContainer}>
           <div className={styles.inputGroup}>
             <div className={styles.searchContainer}>
               <button><CiSearch className={styles.searchIcon} /></button>
@@ -925,516 +922,510 @@ const Marketplace = () => {
             <FaAngleRight />
           )}
         </button> */}
+      </div>
+
+      {/* === VENDOR SLIDER SECTION === */}
+      <div className={styles.vendorSliderSection}>
+        <div className={styles.vendorSliderHeader}>
+          <h3>LuxHub Dealers</h3>
+          <Link href="/vendors" className={styles.viewAllButton}>
+            View All <FaAngleRight />
+          </Link>
         </div>
 
-        {/* === VENDOR SLIDER SECTION === */}
-        <div className={styles.vendorSliderSection}>
-          <div className={styles.vendorSliderHeader}>
-            <h3>LuxHub Dealers</h3>
-            <Link href="/vendors" className={styles.viewAllButton}>
-              View All <FaAngleRight />
-            </Link>
-          </div>
+        <div className={styles.vendorSlider}>
+          {/* Verified dealers first */}
+          {verifiedVendors.map((vendor) => (
+            <VendorSliderCard key={`verified-${vendor.wallet}`} vendor={vendor} />
+          ))}
 
-          <div className={styles.vendorSlider}>
-            {/* Verified dealers first */}
-            {verifiedVendors.map((vendor) => (
-              <VendorSliderCard key={`verified-${vendor.wallet}`} vendor={vendor} />
+          {/* Then other approved dealers (avoid duplicates) */}
+          {vendors
+            .filter((v) => !verifiedVendors.some((vv) => vv.wallet === v.wallet))
+            .slice(0, 12)
+            .map((vendor) => (
+              <VendorSliderCard key={vendor.wallet} vendor={vendor} />
             ))}
 
-            {/* Then other approved dealers (avoid duplicates) */}
-            {vendors
-              .filter((v) => !verifiedVendors.some((vv) => vv.wallet === v.wallet))
-              .slice(0, 12)
-              .map((vendor) => (
-                <VendorSliderCard key={vendor.wallet} vendor={vendor} />
-              ))}
-
-            {/* Loading/skeleton fallback */}
-            {vendors.length === 0 && verifiedVendors.length === 0 && (
-              <>
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className={styles.vendorSliderCardSkeleton}>
-                    <div className={styles.vendorSliderAvatarPlaceholder} />
-                    <div className={styles.vendorSliderInfo}>
-                      <p></p>
-                      <p></p>
-                    </div>
+          {/* Loading/skeleton fallback */}
+          {vendors.length === 0 && verifiedVendors.length === 0 && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className={styles.vendorSliderCardSkeleton}>
+                  <div className={styles.vendorSliderAvatarPlaceholder} />
+                  <div className={styles.vendorSliderInfo}>
+                    <p></p>
+                    <p></p>
                   </div>
-                ))}
-              </>
-            )}
-          </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
-        {/* === END VENDOR SLIDER === */}
+      </div>
+      {/* === END VENDOR SLIDER === */}
 
-        {/* Section Tabs */}
-        <div className={styles.sectionTabs}>
-          <button
-            className={`${styles.sectionTab} ${activeSection === 'direct_sales' ? styles.activeTab : ''}`}
-            onClick={() => setActiveSection('direct_sales')}
-          >
-            <HiOutlineBuildingStorefront className={styles.tabIcon} />
-            <span>Direct Sales</span>
-            <span className={styles.tabCount}>{filteredNfts.length}</span>
-          </button>
-          <button
-            className={`${styles.sectionTab} ${activeSection === 'pools' ? styles.activeTab : ''}`}
-            onClick={() => setActiveSection('pools')}
-          >
-            <FaUsers className={styles.tabIcon} />
-            <span>Investment Pools</span>
-            <span className={styles.tabCount}>{filteredPools.length}</span>
-          </button>
-          <button
-            className={`${styles.sectionTab} ${activeSection === 'custody' ? styles.activeTab : ''}`}
-            onClick={() => setActiveSection('custody')}
-          >
-            <FaLock className={styles.tabIcon} />
-            <span>LuxHub Custody</span>
-            <span className={styles.tabCount}>{filteredCustody.length}</span>
-          </button>
-        </div>
-
-        <div
-          className={`${styles.filterPanelWrapper} ${showFilters ? styles.open : styles.closed}`}
+      {/* Section Tabs */}
+      <div className={styles.sectionTabs}>
+        <button
+          className={`${styles.sectionTab} ${activeSection === 'direct_sales' ? styles.activeTab : ''}`}
+          onClick={() => setActiveSection('direct_sales')}
         >
-          <FilterSortPanel
-            onFilterChange={(incomingFilters) =>
-              setFilters((prev) => ({
-                ...prev,
-                brands: incomingFilters.brands ?? [],
-                materials: incomingFilters.materials ?? [],
-                colors: incomingFilters.colors ?? [],
-                sizes: incomingFilters.sizes ?? [],
-                categories: incomingFilters.categories ?? [],
-              }))
-            }
-            currentFilters={filters}
-            onSortChange={setSortOption}
-            currentSort={sortOption}
-            onClose={() => setShowFilters(false)}
-          />
-        </div>
+          <HiOutlineBuildingStorefront className={styles.tabIcon} />
+          <span>Direct Sales</span>
+          <span className={styles.tabCount}>{filteredNfts.length}</span>
+        </button>
+        <button
+          className={`${styles.sectionTab} ${activeSection === 'pools' ? styles.activeTab : ''}`}
+          onClick={() => setActiveSection('pools')}
+        >
+          <FaUsers className={styles.tabIcon} />
+          <span>Investment Pools</span>
+          <span className={styles.tabCount}>{filteredPools.length}</span>
+        </button>
+        <button
+          className={`${styles.sectionTab} ${activeSection === 'custody' ? styles.activeTab : ''}`}
+          onClick={() => setActiveSection('custody')}
+        >
+          <FaLock className={styles.tabIcon} />
+          <span>LuxHub Custody</span>
+          <span className={styles.tabCount}>{filteredCustody.length}</span>
+        </button>
+      </div>
 
-        {/* ============================================
+      <div className={`${styles.filterPanelWrapper} ${showFilters ? styles.open : styles.closed}`}>
+        <FilterSortPanel
+          onFilterChange={(incomingFilters) =>
+            setFilters((prev) => ({
+              ...prev,
+              brands: incomingFilters.brands ?? [],
+              materials: incomingFilters.materials ?? [],
+              colors: incomingFilters.colors ?? [],
+              sizes: incomingFilters.sizes ?? [],
+              categories: incomingFilters.categories ?? [],
+            }))
+          }
+          currentFilters={filters}
+          onSortChange={setSortOption}
+          currentSort={sortOption}
+          onClose={() => setShowFilters(false)}
+        />
+      </div>
+
+      {/* ============================================
           DIRECT SALES SECTION
           ============================================ */}
-        {activeSection === 'direct_sales' && (
-          <>
-            <div className={styles.sectionHeader}>
-              <h3>Full Price Watches</h3>
-              <p className={styles.sectionDescription}>
-                Purchase luxury timepieces directly through our secure escrow system
-              </p>
-            </div>
+      {activeSection === 'direct_sales' && (
+        <>
+          <div className={styles.sectionHeader}>
+            <h3>Full Price Watches</h3>
+            <p className={styles.sectionDescription}>
+              Purchase luxury timepieces directly through our secure escrow system
+            </p>
+          </div>
 
-            {isLoading ? (
-              <div className={styles.skeletonGrid}>
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className={styles.skeletonCard}>
-                    <div className={styles.skeletonImage} />
-                    <div className={styles.skeletonContent}>
-                      <div className={styles.skeletonTitle} />
-                      <div className={styles.skeletonPrice} />
-                      <div className={styles.skeletonActions}>
-                        <div className={styles.skeletonButton} />
-                        <div className={styles.skeletonButton} />
-                      </div>
+          {isLoading ? (
+            <div className={styles.skeletonGrid}>
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className={styles.skeletonCard}>
+                  <div className={styles.skeletonImage} />
+                  <div className={styles.skeletonContent}>
+                    <div className={styles.skeletonTitle} />
+                    <div className={styles.skeletonPrice} />
+                    <div className={styles.skeletonActions}>
+                      <div className={styles.skeletonButton} />
+                      <div className={styles.skeletonButton} />
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : filteredNfts.length === 0 ? (
-              <div className={styles.emptyState}>
-                <h3>No items available</h3>
-                <p>Check back soon for new luxury listings</p>
-              </div>
-            ) : (
-              <div className={styles.nftGrid}>
-                {filteredNfts.map((nft, index) => (
-                  <div key={index} className={styles.cardWrapper} style={{ position: 'relative' }}>
-                    {nft.mintAddress.startsWith('mock_') && (
-                      <span className={styles.demoBadge}>Demo</span>
-                    )}
-                    <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
-                    <div className={styles.sellerActions}>
-                      {nft.marketStatus === 'pending' ? (
-                        <p className={styles.statusPending}>Pending Approval</p>
-                      ) : nft.marketStatus === 'requested' ? (
-                        <p className={styles.statusListed}>Listed</p>
-                      ) : nft.marketStatus === 'Holding LuxHub' ? (
-                        <button
-                          className={styles.contactButton}
-                          onClick={() =>
-                            window.open(
-                              `https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`,
-                              '_blank'
-                            )
-                          }
-                        >
-                          Contact
+                </div>
+              ))}
+            </div>
+          ) : filteredNfts.length === 0 ? (
+            <div className={styles.emptyState}>
+              <h3>No items available</h3>
+              <p>Check back soon for new luxury listings</p>
+            </div>
+          ) : (
+            <div className={styles.nftGrid}>
+              {filteredNfts.map((nft, index) => (
+                <div key={index} className={styles.cardWrapper} style={{ position: 'relative' }}>
+                  {nft.mintAddress.startsWith('mock_') && (
+                    <span className={styles.demoBadge}>Demo</span>
+                  )}
+                  <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+                  <div className={styles.sellerActions}>
+                    {nft.marketStatus === 'pending' ? (
+                      <p className={styles.statusPending}>Pending Approval</p>
+                    ) : nft.marketStatus === 'requested' ? (
+                      <p className={styles.statusListed}>Listed</p>
+                    ) : nft.marketStatus === 'Holding LuxHub' ? (
+                      <button
+                        className={styles.contactButton}
+                        onClick={() =>
+                          window.open(
+                            `https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`,
+                            '_blank'
+                          )
+                        }
+                      >
+                        Contact
+                      </button>
+                    ) : nft.acceptingOffers && nft.escrowPda ? (
+                      <>
+                        <button className={styles.offerButton} onClick={() => handleMakeOffer(nft)}>
+                          Offer
                         </button>
-                      ) : nft.acceptingOffers && nft.escrowPda ? (
-                        <>
-                          <button
-                            className={styles.offerButton}
-                            onClick={() => handleMakeOffer(nft)}
-                          >
-                            Offer
-                          </button>
-                          <button
-                            onClick={() => handlePurchase(nft)}
-                            disabled={loadingMint === nft.mintAddress}
-                          >
-                            {loadingMint === nft.mintAddress ? '...' : 'BUY'}
-                          </button>
-                        </>
-                      ) : (
                         <button
                           onClick={() => handlePurchase(nft)}
                           disabled={loadingMint === nft.mintAddress}
                         >
                           {loadingMint === nft.mintAddress ? '...' : 'BUY'}
                         </button>
-                      )}
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => handlePurchase(nft)}
+                        disabled={loadingMint === nft.mintAddress}
+                      >
+                        {loadingMint === nft.mintAddress ? '...' : 'BUY'}
+                      </button>
+                    )}
 
-                      <p className={styles.priceInfo}>
-                        <SiSolana />
-                        {nft.priceSol.toFixed(1)}
-                      </p>
+                    <p className={styles.priceInfo}>
+                      <SiSolana />
+                      {nft.priceSol.toFixed(1)}
+                    </p>
 
-                      <p className={styles.statusBadge}>
-                        {nft.acceptingOffers
-                          ? 'Offers'
-                          : nft.marketStatus === 'active'
-                            ? 'Live'
-                            : 'Hold'}
-                      </p>
-                    </div>
+                    <p className={styles.statusBadge}>
+                      {nft.acceptingOffers
+                        ? 'Offers'
+                        : nft.marketStatus === 'active'
+                          ? 'Live'
+                          : 'Hold'}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
-        {/* ============================================
+      {/* ============================================
           INVESTMENT POOLS SECTION
           ============================================ */}
-        {activeSection === 'pools' && (
-          <>
-            <div className={styles.sectionHeader}>
-              <h3>Fractional Investment Pools</h3>
-              <p className={styles.sectionDescription}>
-                Invest in luxury timepieces with fractional ownership. Join pools to share in future
-                resale profits.
-              </p>
-            </div>
+      {activeSection === 'pools' && (
+        <>
+          <div className={styles.sectionHeader}>
+            <h3>Fractional Investment Pools</h3>
+            <p className={styles.sectionDescription}>
+              Invest in luxury timepieces with fractional ownership. Join pools to share in future
+              resale profits.
+            </p>
+          </div>
 
-            {isLoadingPools ? (
-              <div className={styles.poolGrid}>
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className={styles.poolCardSkeleton}>
-                    <div className={styles.skeletonImage} />
-                    <div className={styles.skeletonContent}>
-                      <div className={styles.skeletonTitle} />
-                      <div className={styles.skeletonProgressBar} />
-                      <div className={styles.skeletonStats}>
-                        <div className={styles.skeletonStat} />
-                        <div className={styles.skeletonStat} />
-                        <div className={styles.skeletonStat} />
+          {isLoadingPools ? (
+            <div className={styles.poolGrid}>
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className={styles.poolCardSkeleton}>
+                  <div className={styles.skeletonImage} />
+                  <div className={styles.skeletonContent}>
+                    <div className={styles.skeletonTitle} />
+                    <div className={styles.skeletonProgressBar} />
+                    <div className={styles.skeletonStats}>
+                      <div className={styles.skeletonStat} />
+                      <div className={styles.skeletonStat} />
+                      <div className={styles.skeletonStat} />
+                    </div>
+                    <div className={styles.skeletonButton} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredPools.length === 0 ? (
+            <div className={styles.emptyState}>
+              <h3>No active pools</h3>
+              <p>New investment opportunities coming soon</p>
+            </div>
+          ) : (
+            <div className={styles.poolGrid}>
+              {filteredPools.map((pool) => {
+                const fundingPercent = Math.round(
+                  (pool.currentAmountUSD / pool.targetAmountUSD) * 100
+                );
+                const isDemo = pool._id.startsWith('pool_');
+                return (
+                  <div key={pool._id} className={styles.poolCard}>
+                    {isDemo && <span className={styles.demoBadge}>Demo</span>}
+                    <div className={styles.poolImageWrapper}>
+                      <img
+                        src={pool.image || '/images/purpleLGG.png'}
+                        alt={pool.title}
+                        className={styles.poolImage}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
+                        }}
+                      />
+                      <div className={styles.poolBrand}>{pool.brand}</div>
+                    </div>
+                    <div className={styles.poolContent}>
+                      <h4 className={styles.poolTitle}>{pool.title}</h4>
+                      <p className={styles.poolModel}>{pool.model}</p>
+
+                      {/* Funding Progress Bar */}
+                      <div className={styles.progressSection}>
+                        <div className={styles.progressHeader}>
+                          <span>Funding Progress</span>
+                          <span className={styles.progressPercent}>{fundingPercent}%</span>
+                        </div>
+                        <div className={styles.progressBarTrack}>
+                          <div
+                            className={styles.progressBarFill}
+                            style={{ width: `${fundingPercent}%` }}
+                          />
+                        </div>
+                        <div className={styles.progressValues}>
+                          <span>${pool.currentAmountUSD.toLocaleString()}</span>
+                          <span className={styles.progressTarget}>
+                            of ${pool.targetAmountUSD.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
-                      <div className={styles.skeletonButton} />
+
+                      {/* Pool Stats */}
+                      <div className={styles.poolStats}>
+                        <div className={styles.poolStat}>
+                          <BiTargetLock className={styles.statIcon} />
+                          <div>
+                            <span className={styles.statValue}>
+                              ${pool.sharePriceUSD.toLocaleString()}
+                            </span>
+                            <span className={styles.statLabel}>per share</span>
+                          </div>
+                        </div>
+                        <div className={styles.poolStat}>
+                          <FaUsers className={styles.statIcon} />
+                          <div>
+                            <span className={styles.statValue}>
+                              {pool.currentInvestors}/{pool.maxInvestors}
+                            </span>
+                            <span className={styles.statLabel}>investors</span>
+                          </div>
+                        </div>
+                        <div className={styles.poolStat}>
+                          <FaChartLine className={styles.statIcon} />
+                          <div>
+                            <span className={styles.statValue}>
+                              {((pool.projectedROI - 1) * 100).toFixed(0)}%
+                            </span>
+                            <span className={styles.statLabel}>projected ROI</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Invest Button */}
+                      <button
+                        className={styles.investButton}
+                        onClick={() => {
+                          if (isDemo) {
+                            alert(
+                              `This is a demo pool for "${pool.title}". Real investment pools will be available soon.\n\nMin investment: $${pool.minBuyInUSD.toLocaleString()}`
+                            );
+                          } else if (!wallet.connected) {
+                            setShowWalletModal(true);
+                          } else {
+                            window.location.href = `/pool/${pool._id}`;
+                          }
+                        }}
+                      >
+                        Invest Now
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : filteredPools.length === 0 ? (
-              <div className={styles.emptyState}>
-                <h3>No active pools</h3>
-                <p>New investment opportunities coming soon</p>
-              </div>
-            ) : (
-              <div className={styles.poolGrid}>
-                {filteredPools.map((pool) => {
-                  const fundingPercent = Math.round(
-                    (pool.currentAmountUSD / pool.targetAmountUSD) * 100
-                  );
-                  const isDemo = pool._id.startsWith('pool_');
-                  return (
-                    <div key={pool._id} className={styles.poolCard}>
-                      {isDemo && <span className={styles.demoBadge}>Demo</span>}
-                      <div className={styles.poolImageWrapper}>
-                        <img
-                          src={pool.image || '/images/purpleLGG.png'}
-                          alt={pool.title}
-                          className={styles.poolImage}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                          }}
-                        />
-                        <div className={styles.poolBrand}>{pool.brand}</div>
-                      </div>
-                      <div className={styles.poolContent}>
-                        <h4 className={styles.poolTitle}>{pool.title}</h4>
-                        <p className={styles.poolModel}>{pool.model}</p>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
 
-                        {/* Funding Progress Bar */}
-                        <div className={styles.progressSection}>
-                          <div className={styles.progressHeader}>
-                            <span>Funding Progress</span>
-                            <span className={styles.progressPercent}>{fundingPercent}%</span>
-                          </div>
-                          <div className={styles.progressBarTrack}>
-                            <div
-                              className={styles.progressBarFill}
-                              style={{ width: `${fundingPercent}%` }}
-                            />
-                          </div>
-                          <div className={styles.progressValues}>
-                            <span>${pool.currentAmountUSD.toLocaleString()}</span>
-                            <span className={styles.progressTarget}>
-                              of ${pool.targetAmountUSD.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Pool Stats */}
-                        <div className={styles.poolStats}>
-                          <div className={styles.poolStat}>
-                            <BiTargetLock className={styles.statIcon} />
-                            <div>
-                              <span className={styles.statValue}>
-                                ${pool.sharePriceUSD.toLocaleString()}
-                              </span>
-                              <span className={styles.statLabel}>per share</span>
-                            </div>
-                          </div>
-                          <div className={styles.poolStat}>
-                            <FaUsers className={styles.statIcon} />
-                            <div>
-                              <span className={styles.statValue}>
-                                {pool.currentInvestors}/{pool.maxInvestors}
-                              </span>
-                              <span className={styles.statLabel}>investors</span>
-                            </div>
-                          </div>
-                          <div className={styles.poolStat}>
-                            <FaChartLine className={styles.statIcon} />
-                            <div>
-                              <span className={styles.statValue}>
-                                {((pool.projectedROI - 1) * 100).toFixed(0)}%
-                              </span>
-                              <span className={styles.statLabel}>projected ROI</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Invest Button */}
-                        <button
-                          className={styles.investButton}
-                          onClick={() => {
-                            if (isDemo) {
-                              alert(
-                                `This is a demo pool for "${pool.title}". Real investment pools will be available soon.\n\nMin investment: $${pool.minBuyInUSD.toLocaleString()}`
-                              );
-                            } else if (!wallet.connected) {
-                              setShowWalletModal(true);
-                            } else {
-                              window.location.href = `/pool/${pool._id}`;
-                            }
-                          }}
-                        >
-                          Invest Now
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ============================================
+      {/* ============================================
           LUXHUB CUSTODY SECTION
           ============================================ */}
-        {activeSection === 'custody' && (
-          <>
-            <div className={styles.sectionHeader}>
-              <h3>LuxHub Custody - Ready for Resale</h3>
-              <p className={styles.sectionDescription}>
-                Fully funded pools with verified watches in LuxHub secure storage. Purchase to
-                distribute profits to investors.
-              </p>
-            </div>
+      {activeSection === 'custody' && (
+        <>
+          <div className={styles.sectionHeader}>
+            <h3>LuxHub Custody - Ready for Resale</h3>
+            <p className={styles.sectionDescription}>
+              Fully funded pools with verified watches in LuxHub secure storage. Purchase to
+              distribute profits to investors.
+            </p>
+          </div>
 
-            {isLoadingCustody ? (
-              <div className={styles.custodyGrid}>
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className={styles.custodyCardSkeleton}>
-                    <div className={styles.skeletonImage} />
-                    <div className={styles.skeletonContent}>
-                      <div className={styles.skeletonTitle} />
-                      <div className={styles.skeletonPrice} />
-                      <div className={styles.skeletonStats}>
-                        <div className={styles.skeletonStat} />
-                        <div className={styles.skeletonStat} />
+          {isLoadingCustody ? (
+            <div className={styles.custodyGrid}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className={styles.custodyCardSkeleton}>
+                  <div className={styles.skeletonImage} />
+                  <div className={styles.skeletonContent}>
+                    <div className={styles.skeletonTitle} />
+                    <div className={styles.skeletonPrice} />
+                    <div className={styles.skeletonStats}>
+                      <div className={styles.skeletonStat} />
+                      <div className={styles.skeletonStat} />
+                    </div>
+                    <div className={styles.skeletonButton} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredCustody.length === 0 ? (
+            <div className={styles.emptyState}>
+              <h3>No custody items available</h3>
+              <p>Items will appear here once pools are fully funded and verified</p>
+            </div>
+          ) : (
+            <div className={styles.custodyGrid}>
+              {filteredCustody.map((item) => {
+                const isDemo = item._id.startsWith('custody_');
+                return (
+                  <div key={item._id} className={styles.custodyCard}>
+                    {isDemo && <span className={styles.demoBadge}>Demo</span>}
+                    <div className={styles.custodyBadge}>
+                      <FaLock className={styles.custodyBadgeIcon} />
+                      In Custody
+                    </div>
+                    <div className={styles.custodyImageWrapper}>
+                      <img
+                        src={item.image || '/images/purpleLGG.png'}
+                        alt={item.title}
+                        className={styles.custodyImage}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
+                        }}
+                      />
+                    </div>
+                    <div className={styles.custodyContent}>
+                      <div className={styles.custodyBrand}>{item.brand}</div>
+                      <h4 className={styles.custodyTitle}>{item.title}</h4>
+
+                      {/* Price Display */}
+                      <div className={styles.custodyPricing}>
+                        <div className={styles.originalPrice}>
+                          <span className={styles.priceLabel}>Pool Value:</span>
+                          <span className={styles.priceValue}>
+                            ${item.originalPurchaseUSD.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className={styles.resalePrice}>
+                          <span className={styles.priceLabel}>Resale Price:</span>
+                          <span className={styles.priceValueHighlight}>
+                            ${item.resaleListingPriceUSD.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className={styles.solPrice}>
+                          <SiSolana className={styles.solIcon} />
+                          <span>{item.resaleListingPriceSol.toLocaleString()} SOL</span>
+                        </div>
                       </div>
-                      <div className={styles.skeletonButton} />
+
+                      {/* Profit Stats */}
+                      <div className={styles.custodyStats}>
+                        <div className={styles.custodyStat}>
+                          <FaUsers className={styles.statIcon} />
+                          <span>{item.totalInvestors} investors</span>
+                        </div>
+                        <div className={styles.profitBadge}>
+                          <FaChartLine className={styles.statIcon} />
+                          <span>+{item.projectedProfitPercent.toFixed(1)}% profit</span>
+                        </div>
+                      </div>
+
+                      {/* Purchase Button */}
+                      <button
+                        className={styles.purchaseCustodyButton}
+                        onClick={() => {
+                          if (isDemo) {
+                            alert(
+                              `This is a demo custody item for "${item.title}".\n\nPurchasing this watch will distribute $${item.resaleListingPriceUSD.toLocaleString()} among ${item.totalInvestors} investors.`
+                            );
+                          } else if (!wallet.connected) {
+                            setShowWalletModal(true);
+                          } else {
+                            // Navigate to custody purchase page
+                            window.location.href = `/custody/${item._id}`;
+                          }
+                        }}
+                      >
+                        Purchase & Distribute Profits
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : filteredCustody.length === 0 ? (
-              <div className={styles.emptyState}>
-                <h3>No custody items available</h3>
-                <p>Items will appear here once pools are fully funded and verified</p>
-              </div>
-            ) : (
-              <div className={styles.custodyGrid}>
-                {filteredCustody.map((item) => {
-                  const isDemo = item._id.startsWith('custody_');
-                  return (
-                    <div key={item._id} className={styles.custodyCard}>
-                      {isDemo && <span className={styles.demoBadge}>Demo</span>}
-                      <div className={styles.custodyBadge}>
-                        <FaLock className={styles.custodyBadgeIcon} />
-                        In Custody
-                      </div>
-                      <div className={styles.custodyImageWrapper}>
-                        <img
-                          src={item.image || '/images/purpleLGG.png'}
-                          alt={item.title}
-                          className={styles.custodyImage}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                          }}
-                        />
-                      </div>
-                      <div className={styles.custodyContent}>
-                        <div className={styles.custodyBrand}>{item.brand}</div>
-                        <h4 className={styles.custodyTitle}>{item.title}</h4>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+      {selectedNFT && (
+        <div className={styles.overlay}>
+          <div className={styles.detailContainer}>
+            <button onClick={() => setSelectedNFT(null)}>Close</button>
+            <NftDetailCard
+              mintAddress={selectedNFT.mintAddress}
+              metadataUri={selectedNFT.metadataUri}
+              onClose={() => setSelectedNFT(null)}
+            />
+          </div>
+        </div>
+      )}
 
-                        {/* Price Display */}
-                        <div className={styles.custodyPricing}>
-                          <div className={styles.originalPrice}>
-                            <span className={styles.priceLabel}>Pool Value:</span>
-                            <span className={styles.priceValue}>
-                              ${item.originalPurchaseUSD.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className={styles.resalePrice}>
-                            <span className={styles.priceLabel}>Resale Price:</span>
-                            <span className={styles.priceValueHighlight}>
-                              ${item.resaleListingPriceUSD.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className={styles.solPrice}>
-                            <SiSolana className={styles.solIcon} />
-                            <span>{item.resaleListingPriceSol.toLocaleString()} SOL</span>
-                          </div>
-                        </div>
-
-                        {/* Profit Stats */}
-                        <div className={styles.custodyStats}>
-                          <div className={styles.custodyStat}>
-                            <FaUsers className={styles.statIcon} />
-                            <span>{item.totalInvestors} investors</span>
-                          </div>
-                          <div className={styles.profitBadge}>
-                            <FaChartLine className={styles.statIcon} />
-                            <span>+{item.projectedProfitPercent.toFixed(1)}% profit</span>
-                          </div>
-                        </div>
-
-                        {/* Purchase Button */}
-                        <button
-                          className={styles.purchaseCustodyButton}
-                          onClick={() => {
-                            if (isDemo) {
-                              alert(
-                                `This is a demo custody item for "${item.title}".\n\nPurchasing this watch will distribute $${item.resaleListingPriceUSD.toLocaleString()} among ${item.totalInvestors} investors.`
-                              );
-                            } else if (!wallet.connected) {
-                              setShowWalletModal(true);
-                            } else {
-                              // Navigate to custody purchase page
-                              window.location.href = `/custody/${item._id}`;
-                            }
-                          }}
-                        >
-                          Purchase & Distribute Profits
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+      {/* Wallet Connection Modal */}
+      {showWalletModal && (
+        <div className={styles.walletModalOverlay} onClick={() => setShowWalletModal(false)}>
+          <div className={styles.walletModalContent} onClick={(e) => e.stopPropagation()}>
+            <button
+              className={styles.walletModalClose}
+              onClick={() => {
+                setShowWalletModal(false);
+                setPendingPurchaseNft(null);
+              }}
+            >
+              ×
+            </button>
+            {pendingPurchaseNft && (
+              <p className={styles.walletModalMessage}>
+                Connect your wallet to purchase <strong>{pendingPurchaseNft.title}</strong>
+              </p>
             )}
-          </>
-        )}
-        {selectedNFT && (
-          <div className={styles.overlay}>
-            <div className={styles.detailContainer}>
-              <button onClick={() => setSelectedNFT(null)}>Close</button>
-              <NftDetailCard
-                mintAddress={selectedNFT.mintAddress}
-                metadataUri={selectedNFT.metadataUri}
-                onClose={() => setSelectedNFT(null)}
-              />
-            </div>
+            <WalletGuide onConnected={handleWalletConnected} showSteps={false} />
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Wallet Connection Modal */}
-        {showWalletModal && (
-          <div className={styles.walletModalOverlay} onClick={() => setShowWalletModal(false)}>
-            <div className={styles.walletModalContent} onClick={(e) => e.stopPropagation()}>
-              <button
-                className={styles.walletModalClose}
-                onClick={() => {
-                  setShowWalletModal(false);
-                  setPendingPurchaseNft(null);
-                }}
-              >
-                ×
-              </button>
-              {pendingPurchaseNft && (
-                <p className={styles.walletModalMessage}>
-                  Connect your wallet to purchase <strong>{pendingPurchaseNft.title}</strong>
-                </p>
-              )}
-              <WalletGuide onConnected={handleWalletConnected} showSteps={false} />
-            </div>
-          </div>
-        )}
-
-        {/* Make Offer Modal */}
-        {offerNft && offerNft.escrowPda && (
-          <MakeOfferModal
-            escrow={{
-              escrowPda: offerNft.escrowPda,
-              listingPriceUSD: offerNft.salePrice || offerNft.priceSol * 100,
-              minimumOfferUSD: offerNft.minimumOfferUSD,
-              asset: {
-                model: offerNft.title,
-                imageUrl: offerNft.image,
-              },
-              vendor: {
-                businessName: offerNft.vendorName || offerNft.seller,
-              },
-            }}
-            onClose={() => setOfferNft(null)}
-            onSuccess={() => {
-              setOfferNft(null);
-              fetchNFTs(); // Refresh listings
-            }}
-          />
-        )}
-      </div>
-    </>
+      {/* Make Offer Modal */}
+      {offerNft && offerNft.escrowPda && (
+        <MakeOfferModal
+          escrow={{
+            escrowPda: offerNft.escrowPda,
+            listingPriceUSD: offerNft.salePrice || offerNft.priceSol * 100,
+            minimumOfferUSD: offerNft.minimumOfferUSD,
+            asset: {
+              model: offerNft.title,
+              imageUrl: offerNft.image,
+            },
+            vendor: {
+              businessName: offerNft.vendorName || offerNft.seller,
+            },
+          }}
+          onClose={() => setOfferNft(null)}
+          onSuccess={() => {
+            setOfferNft(null);
+            fetchNFTs(); // Refresh listings
+          }}
+        />
+      )}
+    </div>
   );
 };
 

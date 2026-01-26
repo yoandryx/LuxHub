@@ -1,230 +1,579 @@
-/* =============================================
-   LUXHUB WATCH MARKET
-   Glass-Morphic Luxury Futuristic Design
-   Purple Accent Theme
-   ============================================= */
-
-/* Base Container */
+/* Main container */
 .container {
-  /* LuxHub Theme Variables */
   --accent: #c8a1ff;
-  --accent-dim: rgba(200, 161, 255, 0.12);
-  --accent-glow: rgba(200, 161, 255, 0.25);
-  --accent-bright: #d8bcff;
-  --accent-dark: #9b7cc9;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --bg-dark: #0d0d0d;
+  --border: #222222;
+  --glass: rgba(13, 13, 13, 0.85);
 
-  /* Glass Layers */
-  --glass-bg: rgba(12, 10, 18, 0.75);
-  --glass-surface: rgba(18, 14, 28, 0.8);
-  --glass-elevated: rgba(24, 18, 38, 0.85);
-  --glass-card: rgba(28, 22, 45, 0.9);
-
-  /* Backgrounds */
-  --bg-deep: #070510;
-  --bg-base: #0a0814;
-  --bg-gradient: linear-gradient(135deg, #070510 0%, #0d0818 40%, #0a0612 100%);
-
-  /* Borders */
-  --border-subtle: rgba(200, 161, 255, 0.06);
-  --border-default: rgba(200, 161, 255, 0.12);
-  --border-accent: rgba(200, 161, 255, 0.25);
-  --border-glow: rgba(200, 161, 255, 0.4);
-
-  /* Text */
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.75);
-  --text-muted: rgba(255, 255, 255, 0.45);
-  --text-dim: rgba(255, 255, 255, 0.25);
-
-  /* Status Colors */
-  --positive: #4ade80;
-  --positive-dim: rgba(74, 222, 128, 0.12);
-  --warning: #fbbf24;
-  --warning-dim: rgba(251, 191, 36, 0.12);
-
-  /* Typography */
-  --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
-  --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
-
-  position: relative;
+  padding: 80px 16px 50px;
+  background: linear-gradient(
+    135deg,
+    rgba(13, 13, 13, 1) 0%,
+    rgba(15, 10, 20, 1) 50%,
+    rgba(10, 10, 15, 1) 100%
+  );
   min-height: 100vh;
-  padding: 90px 24px 60px;
-  background: var(--bg-gradient);
+  box-sizing: border-box;
   overflow-x: hidden;
 }
 
-/* Ambient Background Effects */
-.container::before {
-  content: '';
-  position: fixed;
-  top: -50%;
-  right: -30%;
-  width: 80vw;
-  height: 80vw;
-  background: radial-gradient(ellipse, rgba(200, 161, 255, 0.04) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.container::after {
-  content: '';
-  position: fixed;
-  bottom: -40%;
-  left: -20%;
-  width: 70vw;
-  height: 70vw;
-  background: radial-gradient(ellipse, rgba(138, 43, 226, 0.03) 0%, transparent 55%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* =============================================
-   HEADER & TITLE
-   ============================================= */
-.title {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.title h2 {
-  font-family: var(--font-display);
-  font-size: 2.8rem;
-  font-weight: 300;
-  letter-spacing: 8px;
-  text-transform: uppercase;
-  color: var(--text-primary);
-  margin: 0;
+/* Title styling */
+.container h1 {
   text-align: center;
-  background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, #fff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 2.5rem;
+  color: #ffffff;
+  margin-bottom: 40px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.title {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  height: 50px;
+  margin-top: 20px;
+  /* gap: 5px; */
 }
 
 .titleSeparator {
   display: flex;
+  flex-direction: row;
+  gap: 10px;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  height: 50px;
+}
+
+.title h2 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0px 0;
+  padding: 0px 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Grid for all NFT cards */
+.nftGrid {
+  display: grid;
+  justify-items: center;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  .nftGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
+
+/* Card wrapper with subtle animation */
+.cardWrapper {
+  width: 100%;
+  max-width: 320px;
+  transition: transform 0.3s ease;
+}
+
+.cardWrapper:hover {
+  transform: translateY(-4px);
+}
+
+/* NFT Card Container */
+.nftCard {
+  width: 100%;
+  max-width: 300px;
+  background-color: #222;
+  border-radius: 10px;
+  padding: 10px;
+  transition: 0.3s ease;
+  border: 1px solid #333;
+}
+
+/* Hover effect */
+.nftCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Left column: image wrapper */
+.nftImageWrapper {
+  width: 160px; /* fixed width for the image column */
+  background-color: #1b1b1b;
+  display: flex;
+  align-items: center;
   justify-content: center;
 }
 
-/* =============================================
-   SEARCH & FILTERS
-   ============================================= */
+.nftImageWrapper img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+/* Image hover effect */
+.nftImageWrapper:hover img {
+  transform: scale(0.95);
+  object-fit: cover;
+}
+
+/* Right column: NFT details */
+.nftDetails {
+  display: flex;
+  flex-direction: column;
+  padding: 15px 20px;
+  flex: 1; /* fill remaining space */
+}
+
+/* NFT Title */
+.nftTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px;
+}
+
+/* Creator line */
+.creator {
+  color: #9f9f9f;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+/* Meta info row (like minted count, end time, etc.) */
+.metaInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: #cccccc;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+/* NFT Description */
+.description {
+  font-size: 0.9rem;
+  color: #d1d1d1;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+/* Button group at the bottom of the card */
+.buttonGroup {
+  margin-top: auto; /* push to bottom if content is tall */
+  display: flex;
+  gap: 10px;
+}
+
+/* Buttons */
+.buttonGroup button {
+  background-color: #5b42f3;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.buttonGroup button:hover {
+  background-color: #4831c7;
+  transform: scale(1.02);
+}
+
+/* Overlay for detail view */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+/* Detail container in overlay */
+/* .detailContainer {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  position: relative;
+} */
+
+.detailContainer button {
+  background-color: transparent;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: 700;
+  /* color: #333; */
+  cursor: pointer;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  transition: color 0.2s ease;
+}
+
+.detailContainer button:hover {
+  color: #000;
+}
+
+/* .cardWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 15px;
+} */
+
+.sellerActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 15, 20, 0.9);
+  border: 1px solid rgba(200, 161, 255, 0.12);
+  border-radius: 10px;
+  padding: 6px 8px;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 8px;
+  gap: 6px;
+}
+
+.sellerActions p {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.sellerActions p:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sellerActions button {
+  background: linear-gradient(135deg, var(--accent) 0%, #a87de8 100%);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: #000;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sellerActions button:hover {
+  background: linear-gradient(135deg, #d4b4ff 0%, #b990f0 100%);
+  transform: translateY(-1px);
+}
+
+.sellerActions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tooltipButton {
+  position: relative;
+}
+
+.tooltipButton::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipButton:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.tooltipWrapper {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tooltipWrapper::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 30%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.tooltipWrapper:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.infoIcon {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .infoIcon {
+    display: flex;
+    margin-left: 6px;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: small;
+  }
+}
+
+.marketHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filterToggle {
+  /* position: fixed; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-items: center;
+
+  padding: 8px 10px;
+  height: 50%;
+  gap: 5px;
+
+  background-color: #c8a1ff88;
+  text-shadow: #00000066 0px 0px 8px;
+  color: #ffffff;
+  box-shadow: #c8a1ff 3px 0px 0px;
+
+  border: transparent 1px solid;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  z-index: 10;
+}
+
+@media (max-width: 768px) {
+  /* .filterToggle {
+    position: fixed;
+    top: 50px;
+    left: 25px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  } */
+
+  .title {
+    margin: 50px 0;
+    flex-direction: column !important;
+  }
+}
+
+.filterToggle:hover {
+  /* background-color: #c8a1ff; */
+  border: #c8a1ff 1px solid;
+  translate: 3px 0px;
+  box-shadow: #000000 0px 0px 0px;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 90;
+}
+
+.sidebarModal {
+  position: absolute;
+  left: 0;
+  top: 50px;
+  bottom: 0;
+  width: 320px;
+  background: #111;
+  overflow-y: auto;
+  z-index: 2000;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 .inputGroupContainer {
   display: flex;
   justify-content: center;
+  align-items: center;
+  width: 250px;
+  margin: 20px 0;
 }
 
 .inputGroup {
   display: flex;
-  align-items: center;
-  background: var(--glass-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 14px;
-  padding: 4px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: all 0.3s ease;
-  width: 100%;
-  max-width: 400px;
-}
-
-.inputGroup:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 30px var(--accent-dim);
+  flex-direction: column;
+  justify-content: center;
+  border: solid 1px var(--accent);
+  border-radius: 8px;
+  width: 700px;
 }
 
 .searchContainer {
   display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-.searchContainer button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  padding: 10px 12px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.searchContainer button:hover {
-  color: var(--accent);
-}
-
-.searchIcon {
-  font-size: 1.2rem;
+  /* padding: 5px */
 }
 
 .searchBar {
-  flex: 1;
-  background: transparent;
+  background-color: #00000000;
+  color: var(--primary);
   border: none;
+  border-radius: 4px;
+  width: 100%;
+  padding-left: 0px;
   outline: none;
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  padding: 10px 0;
-  min-width: 200px;
+  font-size: small;
+  height: 35px;
+  font-size: 16px;
 }
 
-.searchBar::placeholder {
-  color: var(--text-dim);
-}
-
-.clearButton {
-  padding: 8px 12px !important;
-  font-size: 1.2rem !important;
-  color: var(--text-muted) !important;
-}
-
-.clearButton:hover {
-  color: var(--accent) !important;
-}
-
-.filterToggle {
+.inputGroup button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: var(--glass-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  color: var(--text-secondary);
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  font-weight: 500;
+  justify-content: center;
+  background: #59595900;
+  margin-right: 10px;
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  font-size: x-large;
+  transition: background 0.3s ease;
+}
+
+.inputGroup button:hover {
+  background: #3c3c3c;
   cursor: pointer;
-  transition: all 0.25s ease;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
-.filterToggle:hover {
+.sellerActions .contactButton {
+  background: transparent;
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  color: var(--accent);
+  font-size: 10px;
+  padding: 5px 10px;
+}
+
+.sellerActions .contactButton:hover {
+  background: rgba(200, 161, 255, 0.1);
   border-color: var(--accent);
-  color: var(--text-primary);
-  background: var(--accent-dim);
 }
 
-.filterCount {
-  background: var(--accent);
-  color: var(--bg-deep);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+.sellerActions .offerButton {
+  background: transparent;
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  color: var(--accent);
+  padding: 5px 10px;
+  font-size: 10px;
+}
+
+.sellerActions .offerButton:hover {
+  background: rgba(200, 161, 255, 0.15);
+  border-color: var(--accent);
+}
+
+.priceInfo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
   font-weight: 600;
+  font-size: 11px;
+  background: rgba(200, 161, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.statusBadge {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.statusPending {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.statusListed {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
 }
 
 .filterPanelWrapper {
@@ -232,66 +581,79 @@
   overflow: hidden;
   transition:
     max-height 0.4s ease,
-    opacity 0.3s ease;
+    opacity 0.4s ease;
   opacity: 0;
+  display: none;
 }
 
 .filterPanelWrapper.open {
-  max-height: 600px;
+  max-height: 1000px; /* large enough to show full content */
   opacity: 1;
-  display: block;
-  margin-bottom: 24px;
+  display: flex;
 }
 
 .filterPanelWrapper.closed {
   max-height: 0;
   opacity: 0;
+  z-index: 0;
 }
 
-/* =============================================
-   VENDOR SLIDER
-   ============================================= */
+/* Demo Badge for Mock NFTs */
+.demoBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.9) 0%, rgba(255, 152, 0, 0.9) 100%);
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+/* Vendor Slider Section */
 .vendorSliderSection {
-  position: relative;
-  z-index: 1;
+  margin: 30px auto;
   max-width: 1600px;
-  margin: 0 auto 40px;
+  padding: 0 4px;
 }
 
 .vendorSliderHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 0 4px;
 }
 
 .vendorSliderHeader h3 {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 400;
-  letter-spacing: 4px;
+  font-size: 1.6rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-primary);
+  letter-spacing: 1px;
   margin: 0;
 }
 
 .viewAllButton {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--accent);
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 1px;
+  gap: 6px;
+  color: #c8a1ff;
+  font-size: 0.95rem;
+  font-weight: 600;
   text-transform: uppercase;
+  transition: all 0.2s ease;
   text-decoration: none;
-  transition: all 0.25s ease;
 }
 
 .viewAllButton:hover {
-  color: var(--text-primary);
+  color: #fff;
+  text-shadow: 0 0 8px #c8a1ff;
   transform: translateX(4px);
 }
 
@@ -299,7 +661,6 @@
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  padding: 8px 4px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -309,774 +670,130 @@
 }
 
 .vendorSliderCard {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 220px;
-  padding: 12px 16px;
-  background: var(--glass-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  backdrop-filter: blur(16px);
+  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  text-decoration: none;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  max-height: 60px;
+  min-width: 200px;
+  box-shadow: 5px 0px 0px 0px #c8a1ff63;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row;
+  padding: 5px;
+  margin: 10px 0;
 }
 
 .vendorSliderCard:hover {
-  border-color: var(--accent);
-  transform: translateY(-4px);
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    0 0 30px var(--accent-dim);
+  transform: translateX(5px);
+  border-color: #c8a1ff;
+  box-shadow: 0 0px 0px 0px #c8a1ff;
 }
 
 .vendorSliderAvatarWrapper {
-  flex-shrink: 0;
+  margin-bottom: 0px;
 }
 
 .vendorSliderAvatar {
-  width: 48px;
-  height: 48px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--border-default);
-  transition: border-color 0.3s ease;
-}
-
-.vendorSliderCard:hover .vendorSliderAvatar {
-  border-color: var(--accent);
+  border: 2px solid #c8a1ff44;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
 }
 
 .vendorSliderAvatarPlaceholder {
-  width: 48px;
-  height: 48px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--glass-elevated) 0%, var(--glass-surface) 100%);
-  border: 1px dashed var(--border-default);
+  background: linear-gradient(45deg, #333, #444);
+  border: 2px dashed #555;
 }
 
 .vendorSliderInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow: hidden;
+  color: #fff;
 }
 
 .vendorSliderName {
+  font-weight: 600;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  justify-content: center;
+  margin-bottom: 4px;
 }
 
 .verifiedIconSmall {
-  color: var(--accent);
-  font-size: 0.85rem;
-  flex-shrink: 0;
+  color: #c8a1ff;
+  filter: drop-shadow(0 0 6px #c8a1ff);
 }
 
 .vendorSliderUsername {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin: 0;
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.85rem;
+  color: #d1b3ff;
+  opacity: 0.9;
 }
 
 .vendorSliderCardSkeleton {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 220px;
-  padding: 12px 16px;
-  background: var(--glass-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-/* =============================================
-   SECTION TABS - Modular Glass Pills
-   ============================================= */
-.sectionTabs {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin: 0 auto 32px;
-  max-width: 900px;
-  padding: 8px;
-  background: var(--glass-bg);
-  border: 1px solid var(--border-subtle);
+  min-width: 200px;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.1);
   border-radius: 20px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-}
-
-.sectionTab {
+  padding: 10px;
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 10px;
-  padding: 14px 24px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 14px;
-  color: var(--text-muted);
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+  margin: 10px 0;
 }
 
-.sectionTab:hover {
-  color: var(--text-primary);
-  background: var(--glass-surface);
-}
-
-.sectionTab.activeTab {
-  background: var(--glass-elevated);
-  border-color: var(--accent);
-  color: var(--text-primary);
-  box-shadow:
-    0 4px 24px var(--accent-dim),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.tabIcon {
-  font-size: 1.1rem;
-  opacity: 0.8;
-}
-
-.sectionTab.activeTab .tabIcon {
-  opacity: 1;
-  color: var(--accent);
-}
-
-.tabCount {
-  padding: 4px 10px;
-  background: var(--glass-surface);
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-family: var(--font-mono);
-}
-
-.sectionTab.activeTab .tabCount {
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-
-/* =============================================
-   SECTION HEADERS
-   ============================================= */
-.sectionHeader {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  max-width: 700px;
-  margin: 0 auto 40px;
-  padding: 0 20px;
-}
-
-.sectionHeader h3 {
-  font-family: var(--font-display);
-  font-size: 1.8rem;
-  font-weight: 300;
-  letter-spacing: 3px;
-  color: var(--text-primary);
-  margin: 0 0 12px;
-}
-
-.sectionDescription {
-  font-family: var(--font-body);
-  font-size: 1rem;
-  color: var(--text-muted);
-  margin: 0;
-  line-height: 1.6;
-}
-
-/* =============================================
-   NFT GRID - Direct Sales
-   ============================================= */
-.nftGrid {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 0 0 40px;
-}
-
-.cardWrapper {
-  position: relative;
-  width: 100%;
-  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.cardWrapper:hover {
-  transform: translateY(-8px);
-}
-
-/* Seller Actions Bar */
-.sellerActions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: var(--glass-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
-.sellerActions button {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+.vendorSliderCardSkeleton .vendorSliderAvatarPlaceholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
   border: none;
-  border-radius: 10px;
-  color: var(--bg-deep);
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all 0.25s ease;
 }
 
-.sellerActions button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--accent-glow);
+.vendorSliderCardSkeleton .vendorSliderInfo p {
+  width: 80px;
+  height: 14px;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  margin: 4px 0;
 }
 
-.sellerActions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
+/* ============================================
+   Loading & Empty States
+   ============================================ */
 
-.sellerActions .offerButton,
-.sellerActions .contactButton {
-  background: transparent;
-  border: 1px solid var(--border-accent);
-  color: var(--accent);
-}
-
-.sellerActions .offerButton:hover,
-.sellerActions .contactButton:hover {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-}
-
-.priceInfo {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--accent-dim);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.statusBadge {
-  padding: 5px 10px;
-  background: var(--positive-dim);
-  border-radius: 8px;
-  color: var(--positive);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 0;
-}
-
-.statusPending {
-  padding: 5px 10px;
-  background: var(--warning-dim);
-  border-radius: 8px;
-  color: var(--warning);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin: 0;
-}
-
-.statusListed {
-  padding: 5px 10px;
-  background: rgba(96, 165, 250, 0.12);
-  border-radius: 8px;
-  color: #60a5fa;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin: 0;
-}
-
-.demoBadge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 5px 12px;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.9) 0%, rgba(245, 158, 11, 0.9) 100%);
-  border-radius: 8px;
-  color: var(--bg-deep);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  z-index: 5;
-}
-
-/* =============================================
-   POOL GRID - Investment Pools
-   ============================================= */
-.poolGrid {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 28px;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 0 0 40px;
-}
-
-.poolCard {
-  position: relative;
-  background: var(--glass-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 24px;
-  overflow: hidden;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.poolCard:hover {
-  border-color: var(--accent);
-  transform: translateY(-8px);
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.4),
-    0 0 50px var(--accent-dim);
-}
-
-.poolImageWrapper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/10;
-  overflow: hidden;
-  background: var(--glass-surface);
-}
-
-.poolImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s ease;
-}
-
-.poolCard:hover .poolImage {
-  transform: scale(1.08);
-}
-
-.poolBrand {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  padding: 8px 14px;
-  background: var(--glass-bg);
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.poolContent {
-  padding: 24px;
-}
-
-.poolTitle {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 400;
-  color: var(--text-primary);
-  margin: 0 0 4px;
-  letter-spacing: 0.5px;
-}
-
-.poolModel {
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin: 0 0 20px;
-}
-
-/* Progress Section */
-.progressSection {
-  margin-bottom: 20px;
-}
-
-.progressHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.progressPercent {
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-weight: 600;
-}
-
-.progressBarTrack {
-  height: 6px;
-  background: var(--glass-surface);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progressBarFill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 100%);
-  border-radius: 3px;
-  transition: width 0.6s ease;
-  box-shadow: 0 0 16px var(--accent-glow);
-}
-
-.progressValues {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-}
-
-.progressValues span:first-child {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.progressTarget {
-  color: var(--text-dim);
-}
-
-/* Pool Stats Grid */
-.poolStats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 20px 0;
-  margin-bottom: 20px;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.poolStat {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.poolStat .statIcon {
-  color: var(--accent);
-  font-size: 1rem;
-  opacity: 0.8;
-}
-
-.poolStat > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.statValue {
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.statLabel {
-  font-family: var(--font-body);
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Invest Button */
-.investButton {
-  width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-  border: none;
-  border-radius: 14px;
-  color: var(--bg-deep);
-  font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 30px var(--accent-glow);
-}
-
-.investButton:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 40px var(--accent-glow);
-}
-
-/* =============================================
-   CUSTODY GRID
-   ============================================= */
-.custodyGrid {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 28px;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 0 0 40px;
-}
-
-.custodyCard {
-  position: relative;
-  background: var(--glass-card);
-  border: 1px solid var(--border-default);
-  border-radius: 24px;
-  overflow: hidden;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.custodyCard:hover {
-  border-color: var(--positive);
-  transform: translateY(-8px);
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.4),
-    0 0 50px rgba(74, 222, 128, 0.15);
-}
-
-.custodyBadge {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.85) 0%, rgba(22, 163, 74, 0.85) 100%);
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #fff;
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  z-index: 2;
-}
-
-.custodyBadgeIcon {
-  font-size: 0.85rem;
-}
-
-.custodyImageWrapper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/10;
-  overflow: hidden;
-  background: var(--glass-surface);
-}
-
-.custodyImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s ease;
-}
-
-.custodyCard:hover .custodyImage {
-  transform: scale(1.08);
-}
-
-.custodyContent {
-  padding: 24px;
-}
-
-.custodyBrand {
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 6px;
-}
-
-.custodyTitle {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 400;
-  color: var(--text-primary);
-  margin: 0 0 20px;
-  letter-spacing: 0.5px;
-}
-
-/* Custody Pricing */
-.custodyPricing {
-  padding: 20px 0;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 20px;
-}
-
-.originalPrice,
-.resalePrice {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.priceLabel {
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.priceValue {
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  color: var(--text-dim);
-  text-decoration: line-through;
-}
-
-.priceValueHighlight {
-  font-family: var(--font-mono);
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.solPrice {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-top: 6px;
-}
-
-.solIcon {
-  font-size: 1rem;
-}
-
-/* Custody Stats */
-.custodyStats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.custodyStat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-}
-
-.custodyStat .statIcon {
-  color: var(--accent);
-  opacity: 0.8;
-}
-
-.profitBadge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--positive-dim);
-  border-radius: 10px;
-  color: var(--positive);
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.profitBadge .statIcon {
-  color: var(--positive);
-}
-
-/* Purchase Custody Button */
-.purchaseCustodyButton {
-  width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  border: none;
-  border-radius: 14px;
-  color: #fff;
-  font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 30px rgba(34, 197, 94, 0.25);
-}
-
-.purchaseCustodyButton:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(34, 197, 94, 0.35);
-}
-
-/* =============================================
-   LOADING & EMPTY STATES
-   ============================================= */
 .loadingContainer {
   display: flex;
   flex-direction: column;
@@ -1084,37 +801,51 @@
   justify-content: center;
   min-height: 300px;
   gap: 20px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.7);
 }
 
+.loadingContainer p {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Skeleton Grid */
 .skeletonGrid {
-  position: relative;
-  z-index: 1;
   display: grid;
+  justify-items: center;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
+  gap: 20px;
+  width: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 0 0 40px;
+  padding: 20px 0;
 }
 
-.skeletonCard,
-.poolCardSkeleton,
-.custodyCardSkeleton {
-  background: var(--glass-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 24px;
+@media (max-width: 640px) {
+  .skeletonGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
+
+/* Skeleton Card */
+.skeletonCard {
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 16px;
   overflow: hidden;
-  animation: pulse 2s ease-in-out infinite;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse {
+@keyframes skeletonPulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
 }
 
@@ -1123,12 +854,12 @@
   aspect-ratio: 1;
   background: linear-gradient(
     90deg,
-    var(--border-subtle) 0%,
-    var(--border-default) 50%,
-    var(--border-subtle) 100%
+    rgba(200, 161, 255, 0.05) 0%,
+    rgba(200, 161, 255, 0.1) 50%,
+    rgba(200, 161, 255, 0.05) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.8s ease-in-out infinite;
+  animation: shimmer 1.5s ease-in-out infinite;
 }
 
 @keyframes shimmer {
@@ -1141,139 +872,117 @@
 }
 
 .skeletonContent {
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .skeletonTitle {
   height: 20px;
   width: 70%;
-  background: var(--border-subtle);
-  border-radius: 8px;
-  animation: shimmer 1.8s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
 }
 
 .skeletonPrice {
   height: 16px;
   width: 40%;
-  background: var(--border-subtle);
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 6px;
-  animation: shimmer 1.8s ease-in-out infinite;
 }
 
 .skeletonActions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin-top: 8px;
 }
 
 .skeletonButton {
-  height: 40px;
+  height: 36px;
   flex: 1;
-  background: var(--border-subtle);
-  border-radius: 10px;
-  animation: shimmer 1.8s ease-in-out infinite;
-}
-
-.skeletonProgressBar {
-  height: 6px;
-  background: var(--border-subtle);
-  border-radius: 3px;
-  animation: shimmer 1.8s ease-in-out infinite;
-}
-
-.skeletonStats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.skeletonStat {
-  height: 50px;
-  background: var(--border-subtle);
-  border-radius: 10px;
-  animation: shimmer 1.8s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.15) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
 }
 
 .emptyState {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 300px;
   text-align: center;
-  padding: 60px 20px;
-  background: var(--glass-surface);
-  border: 1px dashed var(--border-default);
-  border-radius: 24px;
-  max-width: 500px;
-  margin: 0 auto;
+  padding: 40px 20px;
 }
 
 .emptyState h3 {
-  font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 400;
-  color: var(--text-primary);
-  margin: 0 0 12px;
+  color: #fff;
+  margin-bottom: 10px;
 }
 
 .emptyState p {
-  font-family: var(--font-body);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 1rem;
-  color: var(--text-muted);
   margin: 0;
 }
 
-/* =============================================
-   MODALS & OVERLAYS
-   ============================================= */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+/* ============================================
+   Wallet Connection Banner & Modal
+   ============================================ */
+
+.walletBanner {
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin: 0 auto 20px;
+  max-width: 800px;
+}
+
+.walletBannerContent {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.detailContainer {
-  position: relative;
+.walletBannerContent span {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
 }
 
-.detailContainer > button {
-  position: absolute;
-  top: -50px;
-  right: 0;
-  background: var(--glass-surface);
-  border: 1px solid var(--border-default);
-  color: var(--text-primary);
-  font-size: 1rem;
-  padding: 10px 20px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.detailContainer > button:hover {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-}
-
+/* Wallet Modal Overlay */
 .walletModalOverlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1283,218 +992,67 @@
 
 .walletModalContent {
   position: relative;
-  background: var(--glass-card);
-  border: 1px solid var(--border-accent);
-  border-radius: 28px;
-  padding: 40px;
-  max-width: 480px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 500px;
   width: 100%;
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  box-shadow:
-    0 30px 80px rgba(0, 0, 0, 0.5),
-    0 0 60px var(--accent-dim);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .walletModalClose {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-  background: var(--glass-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 50%;
-  color: var(--text-muted);
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
   font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s;
 }
 
 .walletModalClose:hover {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .walletModalMessage {
   text-align: center;
-  font-family: var(--font-body);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1.1rem;
-  color: var(--text-secondary);
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   padding: 0 20px;
-  line-height: 1.6;
 }
 
 .walletModalMessage strong {
-  color: var(--accent);
+  color: #a855f7;
 }
 
-/* =============================================
-   RESPONSIVE - TABLET
-   ============================================= */
-@media (max-width: 900px) {
-  .container {
-    padding: 80px 16px 50px;
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .walletBanner {
+    padding: 10px 15px;
+    margin: 0 10px 15px;
   }
 
-  .title h2 {
-    font-size: 2rem;
-    letter-spacing: 5px;
-  }
-
-  .sectionTabs {
-    flex-wrap: wrap;
-    padding: 6px;
-  }
-
-  .sectionTab {
-    padding: 12px 18px;
-  }
-
-  .poolStats {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .poolStat {
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .poolStat:last-child {
-    border-bottom: none;
-  }
-
-  .custodyStats {
+  .walletBannerContent {
     flex-direction: column;
-    gap: 14px;
-    align-items: stretch;
-  }
-
-  .profitBadge {
-    justify-content: center;
-  }
-}
-
-/* =============================================
-   RESPONSIVE - MOBILE
-   ============================================= */
-@media (max-width: 640px) {
-  .container {
-    padding: 70px 12px 40px;
-  }
-
-  .title {
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-
-  .title h2 {
-    font-size: 1.6rem;
-    letter-spacing: 4px;
-  }
-
-  .titleSeparator {
-    width: 100%;
-    flex-direction: column;
+    text-align: center;
     gap: 12px;
-  }
-
-  .inputGroup {
-    width: 100%;
-    max-width: none;
-  }
-
-  .filterToggle {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .vendorSliderHeader h3 {
-    font-size: 1.1rem;
-    letter-spacing: 2px;
-  }
-
-  .sectionTabs {
-    gap: 6px;
-    padding: 6px;
-    border-radius: 16px;
-  }
-
-  .sectionTab {
-    padding: 10px 14px;
-    font-size: 0.85rem;
-  }
-
-  .sectionTab span:not(.tabCount):not(.tabIcon) {
-    display: none;
-  }
-
-  .sectionHeader h3 {
-    font-size: 1.4rem;
-  }
-
-  .sectionDescription {
-    font-size: 0.9rem;
-  }
-
-  .nftGrid,
-  .skeletonGrid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 14px;
-  }
-
-  .poolGrid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .custodyGrid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .sellerActions {
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 8px 10px;
-  }
-
-  .sellerActions button {
-    padding: 6px 12px;
-    font-size: 0.75rem;
-  }
-
-  .priceInfo {
-    font-size: 0.8rem;
-    padding: 5px 10px;
-  }
-
-  .poolContent,
-  .custodyContent {
-    padding: 18px;
-  }
-
-  .poolTitle,
-  .custodyTitle {
-    font-size: 1.15rem;
-  }
-
-  .investButton,
-  .purchaseCustodyButton {
-    padding: 14px;
-    font-size: 0.9rem;
   }
 
   .walletModalContent {
-    padding: 28px 20px;
-    border-radius: 20px;
+    padding: 20px;
+    margin: 10px;
   }
 
   .walletModalMessage {
@@ -1503,57 +1061,612 @@
   }
 }
 
-/* =============================================
-   TOOLTIPS
-   ============================================= */
-.tooltipButton,
-.tooltipWrapper {
-  position: relative;
+/* ============================================
+   SECTION TABS
+   ============================================ */
+.sectionTabs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 30px auto 20px;
+  max-width: 800px;
+  padding: 0 16px;
+  flex-wrap: wrap;
 }
 
-.tooltipButton::after,
-.tooltipWrapper::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  padding: 6px 12px;
-  background: var(--glass-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.25s ease;
-  z-index: 100;
+.sectionTab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.6) 0%, rgba(20, 20, 25, 0.8) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.tooltipButton:hover::after,
-.tooltipWrapper:hover::after {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
+.sectionTab:hover {
+  border-color: rgba(200, 161, 255, 0.4);
+  color: #fff;
+  transform: translateY(-2px);
 }
 
-.infoIcon {
-  display: none;
+.sectionTab.activeTab {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.2) 0%, rgba(138, 43, 226, 0.15) 100%);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.2);
 }
 
-@media (max-width: 768px) {
-  .infoIcon {
-    display: flex;
-    margin-left: 6px;
-    cursor: pointer;
-    color: var(--text-muted);
-    font-size: 0.9rem;
+.tabIcon {
+  font-size: 1.1rem;
+}
+
+.tabCount {
+  background: rgba(200, 161, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.sectionTab.activeTab .tabCount {
+  background: rgba(200, 161, 255, 0.4);
+}
+
+@media (max-width: 640px) {
+  .sectionTabs {
+    gap: 6px;
+  }
+
+  .sectionTab {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .sectionTab span:not(.tabCount) {
+    display: none;
+  }
+
+  .tabCount {
+    margin-left: 0;
   }
 }
 
-/* Hidden Wallet Banner (removed per request) */
-.walletBanner,
-.walletBannerContent {
-  display: none !important;
+/* ============================================
+   SECTION HEADER
+   ============================================ */
+.sectionHeader {
+  text-align: center;
+  margin: 20px auto 30px;
+  max-width: 800px;
+  padding: 0 16px;
+}
+
+.sectionHeader h3 {
+  font-size: 1.8rem;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.sectionDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ============================================
+   POOL GRID & CARDS
+   ============================================ */
+.poolGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  .poolGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 10px;
+  }
+}
+
+.poolCard {
+  position: relative;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.9) 0%, rgba(15, 15, 20, 0.95) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.poolCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(200, 161, 255, 0.4);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(200, 161, 255, 0.1);
+}
+
+.poolImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.5) 0%, rgba(20, 20, 25, 0.5) 100%);
+}
+
+.poolImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.poolCard:hover .poolImage {
+  transform: scale(1.05);
+}
+
+.poolBrand {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+}
+
+.poolContent {
+  padding: 20px;
+}
+
+.poolTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px;
+}
+
+.poolModel {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 16px;
+}
+
+/* Progress Bar */
+.progressSection {
+  margin-bottom: 16px;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.progressPercent {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.progressBarTrack {
+  height: 8px;
+  background: rgba(200, 161, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #a87de8 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(200, 161, 255, 0.4);
+}
+
+.progressValues {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+.progressValues span:first-child {
+  color: #fff;
+  font-weight: 600;
+}
+
+.progressTarget {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Pool Stats */
+.poolStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.poolStat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.poolStat .statIcon {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.poolStat > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.statLabel {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+}
+
+/* Invest Button */
+.investButton {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a87de8 100%);
+  border: none;
+  border-radius: 12px;
+  color: #000;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
+}
+
+.investButton:hover {
+  background: linear-gradient(135deg, #d4b4ff 0%, #b990f0 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(200, 161, 255, 0.5);
+}
+
+/* Pool Skeleton */
+.poolCardSkeleton {
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.skeletonProgressBar {
+  height: 8px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.1) 0%,
+    rgba(200, 161, 255, 0.2) 50%,
+    rgba(200, 161, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+.skeletonStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.skeletonStat {
+  height: 40px;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 161, 255, 0.05) 0%,
+    rgba(200, 161, 255, 0.1) 50%,
+    rgba(200, 161, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ============================================
+   CUSTODY GRID & CARDS
+   ============================================ */
+.custodyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  .custodyGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 10px;
+  }
+}
+
+.custodyCard {
+  position: relative;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.9) 0%, rgba(15, 15, 20, 0.95) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.custodyCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(200, 161, 255, 0.5);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(200, 161, 255, 0.15);
+}
+
+.custodyBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.8) 0%, rgba(22, 163, 74, 0.8) 100%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+.custodyBadgeIcon {
+  font-size: 0.8rem;
+}
+
+.custodyImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.5) 0%, rgba(20, 20, 25, 0.5) 100%);
+}
+
+.custodyImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.custodyCard:hover .custodyImage {
+  transform: scale(1.05);
+}
+
+.custodyContent {
+  padding: 20px;
+}
+
+.custodyBrand {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.custodyTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+/* Custody Pricing */
+.custodyPricing {
+  padding: 16px 0;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+  margin-bottom: 16px;
+}
+
+.originalPrice,
+.resalePrice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.priceLabel {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+.priceValue {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.priceValueHighlight {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.solPrice {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.solIcon {
+  font-size: 0.9rem;
+}
+
+/* Custody Stats */
+.custodyStats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.custodyStat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.custodyStat .statIcon {
+  color: var(--accent);
+}
+
+.profitBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.2) 100%);
+  color: #4ade80;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.profitBadge .statIcon {
+  color: #4ade80;
+}
+
+/* Purchase Custody Button */
+.purchaseCustodyButton {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+}
+
+.purchaseCustodyButton:hover {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(34, 197, 94, 0.5);
+}
+
+/* Custody Skeleton */
+.custodyCardSkeleton {
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE IMPROVEMENTS
+   ============================================ */
+@media (max-width: 768px) {
+  .sectionHeader h3 {
+    font-size: 1.4rem;
+  }
+
+  .sectionDescription {
+    font-size: 0.9rem;
+  }
+
+  .poolStats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .poolStat {
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(200, 161, 255, 0.05);
+  }
+
+  .poolStat:last-child {
+    border-bottom: none;
+  }
+
+  .custodyPricing {
+    font-size: 0.9rem;
+  }
+
+  .custodyStats {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .profitBadge {
+    width: 100%;
+    justify-content: center;
+  }
 }
