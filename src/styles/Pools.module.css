@@ -50,21 +50,7 @@
   z-index: 1;
 }
 
-/* Terminal Grid Background - Purple */
-.pageContainer::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    linear-gradient(rgba(200, 161, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(200, 161, 255, 0.04) 1px, transparent 1px);
-  background-size: 50px 50px;
-  pointer-events: none;
-  z-index: 0;
-}
+/* Background grid removed for cleaner look */
 
 /* Ambient Glow - Purple & Green Mix */
 .pageContainer::after {
