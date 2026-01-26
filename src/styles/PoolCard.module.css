@@ -1,45 +1,52 @@
 /* ========================================
-   LUXHUB × BAGS POOL CARD
-   Trading Terminal - Asset Card
+   LUXHUB TRADING TERMINAL
+   Pool Card - Asset Tile
    ======================================== */
 
 .poolCard {
-  /* Core Colors */
-  --accent: #c8a1ff;
-  --accent-dim: #c8a1ff40;
-  --accent-glow: #c8a1ff20;
+  /* Terminal Theme */
+  --terminal-green: #00ff88;
+  --terminal-green-dim: rgba(0, 255, 136, 0.15);
+  --terminal-green-glow: rgba(0, 255, 136, 0.4);
+  --terminal-cyan: #00d4ff;
+  --terminal-purple: #c8a1ff;
+  --terminal-red: #ff4757;
+  --terminal-yellow: #ffd700;
 
-  /* Bags Green Accents */
-  --green: #00ff88;
-  --green-dim: #00ff8840;
-  --green-glow: #00ff8820;
-  --green-dark: #00cc6a;
+  /* Background Layers */
+  --bg-deep: #05050a;
+  --bg-base: #0a0a0f;
+  --bg-surface: #0f0f16;
+  --bg-elevated: #14141d;
+  --bg-card: #1a1a24;
+  --bg-hover: #1f1f2a;
 
-  /* Terminal Colors */
-  --bg-terminal: #0a0a0a;
-  --bg-dark: #0d0d0d;
-  --bg-card: #0f0f0f;
-  --bg-elevated: #151515;
-  --border: #1a1a1a;
-  --border-light: #252525;
+  /* Borders */
+  --border-dim: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-accent: rgba(0, 255, 136, 0.3);
 
   /* Text */
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.7);
   --text-muted: rgba(255, 255, 255, 0.4);
 
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --font-display: 'Space Grotesk', 'Inter', -apple-system, sans-serif;
+
   position: relative;
   width: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-dim);
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: 'Clash Display', 'SF Mono', 'Fira Code', monospace;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font-mono);
 }
 
-/* Green glow line on top */
+/* Top glow line */
 .poolCard::before {
   content: '';
   position: absolute;
@@ -47,17 +54,17 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  background: linear-gradient(90deg, transparent 0%, var(--terminal-green) 50%, transparent 100%);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 
 .poolCard:hover {
   transform: translateY(-4px);
-  border-color: var(--green-dim);
+  border-color: var(--border-accent);
   box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.5),
-    0 0 30px var(--green-glow);
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(0, 255, 136, 0.08);
 }
 
 .poolCard:hover::before {
@@ -68,36 +75,38 @@
 .imageContainer {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/9;
+  aspect-ratio: 16/10;
   overflow: hidden;
-  background: var(--bg-terminal);
+  background: var(--bg-deep);
 }
 
 .poolImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
-  filter: brightness(0.95);
+  transition:
+    transform 0.4s ease,
+    filter 0.3s ease;
+  filter: brightness(0.9) saturate(0.95);
 }
 
 .poolCard:hover .poolImage {
   transform: scale(1.05);
-  filter: brightness(1);
+  filter: brightness(1) saturate(1);
 }
 
 /* Status Badge */
 .statusBadge {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 0.6rem;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.55rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--bg-terminal);
+  letter-spacing: 1px;
+  color: var(--bg-deep);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -105,40 +114,37 @@
 /* Pool Number */
 .poolNumber {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid var(--green-dim);
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: var(--green);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* Bags Badge */
-.bagsBadge {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.9) 0%, rgba(0, 200, 106, 0.9) 100%);
-  padding: 5px 10px;
-  border-radius: 6px;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--terminal-green);
+  padding: 4px 8px;
+  border-radius: 4px;
   font-size: 0.55rem;
   font-weight: 700;
-  color: var(--bg-terminal);
+  color: var(--terminal-green);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bags Token Badge */
+.bagsBadge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, var(--terminal-green) 0%, #00cc6a 100%);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: var(--bg-deep);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  box-shadow: 0 0 15px var(--green-glow);
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 12px var(--terminal-green-glow);
 }
 
 .bagsIconSmall {
@@ -149,16 +155,17 @@
 
 /* ========== CONTENT SECTION ========== */
 .poolContent {
-  padding: 16px;
+  padding: 14px;
 }
 
 .assetTitle {
-  font-size: 0.95rem;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 14px 0;
+  margin: 0 0 12px 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -166,42 +173,43 @@
 
 /* ========== PROGRESS SECTION ========== */
 .progressSection {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .progressHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  font-size: 0.6rem;
+  margin-bottom: 6px;
+  font-size: 0.55rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .progressPercent {
-  color: var(--green);
+  color: var(--terminal-green);
   font-weight: 700;
-  font-size: 0.75rem;
-  text-shadow: 0 0 10px var(--green-glow);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px var(--terminal-green-glow);
 }
 
 .progressBar {
   width: 100%;
   height: 4px;
-  background: var(--border-light);
+  background: var(--bg-elevated);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--green-dark) 0%, var(--green) 100%);
+  background: linear-gradient(90deg, #00cc6a 0%, var(--terminal-green) 100%);
   border-radius: 2px;
   transition: width 0.4s ease;
   position: relative;
-  box-shadow: 0 0 10px var(--green-glow);
+  box-shadow: 0 0 8px var(--terminal-green-glow);
 }
 
 .progressFill::after {
@@ -211,7 +219,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   animation: shimmer 2s infinite;
 }
 
@@ -228,10 +236,11 @@
   display: flex;
   justify-content: space-between;
   margin-top: 6px;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ========== STATS GRID ========== */
@@ -239,10 +248,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
-  margin-bottom: 14px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  margin-bottom: 12px;
+  background: var(--border-dim);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -250,111 +259,109 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 12px;
+  padding: 10px;
   background: var(--bg-elevated);
 }
 
 .statLabel {
-  font-size: 0.5rem;
+  font-size: 0.45rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .statValue {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ========== BUTTONS ========== */
 .investButton {
   width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-  background-size: 200% auto;
+  padding: 10px;
+  background: linear-gradient(135deg, var(--terminal-green) 0%, #00cc6a 100%);
   border: none;
-  border-radius: 10px;
-  color: var(--bg-terminal);
-  font-family: inherit;
-  font-size: 0.7rem;
+  border-radius: 8px;
+  color: var(--bg-deep);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 20px var(--green-glow);
+  box-shadow: 0 4px 16px var(--terminal-green-glow);
 }
 
 .investButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 255, 136, 0.3);
-  background-position: right center;
+  box-shadow: 0 8px 24px rgba(0, 255, 136, 0.35);
 }
 
 .viewButton {
   width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.08) 0%, rgba(0, 200, 106, 0.05) 100%);
-  border: 1px solid var(--green-dim);
-  border-radius: 10px;
-  color: var(--green);
-  font-family: inherit;
-  font-size: 0.7rem;
+  padding: 10px;
+  background: var(--terminal-green-dim);
+  border: 1px solid var(--terminal-green);
+  border-radius: 8px;
+  color: var(--terminal-green);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .viewButton:hover {
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 200, 106, 0.1) 100%);
-  border-color: var(--green);
+  background: rgba(0, 255, 136, 0.25);
   transform: translateY(-2px);
 }
 
 /* ========== RESPONSIVE - MOBILE ========== */
 @media (max-width: 480px) {
   .poolCard {
-    border-radius: 14px;
+    border-radius: 10px;
   }
 
   .imageContainer {
-    aspect-ratio: 16/10;
+    aspect-ratio: 16/9;
   }
 
   .poolContent {
-    padding: 14px;
+    padding: 12px;
   }
 
   .assetTitle {
     font-size: 0.85rem;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .progressSection {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .progressHeader {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
   }
 
   .progressPercent {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
 
   .statsGrid {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .stat {
-    padding: 8px 10px;
+    padding: 8px;
   }
 
   .statLabel {
-    font-size: 0.45rem;
+    font-size: 0.4rem;
   }
 
   .statValue {
@@ -363,23 +370,23 @@
 
   .investButton,
   .viewButton {
-    padding: 10px;
-    font-size: 0.65rem;
-    border-radius: 8px;
+    padding: 9px;
+    font-size: 0.6rem;
+    border-radius: 6px;
   }
 
   .statusBadge {
-    font-size: 0.55rem;
-    padding: 4px 8px;
+    font-size: 0.5rem;
+    padding: 3px 7px;
   }
 
   .poolNumber {
-    font-size: 0.55rem;
-    padding: 4px 8px;
+    font-size: 0.5rem;
+    padding: 3px 6px;
   }
 
   .bagsBadge {
-    font-size: 0.5rem;
-    padding: 4px 8px;
+    font-size: 0.45rem;
+    padding: 3px 6px;
   }
 }

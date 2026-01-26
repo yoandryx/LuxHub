@@ -690,6 +690,12 @@
   color: var(--text-muted);
 }
 
+.gridPriceSol {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
 /* ========== RESPONSIVE ========== */
 @media screen and (max-width: 640px) {
   .card {

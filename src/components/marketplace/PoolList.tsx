@@ -1,94 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import PoolCard from './PoolCard';
+import { usePools, Pool } from '../../hooks/usePools';
 import styles from '../../styles/PoolList.module.css';
-
-interface Pool {
-  _id: string;
-  poolNumber?: string;
-  asset?: {
-    _id?: string;
-    model?: string;
-    brand?: string;
-    priceUSD?: number;
-    description?: string;
-    serial?: string;
-    imageIpfsUrls?: string[];
-    images?: string[];
-  };
-  vendor?: {
-    businessName?: string;
-  };
-  vendorWallet?: string;
-  status: string;
-  totalShares: number;
-  sharesSold: number;
-  sharePriceUSD: number;
-  targetAmountUSD: number;
-  minBuyInUSD: number;
-  projectedROI: number;
-  maxInvestors: number;
-  participants?: Array<{
-    wallet: string;
-    shares: number;
-    ownershipPercent: number;
-    investedUSD: number;
-  }>;
-  custodyStatus?: string;
-  resaleListingPriceUSD?: number;
-  createdAt?: string;
-}
 
 interface PoolListProps {
   onPoolSelect: (pool: Pool) => void;
 }
 
 const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
-  const [pools, setPools] = useState<Pool[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'open' | 'funded' | 'active'>('all');
-  const [sortBy, setSortBy] = useState<'newest' | 'progress' | 'roi'>('newest');
+  const { pools, isLoading, isError, error, mutate } = usePools();
+  const [filter, setFilter] = useState<'all' | 'open' | 'funded' | 'active' | 'tradeable'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'progress' | 'roi' | 'volume'>('newest');
 
-  useEffect(() => {
-    fetchPools();
-  }, []);
+  // Filter pools based on selected filter
+  const filteredPools = useMemo(() => {
+    return pools.filter((pool) => {
+      if (filter === 'all') return true;
+      if (filter === 'open') return pool.status === 'open';
+      if (filter === 'funded') return ['filled', 'funded', 'custody'].includes(pool.status);
+      if (filter === 'active') return ['active', 'listed'].includes(pool.status);
+      if (filter === 'tradeable') return !!pool.bagsTokenMint && pool.tokenStatus === 'unlocked';
+      return true;
+    });
+  }, [pools, filter]);
 
-  const fetchPools = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/pool/list');
-      if (!response.ok) throw new Error('Failed to fetch pools');
-      const data = await response.json();
-      setPools(data.pools || []);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Sort pools based on selected sort option
+  const sortedPools = useMemo(() => {
+    return [...filteredPools].sort((a, b) => {
+      if (sortBy === 'progress') {
+        const progressA = a.sharesSold / a.totalShares;
+        const progressB = b.sharesSold / b.totalShares;
+        return progressB - progressA;
+      }
+      if (sortBy === 'roi') {
+        return (b.projectedROI || 1) - (a.projectedROI || 1);
+      }
+      if (sortBy === 'volume') {
+        return (b.totalVolumeUSD || 0) - (a.totalVolumeUSD || 0);
+      }
+      // Default: newest (by createdAt)
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [filteredPools, sortBy]);
 
-  const filteredPools = pools.filter((pool) => {
-    if (filter === 'all') return true;
-    if (filter === 'open') return pool.status === 'open';
-    if (filter === 'funded') return ['filled', 'funded', 'custody'].includes(pool.status);
-    if (filter === 'active') return ['active', 'listed'].includes(pool.status);
-    return true;
-  });
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const totalPools = pools.length;
+    const openPools = pools.filter((p) => p.status === 'open').length;
+    const tradeablePools = pools.filter(
+      (p) => p.bagsTokenMint && p.tokenStatus === 'unlocked'
+    ).length;
+    const tvl = pools.reduce((sum, p) => sum + (p.sharesSold || 0) * (p.sharePriceUSD || 0), 0);
+    const totalVolume = pools.reduce((sum, p) => sum + (p.totalVolumeUSD || 0), 0);
+    return { totalPools, openPools, tradeablePools, tvl, totalVolume };
+  }, [pools]);
 
-  const sortedPools = [...filteredPools].sort((a, b) => {
-    if (sortBy === 'progress') {
-      const progressA = a.sharesSold / a.totalShares;
-      const progressB = b.sharesSold / b.totalShares;
-      return progressB - progressA;
-    }
-    if (sortBy === 'roi') {
-      return b.projectedROI - a.projectedROI;
-    }
-    // Default: newest
-    return 0;
-  });
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
@@ -99,12 +68,12 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className={styles.container}>
         <div className={styles.error}>
-          <p>Error: {error}</p>
-          <button onClick={fetchPools} className={styles.retryButton}>
+          <p>Error: {(error as any)?.message || 'Failed to load pools'}</p>
+          <button onClick={() => mutate()} className={styles.retryButton}>
             Retry
           </button>
         </div>
@@ -122,13 +91,16 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
       {/* Filters & Sort */}
       <div className={styles.controls}>
         <div className={styles.filters}>
-          {(['all', 'open', 'funded', 'active'] as const).map((f) => (
+          {(['all', 'open', 'funded', 'active', 'tradeable'] as const).map((f) => (
             <button
               key={f}
               className={`${styles.filterButton} ${filter === f ? styles.active : ''}`}
               onClick={() => setFilter(f)}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'tradeable' ? 'Tradeable' : f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'tradeable' && summaryStats.tradeablePools > 0 && (
+                <span className={styles.filterCount}>{summaryStats.tradeablePools}</span>
+              )}
             </button>
           ))}
         </div>
@@ -137,12 +109,13 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
           <label>Sort by:</label>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className={styles.select}
           >
             <option value="newest">Newest</option>
             <option value="progress">Progress</option>
             <option value="roi">Projected ROI</option>
+            <option value="volume">Trading Volume</option>
           </select>
         </div>
       </div>
@@ -151,6 +124,11 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
       {sortedPools.length === 0 ? (
         <div className={styles.emptyState}>
           <p>No pools available with the selected filter.</p>
+          {filter !== 'all' && (
+            <button className={styles.clearFilter} onClick={() => setFilter('all')}>
+              Clear filter
+            </button>
+          )}
         </div>
       ) : (
         <div className={styles.grid}>
@@ -164,18 +142,26 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
       <div className={styles.summary}>
         <div className={styles.summaryItem}>
           <span className={styles.summaryLabel}>Total Pools</span>
-          <span className={styles.summaryValue}>{pools.length}</span>
+          <span className={styles.summaryValue}>{summaryStats.totalPools}</span>
         </div>
         <div className={styles.summaryItem}>
           <span className={styles.summaryLabel}>Open for Investment</span>
-          <span className={styles.summaryValue}>
-            {pools.filter((p) => p.status === 'open').length}
-          </span>
+          <span className={styles.summaryValue}>{summaryStats.openPools}</span>
+        </div>
+        <div className={styles.summaryItem}>
+          <span className={styles.summaryLabel}>Tradeable Pools</span>
+          <span className={styles.summaryValue}>{summaryStats.tradeablePools}</span>
         </div>
         <div className={styles.summaryItem}>
           <span className={styles.summaryLabel}>Total Value Locked</span>
           <span className={styles.summaryValue}>
-            ${pools.reduce((sum, p) => sum + p.sharesSold * p.sharePriceUSD, 0).toLocaleString()}
+            ${summaryStats.tvl.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          </span>
+        </div>
+        <div className={styles.summaryItem}>
+          <span className={styles.summaryLabel}>Trading Volume</span>
+          <span className={styles.summaryValue}>
+            ${summaryStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </span>
         </div>
       </div>

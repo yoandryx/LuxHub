@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import BagsPoolTrading from './BagsPoolTrading';
+import { usePoolStatus } from '../../hooks/usePools';
 import styles from '../../styles/PoolDetail.module.css';
 
 interface Pool {
@@ -36,6 +38,12 @@ interface Pool {
   custodyStatus?: string;
   resaleListingPriceUSD?: number;
   createdAt?: string;
+  // Bags integration
+  bagsTokenMint?: string;
+  tokenStatus?: string;
+  liquidityModel?: string;
+  ammEnabled?: boolean;
+  ammLiquidityPercent?: number;
 }
 
 interface PoolDetailProps {
@@ -50,7 +58,16 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [poolData, setPoolData] = useState<Pool>(pool);
+  const [activeTab, setActiveTab] = useState<'invest' | 'trade'>('invest');
+
+  // Use SWR for real-time pool status updates
+  const { poolStatus, mutate: refreshStatus } = usePoolStatus(pool._id);
+
+  // Merge pool prop with real-time status
+  const poolData: Pool = {
+    ...pool,
+    ...(poolStatus || {}),
+  };
 
   const availableShares = poolData.totalShares - poolData.sharesSold;
   const investmentAmount = shares * poolData.sharePriceUSD;
@@ -59,23 +76,18 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
 
   // Check if user already invested
   const userInvestment = poolData.participants?.find((p) => p.wallet === publicKey?.toBase58());
+  const userShares = userInvestment?.shares || 0;
 
+  // Determine if trading is available
+  const hasToken = !!poolData.bagsTokenMint;
+  const canTrade = hasToken && poolData.status !== 'open';
+
+  // Auto-switch to trade tab if pool is not open but has token
   useEffect(() => {
-    // Fetch fresh pool data
-    fetchPoolStatus();
-  }, [pool._id]);
-
-  const fetchPoolStatus = async () => {
-    try {
-      const response = await fetch(`/api/pool/status?poolId=${pool._id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPoolData({ ...pool, ...data.pool });
-      }
-    } catch (err) {
-      console.error('Failed to fetch pool status:', err);
+    if (poolData.status !== 'open' && hasToken) {
+      setActiveTab('trade');
     }
-  };
+  }, [poolData.status, hasToken]);
 
   const handleInvest = async () => {
     if (!connected || !publicKey) {
@@ -117,13 +129,18 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
       setSuccess(true);
       onInvestmentComplete?.();
 
-      // Refresh pool data
-      await fetchPoolStatus();
+      // Refresh pool data via SWR
+      refreshStatus();
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTradeComplete = () => {
+    refreshStatus();
+    onInvestmentComplete?.();
   };
 
   const getStatusInfo = (status: string) => {
@@ -257,8 +274,28 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
               </div>
             )}
 
+            {/* Tabs for Invest/Trade */}
+            {(poolData.status === 'open' || canTrade) && (
+              <div className={styles.actionTabs}>
+                <button
+                  className={`${styles.actionTab} ${activeTab === 'invest' ? styles.activeTab : ''}`}
+                  onClick={() => setActiveTab('invest')}
+                  disabled={poolData.status !== 'open'}
+                >
+                  Invest
+                </button>
+                <button
+                  className={`${styles.actionTab} ${activeTab === 'trade' ? styles.activeTab : ''}`}
+                  onClick={() => setActiveTab('trade')}
+                  disabled={!hasToken}
+                >
+                  Trade {!hasToken && '🔒'}
+                </button>
+              </div>
+            )}
+
             {/* Investment Form */}
-            {poolData.status === 'open' && availableShares > 0 && (
+            {activeTab === 'invest' && poolData.status === 'open' && availableShares > 0 && (
               <div className={styles.investmentForm}>
                 <h4>Buy Shares</h4>
 
@@ -327,8 +364,19 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
               </div>
             )}
 
-            {/* Pool Closed Message */}
-            {poolData.status !== 'open' && (
+            {/* Trading Section - Powered by Bags */}
+            {activeTab === 'trade' && (
+              <div className={styles.tradingSection}>
+                <BagsPoolTrading
+                  pool={poolData}
+                  userShares={userShares}
+                  onTradeComplete={handleTradeComplete}
+                />
+              </div>
+            )}
+
+            {/* Pool Closed Message - only show if no trading available */}
+            {poolData.status !== 'open' && !canTrade && (
               <div className={styles.closedMessage}>
                 <p>This pool is no longer accepting investments.</p>
                 {poolData.resaleListingPriceUSD && (

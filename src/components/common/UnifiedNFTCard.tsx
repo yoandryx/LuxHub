@@ -325,6 +325,19 @@ export const NFTGridCard = memo(
     const finalImage = imgError ? PLACEHOLDER_IMAGE : image || imageUrl || PLACEHOLDER_IMAGE;
     const badgeConfig = statusConfig[status];
 
+    // Format price display based on label (USD-first support)
+    const formatPrice = () => {
+      if (price === undefined) return null;
+      const numPrice = typeof price === 'number' ? price : parseFloat(price);
+
+      if (priceLabel === 'USD') {
+        // USD-first: show "$12,500" format
+        return `$${numPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      }
+      // SOL: show "150.00 SOL" format
+      return `${numPrice.toFixed(2)} ${priceLabel}`;
+    };
+
     return (
       <div
         className={`${styles.gridCard} ${!isValid ? styles.gridCardInvalid : ''}`}
@@ -354,15 +367,10 @@ export const NFTGridCard = memo(
           <h4 className={styles.gridTitle}>{title || 'Untitled'}</h4>
           <div className={styles.gridMeta}>
             {brand && <span className={styles.gridBrand}>{brand}</span>}
-            {subtitle && <span className={styles.gridSubtitle}>{subtitle}</span>}
             {price !== undefined && (
               <div className={styles.gridPriceContainer}>
-                <span className={styles.gridPrice}>
-                  {typeof price === 'number' ? price.toFixed(2) : price} {priceLabel}
-                </span>
-                {priceUSD !== undefined && (
-                  <span className={styles.gridPriceUSD}>${priceUSD.toLocaleString()}</span>
-                )}
+                <span className={styles.gridPrice}>{formatPrice()}</span>
+                {subtitle && <span className={styles.gridPriceSol}>{subtitle}</span>}
               </div>
             )}
           </div>

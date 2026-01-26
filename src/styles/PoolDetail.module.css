@@ -227,6 +227,49 @@
   color: #fff;
 }
 
+/* Action Tabs - Invest/Trade */
+.actionTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.actionTab {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionTab:hover:not(:disabled) {
+  background: rgba(200, 161, 255, 0.1);
+  color: #fff;
+}
+
+.actionTab.activeTab {
+  background: rgba(200, 161, 255, 0.15);
+  border-color: #c8a1ff;
+  color: #fff;
+}
+
+.actionTab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Trading Section */
+.tradingSection {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 /* Investment Form */
 .investmentForm {
   background: rgba(0, 0, 0, 0.3);
