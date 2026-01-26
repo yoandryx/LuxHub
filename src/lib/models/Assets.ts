@@ -29,13 +29,49 @@ const AssetSchema = new Schema(
     nftMint: { type: String, index: true },
     status: {
       type: String,
-      enum: ['pending', 'reviewed', 'listed', 'in_escrow', 'pooled', 'sold', 'burned'],
+      enum: ['pending', 'reviewed', 'listed', 'in_escrow', 'pooled', 'sold', 'burned', 'frozen'],
       default: 'pending',
       index: true,
     },
+    statusBeforeFreeze: { type: String }, // Store previous status when frozen
     poolEligible: { type: Boolean, default: false },
     deleted: { type: Boolean, default: false },
     escrowPda: { type: String, index: true },
+
+    // Authority control fields
+    frozenAt: { type: Date },
+    frozenReason: { type: String },
+    frozenBy: { type: String },
+    thawedAt: { type: Date },
+    thawedBy: { type: String },
+
+    burnedAt: { type: Date },
+    burnedReason: { type: String },
+    burnedBy: { type: String },
+    previousOwnerBeforeBurn: { type: String },
+
+    // Metadata tracking
+    lastMetadataUpdate: { type: Date },
+    lastUpdatedBy: { type: String },
+    metadataHistory: [
+      {
+        uri: String,
+        updatedAt: { type: Date, default: Date.now },
+        updatedBy: String,
+        reason: String,
+        changes: Schema.Types.Mixed,
+      },
+    ],
+
+    // Condition tracking
+    condition: {
+      type: String,
+      enum: ['New', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'Non-functional'],
+    },
+    lastConditionUpdate: { type: Date },
+    conditionUpdatesDue: { type: Date }, // When next update is required
+    conditionUpdatesOverdue: { type: Boolean, default: false },
+
     transferHistory: [
       {
         from: String,
@@ -90,3 +126,6 @@ AssetSchema.pre('save', function (next) {
 });
 
 export const Asset = models.Asset || model('Asset', AssetSchema);
+
+// Default export for API compatibility
+export default Asset;
