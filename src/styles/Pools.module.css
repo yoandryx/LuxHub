@@ -232,18 +232,18 @@
 }
 
 .stepsContainer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: fit-content;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .stepBadge {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 14px 18px;
   background: linear-gradient(135deg, rgba(0, 255, 136, 0.08) 0%, rgba(10, 10, 10, 0.9) 100%);
   border: 1px solid var(--green-dim);
   border-radius: 14px;
@@ -263,6 +263,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
   border-radius: 10px;
   color: var(--bg-terminal);
@@ -290,12 +291,9 @@
   color: var(--text-primary);
 }
 
+/* Hidden - not needed with grid layout */
 .stepConnector {
-  width: 32px;
-  height: 2px;
-  background: linear-gradient(90deg, var(--green-dim), var(--green), var(--green-dim));
-  border-radius: 1px;
-  flex-shrink: 0;
+  display: none;
 }
 
 /* ============================================
@@ -558,26 +556,19 @@
     width: 100%;
   }
 
-  /* How It Works - Wrap 2x2 on Mobile */
+  /* How It Works - 2x2 Grid on Mobile */
   .howItWorks {
     padding: 16px;
   }
 
   .stepsContainer {
-    flex-wrap: wrap;
-    justify-content: center;
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
 
   .stepBadge {
-    flex: 0 0 calc(50% - 8px);
-    max-width: calc(50% - 8px);
     padding: 10px 12px;
     gap: 8px;
-  }
-
-  .stepConnector {
-    display: none;
   }
 
   .badgeIcon {
@@ -659,8 +650,6 @@
   }
 
   .stepBadge {
-    flex: 0 0 calc(50% - 6px);
-    max-width: calc(50% - 6px);
     padding: 8px 10px;
     gap: 6px;
   }
