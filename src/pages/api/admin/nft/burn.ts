@@ -7,6 +7,7 @@ import Asset from '../../../../lib/models/Assets';
 import NFTAuthorityAction from '../../../../lib/models/NFTAuthorityAction';
 import { verifyToken } from '../../../../lib/auth/token';
 import { JwtPayload } from 'jsonwebtoken';
+import { getAdminConfig } from '../../../../lib/config/adminConfig';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -27,10 +28,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Require super admin for burn operations
-  const superAdminWallets = (process.env.SUPER_ADMIN_WALLETS || '').split(',').filter(Boolean);
+  const adminConfig = getAdminConfig();
   const adminWallet = (decoded as JwtPayload).wallet;
 
-  if (superAdminWallets.length > 0 && adminWallet && !superAdminWallets.includes(adminWallet)) {
+  // Only check super admin if super admin wallets are configured
+  if (adminConfig.superAdminWallets.length > 0 && !adminConfig.isSuperAdmin(adminWallet)) {
     return res.status(403).json({ error: 'Only super admins can burn NFTs' });
   }
 

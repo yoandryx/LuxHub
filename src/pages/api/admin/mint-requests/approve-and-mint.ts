@@ -1,7 +1,7 @@
 // /pages/api/admin/mint-requests/approve-and-mint.ts
 // Approves a mint request and actually mints the NFT to the vendor wallet
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Keypair, Connection } from '@solana/web3.js';
+import { Connection } from '@solana/web3.js';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { keypairIdentity } from '@metaplex-foundation/umi';
 import { mplCore, create as createAsset, transfer } from '@metaplex-foundation/mpl-core';
@@ -11,6 +11,7 @@ import MintRequest from '../../../../lib/models/MintRequest';
 import Asset from '../../../../lib/models/Assets';
 import { verifyToken } from '../../../../lib/auth/token';
 import { JwtPayload } from 'jsonwebtoken';
+import { getAdminConfig } from '../../../../lib/config/adminConfig';
 
 // Helper to upload metadata to Pinata
 async function uploadMetadataToPinata(metadata: object, title: string): Promise<string> {
@@ -121,20 +122,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Vendor wallet address missing from request' });
     }
 
-    // Get admin keypair for minting
-    const adminKeypairJson = process.env.ADMIN_KEYPAIR_JSON;
-    const adminKeypairPath = process.env.ADMIN_KEYPAIR_PATH;
+    // Get admin keypair for minting from centralized config
+    const adminConfig = getAdminConfig();
+    const adminKeypair = adminConfig.getAdminKeypair();
 
-    let adminKeypair: Keypair;
-    if (adminKeypairJson) {
-      const secretKey = new Uint8Array(JSON.parse(adminKeypairJson));
-      adminKeypair = Keypair.fromSecretKey(secretKey);
-    } else if (adminKeypairPath) {
-      const fs = await import('fs');
-      const keypairData = JSON.parse(fs.readFileSync(adminKeypairPath, 'utf-8'));
-      adminKeypair = Keypair.fromSecretKey(new Uint8Array(keypairData));
-    } else {
-      return res.status(500).json({ error: 'Admin keypair not configured' });
+    if (!adminKeypair) {
+      return res.status(500).json({
+        error: 'Admin keypair not configured',
+        hint: 'Set ADMIN_SECRET environment variable with the keypair JSON array',
+      });
     }
 
     // Step 1: Upload image to IPFS if not already uploaded
