@@ -77,7 +77,7 @@ const PoolsPage: React.FC = () => {
   const { stats, isLoading: statsLoading, mutate: refreshStats } = usePlatformStats();
   const { mutate: refreshPools } = usePools();
 
-  // Matrix rain effect
+  // Purple floating particles animation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -88,33 +88,76 @@ const PoolsPage: React.FC = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノ';
-    const fontSize = 10;
-    const columns = Math.floor(canvas.width / fontSize);
-    const drops: number[] = Array(columns).fill(1);
+    const particles: Array<{
+      x: number;
+      y: number;
+      size: number;
+      speedX: number;
+      speedY: number;
+      opacity: number;
+    }> = [];
+
+    // Create 60 particles
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 1.5 + 0.3,
+        speedX: (Math.random() - 0.5) * 0.4,
+        speedY: (Math.random() - 0.5) * 0.4,
+        opacity: Math.random() * 0.5 + 0.1,
+      });
+    }
 
     let animationId: number;
-    const draw = () => {
-      ctx.fillStyle = 'rgba(5, 5, 8, 0.05)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = 'rgba(200, 161, 255, 0.15)';
-      ctx.font = `${fontSize}px monospace`;
+      particles.forEach((p) => {
+        p.x += p.speedX;
+        p.y += p.speedY;
 
-      for (let i = 0; i < drops.length; i++) {
-        const char = chars[Math.floor(Math.random() * chars.length)];
-        ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+        // Wrap around edges
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
 
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-          drops[i] = 0;
-        }
-        drops[i]++;
-      }
+        // Draw particle with purple color
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 161, 255, ${p.opacity})`;
+        ctx.fill();
 
-      animationId = requestAnimationFrame(draw);
+        // Draw glow effect
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 161, 255, ${p.opacity * 0.2})`;
+        ctx.fill();
+      });
+
+      // Draw connecting lines between nearby particles
+      particles.forEach((p1, i) => {
+        particles.slice(i + 1).forEach((p2) => {
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 120) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(200, 161, 255, ${0.1 * (1 - distance / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+
+      animationId = requestAnimationFrame(animate);
     };
 
-    draw();
+    animate();
 
     const handleResize = () => {
       canvas.width = window.innerWidth;
@@ -173,11 +216,8 @@ const PoolsPage: React.FC = () => {
       </Head>
 
       <div className={styles.terminal}>
-        {/* Matrix Rain Background */}
-        <canvas ref={canvasRef} className={styles.matrixCanvas} />
-
-        {/* Scanline Overlay */}
-        <div className={styles.scanlines} />
+        {/* Purple Particles Background */}
+        <canvas ref={canvasRef} className={styles.particlesCanvas} />
 
         {/* Terminal Top Bar */}
         <header className={styles.topBar}>
