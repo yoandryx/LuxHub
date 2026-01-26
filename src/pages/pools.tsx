@@ -108,16 +108,16 @@ const PoolsPage: React.FC = () => {
         if (p.y < 0) p.y = canvas.height;
         if (p.y > canvas.height) p.y = 0;
 
-        // Draw particle with green color
+        // Draw particle with purple color
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 255, 136, ${p.opacity})`;
+        ctx.fillStyle = `rgba(200, 161, 255, ${p.opacity})`;
         ctx.fill();
 
         // Draw glow effect
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 255, 136, ${p.opacity * 0.2})`;
+        ctx.fillStyle = `rgba(200, 161, 255, ${p.opacity * 0.2})`;
         ctx.fill();
       });
 
@@ -132,7 +132,7 @@ const PoolsPage: React.FC = () => {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(0, 255, 136, ${0.1 * (1 - distance / 120)})`;
+            ctx.strokeStyle = `rgba(200, 161, 255, ${0.1 * (1 - distance / 120)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -190,7 +190,7 @@ const PoolsPage: React.FC = () => {
         <header className={styles.terminalHeader}>
           <div className={styles.terminalBrand}>
             {/* Logo Collaboration: LuxHub x Bags */}
-            <div className={styles.logoCollab}>
+            {/* <div className={styles.logoCollab}>
               <Image
                 src="/images/purpleLGG.png"
                 alt="LuxHub"
@@ -198,18 +198,20 @@ const PoolsPage: React.FC = () => {
                 height={44}
                 className={styles.brandLogo}
               />
-              <span className={styles.logoX}>×</span>
+              <span className={styles.logoX}>+</span>
               <Image
-                src="/images/bags-logo.svg"
+                src="/images/bags-icon.png"
                 alt="Bags"
                 width={44}
                 height={44}
                 className={styles.brandLogo}
               />
-            </div>
+            </div> */}
             <div className={styles.terminalTitle}>
-              <h1>WATCH POOLS</h1>
-              <span className={styles.terminalSubtitle}>TRADING TERMINAL</span>
+              <h1>TIMEPIECES ON BAGS</h1>
+              <span className={styles.terminalSubtitle}>
+                INVESTING EQUITY ON TIMEPIECES POWERED BY BAGSAPP
+              </span>
             </div>
           </div>
 
@@ -236,7 +238,7 @@ const PoolsPage: React.FC = () => {
           )}
         </header>
 
-        {/* How It Works - Badge Icons */}
+        {/* How It Works - Badge Icons Grid */}
         <section className={styles.howItWorks}>
           <div className={styles.stepsContainer}>
             <div className={styles.stepBadge}>
@@ -249,8 +251,6 @@ const PoolsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className={styles.stepConnector} />
-
             <div className={styles.stepBadge}>
               <div className={styles.badgeIcon}>
                 <FiDollarSign />
@@ -261,8 +261,6 @@ const PoolsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className={styles.stepConnector} />
-
             <div className={styles.stepBadge}>
               <div className={styles.badgeIcon}>
                 <FiLock />
@@ -272,8 +270,6 @@ const PoolsPage: React.FC = () => {
                 <span className={styles.badgeLabel}>SECURED</span>
               </div>
             </div>
-
-            <div className={styles.stepConnector} />
 
             <div className={styles.stepBadge}>
               <div className={styles.badgeIcon}>
