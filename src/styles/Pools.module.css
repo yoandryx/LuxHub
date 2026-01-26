@@ -5,31 +5,37 @@
    ======================================== */
 
 /* ============================================
-   CSS VARIABLES - TERMINAL THEME
+   CSS VARIABLES - LUXHUB TERMINAL THEME
    ============================================ */
 .terminal {
-  /* Primary Colors */
-  --terminal-green: #00ff88;
-  --terminal-green-dim: rgba(0, 255, 136, 0.15);
-  --terminal-green-glow: rgba(0, 255, 136, 0.4);
-  --terminal-cyan: #00d4ff;
-  --terminal-purple: #c8a1ff;
-  --terminal-red: #ff4757;
-  --terminal-orange: #ffa502;
-  --terminal-yellow: #ffd700;
+  /* LuxHub Primary - Purple */
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.15);
+  --accent-glow: rgba(200, 161, 255, 0.4);
+  --accent-bright: #d8bcff;
+
+  /* Secondary - Green for positive indicators */
+  --positive: #00ff88;
+  --positive-dim: rgba(0, 255, 136, 0.15);
+  --positive-glow: rgba(0, 255, 136, 0.4);
+
+  /* Status Colors */
+  --negative: #ff4757;
+  --warning: #ffa502;
+  --info: #00d4ff;
 
   /* Background Layers */
-  --bg-deep: #05050a;
-  --bg-base: #0a0a0f;
-  --bg-surface: #0f0f16;
-  --bg-elevated: #14141d;
-  --bg-card: #1a1a24;
-  --bg-hover: #1f1f2a;
+  --bg-deep: #08080c;
+  --bg-base: #0c0c12;
+  --bg-surface: #101018;
+  --bg-elevated: #16161f;
+  --bg-card: #1c1c28;
+  --bg-hover: #222230;
 
   /* Borders */
-  --border-dim: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.1);
-  --border-accent: rgba(0, 255, 136, 0.3);
+  --border-dim: rgba(200, 161, 255, 0.08);
+  --border-default: rgba(200, 161, 255, 0.15);
+  --border-accent: rgba(200, 161, 255, 0.4);
 
   /* Text */
   --text-primary: #ffffff;
@@ -127,16 +133,16 @@
 }
 
 .logoDivider {
-  color: var(--terminal-green);
-  opacity: 0.5;
+  color: var(--accent);
+  opacity: 0.6;
 }
 
 .logoSubtext {
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 3px;
-  color: var(--terminal-green);
-  opacity: 0.8;
+  color: var(--accent);
+  opacity: 0.9;
 }
 
 .networkBadge {
@@ -156,18 +162,18 @@
 .networkDot {
   width: 6px;
   height: 6px;
-  background: var(--terminal-green);
+  background: var(--positive);
   border-radius: 50%;
   animation: blink 2s ease-in-out infinite;
-  box-shadow: 0 0 8px var(--terminal-green);
+  box-shadow: 0 0 8px var(--positive);
 }
 
 .networkType {
   padding: 2px 6px;
   margin-left: 4px;
-  background: rgba(0, 255, 136, 0.1);
+  background: var(--accent-dim);
   border-radius: 3px;
-  color: var(--terminal-green);
+  color: var(--accent);
   font-size: 0.55rem;
 }
 
@@ -220,11 +226,11 @@
 }
 
 .tickerValue.positive {
-  color: var(--terminal-green);
+  color: var(--positive);
 }
 
 .tickerValue.negative {
-  color: var(--terminal-red);
+  color: var(--negative);
 }
 
 .tickerDivider {
@@ -255,9 +261,9 @@
 }
 
 .refreshBtn:hover {
-  border-color: var(--terminal-green);
-  color: var(--terminal-green);
-  background: var(--terminal-green-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .refreshBtn.spinning svg {
@@ -278,8 +284,8 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 212, 255, 0.05) 100%);
-  border: 1px solid var(--terminal-green);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.12) 0%, rgba(138, 43, 226, 0.06) 100%);
+  border: 1px solid var(--accent);
   border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -288,13 +294,13 @@
 .walletDot {
   width: 8px;
   height: 8px;
-  background: var(--terminal-green);
+  background: var(--positive);
   border-radius: 50%;
-  box-shadow: 0 0 10px var(--terminal-green);
+  box-shadow: 0 0 10px var(--positive);
 }
 
 .walletAddress {
-  color: var(--terminal-green);
+  color: var(--accent);
   font-family: var(--font-mono);
   letter-spacing: 0.5px;
 }
@@ -339,9 +345,9 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: var(--terminal-green-dim);
+  background: var(--accent-dim);
   border-radius: 8px;
-  color: var(--terminal-green);
+  color: var(--accent);
   font-size: 1.1rem;
 }
 
@@ -360,8 +366,8 @@
 }
 
 .statValue.highlight {
-  color: var(--terminal-green);
-  text-shadow: 0 0 20px var(--terminal-green-glow);
+  color: var(--positive);
+  text-shadow: 0 0 20px var(--positive-glow);
 }
 
 .statLabel {
@@ -382,18 +388,18 @@
 }
 
 .statChange.positive {
-  background: rgba(0, 255, 136, 0.1);
-  color: var(--terminal-green);
+  background: var(--positive-dim);
+  color: var(--positive);
 }
 
 .statChange.negative {
   background: rgba(255, 71, 87, 0.1);
-  color: var(--terminal-red);
+  color: var(--negative);
 }
 
 .statBadge {
   padding: 4px 8px;
-  background: linear-gradient(135deg, var(--terminal-purple) 0%, var(--terminal-cyan) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 100%);
   border-radius: 4px;
   font-size: 0.55rem;
   font-weight: 700;
@@ -433,20 +439,20 @@
 }
 
 .processStep:hover {
-  border-color: var(--terminal-green);
-  background: var(--terminal-green-dim);
+  border-color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .processNum {
   font-size: 0.55rem;
   font-weight: 700;
-  color: var(--terminal-green);
-  opacity: 0.6;
+  color: var(--accent);
+  opacity: 0.7;
 }
 
 .processIcon {
   font-size: 0.9rem;
-  color: var(--terminal-green);
+  color: var(--accent);
 }
 
 .processLabel {
@@ -457,8 +463,8 @@
 }
 
 .processArrow {
-  color: var(--terminal-green);
-  opacity: 0.3;
+  color: var(--accent);
+  opacity: 0.4;
   font-size: 0.8rem;
 }
 
@@ -497,8 +503,8 @@
 }
 
 .titleAccent {
-  color: var(--terminal-green);
-  opacity: 0.5;
+  color: var(--accent);
+  opacity: 0.6;
 }
 
 .liveIndicator {
@@ -506,22 +512,22 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: rgba(0, 255, 136, 0.1);
-  border: 1px solid var(--terminal-green);
+  background: var(--positive-dim);
+  border: 1px solid var(--positive);
   border-radius: 4px;
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: var(--terminal-green);
+  color: var(--positive);
 }
 
 .liveDot {
   width: 6px;
   height: 6px;
-  background: var(--terminal-green);
+  background: var(--positive);
   border-radius: 50%;
   animation: blink 1s ease-in-out infinite;
-  box-shadow: 0 0 8px var(--terminal-green);
+  box-shadow: 0 0 8px var(--positive);
 }
 
 .headerControls {
@@ -557,8 +563,8 @@
 }
 
 .viewBtn.active {
-  background: var(--terminal-green-dim);
-  color: var(--terminal-green);
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
 /* ============================================
@@ -589,7 +595,7 @@
   max-width: 420px;
   width: 100%;
   box-shadow:
-    0 0 60px rgba(0, 255, 136, 0.1),
+    0 0 60px rgba(200, 161, 255, 0.15),
     0 24px 80px rgba(0, 0, 0, 0.6);
 }
 
@@ -612,9 +618,9 @@
 }
 
 .modalClose:hover {
-  background: var(--terminal-green-dim);
-  border-color: var(--terminal-green);
-  color: var(--terminal-green);
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .modalHeader {
@@ -635,7 +641,7 @@
 
 .modalIcon {
   font-size: 1.2rem;
-  color: var(--terminal-green);
+  color: var(--accent);
 }
 
 .modalText {
@@ -671,7 +677,7 @@
 .footerLogo {
   font-weight: 700;
   letter-spacing: 2px;
-  color: var(--terminal-green);
+  color: var(--accent);
 }
 
 .footerVersion {
@@ -697,7 +703,7 @@
 
 .footerLink svg {
   font-size: 0.75rem;
-  color: var(--terminal-green);
+  color: var(--accent);
   opacity: 0.6;
 }
 
@@ -720,7 +726,7 @@
 }
 
 .footerTime svg {
-  color: var(--terminal-cyan);
+  color: var(--info);
   opacity: 0.6;
 }
 

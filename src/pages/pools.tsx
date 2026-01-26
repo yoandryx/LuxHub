@@ -98,7 +98,7 @@ const PoolsPage: React.FC = () => {
       ctx.fillStyle = 'rgba(5, 5, 8, 0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+      ctx.fillStyle = 'rgba(200, 161, 255, 0.15)';
       ctx.font = `${fontSize}px monospace`;
 
       for (let i = 0; i < drops.length; i++) {
@@ -259,7 +259,7 @@ const PoolsPage: React.FC = () => {
             </div>
             <div className={styles.statContent}>
               <span className={styles.statValue}>
-                {statsLoading ? '...' : formatNumber(parseFloat(stats?.tvl || '0'))}
+                {statsLoading ? '...' : formatNumber(parseFloat(String(stats?.tvl || '0')))}
               </span>
               <span className={styles.statLabel}>TOTAL VALUE LOCKED</span>
             </div>

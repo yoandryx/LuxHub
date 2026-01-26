@@ -4,27 +4,34 @@
    ======================================== */
 
 .poolCard {
-  /* Terminal Theme */
-  --terminal-green: #00ff88;
-  --terminal-green-dim: rgba(0, 255, 136, 0.15);
-  --terminal-green-glow: rgba(0, 255, 136, 0.4);
-  --terminal-cyan: #00d4ff;
-  --terminal-purple: #c8a1ff;
-  --terminal-red: #ff4757;
-  --terminal-yellow: #ffd700;
+  /* LuxHub Primary - Purple */
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.15);
+  --accent-glow: rgba(200, 161, 255, 0.4);
+  --accent-bright: #d8bcff;
+
+  /* Secondary - Green for positive indicators */
+  --positive: #00ff88;
+  --positive-dim: rgba(0, 255, 136, 0.15);
+  --positive-glow: rgba(0, 255, 136, 0.4);
+
+  /* Status Colors */
+  --negative: #ff4757;
+  --warning: #ffa502;
+  --info: #00d4ff;
 
   /* Background Layers */
-  --bg-deep: #05050a;
-  --bg-base: #0a0a0f;
-  --bg-surface: #0f0f16;
-  --bg-elevated: #14141d;
-  --bg-card: #1a1a24;
-  --bg-hover: #1f1f2a;
+  --bg-deep: #08080c;
+  --bg-base: #0c0c12;
+  --bg-surface: #101018;
+  --bg-elevated: #16161f;
+  --bg-card: #1c1c28;
+  --bg-hover: #222230;
 
   /* Borders */
-  --border-dim: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.1);
-  --border-accent: rgba(0, 255, 136, 0.3);
+  --border-dim: rgba(200, 161, 255, 0.08);
+  --border-default: rgba(200, 161, 255, 0.15);
+  --border-accent: rgba(200, 161, 255, 0.4);
 
   /* Text */
   --text-primary: #ffffff;
@@ -54,7 +61,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--terminal-green) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
   opacity: 0;
   transition: opacity 0.25s ease;
 }
@@ -64,7 +71,7 @@
   border-color: var(--border-accent);
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.4),
-    0 0 40px rgba(0, 255, 136, 0.08);
+    0 0 40px rgba(200, 161, 255, 0.1);
 }
 
 .poolCard:hover::before {
@@ -117,12 +124,12 @@
   top: 10px;
   right: 10px;
   background: rgba(0, 0, 0, 0.7);
-  border: 1px solid var(--terminal-green);
+  border: 1px solid var(--accent);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.55rem;
   font-weight: 700;
-  color: var(--terminal-green);
+  color: var(--accent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   font-variant-numeric: tabular-nums;
@@ -136,7 +143,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  background: linear-gradient(135deg, var(--terminal-green) 0%, #00cc6a 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 100%);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.5rem;
@@ -144,7 +151,7 @@
   color: var(--bg-deep);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 0 12px var(--terminal-green-glow);
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 .bagsIconSmall {
@@ -188,11 +195,11 @@
 }
 
 .progressPercent {
-  color: var(--terminal-green);
+  color: var(--positive);
   font-weight: 700;
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 8px var(--terminal-green-glow);
+  text-shadow: 0 0 8px var(--positive-glow);
 }
 
 .progressBar {
@@ -205,11 +212,11 @@
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #00cc6a 0%, var(--terminal-green) 100%);
+  background: linear-gradient(90deg, #00cc6a 0%, var(--positive) 100%);
   border-radius: 2px;
   transition: width 0.4s ease;
   position: relative;
-  box-shadow: 0 0 8px var(--terminal-green-glow);
+  box-shadow: 0 0 8px var(--positive-glow);
 }
 
 .progressFill::after {
@@ -281,7 +288,7 @@
 .investButton {
   width: 100%;
   padding: 10px;
-  background: linear-gradient(135deg, var(--terminal-green) 0%, #00cc6a 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 100%);
   border: none;
   border-radius: 8px;
   color: var(--bg-deep);
@@ -292,21 +299,21 @@
   letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px var(--terminal-green-glow);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
 
 .investButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 255, 136, 0.35);
+  box-shadow: 0 8px 24px rgba(200, 161, 255, 0.35);
 }
 
 .viewButton {
   width: 100%;
   padding: 10px;
-  background: var(--terminal-green-dim);
-  border: 1px solid var(--terminal-green);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
   border-radius: 8px;
-  color: var(--terminal-green);
+  color: var(--accent);
   font-family: var(--font-mono);
   font-size: 0.65rem;
   font-weight: 600;
@@ -317,7 +324,7 @@
 }
 
 .viewButton:hover {
-  background: rgba(0, 255, 136, 0.25);
+  background: rgba(200, 161, 255, 0.25);
   transform: translateY(-2px);
 }
 
