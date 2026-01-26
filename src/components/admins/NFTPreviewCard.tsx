@@ -8,7 +8,9 @@ interface NFTPreviewCardProps {
   imagePreview?: string;
   title: string;
   description: string;
-  priceSol: number;
+  priceSol?: number; // Legacy support
+  priceUSD?: number; // USD as source of truth
+  estimatedSol?: number; // Estimated SOL conversion for display
   brand?: string;
   onViewDetails?: () => void;
 }
@@ -19,16 +21,24 @@ const NFTPreviewCard = ({
   title,
   description,
   priceSol,
+  priceUSD,
+  estimatedSol,
   brand,
   onViewDetails,
 }: NFTPreviewCardProps) => {
+  // Determine which price to show as primary
+  const hasUsdPrice = priceUSD !== undefined && priceUSD > 0;
+  const primaryPrice = hasUsdPrice ? priceUSD : priceSol || 0;
+  const priceLabel = hasUsdPrice ? 'USD' : 'SOL';
+
   return (
     <UnifiedNFTCard
       title={title || 'Untitled'}
       image={imagePreview}
       imageCid={fileCid}
-      price={priceSol}
-      priceLabel="SOL"
+      price={primaryPrice}
+      priceLabel={priceLabel}
+      priceUSD={hasUsdPrice ? undefined : priceUSD} // Show USD in secondary if primary is SOL
       brand={brand}
       description={description}
       status="preview"
