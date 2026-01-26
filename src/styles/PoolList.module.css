@@ -4,27 +4,34 @@
    ======================================== */
 
 .container {
-  /* Terminal Theme */
-  --terminal-green: #00ff88;
-  --terminal-green-dim: rgba(0, 255, 136, 0.15);
-  --terminal-green-glow: rgba(0, 255, 136, 0.4);
-  --terminal-cyan: #00d4ff;
-  --terminal-purple: #c8a1ff;
-  --terminal-red: #ff4757;
-  --terminal-yellow: #ffd700;
+  /* LuxHub Primary - Purple */
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.15);
+  --accent-glow: rgba(200, 161, 255, 0.4);
+  --accent-bright: #d8bcff;
+
+  /* Secondary - Green for positive indicators */
+  --positive: #00ff88;
+  --positive-dim: rgba(0, 255, 136, 0.15);
+  --positive-glow: rgba(0, 255, 136, 0.4);
+
+  /* Status Colors */
+  --negative: #ff4757;
+  --warning: #ffa502;
+  --info: #00d4ff;
 
   /* Background Layers */
-  --bg-deep: #05050a;
-  --bg-base: #0a0a0f;
-  --bg-surface: #0f0f16;
-  --bg-elevated: #14141d;
-  --bg-card: #1a1a24;
-  --bg-hover: #1f1f2a;
+  --bg-deep: #08080c;
+  --bg-base: #0c0c12;
+  --bg-surface: #101018;
+  --bg-elevated: #16161f;
+  --bg-card: #1c1c28;
+  --bg-hover: #222230;
 
   /* Borders */
-  --border-dim: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.1);
-  --border-accent: rgba(0, 255, 136, 0.3);
+  --border-dim: rgba(200, 161, 255, 0.08);
+  --border-default: rgba(200, 161, 255, 0.15);
+  --border-accent: rgba(200, 161, 255, 0.4);
 
   /* Text */
   --text-primary: #ffffff;
@@ -94,15 +101,15 @@
 }
 
 .filterButton.active {
-  background: var(--terminal-green-dim);
-  border-color: var(--terminal-green);
-  color: var(--terminal-green);
-  box-shadow: 0 0 15px rgba(0, 255, 136, 0.15);
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 
 .filterCount {
   padding: 2px 6px;
-  background: var(--terminal-green);
+  background: var(--accent);
   border-radius: 3px;
   font-size: 0.55rem;
   font-weight: 700;
@@ -136,7 +143,7 @@
 
 .select:hover,
 .select:focus {
-  border-color: var(--terminal-green);
+  border-color: var(--accent);
   outline: none;
 }
 
@@ -153,8 +160,8 @@
 }
 
 .clearFilter:hover {
-  border-color: var(--terminal-green);
-  color: var(--terminal-green);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ========== GRID ========== */
@@ -186,10 +193,10 @@
   width: 40px;
   height: 40px;
   border: 2px solid var(--border-dim);
-  border-top-color: var(--terminal-green);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  box-shadow: 0 0 20px var(--terminal-green-glow);
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 @keyframes spin {
@@ -214,10 +221,10 @@
 
 .retryButton {
   padding: 10px 24px;
-  background: var(--terminal-green-dim);
-  border: 1px solid var(--terminal-green);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
   border-radius: 8px;
-  color: var(--terminal-green);
+  color: var(--accent);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
@@ -228,9 +235,9 @@
 }
 
 .retryButton:hover {
-  background: rgba(0, 255, 136, 0.25);
+  background: rgba(200, 161, 255, 0.25);
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px var(--terminal-green-glow);
+  box-shadow: 0 8px 30px var(--accent-glow);
 }
 
 /* ========== EMPTY STATE ========== */
@@ -285,9 +292,9 @@
 .summaryValue {
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--terminal-green);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 15px var(--terminal-green-glow);
+  text-shadow: 0 0 15px var(--accent-glow);
 }
 
 /* ========== RESPONSIVE - TABLET ========== */
