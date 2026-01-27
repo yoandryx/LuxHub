@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import BagsPoolTrading from './BagsPoolTrading';
+import { GovernanceDashboard } from '../governance';
 import { usePoolStatus } from '../../hooks/usePools';
 import styles from '../../styles/PoolDetail.module.css';
 
@@ -44,6 +45,19 @@ interface Pool {
   liquidityModel?: string;
   ammEnabled?: boolean;
   ammLiquidityPercent?: number;
+  // Squad DAO governance
+  graduated?: boolean;
+  squadMultisigPda?: string;
+  squadVaultPda?: string;
+  squadThreshold?: number;
+  squadMembers?: Array<{
+    wallet: string;
+    tokenBalance: number;
+    ownershipPercent: number;
+    joinedAt: string;
+    permissions: number;
+  }>;
+  squadCreatedAt?: string;
 }
 
 interface PoolDetailProps {
@@ -58,7 +72,7 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'invest' | 'trade'>('invest');
+  const [activeTab, setActiveTab] = useState<'invest' | 'trade' | 'governance'>('invest');
 
   // Use SWR for real-time pool status updates
   const { poolStatus, mutate: refreshStatus } = usePoolStatus(pool._id);
@@ -81,13 +95,16 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
   // Determine if trading is available
   const hasToken = !!poolData.bagsTokenMint;
   const canTrade = hasToken && poolData.status !== 'open';
+  const hasGovernance = poolData.graduated && !!poolData.squadMultisigPda;
 
-  // Auto-switch to trade tab if pool is not open but has token
+  // Auto-switch tab based on pool status
   useEffect(() => {
-    if (poolData.status !== 'open' && hasToken) {
+    if (hasGovernance) {
+      setActiveTab('governance');
+    } else if (poolData.status !== 'open' && hasToken) {
       setActiveTab('trade');
     }
-  }, [poolData.status, hasToken]);
+  }, [poolData.status, hasToken, hasGovernance]);
 
   const handleInvest = async () => {
     if (!connected || !publicKey) {
@@ -154,6 +171,11 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
       funded: { label: 'Funded', color: '#00bfff', description: 'Vendor paid, awaiting shipment' },
       custody: { label: 'In Custody', color: '#ff69b4', description: 'Asset shipped to LuxHub' },
       active: { label: 'Active', color: '#9370db', description: 'LuxHub holds asset securely' },
+      graduated: {
+        label: 'Graduated',
+        color: '#c8a1ff',
+        description: 'DAO governance active - token holders vote on asset decisions',
+      },
       listed: { label: 'Listed', color: '#ff8c00', description: 'Listed for resale' },
       sold: { label: 'Sold', color: '#32cd32', description: 'Asset sold, pending distribution' },
       distributed: {
@@ -274,8 +296,8 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
               </div>
             )}
 
-            {/* Tabs for Invest/Trade */}
-            {(poolData.status === 'open' || canTrade) && (
+            {/* Tabs for Invest/Trade/Governance */}
+            {(poolData.status === 'open' || canTrade || hasGovernance) && (
               <div className={styles.actionTabs}>
                 <button
                   className={`${styles.actionTab} ${activeTab === 'invest' ? styles.activeTab : ''}`}
@@ -290,6 +312,13 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
                   disabled={!hasToken}
                 >
                   Trade {!hasToken && '🔒'}
+                </button>
+                <button
+                  className={`${styles.actionTab} ${activeTab === 'governance' ? styles.activeTab : ''}`}
+                  onClick={() => setActiveTab('governance')}
+                  disabled={!hasGovernance}
+                >
+                  Governance {hasGovernance ? '🏛️' : '🔒'}
                 </button>
               </div>
             )}
@@ -375,8 +404,19 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
               </div>
             )}
 
-            {/* Pool Closed Message - only show if no trading available */}
-            {poolData.status !== 'open' && !canTrade && (
+            {/* Governance Section - Squad DAO */}
+            {activeTab === 'governance' && hasGovernance && (
+              <div className={styles.tradingSection}>
+                <GovernanceDashboard
+                  pool={poolData}
+                  onProposalCreated={refreshStatus}
+                  onVoteComplete={refreshStatus}
+                />
+              </div>
+            )}
+
+            {/* Pool Closed Message - only show if no trading or governance available */}
+            {poolData.status !== 'open' && !canTrade && !hasGovernance && (
               <div className={styles.closedMessage}>
                 <p>This pool is no longer accepting investments.</p>
                 {poolData.resaleListingPriceUSD && (
