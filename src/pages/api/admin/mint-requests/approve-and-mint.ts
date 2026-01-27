@@ -11,73 +11,7 @@ import MintRequest from '../../../../lib/models/MintRequest';
 import Asset from '../../../../lib/models/Assets';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
 import AdminRole from '../../../../lib/models/AdminRole';
-
-// Helper to upload metadata to Pinata
-async function uploadMetadataToPinata(metadata: object, title: string): Promise<string> {
-  const pinataApiKey = process.env.NEXT_PUBLIC_PINATA_API_KEY;
-  const pinataSecretKey = process.env.NEXT_PUBLIC_PINATA_SECRET_KEY;
-
-  if (!pinataApiKey || !pinataSecretKey) {
-    throw new Error('Pinata API keys not configured');
-  }
-
-  const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      pinata_api_key: pinataApiKey,
-      pinata_secret_api_key: pinataSecretKey,
-    },
-    body: JSON.stringify({
-      pinataContent: metadata,
-      pinataMetadata: { name: `${title}-metadata` },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to upload metadata to Pinata');
-  }
-
-  const data = await response.json();
-  const gateway = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
-  return `${gateway}${data.IpfsHash}`;
-}
-
-// Helper to upload image from base64 to Pinata
-async function uploadImageToPinata(base64Image: string, title: string): Promise<string> {
-  const pinataApiKey = process.env.NEXT_PUBLIC_PINATA_API_KEY;
-  const pinataSecretKey = process.env.NEXT_PUBLIC_PINATA_SECRET_KEY;
-
-  if (!pinataApiKey || !pinataSecretKey) {
-    throw new Error('Pinata API keys not configured');
-  }
-
-  // Extract base64 data and convert to buffer
-  const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
-  const buffer = Buffer.from(base64Data, 'base64');
-
-  // Create form data
-  const formData = new FormData();
-  const blob = new Blob([buffer], { type: 'image/png' });
-  formData.append('file', blob, `${title.replace(/\s+/g, '-')}.png`);
-  formData.append('pinataMetadata', JSON.stringify({ name: `${title}-image` }));
-
-  const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
-    method: 'POST',
-    headers: {
-      pinata_api_key: pinataApiKey,
-      pinata_secret_api_key: pinataSecretKey,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to upload image to Pinata');
-  }
-
-  const data = await response.json();
-  return data.IpfsHash;
-}
+import { uploadImage, uploadMetadata, getStorageConfig } from '../../../../utils/storage';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -141,23 +75,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Step 1: Upload image to IPFS if not already uploaded
-    let imageCid = mintRequest.imageCid;
-    if (!imageCid && mintRequest.imageBase64) {
+    // Step 1: Upload image to storage if not already uploaded
+    let imageUrl = mintRequest.imageUrl;
+    let imageTxId = mintRequest.imageCid; // Can be IPFS hash or Irys txId
+
+    if (!imageUrl && mintRequest.imageBase64) {
       try {
-        imageCid = await uploadImageToPinata(mintRequest.imageBase64, mintRequest.title);
+        // Extract base64 data and convert to buffer
+        const base64Data = mintRequest.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        const contentType =
+          mintRequest.imageBase64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/png';
+
+        // Upload using unified storage (respects STORAGE_PROVIDER env var)
+        const imageResult = await uploadImage(buffer, contentType, {
+          fileName: `${mintRequest.title.replace(/\s+/g, '-')}.png`,
+        });
+
+        imageUrl = imageResult.gateway;
+        imageTxId = imageResult.irysTxId || imageResult.ipfsHash;
+
+        console.log(`✅ Image uploaded via ${imageResult.provider}: ${imageUrl}`);
       } catch (error) {
         console.error('Failed to upload image:', error);
-        return res.status(500).json({ error: 'Failed to upload image to IPFS' });
+        return res.status(500).json({
+          error: 'Failed to upload image',
+          hint: getStorageConfig(),
+        });
       }
     }
 
-    if (!imageCid && !mintRequest.imageUrl) {
+    if (!imageUrl) {
       return res.status(400).json({ error: 'No image available for minting' });
     }
-
-    const gateway = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
-    const imageUrl = mintRequest.imageUrl || `${gateway}${imageCid}`;
 
     // Step 2: Create NFT metadata
     const metadata = {
@@ -213,13 +163,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     };
 
-    // Step 3: Upload metadata to IPFS
+    // Step 3: Upload metadata to storage (Irys/Pinata based on STORAGE_PROVIDER)
     let metadataUri: string;
     try {
-      metadataUri = await uploadMetadataToPinata(metadata, mintRequest.title);
+      const metadataResult = await uploadMetadata(metadata, mintRequest.title);
+      metadataUri = metadataResult.gateway;
+      console.log(`✅ Metadata uploaded via ${metadataResult.provider}: ${metadataUri}`);
     } catch (error) {
       console.error('Failed to upload metadata:', error);
-      return res.status(500).json({ error: 'Failed to upload metadata to IPFS' });
+      return res.status(500).json({
+        error: 'Failed to upload metadata',
+        hint: getStorageConfig(),
+      });
     }
 
     // Step 4: Create UMI instance with admin keypair
@@ -271,7 +226,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Step 7: Update mint request status
     mintRequest.status = 'minted';
     mintRequest.mintAddress = mintAddress;
-    mintRequest.imageCid = imageCid;
+    mintRequest.imageCid = imageTxId; // Can be Irys txId or IPFS hash
+    mintRequest.imageUrl = imageUrl;
     mintRequest.reviewedBy = requestingWallet;
     mintRequest.reviewedAt = new Date();
     if (adminNotes) {
@@ -286,7 +242,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       serial: mintRequest.referenceNumber,
       description: mintRequest.description,
       priceUSD: mintRequest.priceUSD,
-      imageIpfsUrls: imageCid ? [imageCid] : [],
+      imageIpfsUrls: imageTxId ? [imageTxId] : [],
+      imageUrl: imageUrl,
       metadataIpfsUrl: metadataUri,
       nftMint: mintAddress,
       nftOwnerWallet: mintRequest.wallet,
@@ -318,7 +275,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: 'NFT minted and transferred to vendor successfully',
       mintAddress,
       metadataUri,
-      imageCid,
+      imageUrl,
+      imageTxId,
+      storageProvider: getStorageConfig().provider,
       assetId: asset._id,
       vendorWallet: mintRequest.wallet,
     });
