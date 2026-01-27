@@ -11,6 +11,10 @@ interface CreatePoolTokenRequest {
   adminWallet: string;
   tokenName?: string;
   tokenSymbol?: string;
+  // Bonding curve configuration
+  launchType?: 'fixed_supply' | 'bonding_curve';
+  bondingCurveType?: 'linear' | 'exponential' | 'sqrt';
+  initialPriceUSD?: number;
 }
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
@@ -24,7 +28,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { poolId, adminWallet, tokenName, tokenSymbol } = req.body as CreatePoolTokenRequest;
+    const {
+      poolId,
+      adminWallet,
+      tokenName,
+      tokenSymbol,
+      launchType = 'bonding_curve',
+      bondingCurveType = 'exponential',
+      initialPriceUSD,
+    } = req.body as CreatePoolTokenRequest;
 
     // Validation
     if (!poolId || !adminWallet) {
@@ -108,18 +120,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const tokenInfoResult = await tokenInfoResponse.json();
 
     // Step 2: Create token launch transaction
+    // Determine launch configuration based on launchType
+    const isFixedSupply = launchType === 'fixed_supply';
+    const calculatedInitialPrice = initialPriceUSD || pool.sharePriceUSD || 0.01;
+
+    const launchPayload: Record<string, unknown> = {
+      tokenInfoId: tokenInfoResult.id,
+      creator: adminWallet,
+    };
+
+    if (isFixedSupply) {
+      // Fixed supply mode - traditional pool shares
+      launchPayload.totalSupply = pool.totalShares;
+      launchPayload.launchType = 'fixed';
+    } else {
+      // Bonding curve mode - dynamic minting
+      launchPayload.launchType = 'bonding_curve';
+      launchPayload.bondingCurve = {
+        type: bondingCurveType,
+        targetMarketCap: pool.targetAmountUSD,
+        initialPrice: calculatedInitialPrice,
+        // Graduation triggers when market cap reaches target
+        graduationThreshold: pool.targetAmountUSD,
+      };
+      // Creator fee for LuxHub (vested per Bags new model)
+      launchPayload.creatorFeeBps = 100; // 1% creator fee (vesting)
+      launchPayload.holderDividendBps = pool.holderDividendBps || 100; // 1% holder dividends
+    }
+
     const launchResponse = await fetch(`${BAGS_API_BASE}/token/create-token-launch-transaction`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': bagsApiKey,
       },
-      body: JSON.stringify({
-        tokenInfoId: tokenInfoResult.id,
-        creator: adminWallet,
-        totalSupply: pool.totalShares,
-        // Initial liquidity configuration (if applicable)
-      }),
+      body: JSON.stringify(launchPayload),
     });
 
     if (!launchResponse.ok) {
@@ -132,14 +167,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const launchResult = await launchResponse.json();
 
-    // Update pool with Bags token info
-    await Pool.findByIdAndUpdate(poolId, {
-      $set: {
-        bagsTokenMint: launchResult.mint || launchResult.tokenMint,
-        bagsTokenCreatedAt: new Date(),
-        fractionalMint: launchResult.mint || launchResult.tokenMint,
-      },
-    });
+    // Update pool with Bags token info and bonding curve config
+    const poolUpdate: Record<string, unknown> = {
+      bagsTokenMint: launchResult.mint || launchResult.tokenMint,
+      bagsTokenCreatedAt: new Date(),
+      fractionalMint: launchResult.mint || launchResult.tokenMint,
+      bondingCurveActive: !isFixedSupply,
+      bondingCurveType: isFixedSupply ? undefined : bondingCurveType,
+      initialBondingPrice: isFixedSupply ? undefined : calculatedInitialPrice,
+      currentBondingPrice: isFixedSupply ? undefined : calculatedInitialPrice,
+      tokenStatus: 'minted',
+    };
+
+    if (launchResult.bondingCurveAddress) {
+      poolUpdate.bondingCurveAddress = launchResult.bondingCurveAddress;
+    }
+
+    await Pool.findByIdAndUpdate(poolId, { $set: poolUpdate });
 
     return res.status(200).json({
       success: true,
@@ -148,19 +192,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         symbol: finalTokenSymbol,
         mint: launchResult.mint || launchResult.tokenMint,
         tokenInfoId: tokenInfoResult.id,
-        totalSupply: pool.totalShares,
+        launchType: isFixedSupply ? 'fixed_supply' : 'bonding_curve',
+        ...(isFixedSupply
+          ? { totalSupply: pool.totalShares }
+          : {
+              bondingCurve: {
+                type: bondingCurveType,
+                initialPrice: calculatedInitialPrice,
+                targetMarketCap: pool.targetAmountUSD,
+                bondingCurveAddress: launchResult.bondingCurveAddress,
+              },
+            }),
       },
       pool: {
         _id: pool._id,
         bagsTokenMint: launchResult.mint || launchResult.tokenMint,
+        bondingCurveActive: !isFixedSupply,
       },
       transaction: launchResult.transaction,
-      message: 'Pool share token created via Bags. Transaction ready for signing.',
-      nextSteps: [
-        'Sign and send the transaction to complete token creation',
-        'Pool shares will be represented as SPL tokens',
-        'Investors can trade shares on secondary markets',
-      ],
+      message: isFixedSupply
+        ? 'Pool share token created via Bags (fixed supply). Transaction ready for signing.'
+        : 'Pool bonding curve token created via Bags. Transaction ready for signing.',
+      nextSteps: isFixedSupply
+        ? [
+            'Sign and send the transaction to complete token creation',
+            'Pool shares will be represented as SPL tokens',
+            'Investors can trade shares on secondary markets',
+          ]
+        : [
+            'Sign and send the transaction to launch bonding curve',
+            'Investors buy tokens which mints new supply dynamically',
+            'Price increases as more tokens are minted (bonding curve)',
+            'When target market cap is reached, token graduates to DEX',
+            'Top 100 holders become Squad DAO members for governance',
+          ],
     });
   } catch (error: any) {
     console.error('[/api/bags/create-pool-token] Error:', error);

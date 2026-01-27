@@ -6,6 +6,7 @@ import dbConnect from '@/lib/database/mongodb';
 import { Pool } from '@/lib/models/Pool';
 import { Transaction } from '@/lib/models/Transaction';
 import { TreasuryDeposit } from '@/lib/models/TreasuryDeposit';
+import { TreasuryVesting } from '@/lib/models/TreasuryVesting';
 import { webhookLimiter } from '@/lib/middleware/rateLimit';
 import { withErrorMonitoring, errorMonitor } from '@/lib/monitoring/errorHandler';
 
@@ -18,7 +19,9 @@ type BagsEventType =
   | 'PARTNER_FEE_CLAIMED'
   | 'LIQUIDITY_ADDED'
   | 'LIQUIDITY_REMOVED'
-  | 'TOKEN_GRADUATED';
+  | 'TOKEN_GRADUATED'
+  | 'HOLDER_DIVIDEND_DISTRIBUTED'
+  | 'CREATOR_FEE_VESTED';
 
 interface BagsTradeEvent {
   type: 'TRADE_EXECUTED';
@@ -69,7 +72,34 @@ interface BagsLiquidityEvent {
   providerWallet: string;
 }
 
-type BagsEvent = BagsTradeEvent | BagsPoolEvent | BagsPartnerFeeEvent | BagsLiquidityEvent;
+interface BagsHolderDividendEvent {
+  type: 'HOLDER_DIVIDEND_DISTRIBUTED';
+  timestamp: number;
+  signature: string;
+  tokenMint: string;
+  totalAmount: string;
+  recipients: number;
+  amountPerHolder?: string;
+}
+
+interface BagsCreatorFeeVestedEvent {
+  type: 'CREATOR_FEE_VESTED';
+  timestamp: number;
+  tokenMint: string;
+  creatorWallet: string;
+  vestingTokens: string;
+  vestingStartAt: number;
+  vestingEndAt?: number;
+  vestingType: 'linear' | 'cliff' | 'continuous';
+}
+
+type BagsEvent =
+  | BagsTradeEvent
+  | BagsPoolEvent
+  | BagsPartnerFeeEvent
+  | BagsLiquidityEvent
+  | BagsHolderDividendEvent
+  | BagsCreatorFeeVestedEvent;
 
 /**
  * Verify the Bags webhook signature
@@ -233,6 +263,7 @@ async function handlePoolUpdated(event: BagsPoolEvent): Promise<void> {
 
 /**
  * Handle token graduation events (bonding curve completed)
+ * Triggers Squad DAO creation from top token holders
  */
 async function handleTokenGraduated(event: BagsPoolEvent): Promise<void> {
   const { tokenMint, graduatedAt, marketCap, priceUSD } = event;
@@ -248,7 +279,7 @@ async function handleTokenGraduated(event: BagsPoolEvent): Promise<void> {
             : new Date(event.timestamp * 1000),
           graduationMarketCap: marketCap,
           graduationPriceUSD: priceUSD,
-          status: 'graduated',
+          bondingCurveActive: false, // Bonding curve is now complete
         },
       },
       { new: true }
@@ -256,6 +287,19 @@ async function handleTokenGraduated(event: BagsPoolEvent): Promise<void> {
 
     if (result) {
       console.log(`[bags-webhook] Token graduated: ${tokenMint}, market cap: $${marketCap}`);
+
+      // Trigger Squad creation asynchronously
+      // Note: We don't await this to avoid blocking the webhook response
+      triggerSquadCreation(result._id.toString()).catch((err) => {
+        console.error(
+          `[bags-webhook] Failed to trigger Squad creation for pool ${result._id}:`,
+          err
+        );
+        errorMonitor.captureException(err as Error, {
+          endpoint: '/api/webhooks/bags',
+          extra: { event: 'TOKEN_GRADUATED', poolId: result._id.toString(), tokenMint },
+        });
+      });
     }
   } catch (error) {
     errorMonitor.captureException(error as Error, {
@@ -263,6 +307,53 @@ async function handleTokenGraduated(event: BagsPoolEvent): Promise<void> {
       extra: { event: 'TOKEN_GRADUATED', tokenMint },
     });
   }
+}
+
+/**
+ * Trigger Squad DAO creation for a graduated pool
+ * Called automatically when TOKEN_GRADUATED event is received
+ */
+async function triggerSquadCreation(poolId: string): Promise<void> {
+  // Get admin wallet from environment for the internal call
+  const adminWallet = process.env.ADMIN_WALLETS?.split(',')[0];
+  if (!adminWallet) {
+    console.warn(
+      `[bags-webhook] No ADMIN_WALLETS configured, skipping auto Squad creation for pool ${poolId}`
+    );
+    return;
+  }
+
+  // Call the finalize endpoint internally
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+  const finalizeUrl = `${baseUrl}/api/pool/finalize`;
+
+  console.log(`[bags-webhook] Triggering Squad creation for pool ${poolId}...`);
+
+  const response = await fetch(finalizeUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Add internal auth header to bypass normal auth
+      'x-internal-webhook': process.env.BAGS_WEBHOOK_SECRET || 'internal',
+    },
+    body: JSON.stringify({
+      poolId,
+      adminWallet,
+      skipNftTransfer: true, // NFT transfer handled separately
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Squad creation failed: ${JSON.stringify(errorData)}`);
+  }
+
+  const result = await response.json();
+  console.log(`[bags-webhook] Squad created successfully for pool ${poolId}:`, {
+    multisigPda: result.squad?.multisigPda,
+    memberCount: result.squad?.memberCount,
+  });
 }
 
 /**
@@ -374,6 +465,78 @@ async function handleLiquidityEvent(event: BagsLiquidityEvent): Promise<void> {
 }
 
 /**
+ * Handle holder dividend distribution events
+ */
+async function handleHolderDividend(event: BagsHolderDividendEvent): Promise<void> {
+  const { tokenMint, totalAmount, recipients, signature } = event;
+
+  try {
+    const pool = await Pool.findOne({ bagsTokenMint: tokenMint });
+
+    if (pool) {
+      await Pool.findByIdAndUpdate(pool._id, {
+        $inc: {
+          totalDividendsDistributed: parseFloat(totalAmount),
+        },
+        $set: {
+          lastDividendAt: new Date(event.timestamp * 1000),
+        },
+      });
+
+      console.log(
+        `[bags-webhook] Holder dividend distributed: ${totalAmount} to ${recipients} holders, pool: ${pool._id}`
+      );
+    }
+  } catch (error) {
+    errorMonitor.captureException(error as Error, {
+      endpoint: '/api/webhooks/bags',
+      extra: { event: 'HOLDER_DIVIDEND_DISTRIBUTED', tokenMint },
+    });
+  }
+}
+
+/**
+ * Handle creator fee vested events (Bags new vesting model)
+ */
+async function handleCreatorFeeVested(event: BagsCreatorFeeVestedEvent): Promise<void> {
+  const { tokenMint, creatorWallet, vestingTokens, vestingStartAt, vestingEndAt, vestingType } =
+    event;
+
+  try {
+    const pool = await Pool.findOne({ bagsTokenMint: tokenMint });
+
+    if (pool) {
+      // Create or update treasury vesting record
+      await TreasuryVesting.findOneAndUpdate(
+        { pool: pool._id, feeType: 'creator_fee' },
+        {
+          $set: {
+            bagsTokenMint: tokenMint,
+            vestingType,
+            vestingStartAt: new Date(vestingStartAt * 1000),
+            vestingEndAt: vestingEndAt ? new Date(vestingEndAt * 1000) : undefined,
+            status: 'vesting',
+          },
+          $inc: {
+            vestingTokens: parseFloat(vestingTokens),
+          },
+        },
+        { upsert: true, new: true }
+      );
+
+      console.log(
+        `[bags-webhook] Creator fee vested: ${vestingTokens} tokens for pool ${pool._id}`
+      );
+    }
+  } catch (error) {
+    errorMonitor.captureException(error as Error, {
+      endpoint: '/api/webhooks/bags',
+      extra: { event: 'CREATOR_FEE_VESTED', tokenMint },
+    });
+  }
+}
+
+/**
  * Main webhook handler
  */
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -426,6 +589,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           case 'LIQUIDITY_ADDED':
           case 'LIQUIDITY_REMOVED':
             await handleLiquidityEvent(event as BagsLiquidityEvent);
+            break;
+          case 'HOLDER_DIVIDEND_DISTRIBUTED':
+            await handleHolderDividend(event as BagsHolderDividendEvent);
+            break;
+          case 'CREATOR_FEE_VESTED':
+            await handleCreatorFeeVested(event as BagsCreatorFeeVestedEvent);
             break;
           default:
             console.log(`[bags-webhook] Unhandled event type: ${(event as BagsEvent).type}`);
