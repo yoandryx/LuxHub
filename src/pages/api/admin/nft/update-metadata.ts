@@ -5,8 +5,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../../lib/database/mongodb';
 import Asset from '../../../../lib/models/Assets';
 import NFTAuthorityAction from '../../../../lib/models/NFTAuthorityAction';
-import { verifyToken } from '../../../../lib/auth/token';
-import { JwtPayload } from 'jsonwebtoken';
+import { getAdminConfig } from '../../../../lib/config/adminConfig';
+import AdminRole from '../../../../lib/models/AdminRole';
 
 // Helper to upload metadata to Pinata
 async function uploadMetadataToPinata(metadata: object, title: string): Promise<string> {
@@ -44,17 +44,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verify admin authorization
-  const { authorization } = req.headers;
-  if (!authorization || !authorization.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  await dbConnect();
+
+  // Wallet-based admin authorization
+  const requestingWallet =
+    (req.headers['x-wallet-address'] as string) || (req.query.wallet as string);
+
+  if (!requestingWallet) {
+    return res.status(401).json({ error: 'Wallet address required in x-wallet-address header' });
   }
 
-  const token = authorization.split(' ')[1];
-  const decoded = verifyToken(token);
+  const adminConfig = getAdminConfig();
+  const isEnvAdmin = adminConfig.isAdmin(requestingWallet);
+  const dbAdmin = await AdminRole.findOne({ wallet: requestingWallet, isActive: true });
 
-  if (!decoded || (decoded as JwtPayload).role !== 'admin') {
-    return res.status(401).json({ error: 'Unauthorized - Admin access required' });
+  // Check if has admin access
+  const canUpdate = isEnvAdmin || dbAdmin?.isActive;
+
+  if (!canUpdate) {
+    return res.status(403).json({ error: 'Admin access required' });
   }
 
   const {
@@ -96,16 +104,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    await dbConnect();
-
     // Find the asset in database
     const dbAsset = await Asset.findOne({ nftMint: mintAddress });
     if (!dbAsset) {
       return res.status(404).json({ error: 'NFT not found in database' });
     }
 
-    const adminIdentifier =
-      (decoded as JwtPayload).wallet || (decoded as JwtPayload).email || 'admin';
+    const adminIdentifier = requestingWallet;
     const previousUri = dbAsset.metadataIpfsUrl;
 
     // Build updated metadata for IPFS
