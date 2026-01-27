@@ -118,6 +118,42 @@ const PoolSchema = new Schema(
     graduationMarketCap: { type: Number },
     graduationPriceUSD: { type: Number },
 
+    // ========== BONDING CURVE CONFIG (NEW) ==========
+    bondingCurveActive: { type: Boolean, default: true },
+    bondingCurveType: {
+      type: String,
+      enum: ['linear', 'exponential', 'sqrt'],
+      default: 'exponential',
+    },
+    currentBondingPrice: { type: Number }, // Current price on bonding curve
+    reserveBalance: { type: Number, default: 0 }, // SOL/USDC in bonding curve reserve
+    tokensMinted: { type: Number, default: 0 }, // Dynamic count of tokens minted
+    tokensCirculating: { type: Number, default: 0 }, // Tokens currently in circulation
+    initialBondingPrice: { type: Number }, // Initial price when curve launched
+    bondingCurveAddress: { type: String }, // On-chain bonding curve address
+
+    // ========== HOLDER DIVIDENDS (NEW) ==========
+    holderDividendBps: { type: Number, default: 100 }, // 1% default (100 basis points)
+    totalDividendsDistributed: { type: Number, default: 0 },
+    lastDividendAt: { type: Date },
+
+    // ========== SQUAD DAO GOVERNANCE (NEW) ==========
+    squadMultisigPda: { type: String }, // Squads multisig PDA
+    squadVaultPda: { type: String }, // Squads vault PDA (holds NFT)
+    squadThreshold: { type: Number, default: 60 }, // 60% approval threshold
+    squadMembers: [
+      {
+        wallet: { type: String },
+        tokenBalance: { type: Number },
+        ownershipPercent: { type: Number },
+        joinedAt: { type: Date },
+        permissions: { type: Number, default: 1 }, // 1 = basic member
+      },
+    ],
+    squadCreatedAt: { type: Date },
+    nftTransferredToSquad: { type: Boolean, default: false },
+    nftTransferTx: { type: String }, // Transaction signature for NFT transfer
+
     // ========== TOKENIZATION & LIQUIDITY ==========
     // Token status - tokens minted on pool creation but locked until conditions met
     tokenStatus: {
@@ -175,6 +211,7 @@ const PoolSchema = new Schema(
         'funded', // Vendor paid, awaiting custody
         'custody', // Vendor shipping to LuxHub
         'active', // LuxHub holds asset, pool operational
+        'graduated', // Bonding curve completed, Squad DAO created
         'listed', // Asset listed for resale
         'sold', // Asset sold, distribution pending
         'distributing', // Distribution in progress
@@ -199,6 +236,9 @@ PoolSchema.index({ vendorWallet: 1 }); // Vendor's pools
 PoolSchema.index({ custodyStatus: 1 }); // Custody tracking
 PoolSchema.index({ distributionStatus: 1 }); // Distribution tracking
 PoolSchema.index({ bagsTokenMint: 1 }); // Bags token lookup
+PoolSchema.index({ graduated: 1 }); // Find graduated pools
+PoolSchema.index({ squadMultisigPda: 1 }); // Squad lookup
+PoolSchema.index({ 'squadMembers.wallet': 1 }); // Find pools by member wallet
 
 // ========== PRE-SAVE HOOKS ==========
 PoolSchema.pre('save', function (next) {
