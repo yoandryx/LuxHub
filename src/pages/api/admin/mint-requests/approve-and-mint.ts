@@ -9,9 +9,8 @@ import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
 import Asset from '../../../../lib/models/Assets';
-import { verifyToken } from '../../../../lib/auth/token';
-import { JwtPayload } from 'jsonwebtoken';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
+import AdminRole from '../../../../lib/models/AdminRole';
 
 // Helper to upload metadata to Pinata
 async function uploadMetadataToPinata(metadata: object, title: string): Promise<string> {
@@ -85,17 +84,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verify admin authorization
-  const { authorization } = req.headers;
-  if (!authorization || !authorization.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  await dbConnect();
+
+  // Wallet-based admin authorization
+  const requestingWallet =
+    (req.headers['x-wallet-address'] as string) || (req.query.wallet as string);
+
+  if (!requestingWallet) {
+    return res.status(401).json({ error: 'Wallet address required in x-wallet-address header' });
   }
 
-  const token = authorization.split(' ')[1];
-  const decoded = verifyToken(token);
+  const adminConfig = getAdminConfig();
+  const isEnvAdmin = adminConfig.isAdmin(requestingWallet);
+  const dbAdmin = await AdminRole.findOne({ wallet: requestingWallet, isActive: true });
 
-  if (!decoded || (decoded as JwtPayload).role !== 'admin') {
-    return res.status(401).json({ error: 'Unauthorized - Admin access required' });
+  // Check if has permission to approve mints
+  const canApproveMints =
+    isEnvAdmin || dbAdmin?.permissions?.canApproveMints || dbAdmin?.role === 'super_admin';
+
+  if (!canApproveMints) {
+    return res
+      .status(403)
+      .json({ error: 'Admin access required - must have canApproveMints permission' });
   }
 
   const { mintRequestId, adminNotes } = req.body;
@@ -105,8 +115,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    await dbConnect();
-
     // Get the mint request
     const mintRequest = await MintRequest.findById(mintRequestId);
     if (!mintRequest) {
@@ -264,8 +272,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     mintRequest.status = 'minted';
     mintRequest.mintAddress = mintAddress;
     mintRequest.imageCid = imageCid;
-    mintRequest.reviewedBy =
-      (decoded as JwtPayload).wallet || (decoded as JwtPayload).email || 'admin';
+    mintRequest.reviewedBy = requestingWallet;
     mintRequest.reviewedAt = new Date();
     if (adminNotes) {
       mintRequest.adminNotes = adminNotes;

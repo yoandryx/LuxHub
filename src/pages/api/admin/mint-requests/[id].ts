@@ -3,21 +3,30 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
-import { verifyToken } from '../../../../lib/auth/token';
-import { JwtPayload } from 'jsonwebtoken';
+import { getAdminConfig } from '../../../../lib/config/adminConfig';
+import AdminRole from '../../../../lib/models/AdminRole';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Verify admin authorization
-  const { authorization } = req.headers;
-  if (!authorization || !authorization.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  await dbConnect();
+
+  // Wallet-based admin authorization
+  const requestingWallet =
+    (req.headers['x-wallet-address'] as string) || (req.query.wallet as string);
+
+  if (!requestingWallet) {
+    return res.status(401).json({ error: 'Wallet address required in x-wallet-address header' });
   }
 
-  const token = authorization.split(' ')[1];
-  const decoded = verifyToken(token);
+  const adminConfig = getAdminConfig();
+  const isEnvAdmin = adminConfig.isAdmin(requestingWallet);
+  const dbAdmin = await AdminRole.findOne({ wallet: requestingWallet, isActive: true });
 
-  if (!decoded || (decoded as JwtPayload).role !== 'admin') {
-    return res.status(401).json({ error: 'Unauthorized - Admin access required' });
+  // Check if has permission to manage mint requests
+  const canManage =
+    isEnvAdmin || dbAdmin?.permissions?.canApproveMints || dbAdmin?.role === 'super_admin';
+
+  if (!canManage) {
+    return res.status(403).json({ error: 'Admin access required' });
   }
 
   const { id } = req.query;
@@ -52,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const updateData: Record<string, unknown> = {
         status,
-        reviewedBy: (decoded as JwtPayload).wallet || (decoded as JwtPayload).email || 'admin',
+        reviewedBy: requestingWallet,
         reviewedAt: new Date(),
       };
 
