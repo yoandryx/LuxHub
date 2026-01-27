@@ -1,6 +1,6 @@
 // src/utils/irys.ts
 import Irys from '@irys/sdk';
-import type { Keypair } from '@solana/web3.js';
+import { getAdminConfig } from '../lib/config/adminConfig';
 
 // Irys network configuration
 // Use 'devnet' for testing (free uploads), 'mainnet' for production
@@ -13,27 +13,55 @@ const IRYS_GATEWAY = 'https://gateway.irys.xyz';
 // Token used for payment (Solana)
 const IRYS_TOKEN = 'solana';
 
+// Cache the Irys instance
+let _irysInstance: Irys | null = null;
+
 /**
  * Get Irys instance configured with Solana wallet.
- * Uses IRYS_PRIVATE_KEY (base58 encoded) from environment.
+ * Uses ADMIN_SECRET (existing admin keypair) - no extra config needed!
+ * Falls back to IRYS_PRIVATE_KEY if set explicitly.
  */
 async function getIrys(): Promise<Irys | null> {
-  const privateKey = process.env.IRYS_PRIVATE_KEY;
-  if (!privateKey) {
-    return null;
+  // Return cached instance if available
+  if (_irysInstance) {
+    return _irysInstance;
   }
 
   try {
-    const irys = new Irys({
+    // Option 1: Use explicit IRYS_PRIVATE_KEY if set (base58 encoded)
+    if (process.env.IRYS_PRIVATE_KEY) {
+      _irysInstance = new Irys({
+        network: IRYS_NETWORK,
+        token: IRYS_TOKEN,
+        key: process.env.IRYS_PRIVATE_KEY,
+        config: {
+          providerUrl: IRYS_RPC,
+        },
+      });
+      return _irysInstance;
+    }
+
+    // Option 2: Use existing ADMIN_SECRET keypair (same one used for minting)
+    const adminConfig = getAdminConfig();
+    const adminKeypair = adminConfig.getAdminKeypair();
+
+    if (!adminKeypair) {
+      console.warn('Irys: No keypair available. Set ADMIN_SECRET or IRYS_PRIVATE_KEY');
+      return null;
+    }
+
+    // Irys SDK accepts the secret key as Uint8Array directly
+    _irysInstance = new Irys({
       network: IRYS_NETWORK,
       token: IRYS_TOKEN,
-      key: privateKey, // Base58 encoded private key
+      key: adminKeypair.secretKey, // Pass the Uint8Array directly
       config: {
         providerUrl: IRYS_RPC,
       },
     });
 
-    return irys;
+    console.log(`✅ Irys initialized using admin keypair (${IRYS_NETWORK})`);
+    return _irysInstance;
   } catch (error) {
     console.error('Failed to initialize Irys:', error);
     return null;
@@ -41,10 +69,18 @@ async function getIrys(): Promise<Irys | null> {
 }
 
 /**
- * Check if Irys is configured and available
+ * Check if Irys is configured and available.
+ * Now uses ADMIN_SECRET automatically - no extra config needed!
  */
 export function isIrysConfigured(): boolean {
-  return !!process.env.IRYS_PRIVATE_KEY;
+  // Check for explicit IRYS_PRIVATE_KEY
+  if (process.env.IRYS_PRIVATE_KEY) {
+    return true;
+  }
+
+  // Check if admin keypair is available (ADMIN_SECRET)
+  const adminConfig = getAdminConfig();
+  return adminConfig.getAdminKeypair() !== null;
 }
 
 /**
@@ -70,7 +106,9 @@ export function getIrysNetwork(): string {
 export async function uploadImageToIrys(fileBuffer: Buffer, contentType: string): Promise<string> {
   const irys = await getIrys();
   if (!irys) {
-    throw new Error('Irys not configured. Set IRYS_PRIVATE_KEY environment variable.');
+    throw new Error(
+      'Irys not configured. ADMIN_SECRET is required (same keypair used for minting).'
+    );
   }
 
   try {
@@ -104,7 +142,9 @@ export async function uploadImageToIrys(fileBuffer: Buffer, contentType: string)
 export async function uploadMetadataToIrys(metadata: object, name?: string): Promise<string> {
   const irys = await getIrys();
   if (!irys) {
-    throw new Error('Irys not configured. Set IRYS_PRIVATE_KEY environment variable.');
+    throw new Error(
+      'Irys not configured. ADMIN_SECRET is required (same keypair used for minting).'
+    );
   }
 
   try {
