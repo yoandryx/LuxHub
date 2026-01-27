@@ -103,28 +103,95 @@ export function getAdminConfig(): AdminConfig {
 }
 
 // Helper function to check admin status including database role
-// Use this in API routes where you have access to the User model
+// Use this in API routes - checks both env config and AdminRole collection
 export async function checkAdminStatus(
   wallet: string | null | undefined,
-  userFromDb?: { role?: string } | null
-): Promise<{ isAdmin: boolean; isSuperAdmin: boolean }> {
+  options?: {
+    userFromDb?: { role?: string } | null;
+    checkDatabase?: boolean;
+  }
+): Promise<{
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  role: string | null;
+  permissions: Record<string, boolean> | null;
+}> {
   const config = getAdminConfig();
 
   if (!wallet) {
-    return { isAdmin: false, isSuperAdmin: false };
+    return { isAdmin: false, isSuperAdmin: false, role: null, permissions: null };
   }
 
-  // Check env-based admin lists
+  // Check env-based admin lists first (highest priority)
+  const isEnvSuperAdmin = config.isSuperAdmin(wallet);
   const isEnvAdmin = config.isAdmin(wallet);
-  const isSuperAdmin = config.isSuperAdmin(wallet);
 
-  // Check database role
-  const isDbAdmin = userFromDb?.role === 'admin';
+  if (isEnvSuperAdmin) {
+    return {
+      isAdmin: true,
+      isSuperAdmin: true,
+      role: 'super_admin',
+      permissions: {
+        canApproveMints: true,
+        canApproveListings: true,
+        canManageVendors: true,
+        canManageEscrows: true,
+        canManagePools: true,
+        canFreezeNfts: true,
+        canBurnNfts: true,
+        canManageAdmins: true,
+        canAccessTreasury: true,
+        canExecuteSquads: true,
+      },
+    };
+  }
 
-  return {
-    isAdmin: isEnvAdmin || isDbAdmin,
-    isSuperAdmin,
-  };
+  // Check database AdminRole if requested
+  if (options?.checkDatabase !== false) {
+    try {
+      // Dynamic import to avoid circular dependencies
+      const AdminRole = (await import('../models/AdminRole')).default;
+      const dbAdmin = await AdminRole.findOne({ wallet, isActive: true });
+
+      if (dbAdmin) {
+        return {
+          isAdmin: true,
+          isSuperAdmin: dbAdmin.role === 'super_admin',
+          role: dbAdmin.role,
+          permissions: dbAdmin.permissions,
+        };
+      }
+    } catch (error) {
+      // Database not connected or model not available, fall through to other checks
+      console.warn('Could not check AdminRole database:', error);
+    }
+  }
+
+  // Check User model role (legacy support)
+  const isDbAdmin = options?.userFromDb?.role === 'admin';
+
+  // Check env admin (non-super)
+  if (isEnvAdmin || isDbAdmin) {
+    return {
+      isAdmin: true,
+      isSuperAdmin: false,
+      role: 'admin',
+      permissions: {
+        canApproveMints: true,
+        canApproveListings: true,
+        canManageVendors: true,
+        canManageEscrows: true,
+        canManagePools: true,
+        canFreezeNfts: true,
+        canBurnNfts: false,
+        canManageAdmins: false,
+        canAccessTreasury: false,
+        canExecuteSquads: false,
+      },
+    };
+  }
+
+  return { isAdmin: false, isSuperAdmin: false, role: null, permissions: null };
 }
 
 // Default export for convenience
