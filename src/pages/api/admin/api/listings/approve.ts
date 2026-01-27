@@ -1,42 +1,51 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import dbConnect from "../../../../../lib/database/mongodb";
-import Listing from "../../../../../lib/database/listings";
-import { verifyToken } from "../../../../../lib/auth/token";
-import { JwtPayload } from "jsonwebtoken";
+import { NextApiRequest, NextApiResponse } from 'next';
+import dbConnect from '../../../../../lib/database/mongodb';
+import Listing from '../../../../../lib/database/listings';
+import { getAdminConfig } from '../../../../../lib/config/adminConfig';
+import AdminRole from '../../../../../lib/models/AdminRole';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === "POST") {
-    const { authorization } = req.headers;
+  if (req.method === 'POST') {
+    await dbConnect();
 
-    if (!authorization || !authorization.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Unauthorized" });
+    // Wallet-based admin authorization
+    const requestingWallet =
+      (req.headers['x-wallet-address'] as string) || (req.query.wallet as string);
+
+    if (!requestingWallet) {
+      return res.status(401).json({ error: 'Wallet address required in x-wallet-address header' });
     }
 
-    const token = authorization.split(" ")[1];
-    const decoded = verifyToken(token);
+    const adminConfig = getAdminConfig();
+    const isEnvAdmin = adminConfig.isAdmin(requestingWallet);
+    const dbAdmin = await AdminRole.findOne({ wallet: requestingWallet, isActive: true });
 
-    if (!decoded || (decoded as JwtPayload).role !== "admin") {
-      return res.status(401).json({ error: "Unauthorized" });
+    // Check if has permission to approve listings
+    const canApprove =
+      isEnvAdmin || dbAdmin?.permissions?.canApproveListings || dbAdmin?.role === 'super_admin';
+
+    if (!canApprove) {
+      return res
+        .status(403)
+        .json({ error: 'Admin access required - must have canApproveListings permission' });
     }
 
     const { listingId, approved } = req.body;
 
-    if (!listingId || typeof approved !== "boolean") {
-      return res.status(400).json({ error: "Invalid request body" });
+    if (!listingId || typeof approved !== 'boolean') {
+      return res.status(400).json({ error: 'Invalid request body' });
     }
-
-    await dbConnect();
 
     const listing = await Listing.findById(listingId);
     if (!listing) {
-      return res.status(404).json({ error: "Listing not found" });
+      return res.status(404).json({ error: 'Listing not found' });
     }
 
     listing.approved = approved;
     await listing.save();
 
-    res.status(200).json({ message: "Listing status updated", listing });
+    res.status(200).json({ message: 'Listing status updated', listing });
   } else {
-    res.status(405).json({ error: "Method not allowed" });
+    res.status(405).json({ error: 'Method not allowed' });
   }
 }
