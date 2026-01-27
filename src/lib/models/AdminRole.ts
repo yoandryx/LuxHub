@@ -5,6 +5,19 @@ import mongoose from 'mongoose';
 
 export type AdminLevel = 'super_admin' | 'admin' | 'moderator';
 
+// Permission keys type for type-safe permission checks
+export type AdminPermission =
+  | 'canApproveMints'
+  | 'canApproveListings'
+  | 'canManageVendors'
+  | 'canManageEscrows'
+  | 'canManagePools'
+  | 'canFreezeNfts'
+  | 'canBurnNfts'
+  | 'canManageAdmins'
+  | 'canAccessTreasury'
+  | 'canExecuteSquads';
+
 const AdminRoleSchema = new mongoose.Schema(
   {
     // Wallet address of the admin
@@ -129,7 +142,7 @@ AdminRoleSchema.statics.isAdmin = async function (wallet: string): Promise<boole
 // Static: Check if wallet has specific permission
 AdminRoleSchema.statics.hasPermission = async function (
   wallet: string,
-  permission: keyof typeof AdminRoleSchema.prototype.permissions
+  permission: AdminPermission
 ): Promise<boolean> {
   const admin = await this.findOne({ wallet, isActive: true });
   if (!admin) return false;
