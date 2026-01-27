@@ -3,30 +3,37 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
-import { verifyToken } from '../../../../lib/auth/token';
-import { JwtPayload } from 'jsonwebtoken';
+import { getAdminConfig } from '../../../../lib/config/adminConfig';
+import AdminRole from '../../../../lib/models/AdminRole';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verify admin authorization
-  const { authorization } = req.headers;
-  if (!authorization || !authorization.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  await dbConnect();
+
+  // Wallet-based admin authorization
+  const requestingWallet =
+    (req.headers['x-wallet-address'] as string) || (req.query.wallet as string);
+
+  if (!requestingWallet) {
+    return res.status(401).json({ error: 'Wallet address required in x-wallet-address header' });
   }
 
-  const token = authorization.split(' ')[1];
-  const decoded = verifyToken(token);
+  const adminConfig = getAdminConfig();
+  const isEnvAdmin = adminConfig.isAdmin(requestingWallet);
+  const dbAdmin = await AdminRole.findOne({ wallet: requestingWallet, isActive: true });
 
-  if (!decoded || (decoded as JwtPayload).role !== 'admin') {
-    return res.status(401).json({ error: 'Unauthorized - Admin access required' });
+  // Check if has permission to view mint requests
+  const canView =
+    isEnvAdmin || dbAdmin?.permissions?.canApproveMints || dbAdmin?.role === 'super_admin';
+
+  if (!canView) {
+    return res.status(403).json({ error: 'Admin access required' });
   }
 
   try {
-    await dbConnect();
-
     // Query parameters for filtering
     const { status, limit = 50, offset = 0 } = req.query;
 
