@@ -5,12 +5,14 @@ import styles from '../../styles/ImageUploader.module.css';
 interface ImageUploaderProps {
   onUploadComplete: (cid: string, uri: string) => void;
   currentCid?: string;
+  currentUri?: string; // Full URL (Irys or IPFS)
   disabled?: boolean;
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
   onUploadComplete,
   currentCid,
+  currentUri,
   disabled = false,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -18,6 +20,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [storageProvider, setStorageProvider] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const gateway = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
@@ -43,14 +46,30 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       setPreviewUrl(localPreview);
 
       try {
-        setUploadProgress(30);
+        setUploadProgress(20);
 
-        const formData = new FormData();
-        formData.append('file', file);
+        // Convert file to base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+        });
+        reader.readAsDataURL(file);
+        const base64Data = await base64Promise;
 
-        const response = await fetch('/api/pinata/imgUpload', {
+        setUploadProgress(40);
+
+        // Upload via server-side storage API (Irys/Pinata based on config)
+        console.log('[IMAGE-UPLOAD] Uploading image via storage API...');
+        const response = await fetch('/api/storage/upload', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'image',
+            data: base64Data,
+            name: file.name,
+            contentType: file.type,
+          }),
         });
 
         setUploadProgress(80);
@@ -60,17 +79,23 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           throw new Error(errorData.error || 'Upload failed');
         }
 
-        const { ipfsHash, uri } = await response.json();
+        const result = await response.json();
+        console.log('[IMAGE-UPLOAD] Upload result:', result);
         setUploadProgress(100);
 
-        // Use IPFS URL for preview
-        setPreviewUrl(`${gateway}${ipfsHash}`);
-        onUploadComplete(ipfsHash, uri);
+        // Use the gateway URL from the response (Irys or IPFS)
+        const imageUri = result.url;
+        const imageId = result.irysTxId || result.ipfsHash || '';
+        setPreviewUrl(imageUri);
+        setStorageProvider(result.provider || 'unknown');
+
+        // Pass both the ID and full URI to parent
+        onUploadComplete(imageId, imageUri);
 
         // Cleanup local blob URL
         URL.revokeObjectURL(localPreview);
       } catch (err: any) {
-        console.error('Upload error:', err);
+        console.error('[IMAGE-UPLOAD] Upload error:', err);
         setError(err.message || 'Failed to upload image');
         setPreviewUrl(null);
       } finally {
@@ -78,7 +103,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         setUploadProgress(0);
       }
     },
-    [gateway, onUploadComplete]
+    [onUploadComplete]
   );
 
   const handleDragOver = useCallback(
@@ -127,7 +152,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
   };
 
-  const displayPreview = previewUrl || (currentCid ? `${gateway}${currentCid}` : null);
+  const displayPreview =
+    previewUrl || currentUri || (currentCid ? `${gateway}${currentCid}` : null);
 
   return (
     <div className={styles.container}>
@@ -150,7 +176,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         {isUploading ? (
           <div className={styles.uploadingState}>
             <div className={styles.spinner} />
-            <p>Uploading to IPFS...</p>
+            <p>Uploading to permanent storage...</p>
             <div className={styles.progressBar}>
               <div className={styles.progressFill} style={{ width: `${uploadProgress}%` }} />
             </div>
@@ -191,10 +217,21 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
       {currentCid && !error && (
         <div className={styles.cidDisplay}>
-          <span className={styles.cidLabel}>IPFS CID:</span>
+          <span className={styles.cidLabel}>
+            {storageProvider === 'irys'
+              ? 'Arweave TX:'
+              : storageProvider === 'pinata'
+                ? 'IPFS CID:'
+                : 'Storage ID:'}
+          </span>
           <code className={styles.cidValue}>
             {currentCid.slice(0, 12)}...{currentCid.slice(-8)}
           </code>
+          {storageProvider && (
+            <span className={styles.cidLabel} style={{ marginLeft: '8px', opacity: 0.7 }}>
+              ({storageProvider})
+            </span>
+          )}
         </div>
       )}
     </div>

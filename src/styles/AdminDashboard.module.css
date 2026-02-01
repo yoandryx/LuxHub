@@ -938,6 +938,72 @@
   color: var(--text-secondary);
 }
 
+/* Admin Role Badges */
+.adminRoleBadge {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.roleSuperAdmin {
+  composes: adminRoleBadge;
+  background: linear-gradient(135deg, #c8a1ff 0%, #9061f9 100%);
+  color: #0d0d0d;
+}
+
+.roleAdmin {
+  composes: adminRoleBadge;
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: #0d0d0d;
+}
+
+.roleMinter {
+  composes: adminRoleBadge;
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  color: #0d0d0d;
+}
+
+.roleOnChain {
+  composes: adminRoleBadge;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.adminTagEnhanced {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.adminTagEnhanced:hover {
+  border-color: var(--accent-border);
+}
+
+.adminAddress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.adminName {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-left: 4px;
+}
+
 /* ==================== SQUADS MULTISIG PANEL ==================== */
 .multisigPanel {
   background: linear-gradient(135deg, var(--bg-card) 0%, rgba(15, 15, 20, 0.95) 100%);

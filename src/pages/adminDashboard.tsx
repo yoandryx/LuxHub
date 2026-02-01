@@ -57,6 +57,21 @@ const TransactionHistoryTab = lazy(() =>
     default: m.TransactionHistoryTab,
   }))
 );
+const VaultInventoryTab = lazy(() =>
+  import('../components/admins/VaultInventoryTab').then((m) => ({
+    default: m.VaultInventoryTab,
+  }))
+);
+const VaultConfigPanel = lazy(() =>
+  import('../components/admins/VaultConfigPanel').then((m) => ({
+    default: m.VaultConfigPanel,
+  }))
+);
+const PlatformSettingsPanel = lazy(() =>
+  import('../components/admins/PlatformSettingsPanel').then((m) => ({
+    default: m.PlatformSettingsPanel,
+  }))
+);
 
 // Loading fallback for lazy components
 const TabLoader = () => <div className={styles.loadingTab}>Loading...</div>;
@@ -267,6 +282,15 @@ const AdminDashboard: React.FC = () => {
     squadsUrl?: string;
   } | null>(null);
 
+  // Admin roles from VaultConfig (MongoDB)
+  const [authorizedAdmins, setAuthorizedAdmins] = useState<
+    {
+      walletAddress: string;
+      name?: string;
+      role: 'super_admin' | 'admin' | 'minter';
+    }[]
+  >([]);
+
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
 
   const escrowConfigPda = useMemo(() => {
@@ -460,6 +484,19 @@ const AdminDashboard: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching Squads multisig info:', err);
+    }
+  };
+
+  // Fetch authorized admins with roles from VaultConfig
+  const fetchAuthorizedAdmins = async () => {
+    try {
+      const res = await fetch('/api/vault/config');
+      const data = await res.json();
+      if (data.config?.authorizedAdmins) {
+        setAuthorizedAdmins(data.config.authorizedAdmins);
+      }
+    } catch (err) {
+      console.error('Error fetching authorized admins:', err);
     }
   };
 
@@ -670,6 +707,7 @@ const AdminDashboard: React.FC = () => {
       fetchSaleRequests(),
       fetchSquadsProposals(squadsFilter),
       fetchSquadsMultisigInfo(),
+      fetchAuthorizedAdmins(),
     ]);
     setLoading(false);
   };
@@ -1726,23 +1764,63 @@ const AdminDashboard: React.FC = () => {
               {/* Admin Management */}
               <div className={styles.configSection}>
                 <h3 className={styles.configTitle}>
-                  <HiOutlineUserGroup /> Admin Management
+                  <HiOutlineUserGroup /> Escrow Admin Management
                 </h3>
                 <div className={styles.configRow}>
-                  <span className={styles.configLabel}>Current Admins</span>
+                  <span className={styles.configLabel}>
+                    Current Admins (On-Chain + Vault Roles)
+                  </span>
                 </div>
-                {adminList.length === 0 ? (
+                {adminList.length === 0 && authorizedAdmins.length === 0 ? (
                   <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
-                    No admins found in the admin list.
+                    No admins found.
                   </p>
                 ) : (
                   <div className={styles.adminList}>
-                    {adminList.map((adminStr, idx) => (
-                      <div key={idx} className={styles.adminTag}>
-                        <HiOutlineKey style={{ opacity: 0.5 }} />
-                        {adminStr.slice(0, 6)}...{adminStr.slice(-6)}
-                      </div>
-                    ))}
+                    {/* Show all unique admins from both on-chain and vault config */}
+                    {(() => {
+                      const allAdmins = new Map<
+                        string,
+                        { onChain: boolean; vaultRole?: string; name?: string }
+                      >();
+
+                      // Add on-chain admins
+                      adminList.forEach((addr) => {
+                        allAdmins.set(addr, { onChain: true });
+                      });
+
+                      // Merge vault config admins with roles
+                      authorizedAdmins.forEach((admin) => {
+                        const existing = allAdmins.get(admin.walletAddress);
+                        allAdmins.set(admin.walletAddress, {
+                          onChain: existing?.onChain || false,
+                          vaultRole: admin.role,
+                          name: admin.name,
+                        });
+                      });
+
+                      return Array.from(allAdmins.entries()).map(([addr, info], idx) => (
+                        <div key={idx} className={styles.adminTagEnhanced}>
+                          <div className={styles.adminAddress}>
+                            <HiOutlineKey style={{ opacity: 0.5 }} />
+                            {addr.slice(0, 6)}...{addr.slice(-6)}
+                            {info.name && <span className={styles.adminName}>({info.name})</span>}
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            {info.vaultRole === 'super_admin' && (
+                              <span className={styles.roleSuperAdmin}>Super Admin</span>
+                            )}
+                            {info.vaultRole === 'admin' && (
+                              <span className={styles.roleAdmin}>Admin</span>
+                            )}
+                            {info.vaultRole === 'minter' && (
+                              <span className={styles.roleMinter}>Minter</span>
+                            )}
+                            {info.onChain && <span className={styles.roleOnChain}>On-Chain</span>}
+                          </div>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 )}
 
@@ -1777,6 +1855,13 @@ const AdminDashboard: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* LuxHub Vault Configuration */}
+            <div style={{ marginTop: '2rem' }}>
+              <Suspense fallback={<TabLoader />}>
+                <VaultConfigPanel />
+              </Suspense>
             </div>
           </div>
         );
@@ -2046,6 +2131,18 @@ const AdminDashboard: React.FC = () => {
             <CustodyDashboard />
           </Suspense>
         );
+      case 12: // Vault Inventory
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <VaultInventoryTab />
+          </Suspense>
+        );
+      case 13: // Platform Settings
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <PlatformSettingsPanel />
+          </Suspense>
+        );
       default:
         return null;
     }
@@ -2061,15 +2158,17 @@ const AdminDashboard: React.FC = () => {
   ];
 
   const nftNavItems = [
+    { id: 12, label: 'Vault Inventory', icon: HiOutlineDatabase },
     { id: 6, label: 'Metadata Editor', icon: HiOutlineDocumentText },
     { id: 7, label: 'Change Requests', icon: HiOutlineCollection },
   ];
 
   const securityNavItems = [
+    { id: 13, label: 'Platform Settings', icon: HiOutlineCog },
     { id: 9, label: 'Squads Multisig', icon: HiOutlineShieldCheck, badge: squadsProposals.length },
     { id: 8, label: 'Vendor Approvals', icon: HiOutlineUserGroup },
     { id: 3, label: 'Transactions', icon: HiOutlineCash },
-    { id: 0, label: 'Configuration', icon: HiOutlineCog },
+    { id: 0, label: 'Escrow Config', icon: HiOutlineDatabase },
   ];
 
   // Page titles for each tab
@@ -2079,12 +2178,20 @@ const AdminDashboard: React.FC = () => {
     2: { title: 'Active Escrows', subtitle: 'Manage on-chain escrow accounts and deliveries' },
     10: { title: 'Shipment Verification', subtitle: 'Verify delivery proofs and shipment status' },
     11: { title: 'Pool Custody', subtitle: 'Manage fractional ownership pool custody' },
+    12: { title: 'Vault Inventory', subtitle: 'View and manage NFTs held in the LuxHub vault' },
     6: { title: 'NFT Metadata Editor', subtitle: 'Edit NFT metadata and attributes' },
     7: { title: 'Metadata Change Requests', subtitle: 'Review pending metadata update requests' },
+    13: {
+      title: 'Platform Settings',
+      subtitle: 'Configure multisig, wallets, fees, and feature flags',
+    },
     9: { title: 'Squads Multisig', subtitle: 'Manage treasury proposals and multisig approvals' },
     8: { title: 'Vendor Approvals', subtitle: 'Review and approve vendor applications' },
     3: { title: 'Transaction History', subtitle: 'View all platform transactions and activity' },
-    0: { title: 'Configuration', subtitle: 'Manage escrow config and admin permissions' },
+    0: {
+      title: 'Escrow Configuration',
+      subtitle: 'Manage on-chain escrow config and admin permissions',
+    },
   };
 
   // Render sidebar nav item
