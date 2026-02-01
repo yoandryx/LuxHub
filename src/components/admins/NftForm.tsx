@@ -12,6 +12,8 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 interface NftFormProps {
   fileCid: string;
   setFileCid: (val: string) => void;
+  imageUri?: string;
+  setImageUri?: (val: string) => void;
   title: string;
   setTitle: (val: string) => void;
   description: string;
@@ -65,6 +67,8 @@ interface NftFormProps {
 export const NftForm: React.FC<NftFormProps> = ({
   fileCid,
   setFileCid,
+  imageUri,
+  setImageUri,
   title,
   setTitle,
   description,
@@ -138,10 +142,14 @@ export const NftForm: React.FC<NftFormProps> = ({
 
   // Handle image upload completion
   const handleImageUploadComplete = useCallback(
-    (cid: string) => {
+    (cid: string, uri: string) => {
       setFileCid(cid);
+      // Store full URI (Irys or IPFS gateway URL)
+      if (setImageUri && uri) {
+        setImageUri(uri);
+      }
     },
-    [setFileCid]
+    [setFileCid, setImageUri]
   );
 
   const handleUsdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,6 +188,7 @@ export const NftForm: React.FC<NftFormProps> = ({
           <ImageUploader
             onUploadComplete={handleImageUploadComplete}
             currentCid={fileCid}
+            currentUri={imageUri}
             disabled={minting}
           />
         </div>
@@ -192,7 +201,8 @@ export const NftForm: React.FC<NftFormProps> = ({
               className={styles.aiAnalyzeButton}
               onClick={() =>
                 onAnalyzeImage(
-                  `${process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/'}${fileCid}`
+                  imageUri ||
+                    `${process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/'}${fileCid}`
                 )
               }
               disabled={analyzingImage || minting}

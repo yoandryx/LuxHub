@@ -7,8 +7,29 @@ import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-ad
 import { mplCore, transfer, fetchAsset } from '@metaplex-foundation/mpl-core';
 import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 import { create as createAsset, update as updateAsset } from '@metaplex-foundation/mpl-core';
-import { uploadToPinata } from '../utils/pinata';
 import { createMetadata } from '../utils/metadata';
+
+// Upload metadata via server-side API (supports Irys/Pinata based on config)
+async function uploadMetadataViaApi(metadata: object, name: string): Promise<string> {
+  const response = await fetch('/api/storage/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'metadata',
+      data: metadata,
+      name,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to upload metadata');
+  }
+
+  const result = await response.json();
+  console.log('[UPLOAD] Storage result:', result);
+  return result.url;
+}
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import { NftForm } from '../components/admins/NftForm';
 import styles from '../styles/CreateNFT.module.css';
@@ -128,6 +149,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [activeTab, setActiveTab] = useState<'mint' | 'minted' | 'transferred'>('mint');
   const [mintMode, setMintMode] = useState<'single' | 'bulk'>('single');
   const [fileCid, setFileCid] = useState('');
+  const [imageUri, setImageUri] = useState(''); // Full URL (Irys or IPFS gateway)
   const [priceSol, setPriceSol] = useState(0);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -140,7 +162,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [certificate, setCertificate] = useState('');
   const [warrantyInfo, setWarrantyInfo] = useState('');
   const [provenance, setProvenance] = useState(adminWallet);
-  const [marketStatus, setMarketStatus] = useState('inactive');
+  const [marketStatus, setMarketStatus] = useState('pending');
   const [movement, setMovement] = useState('');
   const [caseSize, setCaseSize] = useState('');
   const [waterResistance, setWaterResistance] = useState('');
@@ -164,7 +186,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [editingNft, setEditingNft] = useState<MintedNFT | null>(null);
   const [poolEligible, setPoolEligible] = useState(true); // All NFTs are pool eligible by default
-  const [currentVendorId, setCurrentVendorId] = useState<string>('luxhub_owned');
+  const [currentVendorId, setCurrentVendorId] = useState<string | undefined>(undefined);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
 
   // Bulk minting state
@@ -201,6 +223,14 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     fallbackData: { price: initialSolPrice },
   });
   const solPrice = solPriceData?.price || initialSolPrice;
+
+  // Fetch vault config for authenticated mints
+  const { data: vaultConfigData } = useSWR('/api/vault/config', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 300000, // Cache for 5 minutes
+  });
+  const vaultConfig = vaultConfigData?.data?.config;
+  const luxhubVendor = vaultConfigData?.data?.luxhubVendor;
 
   // Memoize gateway URL
   const gateway = useMemo(() => process.env.NEXT_PUBLIC_GATEWAY_URL || fallbackGateway, []);
@@ -285,25 +315,59 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
   // Main mint function
   const mintNFT = async () => {
+    console.log('[MINT] ========== SINGLE MINT STARTED ==========');
+    console.log('[MINT] Timestamp:', new Date().toISOString());
+    console.log('[MINT] Wallet connected:', !!wallet.publicKey);
+    console.log('[MINT] Wallet address:', wallet.publicKey?.toBase58() || 'N/A');
+
     if (!wallet.publicKey) return alert('Connect wallet');
-    if (!fileCid) return alert('Please upload an image first');
-    if (!title) return alert('Please enter a title');
+    if (!fileCid) {
+      console.log('[MINT] ERROR: No image CID provided');
+      return alert('Please upload an image first');
+    }
+    if (!title) {
+      console.log('[MINT] ERROR: No title provided');
+      return alert('Please enter a title');
+    }
+
+    console.log('[MINT] Input validation passed');
+    console.log('[MINT] Form data:', {
+      title,
+      brand,
+      model,
+      serialNumber,
+      priceSol,
+      fileCid,
+      marketStatus,
+      poolEligible,
+      vendorId: currentVendorId,
+    });
 
     setMinting(true);
     setProgress(0);
     setStatusMessage('Preparing to mint...');
 
     try {
+      console.log('[MINT] Creating UMI instance...');
       const umi = getUmi();
+      console.log('[MINT] UMI instance created');
 
       // Run AI verification (non-blocking - vendor proceeds regardless)
       setProgress(5);
       setStatusMessage('Running AI verification...');
+      console.log('[MINT] Starting AI verification...');
       await verifyListing();
+      console.log('[MINT] AI verification completed');
 
-      // Create metadata JSON
+      // Create metadata JSON with LuxHub verification
       setProgress(15);
       setStatusMessage('Creating metadata...');
+      console.log('[MINT] Creating metadata JSON...');
+
+      // Determine if this is a vault mint (admin minting to LuxHub vault)
+      const isVaultMint = !currentVendorId && vaultConfig?.vaultPda;
+      console.log('[MINT] Is vault mint:', isVaultMint);
+
       const metadataJson = createMetadata(
         title,
         description,
@@ -328,30 +392,72 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         marketStatus,
         priceSol,
         boxPapers,
-        condition
+        condition,
+        undefined, // serviceHistory
+        undefined, // features
+        imageUri, // Full image URL (Irys or IPFS)
+        // LuxHub verification data for vault mints
+        isVaultMint
+          ? {
+              isVaultMint: true,
+              vaultAddress: vaultConfig?.vaultPda,
+              mintedBy: wallet.publicKey.toBase58(),
+              collectionName: 'LuxHub Verified Timepieces',
+            }
+          : undefined
       );
+      console.log(
+        '[MINT] Metadata JSON created:',
+        JSON.stringify(metadataJson, null, 2).slice(0, 500) + '...'
+      );
+      console.log('[MINT] LuxHub verification included:', !!metadataJson.luxhub_verification);
 
-      // Upload to Pinata
+      // Upload metadata via server-side API (Irys/Pinata based on config)
       setProgress(30);
-      setStatusMessage('Uploading metadata to IPFS...');
-      const metadataUri = await uploadToPinata(metadataJson, title);
+      setStatusMessage('Uploading metadata to storage...');
+      console.log('[MINT] Uploading metadata via API...');
+
+      const metadataUri = await uploadMetadataViaApi(metadataJson, title);
+
+      console.log('[MINT] Metadata uploaded successfully');
+      console.log('[MINT] Metadata URI:', metadataUri);
       setProgress(55);
 
       // Mint on-chain
       setStatusMessage('Minting Core NFT on Solana...');
+      console.log('[MINT] Generating asset signer...');
       const assetSigner = generateSigner(umi);
+      console.log('[MINT] Asset signer public key:', assetSigner.publicKey.toString());
+
+      // Determine NFT owner: vault PDA for vault mints, otherwise admin wallet
+      const vaultPda = process.env.NEXT_PUBLIC_VAULT_PDA || vaultConfig?.vaultPda;
+      const nftOwner = isVaultMint && vaultPda ? umiPublicKey(vaultPda) : umi.identity.publicKey;
+
+      console.log('[MINT] NFT Owner:', isVaultMint ? `Vault PDA (${vaultPda})` : 'Admin Wallet');
+      console.log('[MINT] Sending createAsset transaction...');
+
+      const txStartTime = Date.now();
       await createAsset(umi, {
         asset: assetSigner,
         name: title,
         uri: metadataUri,
+        owner: nftOwner, // Set owner to vault PDA for vault mints
       }).sendAndConfirm(umi);
+      const txDuration = Date.now() - txStartTime;
 
       const mintAddress = assetSigner.publicKey.toString();
+      console.log('[MINT] On-chain mint successful!');
+      console.log('[MINT] Mint address:', mintAddress);
+      console.log('[MINT] Transaction duration:', txDuration, 'ms');
       setProgress(85);
 
       // Save to database
       setStatusMessage('Saving to database...');
+      console.log('[MINT] Preparing database save...');
       const newImage = fileCid ? `${gateway}${fileCid}` : '/fallback.png';
+
+      // Determine the actual owner address for records
+      const actualOwner = isVaultMint && vaultPda ? vaultPda : wallet.publicKey.toBase58();
 
       // Optimistic update
       const newNft: MintedNFT = {
@@ -361,73 +467,130 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         priceSol,
         metadataUri,
         mintAddress,
-        currentOwner: wallet.publicKey.toBase58(),
+        currentOwner: actualOwner,
         ipfs_pin_hash: fileCid,
         marketStatus,
         updatedAt: new Date().toISOString(),
         assetId: null,
         escrowPda: null,
       };
+      console.log('[MINT] Optimistic update - adding NFT to local state');
       setMintedNFTs((prev) => [...prev, newNft]);
 
       // Save to MongoDB with AI verification data
+      console.log('[MINT] Sending POST to /api/assets/create...');
+
+      // Determine vendor ID: use selected vendor, or LuxHub official vendor for vault mints
+      const vendorId =
+        currentVendorId || (isVaultMint && luxhubVendor?.id ? luxhubVendor.id : undefined);
+      console.log('[MINT] Vendor ID:', vendorId, '(LuxHub vault:', isVaultMint, ')');
+
+      const dbPayload = {
+        ...(vendorId && { vendor: vendorId }),
+        model,
+        serial: serialNumber,
+        description,
+        priceUSD: priceSol * solPrice,
+        imageIpfsUrls: fileCid ? [fileCid] : [],
+        metadataIpfsUrl: metadataUri,
+        nftMint: mintAddress,
+        nftOwnerWallet: actualOwner, // Vault PDA for vault mints
+        status: marketStatus,
+        poolEligible,
+        category: 'watches',
+        ...(verificationResult && {
+          aiVerification: {
+            verified: verificationResult.listingApproved,
+            confidence: verificationResult.confidence,
+            verifiedAt: new Date().toISOString(),
+            flags: verificationResult.authenticityFlags,
+            authenticityScore: verificationResult.authenticityScore,
+            recommendedActions: verificationResult.recommendedActions,
+            listingApproved: verificationResult.listingApproved,
+          },
+        }),
+      };
+      console.log('[MINT] DB payload:', JSON.stringify(dbPayload, null, 2));
+
       const response = await fetch('/api/assets/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendor: currentVendorId,
-          model,
-          serial: serialNumber,
-          description,
-          priceUSD: priceSol * solPrice,
-          imageIpfsUrls: fileCid ? [fileCid] : [],
-          metadataIpfsUrl: metadataUri,
-          nftMint: mintAddress,
-          nftOwnerWallet: wallet.publicKey.toBase58(),
-          status: marketStatus,
-          poolEligible,
-          category: 'watches',
-          // Include AI verification results if available
-          ...(verificationResult && {
-            aiVerification: {
-              verified: verificationResult.listingApproved,
-              confidence: verificationResult.confidence,
-              verifiedAt: new Date().toISOString(),
-              flags: verificationResult.authenticityFlags,
-              authenticityScore: verificationResult.authenticityScore,
-              recommendedActions: verificationResult.recommendedActions,
-              listingApproved: verificationResult.listingApproved,
-            },
-          }),
-        }),
+        body: JSON.stringify(dbPayload),
       });
 
+      console.log('[MINT] DB response status:', response.status);
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('[MINT] DB save failed:', errorData);
         throw new Error(errorData.error || 'DB save failed');
       }
 
       const { asset } = await response.json();
+      console.log('[MINT] Asset saved to DB with ID:', asset._id);
 
       // Update with asset ID
       setMintedNFTs((prev) =>
         prev.map((n) => (n.mintAddress === mintAddress ? { ...n, assetId: asset._id } : n))
       );
 
+      // Record in vault inventory if this is a vault mint
+      if (isVaultMint) {
+        console.log('[MINT] Recording in vault inventory...');
+        try {
+          const vaultResponse = await fetch('/api/vault/mint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nftMint: mintAddress,
+              name: title,
+              description,
+              imageUrl: imageUri || `${gateway}${fileCid}`,
+              metadataUri,
+              mintSignature: mintAddress, // Using mint address as signature reference
+              assetId: asset._id,
+              tags: ['timepiece', brand.toLowerCase()].filter(Boolean),
+              notes: `Minted via CreateNFT page`,
+            }),
+          });
+
+          if (vaultResponse.ok) {
+            const vaultResult = await vaultResponse.json();
+            console.log('[MINT] Vault inventory recorded:', vaultResult.data?.inventoryId);
+          } else {
+            console.warn(
+              '[MINT] Vault recording failed (non-blocking):',
+              await vaultResponse.text()
+            );
+          }
+        } catch (vaultError) {
+          console.warn('[MINT] Vault recording error (non-blocking):', vaultError);
+        }
+      }
+
       setProgress(100);
       setStatusMessage('Minted successfully!');
+      console.log('[MINT] ========== SINGLE MINT COMPLETED SUCCESSFULLY ==========');
+      console.log('[MINT] Final mint address:', mintAddress);
+      console.log('[MINT] Final metadata URI:', metadataUri);
+      console.log('[MINT] Final asset ID:', asset._id);
 
       // Reset form after successful mint
       setTimeout(() => {
+        console.log('[MINT] Resetting form...');
         resetForm();
       }, 2000);
     } catch (error: any) {
-      console.error('Mint error:', error);
+      console.error('[MINT] ========== SINGLE MINT FAILED ==========');
+      console.error('[MINT] Error:', error);
+      console.error('[MINT] Error message:', error.message);
+      console.error('[MINT] Error stack:', error.stack);
       setStatusMessage(`Mint failed: ${error.message || 'Unknown error'}`);
       // Rollback optimistic update on complete failure
+      console.log('[MINT] Rolling back optimistic update...');
       setMintedNFTs((prev) => prev.filter((n) => n.title !== title || n.ipfs_pin_hash !== fileCid));
     } finally {
       setMinting(false);
+      console.log('[MINT] Minting state reset to false');
     }
   };
 
@@ -436,6 +599,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     setTitle('');
     setDescription('');
     setFileCid('');
+    setImageUri('');
     setPriceSol(0);
     setBrand('');
     setModel('');
@@ -575,11 +739,23 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const handleCsvFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+        console.log('[CSV-PARSE] No file selected');
+        return;
+      }
+
+      console.log('[CSV-PARSE] ========== CSV FILE LOADED ==========');
+      console.log('[CSV-PARSE] File name:', file.name);
+      console.log('[CSV-PARSE] File size:', file.size, 'bytes');
+      console.log('[CSV-PARSE] File type:', file.type);
 
       setBulkCsvFile(file);
       try {
+        console.log('[CSV-PARSE] Parsing CSV file...');
         const rows = await parseCsvFile(file);
+        console.log('[CSV-PARSE] Parsed rows count:', rows.length);
+        console.log('[CSV-PARSE] First row sample:', JSON.stringify(rows[0], null, 2));
+
         setParsedCsvRows(rows);
         setBulkMintResults(
           rows.map((_, idx) => ({
@@ -588,7 +764,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
             status: 'pending',
           }))
         );
+        console.log('[CSV-PARSE] CSV parsing completed successfully');
       } catch (err: any) {
+        console.error('[CSV-PARSE] CSV parsing failed:', err);
+        console.error('[CSV-PARSE] Error message:', err.message);
         alert(`Failed to parse CSV: ${err.message}`);
         setBulkCsvFile(null);
         setParsedCsvRows([]);
@@ -600,6 +779,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   // Bulk mint single item (USD-first approach)
   const mintSingleFromRow = useCallback(
     async (row: CsvRow, index: number): Promise<BulkMintResult> => {
+      console.log(`[BULK-MINT] ========== ROW ${index + 1} STARTED ==========`);
+      console.log(`[BULK-MINT] Timestamp:`, new Date().toISOString());
+      console.log(`[BULK-MINT] Row data:`, JSON.stringify(row, null, 2));
+
       const result: BulkMintResult = {
         row: index + 1,
         title: row.title,
@@ -609,8 +792,12 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       setBulkMintResults((prev) => prev.map((r, i) => (i === index ? result : r)));
 
       try {
-        if (!wallet.publicKey) throw new Error('Wallet not connected');
+        if (!wallet.publicKey) {
+          console.error(`[BULK-MINT] Row ${index + 1}: Wallet not connected`);
+          throw new Error('Wallet not connected');
+        }
 
+        console.log(`[BULK-MINT] Row ${index + 1}: Creating UMI instance...`);
         const umi = getUmi();
 
         // Get USD price (source of truth) and convert to SOL for metadata
@@ -619,10 +806,16 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           : (parseFloat(row.priceSol || '0') || 0) * solPrice; // Legacy fallback
         const priceSolConverted = solPrice > 0 ? priceUSD / solPrice : 0;
 
+        console.log(
+          `[BULK-MINT] Row ${index + 1}: Price conversion - USD: ${priceUSD}, SOL: ${priceSolConverted}`
+        );
+
         // Get reference number (supports legacy serialNumber)
         const refNumber = row.referenceNumber || row.serialNumber || '';
+        console.log(`[BULK-MINT] Row ${index + 1}: Reference number: ${refNumber}`);
 
         // Create metadata (stores both USD and SOL equivalent)
+        console.log(`[BULK-MINT] Row ${index + 1}: Creating metadata JSON...`);
         const metadataJson = createMetadata(
           row.title,
           row.description || '',
@@ -644,59 +837,140 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           row.country || '',
           row.releaseDate || '',
           wallet.publicKey.toBase58(),
-          'inactive',
+          'pending',
           priceSolConverted, // SOL equivalent at mint time (for display)
           row.boxPapers || '',
-          row.condition || ''
+          row.condition || '',
+          undefined, // serviceHistory
+          undefined, // features
+          row.imageUrl || undefined // Full image URL if provided in CSV
         );
+        console.log(`[BULK-MINT] Row ${index + 1}: Metadata JSON created`);
 
-        // Upload metadata
-        const metadataUri = await uploadToPinata(metadataJson, row.title);
+        // Upload metadata via server-side API (Irys/Pinata based on config)
+        console.log(`[BULK-MINT] Row ${index + 1}: Uploading metadata via API...`);
+
+        const metadataUri = await uploadMetadataViaApi(metadataJson, row.title);
+
+        console.log(`[BULK-MINT] Row ${index + 1}: Metadata uploaded: ${metadataUri}`);
 
         // Mint NFT
+        console.log(`[BULK-MINT] Row ${index + 1}: Generating asset signer...`);
         const assetSigner = generateSigner(umi);
+        console.log(
+          `[BULK-MINT] Row ${index + 1}: Asset signer: ${assetSigner.publicKey.toString()}`
+        );
+
+        // Determine NFT owner: vault PDA for vault mints
+        const vaultPda = process.env.NEXT_PUBLIC_VAULT_PDA || vaultConfig?.vaultPda;
+        const isVaultMintBulk = !currentVendorId && vaultPda;
+        const nftOwner = isVaultMintBulk ? umiPublicKey(vaultPda) : umi.identity.publicKey;
+
+        console.log(
+          `[BULK-MINT] Row ${index + 1}: NFT Owner: ${isVaultMintBulk ? `Vault (${vaultPda})` : 'Admin'}`
+        );
+        console.log(`[BULK-MINT] Row ${index + 1}: Sending on-chain transaction...`);
+        const txStartTime = Date.now();
         await createAsset(umi, {
           asset: assetSigner,
           name: row.title,
           uri: metadataUri,
+          owner: nftOwner, // Set owner to vault PDA for vault mints
         }).sendAndConfirm(umi);
+        const txDuration = Date.now() - txStartTime;
 
         const mintAddress = assetSigner.publicKey.toString();
+        console.log(`[BULK-MINT] Row ${index + 1}: On-chain mint successful!`);
+        console.log(`[BULK-MINT] Row ${index + 1}: Mint address: ${mintAddress}`);
+        console.log(`[BULK-MINT] Row ${index + 1}: Transaction duration: ${txDuration}ms`);
 
         // Save to DB with USD as source of truth
-        await fetch('/api/assets/create', {
+        console.log(`[BULK-MINT] Row ${index + 1}: Saving to database...`);
+
+        // Use the vault mint check we already determined
+        const vendorId =
+          currentVendorId || (isVaultMintBulk && luxhubVendor?.id ? luxhubVendor.id : undefined);
+        const actualOwnerBulk =
+          isVaultMintBulk && vaultPda ? vaultPda : wallet.publicKey.toBase58();
+
+        const dbPayload = {
+          ...(vendorId && { vendor: vendorId }),
+          model: row.model,
+          serial: refNumber, // Reference number (supports alphanumeric)
+          description: row.description,
+          priceUSD, // USD is the source of truth
+          imageIpfsUrls: row.imageCid ? [row.imageCid] : [],
+          metadataIpfsUrl: metadataUri,
+          nftMint: mintAddress,
+          nftOwnerWallet: actualOwnerBulk, // Vault PDA for vault mints
+          status: 'pending',
+          poolEligible: true,
+          // Additional metadata for the asset
+          brand: row.brand,
+          material: row.material,
+          productionYear: row.productionYear,
+          movement: row.movement,
+          caseSize: row.caseSize,
+          dialColor: row.dialColor,
+          waterResistance: row.waterResistance,
+          condition: row.condition,
+          boxPapers: row.boxPapers,
+          country: row.country,
+          limitedEdition: row.limitedEdition,
+          certificate: row.certificate,
+          warrantyInfo: row.warrantyInfo,
+          features: row.features,
+          releaseDate: row.releaseDate,
+        };
+        console.log(
+          `[BULK-MINT] Row ${index + 1}: DB payload:`,
+          JSON.stringify(dbPayload, null, 2)
+        );
+
+        const dbResponse = await fetch('/api/assets/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            vendor: currentVendorId,
-            model: row.model,
-            serial: refNumber, // Reference number (supports alphanumeric)
-            description: row.description,
-            priceUSD, // USD is the source of truth
-            imageIpfsUrls: row.imageCid ? [row.imageCid] : [],
-            metadataIpfsUrl: metadataUri,
-            nftMint: mintAddress,
-            nftOwnerWallet: wallet.publicKey.toBase58(),
-            status: 'inactive',
-            poolEligible: true,
-            // Additional metadata for the asset
-            brand: row.brand,
-            material: row.material,
-            productionYear: row.productionYear,
-            movement: row.movement,
-            caseSize: row.caseSize,
-            dialColor: row.dialColor,
-            waterResistance: row.waterResistance,
-            condition: row.condition,
-            boxPapers: row.boxPapers,
-            country: row.country,
-            limitedEdition: row.limitedEdition,
-            certificate: row.certificate,
-            warrantyInfo: row.warrantyInfo,
-            features: row.features,
-            releaseDate: row.releaseDate,
-          }),
+          body: JSON.stringify(dbPayload),
         });
+
+        console.log(`[BULK-MINT] Row ${index + 1}: DB response status: ${dbResponse.status}`);
+        if (!dbResponse.ok) {
+          const errorData = await dbResponse.json();
+          console.error(`[BULK-MINT] Row ${index + 1}: DB save failed:`, errorData);
+          throw new Error(errorData.error || 'DB save failed');
+        }
+        const dbResult = await dbResponse.json();
+        console.log(`[BULK-MINT] Row ${index + 1}: Asset saved with ID: ${dbResult.asset?._id}`);
+
+        // Record in vault inventory if this is a vault mint
+        if (isVaultMintBulk) {
+          console.log(`[BULK-MINT] Row ${index + 1}: Recording in vault inventory...`);
+          try {
+            const imageUrl = row.imageUrl || (row.imageCid ? `${gateway}${row.imageCid}` : '');
+            const vaultResponse = await fetch('/api/vault/mint', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                nftMint: mintAddress,
+                name: row.title,
+                description: row.description,
+                imageUrl,
+                metadataUri,
+                mintSignature: mintAddress,
+                assetId: dbResult.asset?._id,
+                tags: ['timepiece', 'bulk-mint', row.brand?.toLowerCase()].filter(Boolean),
+                notes: `Bulk minted from CSV: ${bulkCsvFile?.name}`,
+              }),
+            });
+            if (vaultResponse.ok) {
+              console.log(`[BULK-MINT] Row ${index + 1}: Vault inventory recorded`);
+            } else {
+              console.warn(`[BULK-MINT] Row ${index + 1}: Vault recording failed (non-blocking)`);
+            }
+          } catch (vaultError) {
+            console.warn(`[BULK-MINT] Row ${index + 1}: Vault error (non-blocking):`, vaultError);
+          }
+        }
 
         // Add to minted list (display SOL equivalent)
         const newNft: MintedNFT = {
@@ -708,43 +982,81 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           mintAddress,
           currentOwner: wallet.publicKey.toBase58(),
           ipfs_pin_hash: row.imageCid || null,
-          marketStatus: 'inactive',
+          marketStatus: 'pending',
           updatedAt: new Date().toISOString(),
           assetId: null,
           escrowPda: null,
         };
+        console.log(`[BULK-MINT] Row ${index + 1}: Adding to local minted list...`);
         setMintedNFTs((prev) => [...prev, newNft]);
 
+        console.log(`[BULK-MINT] ========== ROW ${index + 1} COMPLETED SUCCESSFULLY ==========`);
+        console.log(`[BULK-MINT] Row ${index + 1}: Final mint address: ${mintAddress}`);
+        console.log(`[BULK-MINT] Row ${index + 1}: Final metadata URI: ${metadataUri}`);
         return { ...result, status: 'success', mintAddress };
       } catch (err: any) {
+        console.error(`[BULK-MINT] ========== ROW ${index + 1} FAILED ==========`);
+        console.error(`[BULK-MINT] Row ${index + 1}: Error:`, err);
+        console.error(`[BULK-MINT] Row ${index + 1}: Error message:`, err.message);
+        console.error(`[BULK-MINT] Row ${index + 1}: Error stack:`, err.stack);
         return { ...result, status: 'error', error: err.message };
       }
     },
-    [wallet, getUmi, gateway, currentVendorId, solPrice]
+    [wallet, getUmi, gateway, currentVendorId, solPrice, vaultConfig, luxhubVendor, bulkCsvFile]
   );
 
   // Bulk mint from CSV
   const bulkMintFromCsv = async () => {
-    if (!bulkCsvFile || parsedCsvRows.length === 0) return;
-    if (!wallet.publicKey) return alert('Connect wallet');
+    console.log('[BULK-MINT] ========== BULK MINT SESSION STARTED ==========');
+    console.log('[BULK-MINT] Timestamp:', new Date().toISOString());
+    console.log('[BULK-MINT] Total rows to process:', parsedCsvRows.length);
+    console.log('[BULK-MINT] CSV file:', bulkCsvFile?.name);
+    console.log('[BULK-MINT] Wallet:', wallet.publicKey?.toBase58() || 'N/A');
+
+    if (!bulkCsvFile || parsedCsvRows.length === 0) {
+      console.log('[BULK-MINT] ERROR: No CSV file or no rows parsed');
+      return;
+    }
+    if (!wallet.publicKey) {
+      console.log('[BULK-MINT] ERROR: Wallet not connected');
+      return alert('Connect wallet');
+    }
 
     setIsBulkMinting(true);
     const limit = pLimit(2); // Process 2 at a time to avoid rate limits
+    console.log('[BULK-MINT] Concurrency limit set to 2');
 
+    const startTime = Date.now();
     try {
       const mintPromises = parsedCsvRows.map((row, index) =>
         limit(async () => {
+          console.log(`[BULK-MINT] Starting row ${index + 1} of ${parsedCsvRows.length}...`);
           const result = await mintSingleFromRow(row, index);
           setBulkMintResults((prev) => prev.map((r, i) => (i === index ? result : r)));
           return result;
         })
       );
 
-      await Promise.all(mintPromises);
-    } catch (err) {
-      console.error('Bulk mint error:', err);
+      const results = await Promise.all(mintPromises);
+      const totalDuration = Date.now() - startTime;
+
+      // Calculate summary
+      const successCount = results.filter((r) => r.status === 'success').length;
+      const errorCount = results.filter((r) => r.status === 'error').length;
+
+      console.log('[BULK-MINT] ========== BULK MINT SESSION COMPLETED ==========');
+      console.log('[BULK-MINT] Total duration:', totalDuration, 'ms');
+      console.log('[BULK-MINT] Success count:', successCount);
+      console.log('[BULK-MINT] Error count:', errorCount);
+      console.log('[BULK-MINT] Results:', JSON.stringify(results, null, 2));
+    } catch (err: any) {
+      console.error('[BULK-MINT] ========== BULK MINT SESSION FAILED ==========');
+      console.error('[BULK-MINT] Error:', err);
+      console.error('[BULK-MINT] Error message:', err.message);
+      console.error('[BULK-MINT] Error stack:', err.stack);
     } finally {
       setIsBulkMinting(false);
+      console.log('[BULK-MINT] Bulk minting state reset to false');
     }
   };
 
@@ -908,11 +1220,16 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         marketStatus,
         priceSol,
         boxPapers,
-        condition
+        condition,
+        undefined, // serviceHistory
+        undefined, // features
+        imageUri // Full image URL (Irys or IPFS)
       );
 
-      // Upload new metadata
-      const newUri = await uploadToPinata(updatedJson, title);
+      // Upload new metadata via server-side API
+      console.log('[UPDATE] Uploading updated metadata via API...');
+      const newUri = await uploadMetadataViaApi(updatedJson, title);
+      console.log('[UPDATE] Metadata uploaded:', newUri);
 
       // Fetch and update on-chain
       const asset = await fetchAsset(umi, umiPublicKey(editingNft.mintAddress));
@@ -976,7 +1293,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     setDescription(nft.description);
     setPriceSol(nft.priceSol);
     setFileCid(nft.ipfs_pin_hash || '');
-    setMarketStatus(nft.marketStatus || 'inactive');
+    setImageUri(nft.image || ''); // Use existing image URL
+    setMarketStatus(nft.marketStatus || 'pending');
     setActiveTab('mint');
   }, []);
 
@@ -1147,6 +1465,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                 <NftForm
                   fileCid={fileCid}
                   setFileCid={setFileCid}
+                  imageUri={imageUri}
+                  setImageUri={setImageUri}
                   title={title}
                   setTitle={setTitle}
                   description={description}

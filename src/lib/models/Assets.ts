@@ -5,7 +5,7 @@ const AssetSchema = new Schema(
   {
     vendor: { type: Schema.Types.ObjectId, ref: 'Vendor', index: true },
     model: { type: String, required: true },
-    serial: { type: String, unique: true, index: true },
+    serial: { type: String, index: true }, // Reference number (not unique - vendors may have same ref)
     description: String,
     priceUSD: { type: Number, index: true },
     currentValueUSD: Number,

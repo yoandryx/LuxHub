@@ -3,7 +3,8 @@ import { Schema, model, models } from 'mongoose';
 
 const VendorSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    // User reference - optional for official LuxHub vendor
+    user: { type: Schema.Types.ObjectId, ref: 'User', unique: true, sparse: true },
     businessName: { type: String, required: true },
     username: { type: String, unique: true, index: true, required: true },
     bio: String,
@@ -13,6 +14,13 @@ const VendorSchema = new Schema(
       website: String,
     },
     verified: { type: Boolean, default: false },
+
+    // Official LuxHub vault vendor flag
+    isOfficial: { type: Boolean, default: false, index: true },
+
+    // Wallet address for the vendor (used for LuxHub vault)
+    walletAddress: { type: String, index: true },
+
     multisigPda: String, // Squads vault PDA
     multisigType: { type: String, enum: ['none', 'personal', 'team_treasury'], default: 'none' }, // NEW: For future Squads expansions
     multisigMembers: [String], // NEW: Wallets in the multisig (for Backpack/Squads sync)
