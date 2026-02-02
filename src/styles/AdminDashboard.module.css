@@ -1265,17 +1265,20 @@
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 24px;
-  background: var(--glass);
+  padding: 14px 28px;
+  background: rgba(30, 30, 35, 0.98);
   backdrop-filter: blur(20px);
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--accent);
   border-radius: var(--radius-lg);
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  z-index: 200;
-  max-width: 600px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 1000;
+  max-width: 700px;
   text-align: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(200, 161, 255, 0.15);
   animation: slideUp 0.3s ease;
 }
 
