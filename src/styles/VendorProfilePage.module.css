@@ -645,26 +645,92 @@
 .nftGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .nftGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
 }
 
 @media (min-width: 600px) {
   .nftGrid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    gap: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .nftGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
   }
 }
 
 @media (min-width: 992px) {
   .nftGrid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
+    gap: 20px;
   }
 }
 
 @media (min-width: 1200px) {
   .nftGrid {
     grid-template-columns: repeat(5, 1fr);
+    gap: 24px;
+  }
+}
+
+/* ============================================
+   PINNED SECTION
+   ============================================ */
+.pinnedSection {
+  margin-bottom: 24px;
+}
+
+.pinnedHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(200, 161, 255, 0.08);
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+}
+
+.pinnedHeader svg {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.pinnedHeader span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pinnedGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .pinnedGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .pinnedGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
@@ -722,6 +788,98 @@
 .delistBtn:hover {
   background: rgba(245, 158, 11, 0.2);
   border-color: #f59e0b;
+}
+
+/* Buy Now Button */
+.buyBtn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.buyBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+}
+
+.buyBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Pin/Unpin Button */
+.pinBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.pinBtn:hover {
+  background: rgba(200, 161, 255, 0.3);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pinBtn.pinned {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+
+.pinBtn.pinned:hover {
+  background: #d4b4ff;
+}
+
+/* Pinned badge on card */
+.pinnedBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  padding: 4px 8px;
+  background: var(--accent);
+  border-radius: 4px;
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Card action buttons row */
+.cardActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.cardActions > button {
+  flex: 1;
 }
 
 /* Empty State */
@@ -856,6 +1014,32 @@
   }
 
   .nftGrid {
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .listForSaleBtn,
+  .delistBtn,
+  .buyBtn {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
+
+  .pinBtn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+
+  .cardActions {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 360px) {
+  .nftGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
