@@ -34,6 +34,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineXCircle,
   HiOutlineLightningBolt,
+  HiOutlineTrash,
 } from 'react-icons/hi';
 import { VendorProfile } from '../lib/models/VendorProfile';
 
@@ -73,6 +74,7 @@ const PlatformSettingsPanel = lazy(() =>
     default: m.PlatformSettingsPanel,
   }))
 );
+const AssetCleanupPanel = lazy(() => import('../components/admins/AssetCleanupPanel'));
 
 // Loading fallback for lazy components
 const TabLoader = () => <div className={styles.loadingTab}>Loading...</div>;
@@ -2393,6 +2395,12 @@ const AdminDashboard: React.FC = () => {
             <PlatformSettingsPanel />
           </Suspense>
         );
+      case 14: // Asset Cleanup
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <AssetCleanupPanel />
+          </Suspense>
+        );
       default:
         return null;
     }
@@ -2409,6 +2417,7 @@ const AdminDashboard: React.FC = () => {
 
   const nftNavItems = [
     { id: 12, label: 'Vault Inventory', icon: HiOutlineDatabase },
+    { id: 14, label: 'Asset Cleanup', icon: HiOutlineTrash },
     { id: 6, label: 'Metadata Editor', icon: HiOutlineDocumentText },
     { id: 7, label: 'Change Requests', icon: HiOutlineCollection },
   ];
@@ -2431,6 +2440,7 @@ const AdminDashboard: React.FC = () => {
     12: { title: 'Vault Inventory', subtitle: 'View and manage NFTs held in the LuxHub vault' },
     6: { title: 'NFT Metadata Editor', subtitle: 'Edit NFT metadata and attributes' },
     7: { title: 'Metadata Change Requests', subtitle: 'Review pending metadata update requests' },
+    14: { title: 'Asset Cleanup', subtitle: 'Remove failed mints and clean up test data' },
     13: {
       title: 'Platform Settings',
       subtitle: 'Configure multisig, wallets, fees, and feature flags',
