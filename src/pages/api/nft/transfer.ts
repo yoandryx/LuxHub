@@ -48,10 +48,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       nftOwnerWallet: newOwnerWallet,
     };
 
-    // Link to vendor if found (this is what makes NFT appear in vendor dashboard)
+    // Link to vendor and auto-list if found (NFT was already verified during minting)
     if (vendor) {
       updateFields.vendor = vendor._id;
-      console.log(`[TRANSFER] Linking asset to vendor: ${vendor.businessName || vendor.username}`);
+      updateFields.status = 'listed'; // Auto-list since it's already verified
+      console.log(
+        `[TRANSFER] Linking asset to vendor: ${vendor.businessName || vendor.username} (auto-listed)`
+      );
     }
 
     // Find and update the asset
