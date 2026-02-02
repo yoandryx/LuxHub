@@ -1,6 +1,6 @@
 // src/components/vendor/AddInventoryForm.tsx
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Papa, { ParseResult } from 'papaparse';
 import JSZip from 'jszip';
@@ -9,6 +9,7 @@ import RadixSelect from '../admins/RadixSelect';
 import toast from 'react-hot-toast';
 import { FaEdit, FaLayerGroup, FaUpload, FaFileDownload, FaSpinner, FaImage } from 'react-icons/fa';
 import { HiOutlinePhotograph, HiOutlineDocumentText, HiOutlineCheckCircle } from 'react-icons/hi';
+import NFTPreviewCard from '../admins/NFTPreviewCard';
 
 type Mode = 'single' | 'bulk';
 
@@ -74,9 +75,19 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<AssetRow[]>([]);
   const [previewRows, setPreviewRows] = useState<AssetRow[]>([]);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const handleSingleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setSingle((prev) => ({ ...prev, images: Array.from(e.target.files!) }));
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      setSingle((prev) => ({ ...prev, images: files }));
+      // Create preview for first image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(files[0]);
+    }
   };
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -226,6 +237,7 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
         description: '',
         priceUSD: 0,
       }));
+      setImagePreview(null);
     } catch (err: any) {
       toast.error(err.message || 'Submission failed');
     } finally {
@@ -399,7 +411,7 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
                 </div>
 
                 <div className={styles.formField}>
-                  <label className={styles.formLabel}>Reference</label>
+                  <label className={styles.formLabel}>Reference *</label>
                   <input
                     className={styles.formInput}
                     value={single.reference}
@@ -577,8 +589,22 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
             </button>
           </div>
 
-          {/* Instructions Sidebar */}
+          {/* Preview & Instructions Sidebar */}
           <div className={styles.instructionsColumn}>
+            {/* NFT Preview Card */}
+            {imagePreview && (
+              <div className={styles.previewCard}>
+                <h3 className={styles.instructionsTitle}>NFT Preview</h3>
+                <NFTPreviewCard
+                  imagePreview={imagePreview}
+                  title={single.title || `${single.brand} ${single.model}` || 'Untitled'}
+                  description={single.description || 'No description'}
+                  priceUSD={single.priceUSD}
+                  brand={single.brand}
+                />
+              </div>
+            )}
+
             <div className={styles.instructionsCard}>
               <h3 className={styles.instructionsTitle}>How It Works</h3>
 
