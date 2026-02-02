@@ -1,10 +1,16 @@
-// /pages/api/admin/mint-requests/approve-and-mint.ts
-// Approves a mint request and actually mints the NFT to the vendor wallet
+// /pages/api/admin/mint-requests/mint.ts
+// Mints an approved mint request - requires admin with canMint permission
+// Optionally verifies Squads membership for audit trail
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Connection } from '@solana/web3.js';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { keypairIdentity } from '@metaplex-foundation/umi';
-import { mplCore, create as createAsset, transfer } from '@metaplex-foundation/mpl-core';
+import {
+  mplCore,
+  create as createAsset,
+  transfer,
+  fetchAsset,
+} from '@metaplex-foundation/mpl-core';
 import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
@@ -12,6 +18,24 @@ import Asset from '../../../../lib/models/Assets';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
 import AdminRole from '../../../../lib/models/AdminRole';
 import { uploadImage, uploadMetadata, getStorageConfig } from '../../../../utils/storage';
+
+// Helper to check Squads membership (optional verification)
+async function checkSquadsMembership(wallet: string): Promise<{
+  isMember: boolean;
+  canMint: boolean;
+  squadsConfigured: boolean;
+}> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/squads/check-membership?wallet=${wallet}`);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.warn('Could not check Squads membership:', error);
+  }
+  return { isMember: false, canMint: false, squadsConfigured: false };
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -30,33 +54,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const adminConfig = getAdminConfig();
   const isEnvAdmin = adminConfig.isAdmin(requestingWallet);
+  const isEnvSuperAdmin = adminConfig.isSuperAdmin(requestingWallet);
   const dbAdmin = await AdminRole.findOne({ wallet: requestingWallet, isActive: true });
 
-  // Check if has permission to approve mints
-  const canApproveMints =
-    isEnvAdmin || dbAdmin?.permissions?.canApproveMints || dbAdmin?.role === 'super_admin';
+  // Check if has permission to mint
+  const canMint =
+    isEnvSuperAdmin ||
+    isEnvAdmin ||
+    dbAdmin?.permissions?.canApproveMints ||
+    dbAdmin?.role === 'super_admin';
 
-  if (!canApproveMints) {
-    return res
-      .status(403)
-      .json({ error: 'Admin access required - must have canApproveMints permission' });
+  if (!canMint) {
+    return res.status(403).json({
+      error: 'Admin access required - must have canApproveMints permission to mint',
+    });
   }
 
-  const { mintRequestId, adminNotes } = req.body;
+  // Optional: Check Squads membership for enhanced security
+  const squadsCheck = await checkSquadsMembership(requestingWallet);
+  const requireSquadsMembership = process.env.REQUIRE_SQUADS_FOR_MINTING === 'true';
+
+  if (requireSquadsMembership && squadsCheck.squadsConfigured && !squadsCheck.isMember) {
+    return res.status(403).json({
+      error: 'Must be a LuxHub Squads multisig member to mint NFTs',
+      squadsConfigured: true,
+      isMember: false,
+    });
+  }
+
+  const { mintRequestId } = req.body;
 
   if (!mintRequestId) {
     return res.status(400).json({ error: 'mintRequestId is required' });
   }
 
   try {
-    // Get the mint request
+    // Get the mint request - must be in "approved" status
     const mintRequest = await MintRequest.findById(mintRequestId);
     if (!mintRequest) {
       return res.status(404).json({ error: 'Mint request not found' });
     }
 
-    if (mintRequest.status !== 'pending') {
-      return res.status(400).json({ error: `Mint request already ${mintRequest.status}` });
+    if (mintRequest.status !== 'approved') {
+      return res.status(400).json({
+        error: `Cannot mint - request status is "${mintRequest.status}". Must be "approved" first.`,
+        currentStatus: mintRequest.status,
+        hint:
+          mintRequest.status === 'pending'
+            ? 'Use /api/admin/mint-requests/review to approve first'
+            : undefined,
+      });
     }
 
     // Validate vendor wallet
@@ -64,30 +111,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Vendor wallet address missing from request' });
     }
 
-    // Get admin keypair for minting from centralized config
-    const adminConfig = getAdminConfig();
+    // Get admin keypair for minting
     const adminKeypair = adminConfig.getAdminKeypair();
 
-    // Debug logging
-    console.log('🔑 Admin keypair check:', {
-      hasAdminSecret: !!process.env.ADMIN_SECRET,
-      adminSecretLength: process.env.ADMIN_SECRET?.length,
-      keypairLoaded: !!adminKeypair,
-      publicKey: adminKeypair?.publicKey?.toBase58() || 'N/A',
+    console.log('🔑 Mint authorization:', {
+      mintingAdmin: requestingWallet.slice(0, 8) + '...',
+      isEnvAdmin,
+      isEnvSuperAdmin,
+      hasDbPermission: !!dbAdmin?.permissions?.canApproveMints,
+      squadsConfigured: squadsCheck.squadsConfigured,
+      isSquadsMember: squadsCheck.isMember,
     });
 
     if (!adminKeypair) {
       return res.status(500).json({
         error: 'Admin keypair not configured',
         hint: 'Set ADMIN_SECRET environment variable with the keypair JSON array',
-        debug: {
-          hasAdminSecret: !!process.env.ADMIN_SECRET,
-          adminSecretLength: process.env.ADMIN_SECRET?.length,
-        },
       });
     }
 
-    // Step 1: Upload image to storage (always upload to Irys for permanence)
+    // Step 1: Upload image to storage
     let imageUrl = mintRequest.imageCid
       ? getStorageConfig().provider === 'irys'
         ? `https://gateway.irys.xyz/${mintRequest.imageCid}`
@@ -95,14 +138,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       : null;
     let imageTxId = mintRequest.imageCid;
 
-    // If no permanent storage yet, we need to upload
     if (!imageTxId) {
       try {
         let buffer: Buffer;
         let contentType = 'image/png';
 
         if (mintRequest.imageBase64 && mintRequest.imageBase64.startsWith('data:')) {
-          // Base64 image - extract and convert to buffer
           const base64Data = mintRequest.imageBase64.replace(/^data:image\/\w+;base64,/, '');
           buffer = Buffer.from(base64Data, 'base64');
           contentType =
@@ -113,22 +154,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           (mintRequest.imageUrl.startsWith('http://') ||
             mintRequest.imageUrl.startsWith('https://'))
         ) {
-          // External URL (e.g., Dropbox) - fetch and upload to permanent storage
           console.log(`📥 Fetching external image: ${mintRequest.imageUrl}`);
 
-          // Convert Dropbox share links to direct download links
           let fetchUrl = mintRequest.imageUrl;
           if (fetchUrl.includes('dropbox.com')) {
-            // Handle various Dropbox URL formats
-            // Format 1: www.dropbox.com/s/xxx/file.jpg?dl=0
-            // Format 2: www.dropbox.com/scl/fi/xxx/file.jpg?...&dl=0
-            // Convert to direct download
             fetchUrl = fetchUrl
               .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
               .replace(/[?&]dl=0/, '?dl=1')
               .replace(/[?&]raw=1/, '?dl=1');
-
-            // If URL doesn't have dl parameter, add it
             if (!fetchUrl.includes('dl=1')) {
               fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'dl=1';
             }
@@ -136,15 +169,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
 
           const response = await fetch(fetchUrl, {
-            headers: {
-              'User-Agent': 'LuxHub/1.0',
-            },
+            headers: { 'User-Agent': 'LuxHub/1.0' },
             redirect: 'follow',
           });
 
           if (!response.ok) {
-            console.error(`❌ Fetch failed: ${response.status} ${response.statusText}`);
-            console.error(`   URL: ${fetchUrl}`);
             throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
           }
 
@@ -152,9 +181,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           buffer = Buffer.from(arrayBuffer);
           contentType = response.headers.get('content-type') || 'image/png';
 
-          // Validate we got an image, not HTML
           if (contentType.includes('text/html')) {
-            console.error('❌ Received HTML instead of image - URL may require authentication');
             throw new Error('Image URL returned HTML - check if the image is publicly accessible');
           }
 
@@ -163,21 +190,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(400).json({ error: 'No valid image source available' });
         }
 
-        // Upload to permanent storage (Irys/Pinata)
         const imageResult = await uploadImage(buffer, contentType, {
           fileName: `${mintRequest.title.replace(/\s+/g, '-')}.png`,
         });
 
         imageUrl = imageResult.gateway;
         imageTxId = imageResult.irysTxId || imageResult.ipfsHash;
-
         console.log(`✅ Image uploaded via ${imageResult.provider}: ${imageUrl}`);
       } catch (error) {
         console.error('Failed to upload image:', error);
         return res.status(500).json({
           error: 'Failed to upload image',
           details: error instanceof Error ? error.message : 'Unknown error',
-          hint: getStorageConfig(),
         });
       }
     }
@@ -185,36 +209,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!imageUrl) {
       return res.status(400).json({ error: 'No image available for minting' });
     }
-
-    // Log all attributes for debugging
-    console.log('📋 Mint Request from MongoDB:', {
-      _id: mintRequest._id,
-      title: mintRequest.title,
-      brand: mintRequest.brand,
-      model: mintRequest.model,
-      referenceNumber: mintRequest.referenceNumber,
-      priceUSD: mintRequest.priceUSD,
-      material: mintRequest.material,
-      productionYear: mintRequest.productionYear,
-      movement: mintRequest.movement,
-      caseSize: mintRequest.caseSize,
-      waterResistance: mintRequest.waterResistance,
-      dialColor: mintRequest.dialColor,
-      condition: mintRequest.condition,
-      boxPapers: mintRequest.boxPapers,
-      limitedEdition: mintRequest.limitedEdition,
-      country: mintRequest.country,
-      certificate: mintRequest.certificate,
-      warrantyInfo: mintRequest.warrantyInfo,
-      provenance: mintRequest.provenance,
-      features: mintRequest.features,
-      releaseDate: mintRequest.releaseDate,
-      imageBase64: mintRequest.imageBase64
-        ? `(${mintRequest.imageBase64.length} chars)`
-        : '(empty)',
-      imageUrl: mintRequest.imageUrl || '(empty)',
-      imageCid: mintRequest.imageCid || '(empty)',
-    });
 
     // Step 2: Create NFT metadata
     const metadata = {
@@ -255,26 +249,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
       properties: {
         category: 'luxury_watch',
-        creators: [
-          {
-            address: adminKeypair.publicKey.toBase58(),
-            share: 100,
-          },
-        ],
+        creators: [{ address: adminKeypair.publicKey.toBase58(), share: 100 }],
         luxhub: {
           referenceNumber: mintRequest.referenceNumber,
           priceUSD: mintRequest.priceUSD,
           mintedAt: new Date().toISOString(),
+          mintedBy: requestingWallet, // Track which admin minted
           vendorWallet: mintRequest.wallet,
+          squadsMember: squadsCheck.isMember,
         },
       },
     };
 
-    // Log the metadata being created
-    console.log('📝 NFT Metadata to upload:', JSON.stringify(metadata, null, 2));
-    console.log('📊 Attributes count:', metadata.attributes.length);
+    console.log('📝 Creating NFT metadata...');
 
-    // Step 3: Upload metadata to storage (Irys/Pinata based on STORAGE_PROVIDER)
+    // Step 3: Upload metadata
     let metadataUri: string;
     try {
       const metadataResult = await uploadMetadata(metadata, mintRequest.title);
@@ -282,13 +271,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log(`✅ Metadata uploaded via ${metadataResult.provider}: ${metadataUri}`);
     } catch (error) {
       console.error('Failed to upload metadata:', error);
-      return res.status(500).json({
-        error: 'Failed to upload metadata',
-        hint: getStorageConfig(),
-      });
+      return res.status(500).json({ error: 'Failed to upload metadata' });
     }
 
-    // Step 4: Create UMI instance with admin keypair
+    // Step 4: Create UMI instance
     const connection = new Connection(
       process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
     );
@@ -306,6 +292,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let mintAddress: string;
 
     try {
+      console.log(`🔨 Minting NFT: ${mintRequest.title}`);
       await createAsset(umi, {
         asset: assetSigner,
         name: mintRequest.title,
@@ -313,42 +300,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }).sendAndConfirm(umi);
 
       mintAddress = assetSigner.publicKey.toString();
+      console.log(`✅ NFT minted: ${mintAddress}`);
     } catch (error) {
       console.error('Failed to mint NFT:', error);
       return res.status(500).json({ error: 'Failed to mint NFT on-chain' });
     }
 
     // Step 6: Transfer NFT to vendor wallet
+    let transferSuccess = false;
     try {
-      // Fetch the newly minted asset
-      const { fetchAsset } = await import('@metaplex-foundation/mpl-core');
       const mintedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
-
       await transfer(umi, {
         asset: mintedAsset,
         newOwner: umiPublicKey(mintRequest.wallet),
       }).sendAndConfirm(umi);
+      transferSuccess = true;
+      console.log(`✅ NFT transferred to vendor: ${mintRequest.wallet.slice(0, 8)}...`);
     } catch (error) {
       console.error('Failed to transfer NFT to vendor:', error);
-      // NFT minted but not transferred - still save to DB
-      // Admin can manually transfer later
+      // NFT minted but not transferred - continue to save records
     }
 
     // Step 7: Update mint request status
     mintRequest.status = 'minted';
     mintRequest.mintAddress = mintAddress;
-    mintRequest.imageCid = imageTxId; // Can be Irys txId or IPFS hash
+    mintRequest.imageCid = imageTxId;
     mintRequest.imageUrl = imageUrl;
-    mintRequest.reviewedBy = requestingWallet;
-    mintRequest.reviewedAt = new Date();
-    if (adminNotes) {
-      mintRequest.adminNotes = adminNotes;
-    }
+    mintRequest.mintedBy = requestingWallet;
+    mintRequest.mintedAt = new Date();
+    mintRequest.squadsMemberWallet = squadsCheck.isMember ? requestingWallet : undefined;
     await mintRequest.save();
 
-    // Step 8: Create Asset record in database (auto-listed on marketplace)
+    // Step 8: Create Asset record (auto-listed on marketplace)
     const asset = await Asset.create({
-      vendor: null, // Can be linked later via vendor ID
+      vendor: null,
       model: mintRequest.model,
       serial: mintRequest.referenceNumber,
       description: mintRequest.description,
@@ -358,10 +343,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       metadataIpfsUrl: metadataUri,
       nftMint: mintAddress,
       nftOwnerWallet: mintRequest.wallet,
-      mintedBy: requestingWallet, // Track which admin minted this
-      status: 'listed', // Auto-listed on marketplace immediately
+      mintedBy: requestingWallet,
+      status: 'listed',
       category: 'watches',
-      // Include all attributes from mint request
       brand: mintRequest.brand,
       title: mintRequest.title,
       material: mintRequest.material,
@@ -379,7 +363,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       provenance: mintRequest.provenance,
       features: mintRequest.features,
       releaseDate: mintRequest.releaseDate,
-      arweaveTxId: imageTxId, // Store the Irys/Arweave transaction ID
+      arweaveTxId: imageTxId,
       arweaveMetadataTxId: metadataUri.includes('gateway.irys.xyz')
         ? metadataUri.split('/').pop()
         : undefined,
@@ -415,9 +399,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       storageProvider: getStorageConfig().provider,
       assetId: asset._id,
       vendorWallet: mintRequest.wallet,
+      transferSuccess,
+      mintedBy: requestingWallet,
+      squadsVerified: squadsCheck.isMember,
     });
   } catch (error) {
-    console.error('Error in approve-and-mint:', error);
+    console.error('Error in mint:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 }

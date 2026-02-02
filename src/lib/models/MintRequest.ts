@@ -44,9 +44,19 @@ const MintRequestSchema = new mongoose.Schema(
       default: 'pending',
     },
     adminNotes: { type: String },
-    reviewedBy: { type: String },
+
+    // Review tracking (approval step)
+    reviewedBy: { type: String }, // Wallet that approved/rejected
     reviewedAt: { type: Date },
-    mintAddress: { type: String }, // NFT mint address after approval
+
+    // Minting tracking (mint step - separate from review)
+    mintedBy: { type: String }, // Wallet that executed the mint
+    mintedAt: { type: Date },
+    mintAddress: { type: String }, // NFT mint address after minting
+
+    // Squads integration
+    squadsProposalIndex: { type: Number }, // If minted through Squads
+    squadsMemberWallet: { type: String }, // Which Squads member authorized
   },
   { timestamps: true }
 );

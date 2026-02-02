@@ -62,19 +62,22 @@ export function getAdminConfig(): AdminConfig {
     },
 
     getAdminKeypair: (): Keypair | null => {
-      // Return cached keypair if already loaded
-      if (_adminKeypair !== undefined) return _adminKeypair;
+      // Return cached keypair if already loaded successfully
+      if (_adminKeypair) return _adminKeypair;
 
       try {
         // Try ADMIN_SECRET first (existing convention)
         if (process.env.ADMIN_SECRET) {
+          console.log('Loading admin keypair from ADMIN_SECRET...');
           const secretKey = new Uint8Array(JSON.parse(process.env.ADMIN_SECRET));
           _adminKeypair = Keypair.fromSecretKey(secretKey);
+          console.log('Admin keypair loaded:', _adminKeypair.publicKey.toBase58());
           return _adminKeypair;
         }
 
         // Try ADMIN_KEYPAIR_JSON (alternative)
         if (process.env.ADMIN_KEYPAIR_JSON) {
+          console.log('Loading admin keypair from ADMIN_KEYPAIR_JSON...');
           const secretKey = new Uint8Array(JSON.parse(process.env.ADMIN_KEYPAIR_JSON));
           _adminKeypair = Keypair.fromSecretKey(secretKey);
           return _adminKeypair;
@@ -82,6 +85,7 @@ export function getAdminConfig(): AdminConfig {
 
         // Try ADMIN_KEYPAIR_PATH (file path)
         if (process.env.ADMIN_KEYPAIR_PATH) {
+          console.log('Loading admin keypair from file:', process.env.ADMIN_KEYPAIR_PATH);
           // Dynamic import for server-side only
           const fs = require('fs');
           const keypairData = JSON.parse(fs.readFileSync(process.env.ADMIN_KEYPAIR_PATH, 'utf-8'));
@@ -89,11 +93,12 @@ export function getAdminConfig(): AdminConfig {
           return _adminKeypair;
         }
 
-        _adminKeypair = null;
+        console.warn(
+          'No admin keypair configured (ADMIN_SECRET, ADMIN_KEYPAIR_JSON, or ADMIN_KEYPAIR_PATH)'
+        );
         return null;
       } catch (error) {
         console.error('Failed to load admin keypair:', error);
-        _adminKeypair = null;
         return null;
       }
     },
