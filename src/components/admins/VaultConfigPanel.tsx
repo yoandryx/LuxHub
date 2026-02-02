@@ -88,10 +88,10 @@ export const VaultConfigPanel: React.FC = () => {
         throw new Error(data.error || 'Failed to fetch vault config');
       }
 
-      setConfig(data.data.config);
-      setVendor(data.data.luxhubVendor);
-      setMintThreshold(data.data.config.mintApprovalThreshold || 1);
-      setTransferThreshold(data.data.config.transferApprovalThreshold || 2);
+      setConfig(data.config);
+      setVendor(data.luxhubVendor);
+      setMintThreshold(data.config?.mintApprovalThreshold || 1);
+      setTransferThreshold(data.config?.transferApprovalThreshold || 2);
 
       // Fetch full config with admins (requires auth)
       if (wallet.publicKey) {

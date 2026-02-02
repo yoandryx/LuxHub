@@ -6,7 +6,6 @@ import { CiSearch } from 'react-icons/ci';
 import { useRouter } from 'next/router';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
-import { getProgram } from '../../utils/programUtils';
 import { FaWallet } from 'react-icons/fa6';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth/solana';
@@ -49,7 +48,7 @@ export default function Navbar() {
     }
   };
 
-  // Check admin status - works with both wallet adapter and Privy
+  // Check admin status via off-chain VaultConfig (MongoDB)
   useEffect(() => {
     const checkAdmin = async () => {
       if (!activePublicKey) {
@@ -58,18 +57,27 @@ export default function Navbar() {
       }
 
       try {
-        const program = getProgram({ publicKey: activePublicKey } as any);
-        const [adminListPda] = PublicKey.findProgramAddressSync(
-          [Buffer.from('admin_list')],
-          program.programId
-        );
+        // Check against VaultConfig authorizedAdmins (off-chain)
+        const res = await fetch('/api/vault/config');
+        if (res.ok) {
+          const data = await res.json();
+          const authorizedAdmins = data.config?.authorizedAdmins || [];
+          const walletAddress = activePublicKey.toBase58();
 
-        const adminAccountRaw = await (program.account as any).adminList.fetch(adminListPda);
-        const adminListStr: string[] = adminAccountRaw.admins
-          .map((admin: any) => admin?.toBase58?.())
-          .filter(Boolean);
+          // Check if wallet is in authorizedAdmins list
+          const isAuthorized = authorizedAdmins.some(
+            (admin: { walletAddress: string }) => admin.walletAddress === walletAddress
+          );
 
-        setIsAdmin(adminListStr.includes(activePublicKey.toBase58()));
+          // Also check SUPER_ADMIN_WALLETS env var
+          const superAdmins = (process.env.NEXT_PUBLIC_SUPER_ADMIN_WALLETS || '')
+            .split(',')
+            .map((w) => w.trim());
+
+          setIsAdmin(isAuthorized || superAdmins.includes(walletAddress));
+        } else {
+          setIsAdmin(false);
+        }
       } catch (err) {
         console.error('Navbar admin check error:', err);
         setIsAdmin(false);

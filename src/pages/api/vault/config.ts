@@ -77,6 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const {
+      multisigAddress,
       collectionMint,
       mintApprovalThreshold,
       transferApprovalThreshold,
@@ -100,6 +101,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const updates: Record<string, unknown> = {};
       const activities: Array<{ type: string; details: Record<string, unknown> }> = [];
+
+      // Update multisig address
+      if (multisigAddress !== undefined) {
+        updates.multisigAddress = multisigAddress;
+        activities.push({
+          type: 'config_updated',
+          details: { field: 'multisigAddress', value: multisigAddress },
+        });
+      }
 
       // Update collection mint
       if (collectionMint !== undefined) {
