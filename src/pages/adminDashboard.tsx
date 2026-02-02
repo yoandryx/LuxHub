@@ -1,7 +1,8 @@
 // src/pages/AdminDashboard.tsx
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Connection } from '@solana/web3.js';
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Connection, Keypair } from '@solana/web3.js';
+import * as anchor from '@coral-xyz/anchor';
 import { BN } from '@coral-xyz/anchor';
 import { getProgram } from '../utils/programUtils';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
@@ -251,6 +252,16 @@ const AdminDashboard: React.FC = () => {
   const [newLuxhubWallet, setNewLuxhubWallet] = useState<string>('');
   const [currentEscrowConfig, setCurrentEscrowConfig] = useState<string>('');
 
+  // On-chain EscrowConfig state
+  const [onChainConfig, setOnChainConfig] = useState<{
+    authority: string;
+    treasury: string;
+    feeBps: number;
+    paused: boolean;
+  } | null>(null);
+  const [newFeeBps, setNewFeeBps] = useState<string>('');
+  const [newPaused, setNewPaused] = useState<boolean>(false);
+
   const [adminList, setAdminList] = useState<string[]>([]);
   const [newAdmin, setNewAdmin] = useState<string>('');
   const [removeAdminAddr, setRemoveAdminAddr] = useState<string>('');
@@ -290,20 +301,19 @@ const AdminDashboard: React.FC = () => {
       role: 'super_admin' | 'admin' | 'minter';
     }[]
   >([]);
+  const [adminsFetched, setAdminsFetched] = useState(false);
 
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
 
+  // Use correct seed 'luxhub-config' to match the Anchor program
   const escrowConfigPda = useMemo(() => {
     return program
-      ? PublicKey.findProgramAddressSync([Buffer.from('escrow_config')], program.programId)[0]
+      ? PublicKey.findProgramAddressSync([Buffer.from('luxhub-config')], program.programId)[0]
       : null;
   }, [program]);
 
-  const adminListPda = useMemo(() => {
-    return program
-      ? PublicKey.findProgramAddressSync([Buffer.from('admin_list')], program.programId)[0]
-      : null;
-  }, [program]);
+  // Admin list is now managed off-chain via VaultConfig (MongoDB)
+  // No on-chain adminListPda needed
 
   const addLog = (action: string, tx: string, message: string) => {
     const timestamp = new Date().toLocaleString();
@@ -335,44 +345,53 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // Fetch Config and Admins
+  // Fetch Config (on-chain) and Admins (off-chain via VaultConfig)
   // ------------------------------------------------
   const fetchConfigAndAdmins = async () => {
-    if (!program || !escrowConfigPda || !adminListPda) return;
+    if (!program || !escrowConfigPda) return;
+
+    // Fetch on-chain escrow config (new structure: authority, treasury, fee_bps, paused)
     try {
       const configAccount = await fetchWithRetry(() =>
         (program.account as any).escrowConfig.fetch(escrowConfigPda)
       );
       console.log('[fetchConfigAndAdmins] Fetched escrow config:', configAccount);
-      const luxhubWalletStr =
-        configAccount.luxhubWallet?.toBase58?.() ||
-        configAccount.luxhub_wallet?.toBase58?.() ||
-        null;
-      if (luxhubWalletStr) {
-        setCurrentEscrowConfig(luxhubWalletStr);
+
+      // New config structure
+      const authority = configAccount.authority?.toBase58?.() || null;
+      const treasury = configAccount.treasury?.toBase58?.() || null;
+      const feeBps = configAccount.feeBps ?? configAccount.fee_bps ?? 0;
+      const paused = configAccount.paused ?? false;
+
+      if (authority && treasury) {
+        setOnChainConfig({
+          authority,
+          treasury,
+          feeBps,
+          paused,
+        });
+        setCurrentEscrowConfig(treasury);
+        setLuxhubWallet(treasury);
+        setNewPaused(paused);
+        console.log('[fetchConfigAndAdmins] Config loaded:', {
+          authority,
+          treasury,
+          feeBps,
+          paused,
+        });
       } else {
         console.warn('[fetchConfigAndAdmins] Escrow config not initialized', configAccount);
         setCurrentEscrowConfig('Not initialized');
+        setOnChainConfig(null);
       }
     } catch (e) {
       console.error('[fetchConfigAndAdmins] Failed to fetch escrow config', e);
+      setCurrentEscrowConfig('Error loading config');
+      setOnChainConfig(null);
     }
-    try {
-      const adminAccountRaw = await fetchWithRetry(() =>
-        (program.account as any).adminList.fetch(adminListPda)
-      );
-      console.log('[fetchConfigAndAdmins] Fetched admin account:', adminAccountRaw);
-      if (adminAccountRaw?.admins) {
-        const adminListStr: string[] = adminAccountRaw.admins
-          .map((admin: any) => admin?.toBase58?.() || '')
-          .filter((adminStr: string) => adminStr !== '');
-        setAdminList(adminListStr);
-      } else {
-        console.error("[fetchConfigAndAdmins] No 'admins' property found:", adminAccountRaw);
-      }
-    } catch (e) {
-      console.error('[fetchConfigAndAdmins] Failed to fetch admin list', e);
-    }
+
+    // Admin list is managed off-chain via VaultConfig API
+    // Fetched separately via fetchAuthorizedAdmins()
   };
 
   // ------------------------------------------------
@@ -495,8 +514,10 @@ const AdminDashboard: React.FC = () => {
       if (data.config?.authorizedAdmins) {
         setAuthorizedAdmins(data.config.authorizedAdmins);
       }
+      setAdminsFetched(true);
     } catch (err) {
       console.error('Error fetching authorized admins:', err);
+      setAdminsFetched(true); // Mark as fetched even on error
     }
   };
 
@@ -715,6 +736,11 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   // Program Initialization & Data Fetch
   // ------------------------------------------------
+  // Fetch authorized admins on mount (early, doesn't depend on program)
+  useEffect(() => {
+    fetchAuthorizedAdmins();
+  }, []);
+
   useEffect(() => {
     if (program) {
       refreshData();
@@ -725,12 +751,39 @@ const AdminDashboard: React.FC = () => {
   // Admin Check Logic
   // ------------------------------------------------
   useEffect(() => {
-    if (wallet.publicKey && adminList.length > 0) {
-      const isUserAdmin = adminList.some((adminStr) => adminStr === wallet.publicKey!.toBase58());
-      setIsAdmin(isUserAdmin);
-      console.log('[Admin Check] Is user admin?', isUserAdmin);
+    if (!wallet.publicKey) {
+      setIsAdmin(false);
+      return;
     }
-  }, [wallet.publicKey, adminList]);
+
+    const walletAddress = wallet.publicKey.toBase58();
+
+    // Check against authorized admins from VaultConfig (MongoDB)
+    if (authorizedAdmins.length > 0) {
+      const isUserAdmin = authorizedAdmins.some((admin) => admin.walletAddress === walletAddress);
+      setIsAdmin(isUserAdmin);
+      console.log('[Admin Check] Is user admin (from VaultConfig)?', isUserAdmin);
+      return;
+    }
+
+    // Fallback: check against super admin env variable
+    const superAdminWallets = process.env.NEXT_PUBLIC_SUPER_ADMIN_WALLETS?.split(',') || [];
+    if (superAdminWallets.includes(walletAddress)) {
+      setIsAdmin(true);
+      console.log('[Admin Check] Is user super admin (from env)?', true);
+      return;
+    }
+
+    // If admins have been fetched but list is empty, user is not an admin
+    if (adminsFetched) {
+      setIsAdmin(false);
+      console.log('[Admin Check] No authorized admins found, access denied');
+      return;
+    }
+
+    // If authorizedAdmins hasn't loaded yet but wallet is connected, wait
+    console.log('[Admin Check] Waiting for authorizedAdmins to load...');
+  }, [wallet.publicKey, authorizedAdmins, adminsFetched]);
 
   // ------------------------------------------------
   // Initialize Escrow Config Logic
@@ -741,21 +794,31 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     try {
-      console.log(
-        '[initializeEscrowConfig] Initializing escrow config with LuxHub wallet:',
-        luxhubWallet
+      // Squads multisig PDA (controls the treasury)
+      const squadsMultisig = new PublicKey(
+        process.env.NEXT_PUBLIC_SQUADS_MSIG || '4mXpAeaRJdRkAAkbDjxPicG2itn7WHQ6wBtS3vFJD9ku'
       );
-      const luxhubPk = new PublicKey(luxhubWallet);
+      // Treasury vault PDA (where 3% fees go)
+      const squadsAuthority = new PublicKey(luxhubWallet);
+
+      console.log(
+        '[initializeEscrowConfig] Initializing config with:',
+        '\n  Squads Multisig:',
+        squadsMultisig.toBase58(),
+        '\n  Treasury Vault:',
+        squadsAuthority.toBase58()
+      );
+
       const tx = await program.methods
-        .initializeEscrowConfig(luxhubPk)
+        .initializeConfig(squadsMultisig, squadsAuthority)
         .accounts({
-          escrowConfig: escrowConfigPda,
-          admin: wallet.publicKey,
+          payer: wallet.publicKey,
+          config: escrowConfigPda,
           systemProgram: SystemProgram.programId,
         })
         .rpc();
       setStatus('Escrow config initialized. Tx: ' + tx);
-      addLog('Initialize Config', tx, 'Set LuxHub wallet: ' + luxhubWallet);
+      addLog('Initialize Config', tx, 'Multisig: ' + squadsMultisig.toBase58());
       refreshData();
     } catch (error: any) {
       console.error('[initializeEscrowConfig] error:', error);
@@ -765,26 +828,83 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // Update Escrow Config Logic
+  // Update On-Chain Escrow Config (authority, treasury, fee_bps, paused)
+  // All parameters are optional - only update what's provided
   // ------------------------------------------------
-  const updateEscrowConfig = async () => {
-    if (!wallet.publicKey || !program || !escrowConfigPda || !adminListPda) {
+  const updateOnChainConfig = async (updates?: {
+    newAuthority?: string;
+    newTreasury?: string;
+    newFeeBps?: number;
+    newPaused?: boolean;
+  }) => {
+    if (!wallet.publicKey || !program || !escrowConfigPda) {
       alert('Wallet not connected or program not ready.');
       return;
     }
     try {
-      console.log('[updateEscrowConfig] Updating escrow config to new wallet:', newLuxhubWallet);
-      const newLuxhubPk = new PublicKey(newLuxhubWallet);
+      // Build optional params - null means don't change
+      const newAuthorityPk = updates?.newAuthority ? new PublicKey(updates.newAuthority) : null;
+      const newTreasuryPk = updates?.newTreasury ? new PublicKey(updates.newTreasury) : null;
+      const feeBpsUpdate = updates?.newFeeBps !== undefined ? updates.newFeeBps : null;
+      const pausedUpdate = updates?.newPaused !== undefined ? updates.newPaused : null;
+
+      console.log(
+        '[updateOnChainConfig] Updating config with:',
+        '\n  New Authority:',
+        newAuthorityPk?.toBase58() || '(unchanged)',
+        '\n  New Treasury:',
+        newTreasuryPk?.toBase58() || '(unchanged)',
+        '\n  New Fee BPS:',
+        feeBpsUpdate ?? '(unchanged)',
+        '\n  New Paused:',
+        pausedUpdate ?? '(unchanged)'
+      );
+
       const tx = await program.methods
-        .updateEscrowConfig(newLuxhubPk)
+        .updateConfig(newAuthorityPk, newTreasuryPk, feeBpsUpdate, pausedUpdate)
         .accounts({
-          escrowConfig: escrowConfigPda,
           admin: wallet.publicKey,
-          adminList: adminListPda,
+          config: escrowConfigPda,
         })
         .rpc();
-      setStatus('Escrow config updated. Tx: ' + tx);
-      addLog('Update Config', tx, 'New LuxHub wallet: ' + newLuxhubWallet);
+
+      const changes = [];
+      if (newTreasuryPk) changes.push(`Treasury: ${newTreasuryPk.toBase58().slice(0, 8)}...`);
+      if (newAuthorityPk) changes.push(`Authority: ${newAuthorityPk.toBase58().slice(0, 8)}...`);
+      if (feeBpsUpdate !== null) changes.push(`Fee: ${feeBpsUpdate / 100}%`);
+      if (pausedUpdate !== null) changes.push(`Paused: ${pausedUpdate}`);
+
+      setStatus('On-chain config updated! Tx: ' + tx);
+      addLog('Update Config (on-chain)', tx, changes.join(', ') || 'No changes');
+      refreshData();
+    } catch (error: any) {
+      console.error('[updateOnChainConfig] error:', error);
+      setStatus('Update failed: ' + error.message);
+      addLog('Update Config (on-chain)', 'N/A', 'Error: ' + error.message);
+    }
+  };
+
+  // ------------------------------------------------
+  // Update Escrow Config Logic (off-chain via VaultConfig API)
+  // ------------------------------------------------
+  const updateEscrowConfig = async () => {
+    if (!wallet.publicKey) {
+      alert('Wallet not connected.');
+      return;
+    }
+    try {
+      console.log('[updateEscrowConfig] Updating treasury wallet to:', newLuxhubWallet);
+      const res = await fetch('/api/vault/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          treasuryWallet: newLuxhubWallet,
+          updatedBy: wallet.publicKey.toBase58(),
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update config');
+      setStatus('Treasury wallet updated to: ' + newLuxhubWallet);
+      addLog('Update Config', 'off-chain', 'New treasury wallet: ' + newLuxhubWallet);
       refreshData();
     } catch (error: any) {
       console.error('[updateEscrowConfig] error:', error);
@@ -794,26 +914,30 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // Add Admin Logic
+  // Add Admin Logic (off-chain via VaultConfig API)
   // ------------------------------------------------
   const addAdmin = async () => {
-    if (!wallet.publicKey || !program || !adminListPda) {
-      alert('Wallet not connected or program not ready.');
+    if (!wallet.publicKey) {
+      alert('Wallet not connected.');
       return;
     }
     try {
       console.log('[addAdmin] Adding new admin:', newAdmin);
-      const newAdminPk = new PublicKey(newAdmin);
-      const tx = await program.methods
-        .addAdmin()
-        .accounts({
-          adminList: adminListPda,
-          admin: wallet.publicKey,
-          newAdmin: newAdminPk,
-        })
-        .rpc();
-      setStatus('Admin added. Tx: ' + tx);
-      addLog('Add Admin', tx, 'New admin: ' + newAdmin);
+      const res = await fetch('/api/vault/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: newAdmin,
+          role: 'admin',
+          addedBy: wallet.publicKey.toBase58(),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to add admin');
+      }
+      setStatus('Admin added: ' + newAdmin);
+      addLog('Add Admin', 'off-chain', 'New admin: ' + newAdmin);
       setNewAdmin('');
       refreshData();
     } catch (error: any) {
@@ -824,26 +948,29 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // Remove Admin Logic
+  // Remove Admin Logic (off-chain via VaultConfig API)
   // ------------------------------------------------
   const removeAdmin = async () => {
-    if (!wallet.publicKey || !program || !adminListPda) {
-      alert('Wallet not connected or program not ready.');
+    if (!wallet.publicKey) {
+      alert('Wallet not connected.');
       return;
     }
     try {
       console.log('[removeAdmin] Removing admin:', removeAdminAddr);
-      const removeAdminPk = new PublicKey(removeAdminAddr);
-      const tx = await program.methods
-        .removeAdmin()
-        .accounts({
-          adminList: adminListPda,
-          admin: wallet.publicKey,
-          removeAdmin: removeAdminPk,
-        })
-        .rpc();
-      setStatus('Admin removed. Tx: ' + tx);
-      addLog('Remove Admin', tx, 'Removed admin: ' + removeAdminAddr);
+      const res = await fetch('/api/vault/admins', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: removeAdminAddr,
+          removedBy: wallet.publicKey.toBase58(),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to remove admin');
+      }
+      setStatus('Admin removed: ' + removeAdminAddr);
+      addLog('Remove Admin', 'off-chain', 'Removed admin: ' + removeAdminAddr);
       setRemoveAdminAddr('');
       refreshData();
     } catch (error: any) {
@@ -858,7 +985,7 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const confirmDelivery = async (escrow: EscrowAccount) => {
     const confirm = window.confirm(
-      `Approve delivery?\n\nBuyer paid ${(Number(escrow.salePrice) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nSeller will receive ${((Number(escrow.salePrice) * 0.95) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nLuxHub earns 5%.`
+      `Approve delivery?\n\nBuyer paid ${(Number(escrow.salePrice) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nSeller will receive ${((Number(escrow.salePrice) * 0.97) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nLuxHub earns 3%.`
     );
     if (!confirm) return;
 
@@ -1074,9 +1201,10 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
-  // Approve Sale -> Escrow creation (with automatic NFT deposit)
+  // Approve Sale -> Escrow creation
+  // Admin-owned NFTs: sign directly
+  // Vendor-owned NFTs: need vendor signature (different flow)
   // ------------------------------------------------
-  // --- replace your entire handleApproveSale with this version ---
   const handleApproveSale = async (req: SaleRequest) => {
     console.log('[handleApproveSale] Sale request data:', req);
     if (!req.seller) {
@@ -1085,22 +1213,18 @@ const AdminDashboard: React.FC = () => {
       return;
     }
 
+    if (!wallet.publicKey || !program || !escrowConfigPda) {
+      alert('Wallet not connected or program not ready.');
+      return;
+    }
+
     try {
+      setLoading(true);
       const connection = new Connection(
         process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
       );
 
       const sellerPk = new PublicKey(req.seller);
-      const buyerPk = new PublicKey(
-        typeof req.buyer === 'string' ? req.buyer : PLACEHOLDER_BUYER.toBase58()
-      );
-      const resolvedLuxhubWallet = req.luxhubWallet || currentEscrowConfig;
-      if (!resolvedLuxhubWallet) {
-        console.error('[handleApproveSale] LuxHub wallet is missing from request and config.');
-        setStatus('Error: Missing LuxHub Wallet');
-        return;
-      }
-      const luxhubPk = new PublicKey(resolvedLuxhubWallet);
       const nftMint = new PublicKey(req.nftId);
 
       if (
@@ -1119,13 +1243,13 @@ const AdminDashboard: React.FC = () => {
       const seedBuffer = new BN(seed).toArrayLike(Buffer, 'le', 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('state'), seedBuffer],
-        program!.programId
+        program.programId
       );
       console.log('[handleApproveSale] Escrow PDA:', escrowPda.toBase58());
 
       const escrowInfo = await connection.getAccountInfo(escrowPda);
       if (escrowInfo !== null) {
-        // Already initialized: do not re-initialize via Squads.
+        // Already initialized
         setStatus('Escrow already initialized — updating metadata and cleaning up.');
         await updateNFTMarketStatus(req.nftId, 'active', wallet);
         await fetch('/api/nft/updateStatus', {
@@ -1138,97 +1262,117 @@ const AdminDashboard: React.FC = () => {
         return;
       }
 
-      // ---------- vault ATA must exist and be funded with seller’s NFT ----------
-      const vaultAta = await getAssociatedTokenAddress(nftMint, escrowPda, true);
-      const vaultInfo = await connection.getAccountInfo(vaultAta);
-      if (!vaultInfo) {
-        alert('Vault ATA does not exist yet. Please wait for the seller to deposit the NFT.');
-        return;
-      }
-      const vaultBalance = await connection.getTokenAccountBalance(vaultAta);
-      const vaultAmount = Number(vaultBalance.value.uiAmount || 0);
-      if (vaultAmount < req.initializerAmount) {
-        alert('Vault ATA balance is insufficient. Please wait for the seller to deposit the NFT.');
-        return;
+      // ---------- Check NFT ownership - seller must own the NFT ----------
+      const sellerNftAta = await getAssociatedTokenAddress(nftMint, sellerPk);
+      let sellerOwnsNft = false;
+      try {
+        const sellerAtaInfo = await connection.getTokenAccountBalance(sellerNftAta);
+        sellerOwnsNft = Number(sellerAtaInfo.value.uiAmount || 0) >= 1;
+      } catch {
+        sellerOwnsNft = false;
       }
 
-      setStatus('Approving listing (proposing via Squads)...');
-      addLog('Approve Sale (proposed)', 'N/A', `Vault validated. Seed: ${seed}`);
-      console.log('[DEBUG] BN inputs:', {
-        seed: req.seed,
-        initializerAmount: req.initializerAmount,
-        takerAmount: req.takerAmount,
-        salePrice: req.salePrice,
-      });
+      if (!sellerOwnsNft) {
+        alert(
+          `Seller (${req.seller.slice(0, 8)}...) does not own the NFT.\n\n` +
+            `Please ensure the NFT is in the seller's wallet before approving.`
+        );
+        setLoading(false);
+        return;
+      }
 
-      // ---------- derive Squads vault PDA (admin signer) ----------
-      // Dynamic import multisig to reduce initial bundle size (~45KB saved)
-      const multisig = await import('@sqds/multisig');
-      const msig = new PublicKey(process.env.NEXT_PUBLIC_SQUADS_MSIG!);
-      const [vaultPda] = multisig.getVaultPda({ multisigPda: msig, index: 0 });
+      // ---------- Check if admin is the seller (can sign directly) ----------
+      const adminIsSeller = wallet.publicKey.toBase58() === req.seller;
 
-      // ---------- build Anchor instruction (NO .rpc()) ----------
-      const ix = await program!.methods
-        .initialize(
-          new BN(seed),
-          new BN(req.initializerAmount), // lamports
-          new BN(req.takerAmount), // lamports
-          req.fileCid,
-          luxhubPk,
-          new BN(req.salePrice), // lamports
-          buyerPk
-        )
-        .accounts({
-          // IMPORTANT: your program’s `admin` signer must be the Squads vault PDA
-          admin: vaultPda,
-          seller: sellerPk,
-          mintA: new PublicKey(FUNDS_MINT),
-          mintB: nftMint,
-          sellerAtaA: await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), sellerPk),
-          sellerAtaB: await getAssociatedTokenAddress(nftMint, sellerPk),
-          escrow: escrowPda,
-          vault: vaultAta,
-          associatedTokenProgram: new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
-          tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-          systemProgram: SystemProgram.programId,
-          rent: SYSVAR_RENT_PUBKEY,
-        })
-        .instruction();
+      if (adminIsSeller) {
+        // ============ ADMIN OWNS THE NFT - SIGN DIRECTLY ============
+        setStatus('Creating escrow (signing directly as NFT owner)...');
+        addLog('Approve Sale', 'N/A', `Admin-owned NFT. Seed: ${seed}`);
 
-      // ---------- shape for API ----------
-      const keys = ix.keys.map((k) => ({
-        pubkey: k.pubkey.toBase58(),
-        isSigner: k.isSigner,
-        isWritable: k.isWritable,
-      }));
-      const dataBase64 = Buffer.from(ix.data).toString('base64');
+        // Generate vault keypairs for nft_vault and wsol_vault
+        const nftVaultKeypair = Keypair.generate();
+        const wsolVaultKeypair = Keypair.generate();
 
-      // ---------- create a Squads proposal ----------
-      const result = await proposeToSquads({
-        programId: ix.programId.toBase58(),
-        keys,
-        dataBase64,
-        vaultIndex: 0,
-        // transactionIndex: Date.now().toString(), // optional custom index
-      });
+        // Call initialize directly (admin is both admin and seller)
+        const tx = await program.methods
+          .initialize(
+            new BN(seed),
+            new BN(req.initializerAmount),
+            new BN(req.takerAmount),
+            req.fileCid || '',
+            new BN(req.salePrice)
+          )
+          .accounts({
+            admin: wallet.publicKey,
+            seller: wallet.publicKey,
+            config: escrowConfigPda!,
+            mintA: new PublicKey(FUNDS_MINT),
+            mintB: nftMint,
+            sellerAtaA: await getAssociatedTokenAddress(
+              new PublicKey(FUNDS_MINT),
+              wallet.publicKey
+            ),
+            sellerAtaB: sellerNftAta,
+            escrow: escrowPda,
+            nftVault: nftVaultKeypair.publicKey,
+            wsolVault: wsolVaultKeypair.publicKey,
+            tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([nftVaultKeypair, wsolVaultKeypair])
+          .rpc();
 
-      toast.success(
-        `✅ Proposal created in Squads (vault ${result.vaultIndex}, index ${result.transactionIndex}). Approve & Execute in Squads.`
-      );
-      setStatus(`Squads proposal created. Index: ${result.transactionIndex}`);
-      addLog('Approve Sale (proposed)', 'N/A', `Escrow ${seed}`);
+        toast.success(`✅ Escrow created! Tx: ${tx.slice(0, 8)}...`);
+        setStatus(`Escrow created. Tx: ${tx}`);
+        addLog('Approve Sale', tx, `Escrow created for seed ${seed}`);
 
-      // ⚠️ Defer metadata/DB updates until proposal EXECUTED (webhook/poll).
-      // After execution:
-      // await updateNFTMarketStatus(req.nftId, "active", wallet);
-      // await fetch("/api/nft/updateStatus", { ... });
+        // Update NFT status
+        await updateNFTMarketStatus(req.nftId, 'active', wallet);
+        await fetch('/api/nft/updateStatus', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mintAddress: req.nftId,
+            marketStatus: 'active',
+            escrowPda: escrowPda.toBase58(),
+          }),
+        });
 
-      await refreshData();
+        setSaleRequests((prev) => prev.filter((r) => r.nftId !== req.nftId));
+        await refreshData();
+      } else {
+        // ============ VENDOR OWNS THE NFT - CANNOT SIGN FOR THEM ============
+        // The vendor must initiate the escrow creation from their dashboard
+        alert(
+          `This NFT is owned by a vendor (${req.seller.slice(0, 8)}...).\n\n` +
+            `The vendor must initiate the escrow listing from their Seller Dashboard.\n\n` +
+            `You can approve the sale request status, but the on-chain escrow requires the vendor's signature.`
+        );
+
+        // Just update the status in database to "approved"
+        const confirm = window.confirm('Update sale request status to "approved" in the database?');
+        if (confirm) {
+          await fetch('/api/nft/approveSale', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nftId: req.nftId, status: 'approved' }),
+          });
+          toast.success('Sale request approved. Vendor can now create the escrow.');
+          addLog(
+            'Approve Sale (off-chain)',
+            'N/A',
+            `Approved for vendor: ${req.seller.slice(0, 8)}...`
+          );
+          await refreshData();
+        }
+      }
     } catch (error: any) {
       console.error('[handleApproveSale] error:', error);
-      setStatus('Approve sale (proposal) failed: ' + error.message);
+      setStatus('Approve sale failed: ' + error.message);
       addLog('Approve Sale', 'N/A', 'Error: ' + error.message);
-      toast.error(`❌ Proposal failed: ${error.message}`);
+      toast.error(`❌ Failed: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1720,34 +1864,140 @@ const AdminDashboard: React.FC = () => {
         return (
           <div className={styles.section}>
             <div className={styles.configPanel}>
-              {/* Treasury Wallet Configuration */}
+              {/* On-Chain Protocol Configuration */}
               <div className={styles.configSection}>
                 <h3 className={styles.configTitle}>
-                  <HiOutlineDatabase /> Treasury Configuration
+                  <HiOutlineDatabase /> On-Chain Protocol Config
                 </h3>
-                <div className={styles.configRow}>
-                  <span className={styles.configLabel}>Current Wallet</span>
-                  <div className={styles.configValue}>
-                    {currentEscrowConfig
-                      ? `${currentEscrowConfig.slice(0, 8)}...${currentEscrowConfig.slice(-8)}`
-                      : 'Not initialized'}
+
+                {/* Display current on-chain config */}
+                {onChainConfig ? (
+                  <div
+                    style={{
+                      marginBottom: '1rem',
+                      padding: '0.75rem',
+                      background: 'rgba(200,161,255,0.05)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(200,161,255,0.2)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '0.5rem',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      <span style={{ color: 'rgba(255,255,255,0.6)' }}>Authority (Multisig):</span>
+                      <span style={{ color: '#c8a1ff', fontFamily: 'monospace' }}>
+                        {onChainConfig.authority.slice(0, 8)}...{onChainConfig.authority.slice(-4)}
+                      </span>
+                      <span style={{ color: 'rgba(255,255,255,0.6)' }}>Treasury:</span>
+                      <span style={{ color: '#c8a1ff', fontFamily: 'monospace' }}>
+                        {onChainConfig.treasury.slice(0, 8)}...{onChainConfig.treasury.slice(-4)}
+                      </span>
+                      <span style={{ color: 'rgba(255,255,255,0.6)' }}>Fee:</span>
+                      <span style={{ color: '#fff' }}>
+                        {onChainConfig.feeBps / 100}% ({onChainConfig.feeBps} bps)
+                      </span>
+                      <span style={{ color: 'rgba(255,255,255,0.6)' }}>Protocol Status:</span>
+                      <span style={{ color: onChainConfig.paused ? '#ff6b6b' : '#4ade80' }}>
+                        {onChainConfig.paused ? 'PAUSED' : 'Active'}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                    Config not initialized or loading...
+                  </p>
+                )}
+
+                {/* Update Treasury */}
                 <div className={styles.configRow}>
-                  <span className={styles.configLabel}>Initialize</span>
+                  <span className={styles.configLabel}>Update Treasury</span>
                   <input
                     type="text"
                     className={styles.configInput}
-                    placeholder="Enter wallet address to initialize..."
+                    placeholder="New treasury address..."
                     value={luxhubWallet}
                     onChange={(e) => setLuxhubWallet(e.target.value)}
                   />
-                  <button className={styles.configBtn} onClick={initializeEscrowConfig}>
-                    Initialize
+                  <button
+                    className={styles.configBtn}
+                    onClick={() => updateOnChainConfig({ newTreasury: luxhubWallet })}
+                    title="Update treasury address on-chain"
+                  >
+                    Update
                   </button>
                 </div>
+
+                {/* Update Fee BPS */}
                 <div className={styles.configRow}>
-                  <span className={styles.configLabel}>Update</span>
+                  <span className={styles.configLabel}>Update Fee %</span>
+                  <input
+                    type="number"
+                    className={styles.configInput}
+                    placeholder="Fee in basis points (300 = 3%)"
+                    value={newFeeBps}
+                    onChange={(e) => setNewFeeBps(e.target.value)}
+                    min="0"
+                    max="1000"
+                  />
+                  <button
+                    className={styles.configBtn}
+                    onClick={() => updateOnChainConfig({ newFeeBps: parseInt(newFeeBps) || 0 })}
+                    title="Update fee percentage (max 10%)"
+                  >
+                    Update
+                  </button>
+                </div>
+
+                {/* Toggle Protocol Pause */}
+                <div className={styles.configRow}>
+                  <span className={styles.configLabel}>Emergency Pause</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={newPaused}
+                        onChange={(e) => setNewPaused(e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#c8a1ff' }}
+                      />
+                      <span style={{ color: newPaused ? '#ff6b6b' : '#4ade80' }}>
+                        {newPaused ? 'Pause Protocol' : 'Protocol Active'}
+                      </span>
+                    </label>
+                  </div>
+                  <button
+                    className={styles.configBtn}
+                    onClick={() => updateOnChainConfig({ newPaused })}
+                    title={
+                      newPaused
+                        ? 'Pause all marketplace operations'
+                        : 'Resume marketplace operations'
+                    }
+                    style={{ background: newPaused ? 'rgba(255,107,107,0.2)' : undefined }}
+                  >
+                    {newPaused ? 'Pause' : 'Resume'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Off-Chain Treasury (MongoDB) */}
+              <div className={styles.configSection}>
+                <h3 className={styles.configTitle}>
+                  <HiOutlineDatabase /> Off-Chain Config (Database)
+                </h3>
+                <div className={styles.configRow}>
+                  <span className={styles.configLabel}>Treasury Wallet</span>
                   <input
                     type="text"
                     className={styles.configInput}
@@ -1756,7 +2006,7 @@ const AdminDashboard: React.FC = () => {
                     onChange={(e) => setNewLuxhubWallet(e.target.value)}
                   />
                   <button className={styles.configBtn} onClick={updateEscrowConfig}>
-                    Update
+                    Update DB
                   </button>
                 </div>
               </div>
