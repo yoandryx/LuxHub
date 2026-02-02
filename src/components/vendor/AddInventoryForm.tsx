@@ -1361,88 +1361,166 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
                         )}
                       </div>
 
-                      {/* Field Details */}
+                      {/* Field Details - All Attributes */}
                       <div className={styles.bulkDetailFields}>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Brand</span>
-                          <span
-                            className={
-                              parsedRows[selectedBulkRow].brand
-                                ? styles.detailValue
-                                : styles.detailMissing
-                            }
-                          >
-                            {parsedRows[selectedBulkRow].brand || 'Missing'}
-                          </span>
+                        {/* Required Fields */}
+                        <div className={styles.detailSection}>
+                          <div className={styles.detailSectionTitle}>Required Fields</div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Brand</span>
+                            <span
+                              className={
+                                parsedRows[selectedBulkRow].brand
+                                  ? styles.detailValue
+                                  : styles.detailMissing
+                              }
+                            >
+                              {parsedRows[selectedBulkRow].brand || 'Missing'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Model</span>
+                            <span
+                              className={
+                                parsedRows[selectedBulkRow].model
+                                  ? styles.detailValue
+                                  : styles.detailMissing
+                              }
+                            >
+                              {parsedRows[selectedBulkRow].model || 'Missing'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Reference</span>
+                            <span
+                              className={
+                                parsedRows[selectedBulkRow].reference
+                                  ? styles.detailValue
+                                  : styles.detailMissing
+                              }
+                            >
+                              {parsedRows[selectedBulkRow].reference || 'Missing'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Price (USD)</span>
+                            <span
+                              className={
+                                parsedRows[selectedBulkRow].priceUSD
+                                  ? styles.detailValue
+                                  : styles.detailMissing
+                              }
+                            >
+                              {parsedRows[selectedBulkRow].priceUSD
+                                ? `$${Number(parsedRows[selectedBulkRow].priceUSD).toLocaleString()}`
+                                : 'Missing'}
+                            </span>
+                          </div>
                         </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Model</span>
-                          <span
-                            className={
-                              parsedRows[selectedBulkRow].model
-                                ? styles.detailValue
-                                : styles.detailMissing
-                            }
-                          >
-                            {parsedRows[selectedBulkRow].model || 'Missing'}
-                          </span>
+
+                        {/* Specifications */}
+                        <div className={styles.detailSection}>
+                          <div className={styles.detailSectionTitle}>Specifications</div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Condition</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].condition || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Material</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].material || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Movement</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].movement || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Case Size</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].caseSize || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Dial Color</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].dialColor || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Water Resistance</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].waterResistance || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Production Year</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].productionYear || '-'}
+                            </span>
+                          </div>
                         </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Reference</span>
-                          <span
-                            className={
-                              parsedRows[selectedBulkRow].reference
-                                ? styles.detailValue
-                                : styles.detailMissing
-                            }
-                          >
-                            {parsedRows[selectedBulkRow].reference || 'Missing'}
-                          </span>
+
+                        {/* Additional Info */}
+                        <div className={styles.detailSection}>
+                          <div className={styles.detailSectionTitle}>Additional Info</div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Box & Papers</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].boxPapers || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Country</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].country || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Limited Edition</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].limitedEdition || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Certificate</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].certificate || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Warranty</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].warrantyInfo || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Features</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].features || '-'}
+                            </span>
+                          </div>
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Provenance</span>
+                            <span className={styles.detailValue}>
+                              {parsedRows[selectedBulkRow].provenance || '-'}
+                            </span>
+                          </div>
                         </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Price</span>
-                          <span
-                            className={
-                              parsedRows[selectedBulkRow].priceUSD
-                                ? styles.detailValue
-                                : styles.detailMissing
-                            }
-                          >
-                            {parsedRows[selectedBulkRow].priceUSD
-                              ? `$${Number(parsedRows[selectedBulkRow].priceUSD).toLocaleString()}`
-                              : 'Missing'}
-                          </span>
-                        </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Condition</span>
-                          <span className={styles.detailValue}>
-                            {parsedRows[selectedBulkRow].condition || '-'}
-                          </span>
-                        </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Material</span>
-                          <span className={styles.detailValue}>
-                            {parsedRows[selectedBulkRow].material || '-'}
-                          </span>
-                        </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Movement</span>
-                          <span className={styles.detailValue}>
-                            {parsedRows[selectedBulkRow].movement || '-'}
-                          </span>
-                        </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Case Size</span>
-                          <span className={styles.detailValue}>
-                            {parsedRows[selectedBulkRow].caseSize || '-'}
-                          </span>
-                        </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailLabel}>Description</span>
-                          <span className={styles.detailValue}>
-                            {parsedRows[selectedBulkRow].description || '-'}
-                          </span>
-                        </div>
+
+                        {/* Description */}
+                        {parsedRows[selectedBulkRow].description && (
+                          <div className={styles.detailSection}>
+                            <div className={styles.detailSectionTitle}>Description</div>
+                            <p className={styles.detailDescription}>
+                              {parsedRows[selectedBulkRow].description}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 

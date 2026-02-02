@@ -122,6 +122,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // Log received attributes for debugging
+      console.log('📋 Received mint request data:', {
+        brand,
+        model,
+        referenceNumber,
+        priceUSD,
+        material,
+        productionYear,
+        movement,
+        caseSize,
+        waterResistance,
+        dialColor,
+        condition,
+        boxPapers,
+        limitedEdition,
+        country,
+        certificate,
+        warrantyInfo,
+        provenance,
+        features,
+        releaseDate,
+        hasImageBase64: !!imageBase64,
+        hasImageUrl: !!imageUrl,
+        imageBase64Preview: imageBase64?.substring(0, 100),
+        imageUrlPreview: imageUrl?.substring(0, 100),
+      });
+
       // Determine if imageBase64 is actually a URL
       let finalImageBase64 = imageBase64;
       let finalImageUrl = imageUrl;
@@ -129,10 +156,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (imageBase64 && !imageBase64.startsWith('data:')) {
         // It's a URL, not base64 - store in imageUrl instead
         if (imageBase64.startsWith('http://') || imageBase64.startsWith('https://')) {
+          console.log('🔄 Image is URL (not base64), moving to imageUrl field:', imageBase64);
           finalImageUrl = imageBase64;
           finalImageBase64 = ''; // Don't store URL in base64 field
         }
       }
+
+      console.log('💾 Final values to save:', {
+        finalImageBase64: finalImageBase64 ? `${finalImageBase64.substring(0, 50)}...` : '(empty)',
+        finalImageUrl: finalImageUrl || '(empty)',
+      });
 
       // Create the mint request
       const mintRequest = await MintRequest.create({

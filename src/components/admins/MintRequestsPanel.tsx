@@ -35,7 +35,13 @@ interface MintRequest {
   dialColor?: string;
   condition?: string;
   boxPapers?: string;
+  limitedEdition?: string;
   country?: string;
+  certificate?: string;
+  warrantyInfo?: string;
+  provenance?: string;
+  features?: string;
+  releaseDate?: string;
   status: 'pending' | 'approved' | 'rejected' | 'minted';
   adminNotes?: string;
   reviewedBy?: string;
@@ -43,6 +49,26 @@ interface MintRequest {
   mintAddress?: string;
   createdAt: string;
 }
+
+// Convert Dropbox share URL to displayable image URL
+const getDisplayImageUrl = (url?: string): string | null => {
+  if (!url) return null;
+
+  // Already a direct image or Irys URL
+  if (url.includes('gateway.irys.xyz') || url.includes('ipfs') || url.includes('pinata')) {
+    return url;
+  }
+
+  // Convert Dropbox share links to raw content
+  if (url.includes('dropbox.com')) {
+    return url
+      .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+      .replace(/[?&]dl=0/, '?raw=1')
+      .replace(/[?&]dl=1/, '?raw=1');
+  }
+
+  return url;
+};
 
 const MintRequestsPanel: React.FC = () => {
   const wallet = useWallet();
@@ -305,15 +331,26 @@ const MintRequestsPanel: React.FC = () => {
                       overflow: 'hidden',
                     }}
                   >
-                    {request.imageUrl ? (
+                    {getDisplayImageUrl(request.imageUrl) ? (
                       <img
-                        src={request.imageUrl}
+                        src={getDisplayImageUrl(request.imageUrl)!}
                         alt={request.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).nextElementSibling?.removeAttribute(
+                            'style'
+                          );
+                        }}
                       />
-                    ) : (
-                      <HiOutlinePhotograph style={{ fontSize: '1.5rem', color: '#666' }} />
-                    )}
+                    ) : null}
+                    <HiOutlinePhotograph
+                      style={{
+                        fontSize: '1.5rem',
+                        color: '#666',
+                        display: getDisplayImageUrl(request.imageUrl) ? 'none' : 'block',
+                      }}
+                    />
                   </div>
 
                   {/* Info */}
@@ -362,15 +399,39 @@ const MintRequestsPanel: React.FC = () => {
                     background: 'rgba(0, 0, 0, 0.2)',
                   }}
                 >
-                  {/* Details Grid */}
+                  {/* Large Image Preview */}
+                  {getDisplayImageUrl(request.imageUrl) && (
+                    <div style={{ marginBottom: '16px', textAlign: 'center' }}>
+                      <img
+                        src={getDisplayImageUrl(request.imageUrl)!}
+                        alt={request.title}
+                        style={{
+                          maxWidth: '300px',
+                          maxHeight: '300px',
+                          borderRadius: '12px',
+                          border: '1px solid #333',
+                          objectFit: 'contain',
+                        }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '8px' }}>
+                        Image will be uploaded to Irys (permanent storage) on mint
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Details Grid - All Attributes */}
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
                       gap: '12px',
                       marginBottom: '16px',
                     }}
                   >
+                    {/* Required Info */}
                     <div>
                       <span style={{ color: '#666', fontSize: '0.75rem' }}>Vendor Wallet</span>
                       <div style={{ color: '#fff', fontSize: '0.85rem', fontFamily: 'monospace' }}>
@@ -383,6 +444,20 @@ const MintRequestsPanel: React.FC = () => {
                         {formatDate(request.createdAt)}
                       </div>
                     </div>
+                    <div>
+                      <span style={{ color: '#666', fontSize: '0.75rem' }}>Reference #</span>
+                      <div style={{ color: '#c8a1ff', fontSize: '0.85rem', fontWeight: 600 }}>
+                        {request.referenceNumber}
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#666', fontSize: '0.75rem' }}>Price</span>
+                      <div style={{ color: '#22c55e', fontSize: '0.85rem', fontWeight: 600 }}>
+                        ${request.priceUSD?.toLocaleString()}
+                      </div>
+                    </div>
+
+                    {/* Specifications */}
                     {request.material && (
                       <div>
                         <span style={{ color: '#666', fontSize: '0.75rem' }}>Material</span>
@@ -395,6 +470,28 @@ const MintRequestsPanel: React.FC = () => {
                         <div style={{ color: '#fff', fontSize: '0.85rem' }}>{request.movement}</div>
                       </div>
                     )}
+                    {request.caseSize && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Case Size</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>{request.caseSize}</div>
+                      </div>
+                    )}
+                    {request.dialColor && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Dial Color</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                          {request.dialColor}
+                        </div>
+                      </div>
+                    )}
+                    {request.waterResistance && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Water Resistance</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                          {request.waterResistance}
+                        </div>
+                      </div>
+                    )}
                     {request.condition && (
                       <div>
                         <span style={{ color: '#666', fontSize: '0.75rem' }}>Condition</span>
@@ -405,7 +502,7 @@ const MintRequestsPanel: React.FC = () => {
                     )}
                     {request.productionYear && (
                       <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Year</span>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Production Year</span>
                         <div style={{ color: '#fff', fontSize: '0.85rem' }}>
                           {request.productionYear}
                         </div>
@@ -419,6 +516,60 @@ const MintRequestsPanel: React.FC = () => {
                         </div>
                       </div>
                     )}
+                    {request.country && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Country</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>{request.country}</div>
+                      </div>
+                    )}
+                    {request.limitedEdition && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Limited Edition</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                          {request.limitedEdition}
+                        </div>
+                      </div>
+                    )}
+                    {request.certificate && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Certificate</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                          {request.certificate}
+                        </div>
+                      </div>
+                    )}
+                    {request.warrantyInfo && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Warranty</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                          {request.warrantyInfo}
+                        </div>
+                      </div>
+                    )}
+                    {request.features && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Features</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>{request.features}</div>
+                      </div>
+                    )}
+                    {request.provenance && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Provenance</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                          {request.provenance}
+                        </div>
+                      </div>
+                    )}
+                    {request.releaseDate && (
+                      <div>
+                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Release Date</span>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                          {request.releaseDate}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mint Address (if minted) */}
                     {request.mintAddress && (
                       <div>
                         <span style={{ color: '#666', fontSize: '0.75rem' }}>Mint Address</span>
@@ -443,10 +594,21 @@ const MintRequestsPanel: React.FC = () => {
                     )}
                   </div>
 
+                  {/* Description */}
                   {request.description && (
                     <div style={{ marginBottom: '16px' }}>
                       <span style={{ color: '#666', fontSize: '0.75rem' }}>Description</span>
-                      <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                      <div
+                        style={{
+                          color: '#fff',
+                          fontSize: '0.85rem',
+                          background: 'rgba(255,255,255,0.02)',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '1px solid #222',
+                          marginTop: '4px',
+                        }}
+                      >
                         {request.description}
                       </div>
                     </div>
