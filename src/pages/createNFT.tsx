@@ -281,7 +281,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
     // Find vendor ID if this wallet belongs to an approved vendor
     const vendor = approvedVendors.find(
-      (v: { walletAddress?: string }) => v.walletAddress === targetWallet
+      (v: { wallet?: string; walletAddress?: string }) =>
+        (v.wallet || v.walletAddress) === targetWallet
     );
     const vendorId = vendor?._id;
 
@@ -1179,7 +1180,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
       // Check vendors
       const vendor = approvedVendors.find(
-        (v: { walletAddress?: string }) => v.walletAddress === address
+        (v: { wallet?: string; walletAddress?: string }) =>
+          (v.wallet || v.walletAddress) === address
       );
       if (vendor) {
         return `${(vendor as any).businessName || (vendor as any).username || 'Vendor'}`;
@@ -2184,9 +2186,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                       _id: string;
                       businessName?: string;
                       username?: string;
+                      wallet?: string;
                       walletAddress?: string;
                     }) => (
-                      <option key={v._id} value={v.walletAddress || ''}>
+                      <option key={v._id} value={v.wallet || v.walletAddress || ''}>
                         {v.businessName || v.username || 'Vendor'}
                       </option>
                     )
@@ -2308,9 +2311,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                               _id: string;
                               businessName?: string;
                               username?: string;
+                              wallet?: string;
                               walletAddress?: string;
                             }) => (
-                              <option key={v._id} value={v.walletAddress || ''}>
+                              <option key={v._id} value={v.wallet || v.walletAddress || ''}>
                                 {v.businessName || v.username || 'Vendor'}
                               </option>
                             )
@@ -2323,7 +2327,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                             if (vendorWallet) {
                               // Find vendor ID if this wallet belongs to an approved vendor
                               const vendor = approvedVendors.find(
-                                (v: { walletAddress?: string }) => v.walletAddress === vendorWallet
+                                (v: { wallet?: string; walletAddress?: string }) =>
+                                  (v.wallet || v.walletAddress) === vendorWallet
                               );
                               transferNft(nft.mintAddress!, vendorWallet, vendor?._id);
                             }
@@ -2381,7 +2386,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                     (w: { address: string }) => w.address === nft.currentOwner
                   );
                 const isVendor = approvedVendors.some(
-                  (v: { walletAddress?: string }) => v.walletAddress === nft.currentOwner
+                  (v: { wallet?: string; walletAddress?: string }) =>
+                    (v.wallet || v.walletAddress) === nft.currentOwner
                 );
 
                 // Map to NFTStatus
