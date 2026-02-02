@@ -83,6 +83,41 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
   const [parsedRows, setParsedRows] = useState<AssetRow[]>([]);
   const [previewRows, setPreviewRows] = useState<AssetRow[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedBulkRow, setSelectedBulkRow] = useState<number | null>(null);
+
+  // Validate a single bulk row
+  const validateBulkRow = (row: AssetRow) => {
+    const errors: string[] = [];
+    if (!row.brand?.trim()) errors.push('Brand');
+    if (!row.model?.trim()) errors.push('Model');
+    if (!row.reference?.trim()) errors.push('Reference');
+    if (!row.priceUSD || Number(row.priceUSD) <= 0) errors.push('Price');
+    if (!row.primary_image_url && !row.primary_image_file && !(row as any).imageBase64s?.length) {
+      errors.push('Image');
+    }
+    return errors;
+  };
+
+  // Get bulk validation stats
+  const getBulkValidationStats = () => {
+    let valid = 0;
+    let invalid = 0;
+    const allErrors: { row: number; errors: string[] }[] = [];
+
+    parsedRows.forEach((row, idx) => {
+      const errors = validateBulkRow(row);
+      if (errors.length === 0) {
+        valid++;
+      } else {
+        invalid++;
+        allErrors.push({ row: idx + 1, errors });
+      }
+    });
+
+    return { valid, invalid, total: parsedRows.length, allErrors };
+  };
+
+  const bulkStats = parsedRows.length > 0 ? getBulkValidationStats() : null;
 
   // Form validation helpers
   const requiredFields = [
@@ -842,42 +877,229 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
             </div>
 
             {/* Preview Table */}
-            {previewRows.length > 0 && (
+            {parsedRows.length > 0 && (
               <div className={styles.formCard}>
                 <div className={styles.formSectionTitle}>
                   <HiOutlineDocumentText />
                   <span>Preview ({parsedRows.length} assets)</span>
+                  {bulkStats && (
+                    <span className={styles.bulkStatsInline}>
+                      <span className={styles.validCount}>{bulkStats.valid} valid</span>
+                      {bulkStats.invalid > 0 && (
+                        <span className={styles.invalidCount}>{bulkStats.invalid} invalid</span>
+                      )}
+                    </span>
+                  )}
                 </div>
 
                 <div className={styles.previewTableWrapper}>
                   <table className={styles.previewTable}>
                     <thead>
                       <tr>
+                        <th>#</th>
+                        <th>Status</th>
                         <th>Brand</th>
                         <th>Model</th>
                         <th>Reference</th>
                         <th>Price</th>
-                        <th>Condition</th>
+                        <th>Image</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {previewRows.map((row, i) => (
-                        <tr key={i}>
-                          <td>{row.brand}</td>
-                          <td>{row.model}</td>
-                          <td>{row.reference || '-'}</td>
-                          <td>${Number(row.priceUSD).toLocaleString()}</td>
-                          <td>{row.condition || '-'}</td>
-                        </tr>
-                      ))}
+                      {parsedRows.map((row, i) => {
+                        const errors = validateBulkRow(row);
+                        const isValid = errors.length === 0;
+                        const hasImage =
+                          row.primary_image_url ||
+                          row.primary_image_file ||
+                          (row as any).imageBase64s?.length;
+
+                        return (
+                          <tr
+                            key={i}
+                            className={`${styles.bulkRow} ${!isValid ? styles.bulkRowInvalid : ''} ${selectedBulkRow === i ? styles.bulkRowSelected : ''}`}
+                            onClick={() => setSelectedBulkRow(selectedBulkRow === i ? null : i)}
+                          >
+                            <td className={styles.rowNumber}>{i + 1}</td>
+                            <td>
+                              {isValid ? (
+                                <span className={styles.rowStatusValid}>
+                                  <HiCheck /> OK
+                                </span>
+                              ) : (
+                                <span className={styles.rowStatusInvalid}>
+                                  <HiOutlineExclamationCircle /> {errors.length}
+                                </span>
+                              )}
+                            </td>
+                            <td className={!row.brand?.trim() ? styles.cellMissing : ''}>
+                              {row.brand || <span className={styles.missingText}>Missing</span>}
+                            </td>
+                            <td className={!row.model?.trim() ? styles.cellMissing : ''}>
+                              {row.model || <span className={styles.missingText}>Missing</span>}
+                            </td>
+                            <td className={!row.reference?.trim() ? styles.cellMissing : ''}>
+                              {row.reference || <span className={styles.missingText}>Missing</span>}
+                            </td>
+                            <td
+                              className={
+                                !row.priceUSD || Number(row.priceUSD) <= 0 ? styles.cellMissing : ''
+                              }
+                            >
+                              {row.priceUSD && Number(row.priceUSD) > 0 ? (
+                                `$${Number(row.priceUSD).toLocaleString()}`
+                              ) : (
+                                <span className={styles.missingText}>Missing</span>
+                              )}
+                            </td>
+                            <td className={!hasImage ? styles.cellMissing : ''}>
+                              {hasImage ? (
+                                <span className={styles.hasImage}>
+                                  <HiCheck />
+                                </span>
+                              ) : (
+                                <span className={styles.missingText}>Missing</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
 
-                {parsedRows.length > 5 && (
-                  <p className={styles.previewNote}>
-                    Showing first 5 of {parsedRows.length} assets
-                  </p>
+                {/* Expanded Row Detail */}
+                {selectedBulkRow !== null && parsedRows[selectedBulkRow] && (
+                  <div className={styles.bulkRowDetail}>
+                    <div className={styles.bulkRowDetailHeader}>
+                      <h4>Item #{selectedBulkRow + 1} Details</h4>
+                      <button
+                        className={styles.closeDetailBtn}
+                        onClick={() => setSelectedBulkRow(null)}
+                      >
+                        <HiOutlineX />
+                      </button>
+                    </div>
+
+                    <div className={styles.bulkDetailGrid}>
+                      {/* Image Preview */}
+                      <div className={styles.bulkDetailImage}>
+                        {(parsedRows[selectedBulkRow] as any).imageBase64s?.[0] ? (
+                          <img
+                            src={(parsedRows[selectedBulkRow] as any).imageBase64s[0]}
+                            alt="Preview"
+                          />
+                        ) : parsedRows[selectedBulkRow].primary_image_url ? (
+                          <img src={parsedRows[selectedBulkRow].primary_image_url} alt="Preview" />
+                        ) : (
+                          <div className={styles.noImage}>
+                            <HiOutlinePhotograph />
+                            <span>No image</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Field Details */}
+                      <div className={styles.bulkDetailFields}>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Brand</span>
+                          <span
+                            className={
+                              parsedRows[selectedBulkRow].brand
+                                ? styles.detailValue
+                                : styles.detailMissing
+                            }
+                          >
+                            {parsedRows[selectedBulkRow].brand || 'Missing'}
+                          </span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Model</span>
+                          <span
+                            className={
+                              parsedRows[selectedBulkRow].model
+                                ? styles.detailValue
+                                : styles.detailMissing
+                            }
+                          >
+                            {parsedRows[selectedBulkRow].model || 'Missing'}
+                          </span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Reference</span>
+                          <span
+                            className={
+                              parsedRows[selectedBulkRow].reference
+                                ? styles.detailValue
+                                : styles.detailMissing
+                            }
+                          >
+                            {parsedRows[selectedBulkRow].reference || 'Missing'}
+                          </span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Price</span>
+                          <span
+                            className={
+                              parsedRows[selectedBulkRow].priceUSD
+                                ? styles.detailValue
+                                : styles.detailMissing
+                            }
+                          >
+                            {parsedRows[selectedBulkRow].priceUSD
+                              ? `$${Number(parsedRows[selectedBulkRow].priceUSD).toLocaleString()}`
+                              : 'Missing'}
+                          </span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Condition</span>
+                          <span className={styles.detailValue}>
+                            {parsedRows[selectedBulkRow].condition || '-'}
+                          </span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Material</span>
+                          <span className={styles.detailValue}>
+                            {parsedRows[selectedBulkRow].material || '-'}
+                          </span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Movement</span>
+                          <span className={styles.detailValue}>
+                            {parsedRows[selectedBulkRow].movement || '-'}
+                          </span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Case Size</span>
+                          <span className={styles.detailValue}>
+                            {parsedRows[selectedBulkRow].caseSize || '-'}
+                          </span>
+                        </div>
+                        <div className={styles.detailRow}>
+                          <span className={styles.detailLabel}>Description</span>
+                          <span className={styles.detailValue}>
+                            {parsedRows[selectedBulkRow].description || '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Validation Status */}
+                    {(() => {
+                      const errors = validateBulkRow(parsedRows[selectedBulkRow]);
+                      return errors.length > 0 ? (
+                        <div className={styles.bulkDetailErrors}>
+                          <HiOutlineExclamationCircle />
+                          <span>Missing required: {errors.join(', ')}</span>
+                        </div>
+                      ) : (
+                        <div className={styles.bulkDetailValid}>
+                          <HiOutlineCheckCircle />
+                          <span>All required fields present</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
               </div>
             )}
@@ -899,8 +1121,102 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
             </button>
           </div>
 
-          {/* Instructions Sidebar */}
+          {/* Validation & Instructions Sidebar */}
           <div className={styles.instructionsColumn}>
+            {/* Bulk Validation Status */}
+            {bulkStats && (
+              <div className={styles.reviewCard}>
+                <h3 className={styles.instructionsTitle}>Bulk Validation</h3>
+
+                {/* Stats Summary */}
+                <div className={styles.bulkStatsGrid}>
+                  <div className={styles.bulkStatCard}>
+                    <span className={styles.bulkStatValue}>{bulkStats.total}</span>
+                    <span className={styles.bulkStatLabel}>Total Items</span>
+                  </div>
+                  <div className={`${styles.bulkStatCard} ${styles.bulkStatValid}`}>
+                    <span className={styles.bulkStatValue}>{bulkStats.valid}</span>
+                    <span className={styles.bulkStatLabel}>Valid</span>
+                  </div>
+                  <div
+                    className={`${styles.bulkStatCard} ${bulkStats.invalid > 0 ? styles.bulkStatInvalid : ''}`}
+                  >
+                    <span className={styles.bulkStatValue}>{bulkStats.invalid}</span>
+                    <span className={styles.bulkStatLabel}>Invalid</span>
+                  </div>
+                </div>
+
+                {/* Progress */}
+                <div className={styles.completionSection}>
+                  <div className={styles.completionHeader}>
+                    <span>Ready to Submit</span>
+                    <span
+                      className={styles.completionPercent}
+                      style={{
+                        color: bulkStats.invalid === 0 ? '#4caf50' : '#f44336',
+                      }}
+                    >
+                      {Math.round((bulkStats.valid / bulkStats.total) * 100)}%
+                    </span>
+                  </div>
+                  <div className={styles.progressBar}>
+                    <div
+                      className={styles.progressFill}
+                      style={{
+                        width: `${(bulkStats.valid / bulkStats.total) * 100}%`,
+                        background: bulkStats.invalid === 0 ? '#4caf50' : '#ffc107',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Invalid Items List */}
+                {bulkStats.invalid > 0 && (
+                  <div className={styles.invalidItemsList}>
+                    <div className={styles.invalidItemsHeader}>
+                      <HiOutlineExclamationCircle />
+                      <span>Items with errors ({bulkStats.invalid})</span>
+                    </div>
+                    <div className={styles.invalidItemsScroll}>
+                      {bulkStats.allErrors.slice(0, 10).map((item) => (
+                        <div
+                          key={item.row}
+                          className={styles.invalidItem}
+                          onClick={() => setSelectedBulkRow(item.row - 1)}
+                        >
+                          <span className={styles.invalidItemRow}>Row {item.row}</span>
+                          <span className={styles.invalidItemErrors}>
+                            Missing: {item.errors.join(', ')}
+                          </span>
+                        </div>
+                      ))}
+                      {bulkStats.allErrors.length > 10 && (
+                        <p className={styles.moreErrors}>
+                          +{bulkStats.allErrors.length - 10} more items with errors
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit Status */}
+                <div className={styles.submitStatus}>
+                  {bulkStats.invalid === 0 ? (
+                    <div className={styles.statusReady}>
+                      <HiOutlineCheckCircle />
+                      <span>All items valid - ready to submit</span>
+                    </div>
+                  ) : (
+                    <div className={styles.statusNotReady}>
+                      <HiOutlineExclamationCircle />
+                      <span>Fix errors before submitting</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Instructions */}
             <div className={styles.instructionsCard}>
               <h3 className={styles.instructionsTitle}>Bulk Upload Guide</h3>
 
@@ -939,8 +1255,9 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
               </div>
 
               <div className={styles.tipBox}>
-                <strong>Tip:</strong> For ZIP uploads, include images in the same folder as your CSV
-                and reference them by filename.
+                <strong>Required CSV columns:</strong>
+                <br />
+                brand, model, reference, priceUSD, primary_image_url (or primary_image_file)
               </div>
             </div>
           </div>
