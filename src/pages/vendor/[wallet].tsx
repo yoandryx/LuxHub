@@ -113,73 +113,45 @@ const VendorProfilePage = () => {
     if (!profile?.wallet) return;
 
     const fetchNFTs = async () => {
-      const res = await fetch('/api/pinata/nfts');
-      const pins = await res.json();
+      try {
+        // Fetch from database API (queries both Asset and NFT collections)
+        const res = await fetch(`/api/vendor/nfts?wallet=${profile.wallet}`);
+        const data = await res.json();
 
-      const grouped: Record<string, { json: any; cid: string; date: string }[]> = {};
-
-      for (const pin of pins) {
-        try {
-          const url = `${GATEWAY}${pin.ipfs_pin_hash}`;
-          const head = await fetch(url, { method: 'HEAD' });
-          if (!head.headers.get('Content-Type')?.includes('application/json')) continue;
-
-          const json = await (await fetch(url)).json();
-          const mint = json.mintAddress;
-          const isOwner =
-            json.currentOwner === profile.wallet ||
-            json.attributes?.find((a: any) => a.trait_type === 'Current Owner')?.value ===
-              profile.wallet;
-          const isSeller = json.seller === profile.wallet;
-          if (!mint || (!isOwner && !isSeller)) continue;
-
-          grouped[mint] = grouped[mint] || [];
-          grouped[mint].push({ json, cid: pin.ipfs_pin_hash, date: pin.date_pinned });
-        } catch {
-          // Skip invalid JSON entries
+        if (data.error) {
+          console.error('Error fetching NFTs:', data.error);
+          return;
         }
+
+        // Map API response to NFT interface
+        const result: NFT[] = (data.nfts || []).map((nft: any) => ({
+          mintAddress: nft.mintAddress,
+          title: nft.title || 'Untitled',
+          description: nft.description || '',
+          image: nft.image || '/fallback.png',
+          priceSol: nft.priceSol || 0,
+          metadataUri: nft.metadataUri || '',
+          currentOwner: nft.currentOwner || profile.wallet,
+          marketStatus: nft.status === 'listed' ? 'active' : nft.status || 'inactive',
+          nftId: nft.nftId || nft.mintAddress,
+          fileCid: nft.fileCid || '',
+          timestamp: nft.timestamp || Date.now(),
+          seller: nft.seller || profile.wallet,
+          attributes: nft.attributes || [],
+        }));
+
+        setNftData(result);
+
+        // Use stats from API
+        setStats({
+          totalItems: data.stats?.totalItems || result.length,
+          itemsListed:
+            data.stats?.itemsListed || result.filter((n) => n.marketStatus === 'active').length,
+          totalSales: data.stats?.totalSales || profile.totalSales || 0,
+        });
+      } catch (err) {
+        console.error('Failed to fetch NFTs:', err);
       }
-
-      const result: NFT[] = Object.entries(grouped).map(([mint, versions]) => {
-        const latest = versions.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0].json;
-        return {
-          mintAddress: mint,
-          title: latest.name || 'Untitled',
-          description: latest.description || '',
-          image: latest.image || '/fallback-nft.png',
-          priceSol: parseFloat(
-            latest.priceSol ||
-              latest.attributes?.find((a: any) => a.trait_type === 'Price')?.value ||
-              '0'
-          ),
-          metadataUri: `${GATEWAY}${versions[0].cid}`,
-          currentOwner:
-            latest.currentOwner ||
-            latest.attributes?.find((a: any) => a.trait_type === 'Current Owner')?.value ||
-            profile.wallet,
-          marketStatus:
-            latest.marketStatus ||
-            latest.attributes?.find((a: any) => a.trait_type === 'Market Status')?.value ||
-            'inactive',
-          nftId: mint,
-          fileCid: latest.image?.split('/').pop() || '',
-          timestamp: Date.now(),
-          seller: latest.seller || profile.wallet,
-          attributes: latest.attributes || [],
-        };
-      });
-
-      setNftData(result);
-
-      // Calculate stats
-      const listed = result.filter((n) => n.marketStatus === 'active').length;
-      setStats({
-        totalItems: result.length,
-        itemsListed: listed,
-        totalSales: profile.totalSales || 0,
-      });
     };
 
     fetchNFTs();
