@@ -30,13 +30,14 @@
 .card {
   position: relative;
   width: 100%;
-  max-width: 320px;
+  /* Removed fixed max-width to allow grid to control sizing */
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0; /* Allow shrinking in flex/grid containers */
 }
 
 .card:hover {
@@ -699,24 +700,24 @@
 /* ========== RESPONSIVE ========== */
 @media screen and (max-width: 640px) {
   .card {
-    max-width: 100%;
+    border-radius: 12px;
   }
 
   .statusBadge {
-    padding: 5px 8px;
-    font-size: 0.65rem;
+    padding: 4px 6px;
+    font-size: 0.6rem;
   }
 
   .overlay {
-    padding: 16px 12px;
+    padding: 12px 10px;
   }
 
   .overlayTitle {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
   }
 
   .overlayRow {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
 
   .overlayActions {
@@ -724,11 +725,11 @@
   }
 
   .footer {
-    padding: 12px 14px;
+    padding: 10px 12px;
   }
 
   .title {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 
   .variantList {
@@ -744,5 +745,33 @@
     border-left: none;
     border-top: 1px solid var(--border);
     border-radius: 0 0 12px 12px;
+  }
+}
+
+/* Extra small screens */
+@media screen and (max-width: 400px) {
+  .card {
+    border-radius: 10px;
+  }
+
+  .statusBadge {
+    padding: 3px 5px;
+    font-size: 0.55rem;
+  }
+
+  .footer {
+    padding: 8px 10px;
+  }
+
+  .title {
+    font-size: 0.75rem;
+  }
+
+  .priceAmount {
+    font-size: 0.85rem;
+  }
+
+  .priceCurrency {
+    font-size: 0.65rem;
   }
 }

@@ -739,10 +739,17 @@
   transition:
     transform 0.3s ease,
     opacity 0.3s ease;
+  min-width: 0; /* Allow shrinking in grid */
+  width: 100%;
 }
 
 .nftCardWrapper:hover {
   transform: translateY(-4px);
+}
+
+/* Ensure cards inside wrapper fill the space */
+.nftCardWrapper > div {
+  width: 100%;
 }
 
 /* List for Sale Button */
