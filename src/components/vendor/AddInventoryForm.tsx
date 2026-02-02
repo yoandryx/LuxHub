@@ -165,12 +165,14 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
     if (!publicKey || single.images.length === 0)
       return toast.error('Complete required fields and upload images');
     if (!single.brand || !single.model) return toast.error('Brand and Model are required');
+    if (!single.reference) return toast.error('Reference number is required');
+    if (!single.priceUSD || single.priceUSD <= 0) return toast.error('Valid price is required');
 
     setLoading(true);
     try {
       const imageBase64s = await Promise.all(single.images.map(fileToBase64));
 
-      await fetch('/api/asset/createPending', {
+      const res = await fetch('/api/vendor/mint-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -178,36 +180,45 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
           title: single.title || `${single.brand} ${single.model}`,
           brand: single.brand,
           model: single.model,
-          reference: single.reference,
+          referenceNumber: single.reference,
           description: single.description,
           priceUSD: single.priceUSD,
-          imageBase64s,
-          attributes: [
-            { trait_type: 'Condition', value: single.condition },
-            { trait_type: 'Production Year', value: single.productionYear },
-            { trait_type: 'Box & Papers', value: single.boxPapers },
-            { trait_type: 'Material', value: single.material },
-            { trait_type: 'Movement', value: single.movement },
-            { trait_type: 'Water Resistance', value: single.waterResistance },
-            { trait_type: 'Dial Color', value: single.dialColor },
-            { trait_type: 'Country', value: single.country },
-          ].filter((attr) => attr.value),
+          imageBase64: imageBase64s[0], // Primary image
+          // Optional attributes
+          condition: single.condition,
+          productionYear: single.productionYear,
+          boxPapers: single.boxPapers,
+          material: single.material,
+          movement: single.movement,
+          waterResistance: single.waterResistance,
+          dialColor: single.dialColor,
+          country: single.country,
+          releaseDate: single.releaseDate,
+          limitedEdition: single.limitedEdition,
+          certificate: single.certificate,
+          warrantyInfo: single.warrantyInfo,
         }),
       });
 
-      toast.success('Asset submitted for review!');
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Submission failed');
+      }
+
+      toast.success('Mint request submitted for admin review!');
       onSuccess();
       setSingle((prev) => ({
         ...prev,
         images: [],
         brand: '',
         model: '',
+        reference: '',
         title: '',
         description: '',
         priceUSD: 0,
       }));
-    } catch (err) {
-      toast.error('Submission failed');
+    } catch (err: any) {
+      toast.error(err.message || 'Submission failed');
     } finally {
       setLoading(false);
     }
@@ -215,42 +226,83 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
 
   const submitBulk = async () => {
     if (parsedRows.length === 0) return toast.error('No assets to submit');
+    if (!publicKey) return toast.error('Connect wallet first');
     setLoading(true);
     setProgress(`Submitting 0/${parsedRows.length}...`);
+
+    let successCount = 0;
+    let failCount = 0;
 
     try {
       for (let i = 0; i < parsedRows.length; i++) {
         const row = parsedRows[i];
         setProgress(`Submitting ${i + 1}/${parsedRows.length}...`);
 
-        await fetch('/api/asset/createPending', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet: publicKey?.toBase58(),
-            title: row.title || `${row.brand} ${row.model}`,
-            brand: row.brand,
-            model: row.model,
-            reference: row.reference,
-            description: row.description,
-            priceUSD: row.priceUSD,
-            imageBase64s: (row as any).imageBase64s || [],
-            attributes: [
-              { trait_type: 'Condition', value: row.condition },
-              { trait_type: 'Production Year', value: row.productionYear },
-              { trait_type: 'Box & Papers', value: row.boxPapers },
-              { trait_type: 'Material', value: row.material },
-              { trait_type: 'Movement', value: row.movement },
-              { trait_type: 'Water Resistance', value: row.waterResistance },
-              { trait_type: 'Dial Color', value: row.dialColor },
-              { trait_type: 'Country', value: row.country },
-            ].filter((attr) => attr.value),
-          }),
-        });
+        const imageBase64s = (row as any).imageBase64s || [];
+        const primaryImage = imageBase64s[0] || row.primary_image_url || '';
+
+        if (!primaryImage) {
+          console.warn(`Row ${i + 1}: No image, skipping`);
+          failCount++;
+          continue;
+        }
+
+        if (!row.reference) {
+          console.warn(`Row ${i + 1}: No reference number, skipping`);
+          failCount++;
+          continue;
+        }
+
+        try {
+          const res = await fetch('/api/vendor/mint-request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wallet: publicKey.toBase58(),
+              title: row.title || `${row.brand} ${row.model}`,
+              brand: row.brand,
+              model: row.model,
+              referenceNumber: row.reference,
+              description: row.description,
+              priceUSD: row.priceUSD,
+              imageBase64: primaryImage,
+              // Optional attributes
+              condition: row.condition,
+              productionYear: row.productionYear,
+              boxPapers: row.boxPapers,
+              material: row.material,
+              movement: row.movement,
+              waterResistance: row.waterResistance,
+              dialColor: row.dialColor,
+              country: row.country,
+              releaseDate: row.releaseDate,
+              limitedEdition: row.limitedEdition,
+              certificate: row.certificate,
+              warrantyInfo: row.warrantyInfo,
+            }),
+          });
+
+          if (res.ok) {
+            successCount++;
+          } else {
+            const data = await res.json();
+            console.warn(`Row ${i + 1} failed:`, data.error);
+            failCount++;
+          }
+        } catch (err) {
+          console.warn(`Row ${i + 1} error:`, err);
+          failCount++;
+        }
       }
 
-      toast.success('Bulk submission complete!');
-      onSuccess();
+      if (successCount > 0) {
+        toast.success(`${successCount} mint request(s) submitted for admin review!`);
+        onSuccess();
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount} item(s) failed to submit`);
+      }
+
       setParsedRows([]);
       setPreviewRows([]);
       setBulkFile(null);
