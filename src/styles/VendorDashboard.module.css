@@ -3232,3 +3232,201 @@
     transform: rotate(360deg);
   }
 }
+
+/* ========== MINT REQUEST STYLES ========== */
+
+/* Filter Tabs */
+.filterTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filterTab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #888;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterTab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: #444;
+  color: #fff;
+}
+
+.filterTab.activeFilter {
+  background: rgba(200, 161, 255, 0.1);
+  border-color: #c8a1ff;
+  color: #c8a1ff;
+}
+
+.filterCount {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.activeFilter .filterCount {
+  background: rgba(200, 161, 255, 0.2);
+}
+
+/* Request Status Bar */
+.requestStatusBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid #222;
+  margin-top: -1px;
+}
+
+.statusBadge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.requestActions {
+  display: flex;
+  gap: 6px;
+}
+
+.viewButton {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 6px;
+  color: #c8a1ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewButton:hover {
+  background: rgba(200, 161, 255, 0.2);
+  border-color: #c8a1ff;
+}
+
+/* Rejection Note */
+.rejectionNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(244, 67, 54, 0.1);
+  border-top: 1px solid rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  font-size: 12px;
+}
+
+.rejectionNote svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Minted Info */
+.mintedInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(76, 175, 80, 0.1);
+  border-top: 1px solid rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  font-size: 12px;
+}
+
+/* Modal Overlay */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  position: relative;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.modalClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.modalClose:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #555;
+}
+
+/* Request Detail Info */
+.requestDetailInfo {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #333;
+  border-radius: 8px;
+}
+
+.requestDetailInfo p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.requestDetailInfo p:last-child {
+  margin-bottom: 0;
+}
+
+.requestDetailInfo strong {
+  color: #fff;
+}
+
+.rejectionText {
+  color: #f44336 !important;
+}

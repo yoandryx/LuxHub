@@ -21,11 +21,40 @@ import {
   FiRefreshCw,
   FiKey,
   FiLock,
+  FiX,
+  FiAlertCircle,
 } from 'react-icons/fi';
 import AddInventoryForm from '../../components/vendor/AddInventoryForm';
 import toast from 'react-hot-toast';
 import { NFTGridCard } from '../../components/common/UnifiedNFTCard';
 import type { NFTStatus } from '../../components/common/UnifiedNFTCard';
+import { NftDetailCard } from '../../components/marketplace/NftDetailCard';
+
+interface MintRequest {
+  _id: string;
+  title: string;
+  brand: string;
+  model: string;
+  referenceNumber: string;
+  description?: string;
+  priceUSD: number;
+  imageBase64?: string;
+  imageUrl?: string;
+  status: 'pending' | 'approved' | 'minted' | 'rejected';
+  rejectionNotes?: string;
+  adminNotes?: string;
+  mintAddress?: string;
+  material?: string;
+  productionYear?: string;
+  movement?: string;
+  caseSize?: string;
+  waterResistance?: string;
+  dialColor?: string;
+  condition?: string;
+  boxPapers?: string;
+  country?: string;
+  createdAt: string;
+}
 
 const isValidUrl = (url: string) => {
   try {
@@ -73,6 +102,14 @@ const VendorDashboard = () => {
   const [vendorAssets, setVendorAssets] = useState<any[]>([]);
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+
+  // Mint requests state
+  const [mintRequests, setMintRequests] = useState<MintRequest[]>([]);
+  const [mintRequestsLoading, setMintRequestsLoading] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<MintRequest | null>(null);
+  const [requestFilter, setRequestFilter] = useState<
+    'all' | 'pending' | 'approved' | 'minted' | 'rejected'
+  >('all');
 
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -123,6 +160,82 @@ const VendorDashboard = () => {
       toast.error('Failed to load assets');
     } finally {
       setAssetsLoading(false);
+    }
+  };
+
+  const fetchMintRequests = async () => {
+    if (!publicKey) return;
+    setMintRequestsLoading(true);
+    try {
+      const res = await fetch(`/api/vendor/mint-request?wallet=${publicKey.toBase58()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const requests = data.requests || [];
+        setMintRequests(requests);
+
+        // Update metrics from mint requests
+        const pendingReview = requests.filter((r: MintRequest) => r.status === 'pending').length;
+        const totalValue = requests.reduce(
+          (sum: number, r: MintRequest) => sum + (r.priceUSD || 0),
+          0
+        );
+
+        setMetrics((prev) => ({
+          ...prev,
+          pendingReview,
+          totalInventoryValue: totalValue,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch mint requests:', err);
+      toast.error('Failed to load mint requests');
+    } finally {
+      setMintRequestsLoading(false);
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    if (!publicKey) return;
+    if (!confirm('Are you sure you want to cancel this mint request?')) return;
+
+    try {
+      const res = await fetch('/api/vendor/mint-request', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId,
+          wallet: publicKey.toBase58(),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success('Mint request cancelled');
+        fetchMintRequests();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to cancel request');
+      }
+    } catch (err) {
+      toast.error('Failed to cancel request');
+    }
+  };
+
+  const filteredRequests = mintRequests.filter((r) =>
+    requestFilter === 'all' ? true : r.status === requestFilter
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return '#ffc107';
+      case 'approved':
+        return '#2196f3';
+      case 'minted':
+        return '#4caf50';
+      case 'rejected':
+        return '#f44336';
+      default:
+        return '#888';
     }
   };
 
@@ -197,7 +310,7 @@ const VendorDashboard = () => {
       fetchOffers();
       fetchPayouts();
     } else if (activeTab === 'inventory') {
-      fetchVendorAssets();
+      fetchMintRequests();
     } else if (activeTab === 'orders') {
       fetchOrders();
     } else if (activeTab === 'offers') {
@@ -410,7 +523,7 @@ const VendorDashboard = () => {
       fetchOffers();
       fetchPayouts();
     } else if (activeTab === 'inventory') {
-      fetchVendorAssets();
+      fetchMintRequests();
     } else if (activeTab === 'orders') {
       fetchOrders();
     } else if (activeTab === 'offers') {
@@ -632,85 +745,211 @@ const VendorDashboard = () => {
           {/* Inventory Tab */}
           {activeTab === 'inventory' && (
             <>
-              <AddInventoryForm onSuccess={fetchVendorAssets} />
+              <AddInventoryForm onSuccess={fetchMintRequests} />
 
+              {/* Mint Requests Section */}
               <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Your Submitted Assets</h2>
+                <h2 className={styles.sectionTitle}>Your Mint Requests</h2>
               </div>
 
-              {assetsLoading ? (
+              {/* Filter Tabs */}
+              <div className={styles.filterTabs}>
+                {(['all', 'pending', 'approved', 'minted', 'rejected'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    className={`${styles.filterTab} ${requestFilter === filter ? styles.activeFilter : ''}`}
+                    onClick={() => setRequestFilter(filter)}
+                  >
+                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    {filter !== 'all' && (
+                      <span className={styles.filterCount}>
+                        {mintRequests.filter((r) => r.status === filter).length}
+                      </span>
+                    )}
+                    {filter === 'all' && (
+                      <span className={styles.filterCount}>{mintRequests.length}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {mintRequestsLoading ? (
                 <div className={styles.assetGrid}>
                   {[1, 2, 3, 4].map((i) => (
                     <AssetSkeleton key={i} />
                   ))}
                 </div>
-              ) : vendorAssets.length === 0 ? (
+              ) : filteredRequests.length === 0 ? (
                 <div className={styles.emptyState}>
                   <FiPackage className={styles.emptyIcon} />
-                  <p>No assets submitted yet. Add inventory above to request minting.</p>
+                  <p>
+                    {requestFilter === 'all'
+                      ? 'No mint requests yet. Add inventory above to request NFT minting.'
+                      : `No ${requestFilter} requests.`}
+                  </p>
                 </div>
               ) : (
                 <div className={styles.assetGrid}>
-                  {vendorAssets.map((asset: any) => {
-                    // Map asset status to NFTStatus
-                    const mapAssetStatus = (status: string): NFTStatus => {
+                  {filteredRequests.map((request) => {
+                    // Map request status to NFTStatus
+                    const mapStatus = (status: string): NFTStatus => {
                       switch (status) {
                         case 'pending':
                           return 'pending';
-                        case 'listed':
-                          return 'listed';
+                        case 'approved':
+                          return 'minting';
+                        case 'minted':
+                          return 'verified';
                         case 'rejected':
                           return 'error';
-                        case 'sold':
-                          return 'sold';
-                        case 'in_escrow':
-                          return 'escrow';
                         default:
                           return 'pending';
                       }
                     };
 
-                    const imageUrl = asset.imageIpfsUrls?.[0]
-                      ? `${process.env.NEXT_PUBLIC_GATEWAY_URL}${asset.imageIpfsUrls[0]}`
-                      : asset.imageBase64s?.[0] || undefined;
-
                     return (
-                      <div key={asset._id} className={styles.assetCardWrapper}>
-                        <NFTGridCard
-                          title={asset.model || asset.title || 'Untitled'}
-                          image={imageUrl}
-                          price={asset.priceUSD || 0}
-                          priceLabel="USD"
-                          brand={asset.brand}
-                          status={mapAssetStatus(asset.status)}
-                          subtitle={asset.reference || asset.serialNumber}
-                        />
-                        {asset.status === 'pending' && (
-                          <div className={styles.assetCardActions}>
+                      <div key={request._id} className={styles.assetCardWrapper}>
+                        <div
+                          onClick={() => setSelectedRequest(request)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <NFTGridCard
+                            title={request.title || `${request.brand} ${request.model}`}
+                            image={request.imageBase64 || request.imageUrl}
+                            price={request.priceUSD || 0}
+                            priceLabel="USD"
+                            brand={request.brand}
+                            status={mapStatus(request.status)}
+                            subtitle={request.referenceNumber}
+                          />
+                        </div>
+
+                        {/* Status Badge & Actions */}
+                        <div className={styles.requestStatusBar}>
+                          <span
+                            className={styles.statusBadge}
+                            style={{
+                              background: `${getStatusColor(request.status)}20`,
+                              color: getStatusColor(request.status),
+                            }}
+                          >
+                            {request.status.toUpperCase()}
+                          </span>
+
+                          <div className={styles.requestActions}>
                             <button
-                              className={styles.editButton}
-                              onClick={() => toast('Edit feature coming soon')}
-                              title="Edit asset"
+                              className={styles.viewButton}
+                              onClick={() => setSelectedRequest(request)}
+                              title="View details"
                             >
-                              <FiEdit2 />
+                              <FiEye />
                             </button>
-                            <button
-                              className={styles.deleteButton}
-                              onClick={() => handleDeleteAsset(asset._id)}
-                              disabled={deletingAssetId === asset._id}
-                              title="Delete asset"
-                            >
-                              {deletingAssetId === asset._id ? (
-                                <FiLoader className={styles.buttonSpinner} />
-                              ) : (
+                            {request.status === 'pending' && (
+                              <button
+                                className={styles.deleteButton}
+                                onClick={() => handleCancelRequest(request._id)}
+                                title="Cancel request"
+                              >
                                 <FiTrash2 />
-                              )}
-                            </button>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Rejection Notes */}
+                        {request.status === 'rejected' && request.rejectionNotes && (
+                          <div className={styles.rejectionNote}>
+                            <FiAlertCircle />
+                            <span>{request.rejectionNotes}</span>
+                          </div>
+                        )}
+
+                        {/* Minted Info */}
+                        {request.status === 'minted' && request.mintAddress && (
+                          <div className={styles.mintedInfo}>
+                            <FiCheckCircle />
+                            <span>Mint: {request.mintAddress.slice(0, 8)}...</span>
                           </div>
                         )}
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Detail Modal */}
+              {selectedRequest && (
+                <div className={styles.modalOverlay} onClick={() => setSelectedRequest(null)}>
+                  <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                    <button className={styles.modalClose} onClick={() => setSelectedRequest(null)}>
+                      <FiX />
+                    </button>
+
+                    <NftDetailCard
+                      onClose={() => setSelectedRequest(null)}
+                      mintAddress={selectedRequest.mintAddress}
+                      previewData={{
+                        title:
+                          selectedRequest.title ||
+                          `${selectedRequest.brand} ${selectedRequest.model}`,
+                        description: selectedRequest.description || '',
+                        image: selectedRequest.imageBase64 || selectedRequest.imageUrl || '',
+                        priceSol: selectedRequest.priceUSD || 0,
+                        attributes: [
+                          { trait_type: 'Brand', value: selectedRequest.brand },
+                          { trait_type: 'Model', value: selectedRequest.model },
+                          { trait_type: 'Reference', value: selectedRequest.referenceNumber },
+                          {
+                            trait_type: 'Price',
+                            value: `$${selectedRequest.priceUSD?.toLocaleString() || '0'}`,
+                          },
+                          { trait_type: 'Status', value: selectedRequest.status.toUpperCase() },
+                          ...(selectedRequest.material
+                            ? [{ trait_type: 'Material', value: selectedRequest.material }]
+                            : []),
+                          ...(selectedRequest.movement
+                            ? [{ trait_type: 'Movement', value: selectedRequest.movement }]
+                            : []),
+                          ...(selectedRequest.caseSize
+                            ? [{ trait_type: 'Case Size', value: selectedRequest.caseSize }]
+                            : []),
+                          ...(selectedRequest.dialColor
+                            ? [{ trait_type: 'Dial Color', value: selectedRequest.dialColor }]
+                            : []),
+                          ...(selectedRequest.condition
+                            ? [{ trait_type: 'Condition', value: selectedRequest.condition }]
+                            : []),
+                          ...(selectedRequest.boxPapers
+                            ? [{ trait_type: 'Box & Papers', value: selectedRequest.boxPapers }]
+                            : []),
+                          ...(selectedRequest.country
+                            ? [{ trait_type: 'Country', value: selectedRequest.country }]
+                            : []),
+                          ...(selectedRequest.productionYear
+                            ? [{ trait_type: 'Year', value: selectedRequest.productionYear }]
+                            : []),
+                        ],
+                      }}
+                    />
+
+                    {/* Additional Request Info */}
+                    <div className={styles.requestDetailInfo}>
+                      <p>
+                        <strong>Submitted:</strong>{' '}
+                        {new Date(selectedRequest.createdAt).toLocaleString()}
+                      </p>
+                      {selectedRequest.adminNotes && (
+                        <p>
+                          <strong>Admin Notes:</strong> {selectedRequest.adminNotes}
+                        </p>
+                      )}
+                      {selectedRequest.rejectionNotes && (
+                        <p className={styles.rejectionText}>
+                          <strong>Rejection Reason:</strong> {selectedRequest.rejectionNotes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </>
