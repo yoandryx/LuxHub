@@ -24,6 +24,8 @@
 
   position: relative;
   padding-bottom: 100px;
+  max-width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   font-family:
     'Clash Display',
     'Inter',
@@ -45,6 +47,7 @@
 .formColumn {
   flex: 1 1 500px;
   max-width: 700px;
+  min-width: 0; /* Prevent flex item from overflowing */
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -78,6 +81,8 @@
   box-shadow:
     0 20px 50px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden; /* Prevent children from overflowing */
+  max-width: 100%;
 }
 
 .formSectionTitle {
@@ -451,19 +456,42 @@
 .previewTableWrapper {
   overflow-x: auto;
   margin-top: 8px;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .previewTable {
   width: 100%;
+  min-width: 600px; /* Minimum width for readability */
   border-collapse: collapse;
   font-size: 0.85rem;
+  table-layout: fixed; /* Fixed layout for consistent column widths */
 }
 
 .previewTable th,
 .previewTable td {
-  padding: 12px 16px;
+  padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Column width distribution */
+.previewTable th:nth-child(1),
+.previewTable td:nth-child(1) {
+  width: 40px; /* Row number */
+}
+
+.previewTable th:nth-child(2),
+.previewTable td:nth-child(2) {
+  width: 70px; /* Status */
+}
+
+.previewTable th:nth-child(7),
+.previewTable td:nth-child(7) {
+  width: 60px; /* Image */
 }
 
 .previewTable th {
@@ -856,9 +884,12 @@
   background: rgba(13, 13, 13, 0.95);
   border: 1px solid var(--accent-dim);
   border-radius: 12px;
-  margin: 12px;
+  margin: 12px 0;
   padding: 20px;
   animation: slideDown 0.2s ease;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 @keyframes slideDown {
@@ -912,14 +943,17 @@
 
 .bulkDetailGrid {
   display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 20px;
+  grid-template-columns: 100px 1fr;
+  gap: 16px;
   align-items: start;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .bulkDetailImage {
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -944,8 +978,10 @@
 
 .bulkDetailFields {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  min-width: 0; /* Prevent grid from overflowing */
+  overflow: hidden;
 }
 
 .detailField {
@@ -1119,6 +1155,8 @@
   gap: 4px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
+  min-width: 0; /* Allow text truncation */
+  overflow: hidden;
 }
 
 .detailRow:last-child {
@@ -1137,6 +1175,9 @@
   font-size: 13px;
   color: var(--text-primary);
   word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .detailMissing {
