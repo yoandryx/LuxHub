@@ -40,14 +40,17 @@ const FUNDS_MINT = 'So11111111111111111111111111111111111111112';
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
 interface NFT {
+  _id?: string; // Asset ID for database operations
   title: string;
   description: string;
   image: string;
   priceSol: number;
+  priceUSD?: number;
   mintAddress: string;
   metadataUri: string;
   currentOwner: string;
   marketStatus: string;
+  status?: string; // Raw status from database
   nftId: string;
   fileCid: string;
   timestamp: number;
@@ -79,6 +82,7 @@ const VendorProfilePage = () => {
     totalSales: 0,
   });
   const [showDetailCard, setShowDetailCard] = useState(false);
+  const [listingAssetId, setListingAssetId] = useState<string | null>(null);
 
   const connection = useMemo(
     () =>
@@ -125,14 +129,17 @@ const VendorProfilePage = () => {
 
         // Map API response to NFT interface
         const result: NFT[] = (data.nfts || []).map((nft: any) => ({
+          _id: nft._id,
           mintAddress: nft.mintAddress,
           title: nft.title || 'Untitled',
           description: nft.description || '',
           image: nft.image || '/fallback.png',
           priceSol: nft.priceSol || 0,
+          priceUSD: nft.priceUSD || 0,
           metadataUri: nft.metadataUri || '',
           currentOwner: nft.currentOwner || profile.wallet,
           marketStatus: nft.status === 'listed' ? 'active' : nft.status || 'inactive',
+          status: nft.status, // Raw status for listing check
           nftId: nft.nftId || nft.mintAddress,
           fileCid: nft.fileCid || '',
           timestamp: nft.timestamp || Date.now(),
@@ -246,6 +253,51 @@ const VendorProfilePage = () => {
       navigator.clipboard.writeText(profile.wallet);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleListForSale = async (nft: NFT) => {
+    if (!wallet.publicKey || !nft._id) return;
+
+    const confirmed = window.confirm(
+      `List "${nft.title}" for sale at $${nft.priceUSD?.toLocaleString() || nft.priceSol} ?`
+    );
+    if (!confirmed) return;
+
+    setListingAssetId(nft._id);
+
+    try {
+      const res = await fetch('/api/vendor/assets/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assetId: nft._id,
+          wallet: wallet.publicKey.toBase58(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Update local state to reflect the listing
+        setNftData((prev) =>
+          prev.map((n) =>
+            n._id === nft._id ? { ...n, status: 'listed', marketStatus: 'active' } : n
+          )
+        );
+        setStats((prev) => ({
+          ...prev,
+          itemsListed: prev.itemsListed + 1,
+        }));
+        alert('Successfully listed for sale!');
+      } else {
+        alert(data.error || 'Failed to list for sale');
+      }
+    } catch (err) {
+      console.error('Failed to list for sale:', err);
+      alert('Failed to list for sale. Please try again.');
+    } finally {
+      setListingAssetId(null);
     }
   };
 
@@ -515,6 +567,19 @@ const VendorProfilePage = () => {
                       setShowDetailCard(true);
                     }}
                   />
+                  {/* List for Sale button for own pending NFTs */}
+                  {isOwnProfile && nft.status === 'pending' && nft._id && (
+                    <button
+                      className={styles.listForSaleBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleListForSale(nft);
+                      }}
+                      disabled={listingAssetId === nft._id}
+                    >
+                      {listingAssetId === nft._id ? 'Listing...' : 'List for Sale'}
+                    </button>
+                  )}
                 </motion.div>
               ))}
             </div>
