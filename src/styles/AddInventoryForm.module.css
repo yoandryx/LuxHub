@@ -761,3 +761,466 @@
     gap: 6px;
   }
 }
+
+/* ========== BULK VALIDATION STYLES ========== */
+
+/* Inline Stats in Table Header */
+.bulkStatsInline {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.validCount {
+  color: #4caf50;
+}
+
+.invalidCount {
+  color: #f44336;
+}
+
+/* Table Row Styles */
+.bulkRow {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.bulkRow:hover {
+  background: rgba(200, 161, 255, 0.05) !important;
+}
+
+.bulkRowInvalid {
+  background: rgba(244, 67, 54, 0.05);
+}
+
+.bulkRowSelected {
+  background: rgba(200, 161, 255, 0.1) !important;
+  border-left: 3px solid var(--accent);
+}
+
+/* Row Status Indicators */
+.rowStatusValid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(76, 175, 80, 0.15);
+  border-radius: 50%;
+  color: #4caf50;
+  font-size: 14px;
+}
+
+.rowStatusInvalid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(244, 67, 54, 0.15);
+  border-radius: 50%;
+  color: #f44336;
+  font-size: 14px;
+}
+
+/* Cell Missing/Present Indicators */
+.cellMissing {
+  color: #f44336;
+}
+
+.missingText {
+  font-style: italic;
+  color: #f44336;
+  font-size: 11px;
+}
+
+.hasImage {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #4caf50;
+  font-size: 12px;
+}
+
+.noImage {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #f44336;
+  font-size: 12px;
+}
+
+/* Expanded Row Detail */
+.bulkRowDetail {
+  background: rgba(13, 13, 13, 0.95);
+  border: 1px solid var(--accent-dim);
+  border-radius: 12px;
+  margin: 12px;
+  padding: 20px;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bulkRowDetailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bulkRowDetailHeader h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.closeDetailBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.closeDetailBtn:hover {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: #f44336;
+  color: #f44336;
+}
+
+.bulkDetailGrid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.bulkDetailImage {
+  width: 120px;
+  height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bulkDetailImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bulkDetailImage span {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 10px;
+}
+
+.bulkDetailFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.detailField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detailFieldLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.detailFieldValue {
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.detailFieldValue.missing {
+  color: #f44336;
+  font-style: italic;
+}
+
+/* Sidebar Validation Stats */
+.bulkStatsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.bulkStatCard {
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.bulkStatCard h4 {
+  margin: 0 0 6px 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.bulkStatCard p {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.bulkStatValid {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.bulkStatValid h4 {
+  color: #4caf50;
+}
+
+.bulkStatInvalid {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.bulkStatInvalid h4 {
+  color: #f44336;
+}
+
+/* Invalid Items List */
+.invalidItemsList {
+  margin-top: 16px;
+}
+
+.invalidItemsHeader {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.invalidItemsScroll {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.invalidItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(244, 67, 54, 0.05);
+  border: 1px solid rgba(244, 67, 54, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.invalidItem:hover {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: rgba(244, 67, 54, 0.4);
+}
+
+.invalidItemRow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.invalidItemErrors {
+  font-size: 11px;
+  color: #f44336;
+}
+
+/* Bulk Processing Progress */
+.bulkProcessingInfo {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid var(--accent-dim);
+  border-radius: 10px;
+}
+
+.bulkProcessingInfo p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.bulkProcessingInfo strong {
+  color: var(--accent);
+}
+
+/* Responsive for Bulk Validation */
+@media (max-width: 768px) {
+  .bulkDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .bulkDetailImage {
+    width: 100%;
+    height: 160px;
+  }
+
+  .bulkStatsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .invalidItemsScroll {
+    max-height: 150px;
+  }
+}
+
+/* Detail Row Styles (for expanded bulk view) */
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.detailRow:last-child {
+  border-bottom: none;
+}
+
+.detailLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.detailValue {
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.detailMissing {
+  font-size: 13px;
+  color: #f44336;
+  font-style: italic;
+}
+
+/* Bulk Detail Validation Status */
+.bulkDetailErrors {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 10px;
+  color: #f44336;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bulkDetailErrors svg {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.bulkDetailValid {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 10px;
+  color: #4caf50;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bulkDetailValid svg {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Bulk Stat Card Values */
+.bulkStatValue {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.bulkStatLabel {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.bulkStatValid .bulkStatValue {
+  color: #4caf50;
+}
+
+.bulkStatInvalid .bulkStatValue {
+  color: #f44336;
+}
+
+/* Row Number Column */
+.rowNumber {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* More Errors Text */
+.moreErrors {
+  margin: 8px 0 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
