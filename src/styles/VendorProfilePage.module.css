@@ -656,6 +656,31 @@
   transform: translateY(-4px);
 }
 
+/* List for Sale Button */
+.listForSaleBtn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--accent) 0%, #9b5de5 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.listForSaleBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(200, 161, 255, 0.4);
+}
+
+.listForSaleBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Empty State */
 .emptyState {
   display: flex;
