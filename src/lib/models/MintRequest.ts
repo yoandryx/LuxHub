@@ -53,6 +53,20 @@ const MintRequestSchema = new mongoose.Schema(
     mintedBy: { type: String }, // Wallet that executed the mint
     mintedAt: { type: Date },
     mintAddress: { type: String }, // NFT mint address after minting
+    mintSignature: { type: String }, // Transaction signature
+
+    // Pending mint state (for client-side signing flow)
+    pendingMint: {
+      type: {
+        assetPublicKey: String,
+        metadataUri: String,
+        imageUrl: String,
+        imageTxId: String,
+        preparedAt: Date,
+        preparedBy: String,
+      },
+      required: false,
+    },
 
     // Squads integration
     squadsProposalIndex: { type: Number }, // If minted through Squads
