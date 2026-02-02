@@ -40,7 +40,11 @@ import {
   IoFlameOutline,
   IoCheckboxOutline,
   IoSquareOutline,
+  IoPinOutline,
+  IoPin,
 } from 'react-icons/io5';
+import { HiOutlineShoppingCart } from 'react-icons/hi';
+import toast from 'react-hot-toast';
 import DelistRequestModal from '../../components/vendor/DelistRequestModal';
 import BulkDelistModal from '../../components/vendor/BulkDelistModal';
 
@@ -104,6 +108,13 @@ const VendorProfilePage = () => {
   const [selectedNfts, setSelectedNfts] = useState<Set<string>>(new Set());
   const [showBulkDelistModal, setShowBulkDelistModal] = useState(false);
 
+  // Pinned NFTs (max 3)
+  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
+  const [pinningId, setPinningId] = useState<string | null>(null);
+
+  // Buying state
+  const [buyingMint, setBuyingMint] = useState<string | null>(null);
+
   const connection = useMemo(
     () =>
       new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'),
@@ -123,6 +134,10 @@ const VendorProfilePage = () => {
         const res = await fetch(`/api/vendor/profile?wallet=${query.wallet}`);
         const data = await res.json();
         setProfile(data?.error ? null : data);
+        // Load pinned asset IDs from profile
+        if (data?.pinnedAssets && Array.isArray(data.pinnedAssets)) {
+          setPinnedIds(data.pinnedAssets);
+        }
       } catch (err) {
         setError('Failed to load profile');
       } finally {
@@ -383,6 +398,166 @@ const VendorProfilePage = () => {
   // Get selected NFT objects for bulk modal
   const getSelectedNftObjects = () => {
     return nftData.filter((nft) => nft._id && selectedNfts.has(nft._id));
+  };
+
+  // Get pinned NFTs
+  const pinnedNfts = nftData.filter((nft) => nft._id && pinnedIds.includes(nft._id));
+
+  // Pin/Unpin an NFT (max 3)
+  const togglePin = async (nftId: string) => {
+    if (!wallet.publicKey || !profile?.wallet) return;
+
+    const isPinned = pinnedIds.includes(nftId);
+    const newPinnedIds = isPinned
+      ? pinnedIds.filter((id) => id !== nftId)
+      : pinnedIds.length < 3
+        ? [...pinnedIds, nftId]
+        : pinnedIds;
+
+    if (!isPinned && pinnedIds.length >= 3) {
+      toast.error('You can only pin up to 3 items');
+      return;
+    }
+
+    setPinningId(nftId);
+
+    try {
+      const res = await fetch('/api/vendor/updateProfile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: wallet.publicKey.toBase58(),
+          pinnedAssets: newPinnedIds,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success || !data.error) {
+        setPinnedIds(newPinnedIds);
+        toast.success(isPinned ? 'Unpinned from profile' : 'Pinned to profile');
+      } else {
+        toast.error(data.error || 'Failed to update pins');
+      }
+    } catch (err) {
+      console.error('Failed to toggle pin:', err);
+      toast.error('Failed to update pins');
+    } finally {
+      setPinningId(null);
+    }
+  };
+
+  // Handle purchase from vendor profile
+  const handleBuyNow = async (nft: NFT) => {
+    if (!wallet.publicKey || !program) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    if (wallet.publicKey.toBase58() === profile?.wallet) {
+      toast.error("You can't buy your own NFT");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Purchase "${nft.title}" for ${nft.priceSol} SOL ($${nft.priceUSD?.toLocaleString() || '?'})?`
+    );
+    if (!confirmed) return;
+
+    setBuyingMint(nft.mintAddress);
+
+    try {
+      const buyer = wallet.publicKey;
+      const nftMint = new PublicKey(nft.mintAddress);
+      const fundsMint = new PublicKey(FUNDS_MINT);
+      const priceLamports = Math.floor(nft.priceSol * LAMPORTS_PER_SOL);
+
+      const buyerFundsAta = await getAssociatedTokenAddress(fundsMint, buyer);
+      const buyerNftAta = await getAssociatedTokenAddress(nftMint, buyer);
+      const buyerFundsInfo = await connection.getAccountInfo(buyerFundsAta);
+      const buyerNftInfo = await connection.getAccountInfo(buyerNftAta);
+
+      const balance = await connection.getBalance(buyer);
+      if (balance < priceLamports + 1_000_000) {
+        toast.error('Not enough SOL in wallet');
+        setBuyingMint(null);
+        return;
+      }
+
+      const preIx: TransactionInstruction[] = [];
+
+      if (!buyerFundsInfo)
+        preIx.push(createAssociatedTokenAccountInstruction(buyer, buyerFundsAta, buyer, fundsMint));
+      if (!buyerNftInfo)
+        preIx.push(createAssociatedTokenAccountInstruction(buyer, buyerNftAta, buyer, nftMint));
+
+      preIx.push(
+        SystemProgram.transfer({
+          fromPubkey: buyer,
+          toPubkey: buyerFundsAta,
+          lamports: priceLamports,
+        }),
+        createSyncNativeInstruction(buyerFundsAta)
+      );
+
+      // Find escrow PDA
+      const escrowAccounts = await (program.account as any).escrow.all([
+        { memcmp: { offset: 113, bytes: nft.mintAddress } },
+      ]);
+
+      if (escrowAccounts.length !== 1) {
+        toast.error('Escrow not found for this NFT');
+        setBuyingMint(null);
+        return;
+      }
+
+      const escrowPda = escrowAccounts[0].publicKey;
+      const vault = await getAssociatedTokenAddress(fundsMint, escrowPda, true);
+
+      if (!(await connection.getAccountInfo(vault))) {
+        preIx.push(createAssociatedTokenAccountInstruction(buyer, vault, escrowPda, fundsMint));
+      }
+
+      await program.methods
+        .exchange()
+        .preInstructions(preIx)
+        .accounts({
+          taker: buyer,
+          mintA: fundsMint,
+          mintB: nftMint,
+          takerFundsAta: buyerFundsAta,
+          takerNftAta: buyerNftAta,
+          vault,
+          escrow: escrowPda,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
+          systemProgram: SystemProgram.programId,
+          rent: SYSVAR_RENT_PUBKEY,
+        })
+        .rpc();
+
+      // Update backend
+      await fetch('/api/nft/updateBuyer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyer: buyer.toBase58(),
+          mintAddress: nft.mintAddress,
+          vaultAta: vault.toBase58(),
+          priceSol: nft.priceSol,
+        }),
+      });
+
+      toast.success('Purchase successful!');
+
+      // Remove from local state
+      setNftData((prev) => prev.filter((n) => n.mintAddress !== nft.mintAddress));
+    } catch (e: any) {
+      console.error('Purchase error:', e);
+      toast.error('Purchase failed: ' + (e.message || 'Unknown error'));
+    } finally {
+      setBuyingMint(null);
+    }
   };
 
   const formatDate = (timestamp?: number | string) => {
@@ -706,6 +881,62 @@ const VendorProfilePage = () => {
           )}
         </div>
 
+        {/* Pinned Section - Show at top when there are pinned items */}
+        {pinnedNfts.length > 0 && activeFilter !== 'burned' && !selectionMode && (
+          <div className={styles.pinnedSection}>
+            <div className={styles.pinnedHeader}>
+              <IoPin />
+              <span>Pinned ({pinnedNfts.length}/3)</span>
+            </div>
+            <div className={styles.pinnedGrid}>
+              {pinnedNfts.map((nft) => (
+                <motion.div
+                  key={`pinned-${nft.mintAddress}`}
+                  className={styles.nftCardWrapper}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  style={{ position: 'relative' }}
+                >
+                  <div className={styles.pinnedBadge}>
+                    <IoPin size={10} /> Pinned
+                  </div>
+                  <NFTCard
+                    nft={{
+                      nftId: nft.nftId,
+                      fileCid: nft.fileCid,
+                      title: nft.title,
+                      image: nft.image,
+                      salePrice: nft.priceSol,
+                      seller: profile?.wallet || nft.seller,
+                      marketStatus: nft.marketStatus,
+                      timestamp: nft.timestamp,
+                      attributes: nft.attributes,
+                    }}
+                    onClick={() => {
+                      setSelectedNFT(nft);
+                      setShowDetailCard(true);
+                    }}
+                  />
+                  {/* Buy button for visitors on listed pinned NFTs */}
+                  {!isOwnProfile && nft.status === 'listed' && (
+                    <button
+                      className={styles.buyBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBuyNow(nft);
+                      }}
+                      disabled={buyingMint === nft.mintAddress}
+                    >
+                      <HiOutlineShoppingCart style={{ marginRight: '6px' }} />
+                      {buyingMint === nft.mintAddress ? 'Processing...' : `Buy ${nft.priceSol} SOL`}
+                    </button>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* NFT Grid - Using NFTCard component */}
         <div className={styles.gridSection}>
           {filteredNFTs.length > 0 ? (
@@ -760,6 +991,25 @@ const VendorProfilePage = () => {
                     </div>
                   )}
 
+                  {/* Pin button for owners (not in selection mode, not burned) */}
+                  {isOwnProfile && !selectionMode && nft._id && activeFilter !== 'burned' && (
+                    <button
+                      className={`${styles.pinBtn} ${pinnedIds.includes(nft._id) ? styles.pinned : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePin(nft._id!);
+                      }}
+                      disabled={pinningId === nft._id}
+                      title={pinnedIds.includes(nft._id) ? 'Unpin from profile' : 'Pin to profile'}
+                    >
+                      {pinnedIds.includes(nft._id) ? (
+                        <IoPin size={16} />
+                      ) : (
+                        <IoPinOutline size={16} />
+                      )}
+                    </button>
+                  )}
+
                   <NFTCard
                     nft={{
                       nftId: nft.nftId,
@@ -781,30 +1031,56 @@ const VendorProfilePage = () => {
                       }
                     }}
                   />
-                  {/* List for Sale button for own pending NFTs */}
-                  {isOwnProfile && nft.status === 'pending' && nft._id && !selectionMode && (
-                    <button
-                      className={styles.listForSaleBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleListForSale(nft);
-                      }}
-                      disabled={listingAssetId === nft._id}
-                    >
-                      {listingAssetId === nft._id ? 'Listing...' : 'List for Sale'}
-                    </button>
-                  )}
-                  {/* Request Delist button for own listed NFTs */}
-                  {isOwnProfile && nft.status === 'listed' && nft._id && !selectionMode && (
-                    <button
-                      className={styles.delistBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDelistingNft(nft);
-                      }}
-                    >
-                      Request Delist
-                    </button>
+
+                  {/* Action buttons */}
+                  {!selectionMode && (
+                    <>
+                      {/* List for Sale button for own pending NFTs */}
+                      {isOwnProfile && nft.status === 'pending' && nft._id && (
+                        <button
+                          className={styles.listForSaleBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleListForSale(nft);
+                          }}
+                          disabled={listingAssetId === nft._id}
+                        >
+                          {listingAssetId === nft._id ? 'Listing...' : 'List for Sale'}
+                        </button>
+                      )}
+
+                      {/* Request Delist button for own listed NFTs */}
+                      {isOwnProfile && nft.status === 'listed' && nft._id && (
+                        <button
+                          className={styles.delistBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDelistingNft(nft);
+                          }}
+                        >
+                          Request Delist
+                        </button>
+                      )}
+
+                      {/* Buy button for visitors on listed NFTs */}
+                      {!isOwnProfile && nft.status === 'listed' && (
+                        <button
+                          className={styles.buyBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBuyNow(nft);
+                          }}
+                          disabled={buyingMint === nft.mintAddress}
+                        >
+                          <HiOutlineShoppingCart
+                            style={{ marginRight: '6px', verticalAlign: 'middle' }}
+                          />
+                          {buyingMint === nft.mintAddress
+                            ? 'Processing...'
+                            : `Buy ${nft.priceSol} SOL`}
+                        </button>
+                      )}
+                    </>
                   )}
                 </motion.div>
               ))}

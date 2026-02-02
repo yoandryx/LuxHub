@@ -33,6 +33,9 @@ const VendorSchema = new Schema(
     },
     listingsCount: { type: Number, default: 0 },
     deleted: { type: Boolean, default: false },
+
+    // Pinned assets (max 3) - displayed prominently on vendor profile
+    pinnedAssets: [{ type: Schema.Types.ObjectId, ref: 'Asset' }],
   },
   { timestamps: true }
 );
