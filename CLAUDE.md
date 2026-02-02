@@ -296,7 +296,7 @@ Detailed documentation is organized in `.claude/docs/`:
 
 ## Program IDs
 
-- **Marketplace Escrow:** `DvgSgG87eMGj87zxeME8YENogxwAhCAZNVT2vZDTYH8y` (Devnet)
+- **Marketplace Escrow:** `kW2w2pHhAP8hFGRLganziunchKu6tjaXyomvF6jxNpj` (Devnet)
 
 ## Partnership Integrations
 
