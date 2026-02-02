@@ -16,6 +16,7 @@ const AssetSchema = new Schema(
       },
     ],
     nftOwnerWallet: String, // Tracks current NFT owner (updates on sale/transfer)
+    mintedBy: { type: String, index: true }, // Admin wallet who originally minted this NFT
     images: [String],
     imageIpfsUrls: [String],
     metadataIpfsUrl: String,
