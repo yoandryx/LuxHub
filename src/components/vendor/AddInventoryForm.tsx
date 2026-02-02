@@ -28,6 +28,7 @@ interface AssetRow {
   boxPapers?: string;
   material?: string;
   movement?: string;
+  caseSize?: string;
   waterResistance?: string;
   dialColor?: string;
   country?: string;
@@ -35,6 +36,8 @@ interface AssetRow {
   limitedEdition?: string;
   certificate?: string;
   warrantyInfo?: string;
+  provenance?: string;
+  features?: string;
 }
 
 export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void }) {
@@ -55,6 +58,7 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
     boxPapers: 'Yes',
     material: '',
     movement: '',
+    caseSize: '',
     waterResistance: '',
     dialColor: '',
     country: '',
@@ -62,6 +66,8 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
     limitedEdition: '',
     certificate: '',
     warrantyInfo: '',
+    provenance: '',
+    features: '',
     images: [] as File[],
   });
 
@@ -197,6 +203,9 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
           limitedEdition: single.limitedEdition,
           certificate: single.certificate,
           warrantyInfo: single.warrantyInfo,
+          caseSize: single.caseSize,
+          provenance: single.provenance,
+          features: single.features,
         }),
       });
 
@@ -279,6 +288,9 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
               limitedEdition: row.limitedEdition,
               certificate: row.certificate,
               warrantyInfo: row.warrantyInfo,
+              caseSize: row.caseSize,
+              provenance: row.provenance,
+              features: row.features,
             }),
           });
 
@@ -491,6 +503,16 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
                 </div>
 
                 <div className={styles.formField}>
+                  <label className={styles.formLabel}>Case Size</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.caseSize}
+                    onChange={(e) => setSingle((p) => ({ ...p, caseSize: e.target.value }))}
+                    placeholder="41mm"
+                  />
+                </div>
+
+                <div className={styles.formField}>
                   <label className={styles.formLabel}>Water Resistance</label>
                   <input
                     className={styles.formInput}
@@ -517,6 +539,26 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
                     value={single.country}
                     onChange={(e) => setSingle((p) => ({ ...p, country: e.target.value }))}
                     placeholder="Switzerland"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Features</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.features}
+                    onChange={(e) => setSingle((p) => ({ ...p, features: e.target.value }))}
+                    placeholder="Chronograph, Date Display"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Provenance</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.provenance}
+                    onChange={(e) => setSingle((p) => ({ ...p, provenance: e.target.value }))}
+                    placeholder="Original owner history"
                   />
                 </div>
               </div>
