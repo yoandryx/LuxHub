@@ -25,6 +25,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await dbConnect();
 
   const wallet = req.query.wallet as string;
+  const includeBurned = req.query.includeBurned === 'true';
+  const onlyBurned = req.query.onlyBurned === 'true';
+
   if (!wallet) {
     return res.status(400).json({ error: 'Missing wallet' });
   }
@@ -40,6 +43,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       nftMint: { $exists: true, $ne: null }, // Only minted assets
       $or: [{ nftOwnerWallet: wallet }, ...(vendorId ? [{ vendor: vendorId }] : [])],
     };
+
+    // Filter burned assets unless explicitly requested
+    if (onlyBurned) {
+      assetQuery.status = 'burned';
+    } else if (!includeBurned) {
+      assetQuery.status = { $ne: 'burned' };
+    }
 
     const assets = await Asset.find(assetQuery).sort({ createdAt: -1 }).lean();
 
@@ -126,12 +136,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Combine both sources
     const allNfts = [...nftsFromAssets, ...nftsFromNFTCollection];
 
-    // Calculate stats
+    // Calculate stats (need separate query for burned count since they're filtered out)
+    const burnedCount = onlyBurned
+      ? allNfts.length
+      : await Asset.countDocuments({
+          deleted: { $ne: true },
+          nftMint: { $exists: true, $ne: null },
+          status: 'burned',
+          $or: [{ nftOwnerWallet: wallet }, ...(vendorId ? [{ vendor: vendorId }] : [])],
+        });
+
     const stats = {
       totalItems: allNfts.length,
       itemsListed: allNfts.filter((n) => n.status === 'listed').length,
       itemsPending: allNfts.filter((n) => n.status === 'pending').length,
       itemsInEscrow: allNfts.filter((n) => n.status === 'in_escrow').length,
+      itemsBurned: burnedCount,
       totalSales: (vendor as any)?.totalSales || 0,
     };
 

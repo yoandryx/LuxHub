@@ -598,6 +598,29 @@
   color: var(--accent);
 }
 
+/* Burned tab styling */
+.tabItem.burnedTab {
+  color: var(--text-muted);
+}
+
+.tabItem.burnedTab:hover {
+  color: #ef4444;
+}
+
+.tabItem.burnedTab:hover svg {
+  color: #ef4444;
+}
+
+.tabItem.burnedTab.activeTab {
+  color: #ef4444;
+  border-bottom-color: #ef4444;
+  box-shadow: inset 0 -2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.tabItem.burnedTab.activeTab svg {
+  color: #ef4444;
+}
+
 @media (max-width: 480px) {
   .tabItem span {
     display: none;
