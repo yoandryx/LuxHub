@@ -1,8 +1,11 @@
 // src/components/admins/MintRequestsPanel.tsx
 // Admin panel to review, approve, and mint vendor mint requests
 // Two-step flow: Review (approve/reject) → Mint (for approved requests)
+// Uses client-side signing - admin wallet signs the mint transaction directly
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { Transaction, Keypair } from '@solana/web3.js';
 import toast from 'react-hot-toast';
 import styles from '../../styles/AdminDashboard.module.css';
 import {
@@ -85,6 +88,7 @@ const getDisplayImageUrl = (url?: string): string | null => {
 
 const MintRequestsPanel: React.FC = () => {
   const wallet = useWallet();
+  const { connection } = useConnection();
   const [requests, setRequests] = useState<MintRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
@@ -216,29 +220,71 @@ const MintRequestsPanel: React.FC = () => {
     }
   };
 
-  // Step 2: Mint (for approved requests only)
+  // Step 2: Mint (for approved requests only) - CLIENT-SIDE SIGNING
   const handleMint = async (requestId: string) => {
-    if (!wallet.publicKey) {
-      toast.error('Please connect your wallet');
+    if (!wallet.publicKey || !wallet.signTransaction) {
+      toast.error('Please connect a wallet that supports signing');
       return;
     }
 
     const confirmed = window.confirm(
       'Mint this NFT? This will:\n\n' +
         '1. Upload the image to permanent storage (Irys)\n' +
-        '2. Mint the NFT on Solana\n' +
-        '3. Transfer to the vendor wallet\n' +
-        '4. Auto-list on marketplace\n\n' +
-        'This action cannot be undone.'
+        '2. Sign the mint transaction with YOUR wallet\n' +
+        '3. Auto-list on marketplace\n\n' +
+        'Your wallet will be prompted to sign.'
     );
 
     if (!confirmed) return;
 
     setProcessing(requestId);
-    const toastId = toast.loading('Minting NFT...');
+    const toastId = toast.loading('Preparing mint transaction...');
 
     try {
-      const res = await fetch('/api/admin/mint-requests/mint', {
+      // Step 1: Prepare the transaction (uploads image/metadata)
+      const prepareRes = await fetch('/api/admin/mint-requests/prepare-mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': wallet.publicKey.toBase58(),
+        },
+        body: JSON.stringify({ mintRequestId: requestId }),
+      });
+
+      const prepareData = await prepareRes.json();
+
+      if (!prepareData.success) {
+        toast.error(prepareData.error || 'Failed to prepare mint', { id: toastId });
+        return;
+      }
+
+      toast.loading('Please sign the transaction in your wallet...', { id: toastId });
+
+      // Step 2: Deserialize and sign the transaction
+      const transactionBuffer = Buffer.from(prepareData.transaction, 'base64');
+      const transaction = Transaction.from(transactionBuffer);
+
+      // Add the asset signer (required for mpl-core)
+      const assetKeypair = Keypair.fromSecretKey(new Uint8Array(prepareData.assetSecretKey));
+      transaction.partialSign(assetKeypair);
+
+      // Sign with the admin wallet
+      const signedTransaction = await wallet.signTransaction(transaction);
+
+      toast.loading('Submitting transaction...', { id: toastId });
+
+      // Step 3: Send the signed transaction
+      const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+
+      // Wait for confirmation
+      toast.loading('Confirming transaction...', { id: toastId });
+      await connection.confirmTransaction(signature, 'confirmed');
+
+      // Step 4: Record the mint in the database
+      const confirmRes = await fetch('/api/admin/mint-requests/confirm-mint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,18 +292,21 @@ const MintRequestsPanel: React.FC = () => {
         },
         body: JSON.stringify({
           mintRequestId: requestId,
+          mintAddress: prepareData.assetPublicKey,
+          signature,
+          transferToVendor: false, // Admin is initial owner, can transfer later
         }),
       });
 
-      const data = await res.json();
+      const confirmData = await confirmRes.json();
 
-      if (data.mintAddress) {
+      if (confirmData.success) {
         toast.success(
           <div>
             NFT minted successfully!
             <br />
             <a
-              href={`https://explorer.solana.com/address/${data.mintAddress}?cluster=devnet`}
+              href={`https://explorer.solana.com/address/${prepareData.assetPublicKey}?cluster=devnet`}
               target="_blank"
               rel="noreferrer"
               style={{ color: '#c8a1ff' }}
@@ -269,38 +318,52 @@ const MintRequestsPanel: React.FC = () => {
         );
         await fetchRequests();
       } else {
-        toast.error(data.error || 'Failed to mint', { id: toastId });
+        // Transaction succeeded but DB update failed
+        toast.success(
+          <div>
+            NFT minted but DB update failed.
+            <br />
+            Mint: {prepareData.assetPublicKey.slice(0, 8)}...
+          </div>,
+          { id: toastId }
+        );
+        await fetchRequests();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to mint:', err);
-      toast.error('Failed to mint NFT', { id: toastId });
+      if (err.message?.includes('User rejected')) {
+        toast.error('Transaction cancelled by user', { id: toastId });
+      } else {
+        toast.error(err.message || 'Failed to mint NFT', { id: toastId });
+      }
     } finally {
       setProcessing(null);
     }
   };
 
-  // Legacy: Approve and mint in one step (for backward compatibility)
+  // Approve and mint in one step - CLIENT-SIDE SIGNING
   const handleApproveAndMint = async (requestId: string) => {
-    if (!wallet.publicKey) {
-      toast.error('Please connect your wallet');
+    if (!wallet.publicKey || !wallet.signTransaction) {
+      toast.error('Please connect a wallet that supports signing');
       return;
     }
 
     const confirmed = window.confirm(
       'Approve and mint this NFT? This will:\n\n' +
-        '1. Upload the image to storage\n' +
-        '2. Mint the NFT on-chain\n' +
-        '3. Transfer to the vendor wallet\n\n' +
-        'This action cannot be undone.'
+        '1. Approve the mint request\n' +
+        '2. Upload the image to permanent storage\n' +
+        '3. Sign the mint transaction with YOUR wallet\n\n' +
+        'Your wallet will be prompted to sign.'
     );
 
     if (!confirmed) return;
 
     setProcessing(requestId);
-    const toastId = toast.loading('Minting NFT...');
+    const toastId = toast.loading('Approving request...');
 
     try {
-      const res = await fetch('/api/admin/mint-requests/approve-and-mint', {
+      // Step 1: Approve the request first
+      const approveRes = await fetch('/api/admin/mint-requests/review', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -308,21 +371,90 @@ const MintRequestsPanel: React.FC = () => {
         },
         body: JSON.stringify({
           mintRequestId: requestId,
+          action: 'approve',
           adminNotes: adminNotes[requestId] || '',
         }),
       });
 
-      const data = await res.json();
+      const approveData = await approveRes.json();
+      if (!approveRes.ok) {
+        toast.error(approveData.error || 'Failed to approve', { id: toastId });
+        return;
+      }
 
-      if (data.mintAddress) {
-        toast.success(`NFT minted: ${data.mintAddress.slice(0, 8)}...`, { id: toastId });
+      toast.loading('Preparing mint transaction...', { id: toastId });
+
+      // Step 2: Prepare the mint transaction
+      const prepareRes = await fetch('/api/admin/mint-requests/prepare-mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': wallet.publicKey.toBase58(),
+        },
+        body: JSON.stringify({ mintRequestId: requestId }),
+      });
+
+      const prepareData = await prepareRes.json();
+
+      if (!prepareData.success) {
+        toast.error(prepareData.error || 'Failed to prepare mint', { id: toastId });
+        return;
+      }
+
+      toast.loading('Please sign the transaction in your wallet...', { id: toastId });
+
+      // Step 3: Deserialize and sign
+      const transactionBuffer = Buffer.from(prepareData.transaction, 'base64');
+      const transaction = Transaction.from(transactionBuffer);
+
+      const assetKeypair = Keypair.fromSecretKey(new Uint8Array(prepareData.assetSecretKey));
+      transaction.partialSign(assetKeypair);
+
+      const signedTransaction = await wallet.signTransaction(transaction);
+
+      toast.loading('Submitting transaction...', { id: toastId });
+
+      const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+
+      toast.loading('Confirming transaction...', { id: toastId });
+      await connection.confirmTransaction(signature, 'confirmed');
+
+      // Step 4: Confirm in database
+      const confirmRes = await fetch('/api/admin/mint-requests/confirm-mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': wallet.publicKey.toBase58(),
+        },
+        body: JSON.stringify({
+          mintRequestId: requestId,
+          mintAddress: prepareData.assetPublicKey,
+          signature,
+          transferToVendor: false,
+        }),
+      });
+
+      const confirmData = await confirmRes.json();
+
+      if (confirmData.success) {
+        toast.success(`NFT minted: ${prepareData.assetPublicKey.slice(0, 8)}...`, { id: toastId });
         await fetchRequests();
       } else {
-        toast.error(data.error || 'Failed to mint', { id: toastId });
+        toast.success(`Minted but DB update failed: ${prepareData.assetPublicKey.slice(0, 8)}...`, {
+          id: toastId,
+        });
+        await fetchRequests();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to mint:', err);
-      toast.error('Failed to mint NFT', { id: toastId });
+      if (err.message?.includes('User rejected')) {
+        toast.error('Transaction cancelled by user', { id: toastId });
+      } else {
+        toast.error(err.message || 'Failed to mint NFT', { id: toastId });
+      }
     } finally {
       setProcessing(null);
     }
