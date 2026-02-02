@@ -559,3 +559,205 @@
     font-size: 0.8rem;
   }
 }
+
+/* ========== FORM REVIEW SECTION ========== */
+
+.reviewCard {
+  background: var(--glass);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Completion Progress */
+.completionSection {
+  margin-bottom: 24px;
+}
+
+.completionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.completionPercent {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.progressBar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 4px;
+  transition:
+    width 0.3s ease,
+    background 0.3s ease;
+}
+
+/* Field Sections */
+.fieldSection {
+  margin-bottom: 20px;
+}
+
+.fieldSection:last-of-type {
+  margin-bottom: 16px;
+}
+
+.fieldSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.fieldCount {
+  font-weight: 700;
+}
+
+.fieldList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fieldItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.fieldComplete {
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.fieldMissing {
+  background: rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #f44336;
+}
+
+.fieldOptional {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #666;
+}
+
+.fieldIconComplete {
+  font-size: 14px;
+  color: #4caf50;
+}
+
+.fieldIconMissing {
+  font-size: 14px;
+  color: #f44336;
+}
+
+.fieldIconOptional {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Submit Status */
+.submitStatus {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.statusReady {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 10px;
+  color: #4caf50;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusReady svg {
+  font-size: 20px;
+}
+
+.statusNotReady {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 10px;
+  color: #f44336;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusNotReady svg {
+  font-size: 20px;
+}
+
+/* Tips List */
+.tipsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tipItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.tipIcon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--accent);
+  margin-top: 1px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .reviewCard {
+    padding: 20px;
+  }
+
+  .fieldItem {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .fieldList {
+    gap: 6px;
+  }
+}
