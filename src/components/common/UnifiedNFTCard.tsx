@@ -64,6 +64,24 @@ export interface UnifiedNFTCardProps {
 
 const PLACEHOLDER_IMAGE = '/images/purpleLGG.png';
 const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
+const IRYS_GATEWAY = 'https://gateway.irys.xyz/';
+
+/**
+ * Resolve image URL from CID, Irys TX ID, or full URL
+ */
+function resolveImageUrl(idOrUrl: string | undefined | null): string {
+  if (!idOrUrl) return PLACEHOLDER_IMAGE;
+  // Already a full URL
+  if (idOrUrl.startsWith('http://') || idOrUrl.startsWith('https://')) return idOrUrl;
+  // Local path
+  if (idOrUrl.startsWith('/')) return idOrUrl;
+  // IPFS CIDv0 (Qm...) or CIDv1 (bafy...)
+  if (idOrUrl.startsWith('Qm') || idOrUrl.startsWith('bafy')) return `${GATEWAY_URL}${idOrUrl}`;
+  // Irys/Arweave TX ID (43-char base64url)
+  if (idOrUrl.length === 43 && /^[A-Za-z0-9_-]+$/.test(idOrUrl)) return `${IRYS_GATEWAY}${idOrUrl}`;
+  // Default to IPFS gateway
+  return `${GATEWAY_URL}${idOrUrl}`;
+}
 
 // Status badge configuration
 const statusConfig: Record<NFTStatus, { label: string; icon: React.ReactNode; className: string }> =
@@ -111,11 +129,12 @@ const UnifiedNFTCard = memo(
     const [imgError, setImgError] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
-    // Compute image URL
+    // Compute image URL with intelligent gateway resolution
     const imageUrl = useMemo(() => {
       if (imgError) return PLACEHOLDER_IMAGE;
-      if (image) return image;
-      if (imageCid) return `${GATEWAY_URL}${imageCid}`;
+      // Resolve image URL (handles Irys, IPFS, and full URLs)
+      if (image) return resolveImageUrl(image);
+      if (imageCid) return resolveImageUrl(imageCid);
       return PLACEHOLDER_IMAGE;
     }, [image, imageCid, imgError]);
 
@@ -322,7 +341,8 @@ export const NFTGridCard = memo(
     onClick?: () => void;
   }) => {
     const [imgError, setImgError] = useState(false);
-    const finalImage = imgError ? PLACEHOLDER_IMAGE : image || imageUrl || PLACEHOLDER_IMAGE;
+    // Resolve image URL with intelligent gateway detection
+    const finalImage = imgError ? PLACEHOLDER_IMAGE : resolveImageUrl(image || imageUrl);
     const badgeConfig = statusConfig[status];
 
     // Format price display based on label (USD-first support)

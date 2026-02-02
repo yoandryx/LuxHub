@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import styles from '../../styles/NFTDetailCard.module.css';
 import { FaTimes, FaCopy } from 'react-icons/fa';
 import { LuRotate3D, LuShield, LuBadgeCheck, LuSparkles, LuGem } from 'react-icons/lu';
@@ -6,6 +6,27 @@ import { Metaplex } from '@metaplex-foundation/js';
 import { Connection, PublicKey } from '@solana/web3.js';
 import VanillaTilt from 'vanilla-tilt';
 import { usePriceDisplay } from '../marketplace/PriceDisplay';
+
+const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
+const IRYS_GATEWAY = 'https://gateway.irys.xyz/';
+const PLACEHOLDER_IMAGE = '/fallback.png';
+
+/**
+ * Resolve image URL from CID, Irys TX ID, or full URL
+ */
+function resolveImageUrl(idOrUrl: string | undefined | null): string {
+  if (!idOrUrl) return PLACEHOLDER_IMAGE;
+  // Already a full URL
+  if (idOrUrl.startsWith('http://') || idOrUrl.startsWith('https://')) return idOrUrl;
+  // Local path
+  if (idOrUrl.startsWith('/')) return idOrUrl;
+  // IPFS CIDv0 (Qm...) or CIDv1 (bafy...)
+  if (idOrUrl.startsWith('Qm') || idOrUrl.startsWith('bafy')) return `${GATEWAY_URL}${idOrUrl}`;
+  // Irys/Arweave TX ID (43-char base64url)
+  if (idOrUrl.length === 43 && /^[A-Za-z0-9_-]+$/.test(idOrUrl)) return `${IRYS_GATEWAY}${idOrUrl}`;
+  // Default to IPFS gateway
+  return `${GATEWAY_URL}${idOrUrl}`;
+}
 
 export interface NFTMetadata {
   name: string;
@@ -283,6 +304,9 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
 
   if (!metadata) return null;
 
+  // Resolve image URL for Irys/IPFS compatibility
+  const resolvedImage = resolveImageUrl(metadata.image);
+
   const truncate = (value: string, length: number = 10) => {
     if (!value || typeof value !== 'string') return '~';
     return value.length > length ? `${value.slice(0, 4)}...${value.slice(-4)}` : value;
@@ -307,7 +331,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
             setShowFullImage(false);
           }}
         >
-          <img src={metadata.image} alt={metadata.name} className={styles.fullImage} />
+          <img src={resolvedImage} alt={metadata.name} className={styles.fullImage} />
           <span className={styles.fullImageHint}>Click anywhere to close</span>
         </div>
       )}
@@ -350,7 +374,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
               <div className={styles.frameCorner} data-corner="bl"></div>
               <div className={styles.frameCorner} data-corner="br"></div>
               <div className={styles.imageContainer}>
-                <img src={metadata.image} alt={metadata.name} className={styles.cardImage} />
+                <img src={resolvedImage} alt={metadata.name} className={styles.cardImage} />
                 <div className={styles.imageShine}></div>
                 <div className={styles.imageExpandHint}>
                   <LuSparkles /> View Full
