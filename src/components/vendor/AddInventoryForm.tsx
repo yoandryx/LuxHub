@@ -48,6 +48,181 @@ interface AssetRow {
   features?: string;
 }
 
+// Column name mapping - maps common CSV column variations to expected property names
+const columnMappings: Record<string, string> = {
+  // Reference variations
+  reference: 'reference',
+  ref: 'reference',
+  'reference number': 'reference',
+  reference_number: 'reference',
+  referencenumber: 'reference',
+  'ref number': 'reference',
+  ref_number: 'reference',
+  'ref#': 'reference',
+  'ref #': 'reference',
+  sku: 'reference',
+
+  // Brand variations
+  brand: 'brand',
+  'brand name': 'brand',
+  manufacturer: 'brand',
+  make: 'brand',
+
+  // Model variations
+  model: 'model',
+  'model name': 'model',
+  'model number': 'model',
+
+  // Price variations
+  priceusd: 'priceUSD',
+  price_usd: 'priceUSD',
+  price: 'priceUSD',
+  'price (usd)': 'priceUSD',
+  'price usd': 'priceUSD',
+  price_in_usd: 'priceUSD',
+  cost: 'priceUSD',
+
+  // Title variations
+  title: 'title',
+  name: 'title',
+  'product name': 'title',
+  'item name': 'title',
+
+  // Description variations
+  description: 'description',
+  desc: 'description',
+  details: 'description',
+  'product description': 'description',
+
+  // Image variations
+  primary_image_url: 'primary_image_url',
+  image_url: 'primary_image_url',
+  imageurl: 'primary_image_url',
+  image: 'primary_image_url',
+  'primary image': 'primary_image_url',
+  'main image': 'primary_image_url',
+  photo: 'primary_image_url',
+  picture: 'primary_image_url',
+
+  primary_image_file: 'primary_image_file',
+  image_file: 'primary_image_file',
+  imagefile: 'primary_image_file',
+  'image filename': 'primary_image_file',
+  filename: 'primary_image_file',
+
+  // Condition variations
+  condition: 'condition',
+  status: 'condition',
+  'item condition': 'condition',
+
+  // Year variations
+  productionyear: 'productionYear',
+  production_year: 'productionYear',
+  year: 'productionYear',
+  'production year': 'productionYear',
+  'year of production': 'productionYear',
+
+  // Box & Papers variations
+  boxpapers: 'boxPapers',
+  box_papers: 'boxPapers',
+  'box papers': 'boxPapers',
+  'box & papers': 'boxPapers',
+  'box and papers': 'boxPapers',
+
+  // Material variations
+  material: 'material',
+  materials: 'material',
+  'case material': 'material',
+
+  // Movement variations
+  movement: 'movement',
+  caliber: 'movement',
+  calibre: 'movement',
+
+  // Case size variations
+  casesize: 'caseSize',
+  case_size: 'caseSize',
+  'case size': 'caseSize',
+  'case diameter': 'caseSize',
+  size: 'caseSize',
+  diameter: 'caseSize',
+
+  // Water resistance variations
+  waterresistance: 'waterResistance',
+  water_resistance: 'waterResistance',
+  'water resistance': 'waterResistance',
+  'water resistant': 'waterResistance',
+  waterproof: 'waterResistance',
+
+  // Dial color variations
+  dialcolor: 'dialColor',
+  dial_color: 'dialColor',
+  'dial color': 'dialColor',
+  'dial colour': 'dialColor',
+
+  // Country variations
+  country: 'country',
+  'country of origin': 'country',
+  origin: 'country',
+
+  // Release date variations
+  releasedate: 'releaseDate',
+  release_date: 'releaseDate',
+  'release date': 'releaseDate',
+
+  // Limited edition variations
+  limitededition: 'limitedEdition',
+  limited_edition: 'limitedEdition',
+  'limited edition': 'limitedEdition',
+  limited: 'limitedEdition',
+
+  // Certificate variations
+  certificate: 'certificate',
+  cert: 'certificate',
+  certification: 'certificate',
+
+  // Warranty variations
+  warrantyinfo: 'warrantyInfo',
+  warranty_info: 'warrantyInfo',
+  warranty: 'warrantyInfo',
+  'warranty info': 'warrantyInfo',
+
+  // Provenance variations
+  provenance: 'provenance',
+  history: 'provenance',
+  'ownership history': 'provenance',
+
+  // Features variations
+  features: 'features',
+  'special features': 'features',
+  complications: 'features',
+};
+
+// Normalize a row object by mapping column names to expected properties
+function normalizeRow(rawRow: Record<string, any>): AssetRow {
+  const normalized: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(rawRow)) {
+    const normalizedKey = key.toLowerCase().trim();
+    const mappedKey = columnMappings[normalizedKey];
+
+    if (mappedKey) {
+      // Handle price conversion to number
+      if (mappedKey === 'priceUSD') {
+        const numVal = parseFloat(String(value).replace(/[,$]/g, ''));
+        normalized[mappedKey] = isNaN(numVal) ? 0 : numVal;
+      } else {
+        normalized[mappedKey] = value;
+      }
+    } else {
+      // Keep unmapped columns as-is (camelCase the key)
+      normalized[key] = value;
+    }
+  }
+
+  return normalized as AssetRow;
+}
+
 export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void }) {
   const { publicKey } = useWallet();
   const [mode, setMode] = useState<Mode>('single');
@@ -80,6 +255,8 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
   });
 
   const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkImages, setBulkImages] = useState<File[]>([]); // Separate image upload for CSV
+  const [bulkImageMap, setBulkImageMap] = useState<Record<string, string>>({}); // filename -> base64
   const [parsedRows, setParsedRows] = useState<AssetRow[]>([]);
   const [previewRows, setPreviewRows] = useState<AssetRow[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -176,6 +353,76 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
     });
   };
 
+  // Handle separate image upload for bulk CSV mode
+  const handleBulkImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const imageArray = Array.from(files);
+    setBulkImages(imageArray);
+    setProgress('Processing images...');
+
+    try {
+      const imageMap: Record<string, string> = {};
+      for (const file of imageArray) {
+        const base64 = await fileToBase64(file);
+        // Store by filename (with and without extension for flexible matching)
+        imageMap[file.name.toLowerCase()] = base64;
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '').toLowerCase();
+        imageMap[nameWithoutExt] = base64;
+      }
+      setBulkImageMap(imageMap);
+      setProgress('');
+      toast.success(`Loaded ${imageArray.length} images`);
+
+      // Re-process rows if we already have CSV data
+      if (parsedRows.length > 0) {
+        reprocessRowsWithImages(parsedRows, imageMap);
+      }
+    } catch (err) {
+      toast.error('Failed to process images');
+      setProgress('');
+    }
+  };
+
+  // Re-process existing rows with newly uploaded images
+  const reprocessRowsWithImages = (rows: AssetRow[], imageMap: Record<string, string>) => {
+    const processedRows = rows.map((row, idx) => {
+      let primaryBase64 = (row as any).imageBase64s?.[0] || '';
+
+      // Try to find matching image by various methods
+      if (!primaryBase64) {
+        // Try exact filename match from primary_image_file or primary_image_url
+        const imageRef = row.primary_image_file || row.primary_image_url || '';
+        const filename = imageRef.split(/[/\\]/).pop()?.toLowerCase() || '';
+        const filenameNoExt = filename.replace(/\.[^/.]+$/, '');
+
+        if (imageMap[filename]) {
+          primaryBase64 = imageMap[filename];
+        } else if (imageMap[filenameNoExt]) {
+          primaryBase64 = imageMap[filenameNoExt];
+        } else {
+          // Try matching by reference number
+          const refLower = row.reference?.toLowerCase() || '';
+          if (refLower && imageMap[refLower]) {
+            primaryBase64 = imageMap[refLower];
+          } else {
+            // Try matching by row index (1-based naming like "1.jpg", "2.jpg")
+            const indexKey = String(idx + 1);
+            if (imageMap[indexKey]) {
+              primaryBase64 = imageMap[indexKey];
+            }
+          }
+        }
+      }
+
+      return { ...row, imageBase64s: primaryBase64 ? [primaryBase64] : [] };
+    });
+
+    setParsedRows(processedRows);
+    setPreviewRows(processedRows.slice(0, 5));
+  };
+
   const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -184,58 +431,110 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
     setProgress('Processing file...');
 
     try {
-      let rows: AssetRow[] = [];
+      let rawRows: Record<string, any>[] = [];
       let imageFiles: Record<string, File> = {};
 
       if (file.name.endsWith('.csv')) {
         const text = await file.text();
-        const result = Papa.parse<AssetRow>(text, { header: true, skipEmptyLines: true });
-        rows = result.data.filter((row) => row.brand && row.model && row.priceUSD);
+        const result = Papa.parse(text, { header: true, skipEmptyLines: true });
+        rawRows = result.data as Record<string, any>[];
       } else if (file.name.endsWith('.zip')) {
         const zip = await JSZip.loadAsync(file);
-        let csvText = '';
         const csvEntry = Object.values(zip.files).find((f) => f.name.endsWith('.csv') && !f.dir);
         if (!csvEntry) throw new Error('No CSV found in zip');
 
-        csvText = await csvEntry.async('text');
-        const result = Papa.parse<AssetRow>(csvText, { header: true, skipEmptyLines: true });
-        rows = result.data.filter((row) => row.brand && row.model && row.priceUSD);
+        const csvText = await csvEntry.async('text');
+        const result = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+        rawRows = result.data as Record<string, any>[];
 
+        // Extract images from ZIP
         for (const entry of Object.values(zip.files)) {
           if (!entry.dir && /\.(jpe?g|png|gif|webp)$/i.test(entry.name)) {
             const blob = await entry.async('blob');
             const filename = entry.name.split('/').pop()!;
-            imageFiles[filename] = new File([blob], filename);
+            imageFiles[filename.toLowerCase()] = new File([blob], filename);
+            // Also store without extension
+            const filenameNoExt = filename.replace(/\.[^/.]+$/, '').toLowerCase();
+            imageFiles[filenameNoExt] = new File([blob], filename);
           }
         }
       } else {
         throw new Error('Please upload .csv or .zip');
       }
 
+      // Normalize column names for each row
+      const normalizedRows = rawRows.map((row) => normalizeRow(row));
+
+      // Filter valid rows (must have brand, model, and valid price after normalization)
+      const validRows = normalizedRows.filter(
+        (row) => row.brand && row.model && row.priceUSD && Number(row.priceUSD) > 0
+      );
+
+      if (validRows.length === 0) {
+        throw new Error('No valid rows found. Ensure CSV has brand, model, and price columns.');
+      }
+
       setProgress('Preparing images...');
+
+      // Merge ZIP images with separately uploaded images
+      const combinedImageMap = { ...bulkImageMap };
+
+      // Convert ZIP image files to base64
+      for (const [filename, file] of Object.entries(imageFiles)) {
+        if (!combinedImageMap[filename]) {
+          combinedImageMap[filename] = await fileToBase64(file);
+        }
+      }
+
       const processedRows = await Promise.all(
-        rows.map(async (row) => {
+        validRows.map(async (row, idx) => {
           let primaryBase64 = '';
           let galleryBase64s: string[] = [];
 
-          if (row.primary_image_file && imageFiles[row.primary_image_file]) {
-            primaryBase64 = await fileToBase64(imageFiles[row.primary_image_file]);
-          } else if (row.primary_image_url) {
-            primaryBase64 = row.primary_image_url;
-          }
+          // Try to find image by various methods
+          const imageRef = row.primary_image_file || row.primary_image_url || '';
+          const filename = imageRef.split(/[/\\]/).pop()?.toLowerCase() || '';
+          const filenameNoExt = filename.replace(/\.[^/.]+$/, '');
 
-          if (row.gallery_image_files) {
-            const filenames = row.gallery_image_files.split(',').map((f) => f.trim());
-            galleryBase64s = await Promise.all(
-              filenames.map(async (name) => {
-                if (imageFiles[name]) {
-                  return fileToBase64(imageFiles[name]);
-                }
-                return '';
-              })
-            ).then((b64s) => b64s.filter(Boolean));
-          } else if (row.gallery_image_urls) {
-            galleryBase64s = row.gallery_image_urls.split(',').map((u) => u.trim());
+          // 1. Try exact filename match
+          if (filename && combinedImageMap[filename]) {
+            primaryBase64 = combinedImageMap[filename];
+          }
+          // 2. Try filename without extension
+          else if (filenameNoExt && combinedImageMap[filenameNoExt]) {
+            primaryBase64 = combinedImageMap[filenameNoExt];
+          }
+          // 3. Try reference number as filename
+          else if (row.reference) {
+            const refLower = row.reference.toLowerCase();
+            if (combinedImageMap[refLower]) {
+              primaryBase64 = combinedImageMap[refLower];
+            }
+          }
+          // 4. Try row index (1-based: "1.jpg", "2.jpg")
+          if (!primaryBase64) {
+            const indexKeys = [
+              String(idx + 1),
+              `${idx + 1}.jpg`,
+              `${idx + 1}.png`,
+              `${idx + 1}.webp`,
+            ];
+            for (const key of indexKeys) {
+              if (combinedImageMap[key.toLowerCase()]) {
+                primaryBase64 = combinedImageMap[key.toLowerCase()];
+                break;
+              }
+            }
+          }
+          // 5. Use URL directly if it's a valid URL
+          if (!primaryBase64 && row.primary_image_url) {
+            if (
+              row.primary_image_url.startsWith('http://') ||
+              row.primary_image_url.startsWith('https://') ||
+              row.primary_image_url.startsWith('data:')
+            ) {
+              primaryBase64 = row.primary_image_url;
+            }
           }
 
           const allBase64s = primaryBase64 ? [primaryBase64, ...galleryBase64s] : galleryBase64s;
@@ -246,7 +545,9 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
       setParsedRows(processedRows);
       setPreviewRows(processedRows.slice(0, 5));
       setProgress('');
-      toast.success(`Processed ${rows.length} assets – ready to submit`);
+
+      const withImages = processedRows.filter((r) => (r as any).imageBase64s?.length > 0).length;
+      toast.success(`Processed ${validRows.length} assets (${withImages} with images)`);
     } catch (err: any) {
       toast.error(err.message || 'File processing failed');
       setProgress('');
@@ -875,6 +1176,67 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
                 </div>
               )}
             </div>
+
+            {/* Separate Image Upload for CSV mode */}
+            {bulkFile && bulkFile.name.endsWith('.csv') && (
+              <div className={styles.formCard}>
+                <div className={styles.formSectionTitle}>
+                  <FaImage />
+                  <span>Upload Images</span>
+                </div>
+
+                <p className={styles.uploadDescription}>
+                  Upload images to match with your CSV data. Name images by reference number or row
+                  number (e.g., &quot;REF123.jpg&quot; or &quot;1.jpg&quot;).
+                </p>
+
+                <div className={styles.imageUploadZone}>
+                  <input
+                    type="file"
+                    id="bulkImageUpload"
+                    multiple
+                    accept="image/*"
+                    onChange={handleBulkImageUpload}
+                    disabled={loading}
+                    className={styles.hiddenInput}
+                  />
+                  <label htmlFor="bulkImageUpload" className={styles.uploadLabel}>
+                    <FaImage className={styles.uploadIcon} />
+                    <span className={styles.uploadText}>
+                      {bulkImages.length > 0
+                        ? `${bulkImages.length} image${bulkImages.length > 1 ? 's' : ''} loaded`
+                        : 'Click to upload images'}
+                    </span>
+                    <span className={styles.uploadHint}>Select all images for your inventory</span>
+                  </label>
+                </div>
+
+                {bulkImages.length > 0 && (
+                  <div className={styles.imagePreviewGrid}>
+                    {bulkImages.slice(0, 8).map((file, idx) => (
+                      <div key={idx} className={styles.imagePreviewItem}>
+                        <img src={URL.createObjectURL(file)} alt={file.name} title={file.name} />
+                      </div>
+                    ))}
+                    {bulkImages.length > 8 && (
+                      <div
+                        className={styles.imagePreviewItem}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'rgba(200,161,255,0.1)',
+                        }}
+                      >
+                        <span style={{ color: '#c8a1ff', fontSize: '14px' }}>
+                          +{bulkImages.length - 8} more
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Preview Table */}
             {parsedRows.length > 0 && (
