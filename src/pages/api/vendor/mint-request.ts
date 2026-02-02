@@ -122,6 +122,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // Determine if imageBase64 is actually a URL
+      let finalImageBase64 = imageBase64;
+      let finalImageUrl = imageUrl;
+
+      if (imageBase64 && !imageBase64.startsWith('data:')) {
+        // It's a URL, not base64 - store in imageUrl instead
+        if (imageBase64.startsWith('http://') || imageBase64.startsWith('https://')) {
+          finalImageUrl = imageBase64;
+          finalImageBase64 = ''; // Don't store URL in base64 field
+        }
+      }
+
       // Create the mint request
       const mintRequest = await MintRequest.create({
         wallet,
@@ -131,8 +143,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         referenceNumber: referenceNumber || serialNumber,
         description,
         priceUSD,
-        imageBase64,
-        imageUrl,
+        imageBase64: finalImageBase64,
+        imageUrl: finalImageUrl,
         timestamp: Date.now(),
         // Optional attributes
         material,

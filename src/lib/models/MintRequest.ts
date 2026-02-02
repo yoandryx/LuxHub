@@ -8,7 +8,7 @@ const MintRequestSchema = new mongoose.Schema(
     model: { type: String, required: true },
     referenceNumber: { type: String, required: true }, // Alphanumeric (e.g., "116595RBOW-2024")
     priceUSD: { type: Number, required: true }, // USD as source of truth
-    imageBase64: { type: String, required: true }, // Base64 encoded image
+    imageBase64: { type: String }, // Base64 encoded image (optional if imageUrl provided)
     wallet: { type: String, required: true },
     timestamp: { type: Number, required: true },
 
