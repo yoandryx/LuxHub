@@ -1286,7 +1286,7 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
                             <td>
                               {isValid ? (
                                 <span className={styles.rowStatusValid}>
-                                  <HiCheck /> OK
+                                  <HiCheck />
                                 </span>
                               ) : (
                                 <span className={styles.rowStatusInvalid}>
