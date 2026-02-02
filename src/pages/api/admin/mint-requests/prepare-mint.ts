@@ -2,16 +2,21 @@
 // Prepares a mint transaction for client-side signing
 // Returns a serialized transaction that the admin wallet can sign
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+} from '@solana/web3.js';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { mplCore, create as createAsset } from '@metaplex-foundation/mpl-core';
+import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 import {
-  generateSigner,
-  publicKey as umiPublicKey,
-  signerIdentity,
-  createSignerFromKeypair,
-} from '@metaplex-foundation/umi';
-import { toWeb3JsTransaction } from '@metaplex-foundation/umi-web3js-adapters';
+  toWeb3JsInstruction,
+  toWeb3JsKeypair,
+  toWeb3JsPublicKey,
+} from '@metaplex-foundation/umi-web3js-adapters';
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
@@ -221,31 +226,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Generate a new asset keypair - we'll need to send this to the client
     const assetSigner = generateSigner(umi);
 
-    // Build the create instruction
-    const createIx = createAsset(umi, {
+    // Build the create instruction using UMI
+    const createBuilder = createAsset(umi, {
       asset: assetSigner,
       name: mintRequest.title,
       uri: metadataUri,
       owner: umiPublicKey(signerWallet), // Admin becomes initial owner
     });
 
-    // Build the transaction
-    const transaction = await createIx.buildAndSign({
-      ...umi,
-      payer: { publicKey: umiPublicKey(signerWallet) } as any,
-    });
+    // Get the instructions from the builder
+    const umiInstructions = createBuilder.getInstructions();
 
     // Get latest blockhash
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 
-    // Convert to web3.js transaction for serialization
-    const web3Transaction = toWeb3JsTransaction(transaction);
-    web3Transaction.recentBlockhash = blockhash;
-    web3Transaction.feePayer = new PublicKey(signerWallet);
+    // Convert UMI instructions to web3.js instructions
+    const web3Instructions: TransactionInstruction[] = umiInstructions.map((ix) =>
+      toWeb3JsInstruction(ix)
+    );
 
-    // Serialize the transaction (without the payer signature - client will add it)
-    // The asset signer needs to sign, so we include a partial signature
-    const serializedTransaction = web3Transaction
+    // Create a legacy Transaction
+    const transaction = new Transaction();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = new PublicKey(signerWallet);
+    transaction.add(...web3Instructions);
+
+    // Convert UMI signer to web3.js Keypair and partial sign
+    const assetKeypair = toWeb3JsKeypair(assetSigner);
+    transaction.partialSign(assetKeypair);
+
+    // Serialize the transaction (admin wallet will add their signature on client)
+    const serializedTransaction = transaction
       .serialize({
         requireAllSignatures: false,
         verifySignatures: false,
@@ -269,7 +280,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       transaction: serializedTransaction,
       assetPublicKey: assetSigner.publicKey.toString(),
-      assetSecretKey: Array.from(assetSigner.secretKey), // Client needs this to co-sign
       metadataUri,
       imageUrl,
       imageTxId,
