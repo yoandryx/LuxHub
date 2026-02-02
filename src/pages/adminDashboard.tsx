@@ -35,6 +35,7 @@ import {
   HiOutlineXCircle,
   HiOutlineLightningBolt,
   HiOutlineTrash,
+  HiOutlineExclamation,
 } from 'react-icons/hi';
 import { VendorProfile } from '../lib/models/VendorProfile';
 
@@ -75,6 +76,7 @@ const PlatformSettingsPanel = lazy(() =>
   }))
 );
 const AssetCleanupPanel = lazy(() => import('../components/admins/AssetCleanupPanel'));
+const DelistRequestsPanel = lazy(() => import('../components/admins/DelistRequestsPanel'));
 
 // Loading fallback for lazy components
 const TabLoader = () => <div className={styles.loadingTab}>Loading...</div>;
@@ -2401,6 +2403,12 @@ const AdminDashboard: React.FC = () => {
             <AssetCleanupPanel />
           </Suspense>
         );
+      case 15: // Delist Requests
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <DelistRequestsPanel />
+          </Suspense>
+        );
       default:
         return null;
     }
@@ -2417,6 +2425,7 @@ const AdminDashboard: React.FC = () => {
 
   const nftNavItems = [
     { id: 12, label: 'Vault Inventory', icon: HiOutlineDatabase },
+    { id: 15, label: 'Delist Requests', icon: HiOutlineExclamation },
     { id: 14, label: 'Asset Cleanup', icon: HiOutlineTrash },
     { id: 6, label: 'Metadata Editor', icon: HiOutlineDocumentText },
     { id: 7, label: 'Change Requests', icon: HiOutlineCollection },
@@ -2441,6 +2450,7 @@ const AdminDashboard: React.FC = () => {
     6: { title: 'NFT Metadata Editor', subtitle: 'Edit NFT metadata and attributes' },
     7: { title: 'Metadata Change Requests', subtitle: 'Review pending metadata update requests' },
     14: { title: 'Asset Cleanup', subtitle: 'Remove failed mints and clean up test data' },
+    15: { title: 'Delist Requests', subtitle: 'Review and process vendor delist requests' },
     13: {
       title: 'Platform Settings',
       subtitle: 'Configure multisig, wallets, fees, and feature flags',

@@ -33,8 +33,16 @@ import {
   FaRegCircleCheck,
   FaEllipsis,
 } from 'react-icons/fa6';
-import { IoClose, IoGridOutline, IoBookmarkOutline, IoFlameOutline } from 'react-icons/io5';
+import {
+  IoClose,
+  IoGridOutline,
+  IoBookmarkOutline,
+  IoFlameOutline,
+  IoCheckboxOutline,
+  IoSquareOutline,
+} from 'react-icons/io5';
 import DelistRequestModal from '../../components/vendor/DelistRequestModal';
+import BulkDelistModal from '../../components/vendor/BulkDelistModal';
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
 const FUNDS_MINT = 'So11111111111111111111111111111111111111112';
@@ -90,6 +98,11 @@ const VendorProfilePage = () => {
   const [showDetailCard, setShowDetailCard] = useState(false);
   const [listingAssetId, setListingAssetId] = useState<string | null>(null);
   const [delistingNft, setDelistingNft] = useState<NFT | null>(null);
+
+  // Bulk selection mode
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedNfts, setSelectedNfts] = useState<Set<string>>(new Set());
+  const [showBulkDelistModal, setShowBulkDelistModal] = useState(false);
 
   const connection = useMemo(
     () =>
@@ -340,6 +353,38 @@ const VendorProfilePage = () => {
           return true;
         });
 
+  // Get NFTs that can be delisted (listed status)
+  const delistableNfts = nftData.filter((nft) => nft.status === 'listed' && nft._id);
+
+  // Toggle individual NFT selection
+  const toggleNftSelection = (nftId: string) => {
+    setSelectedNfts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(nftId)) {
+        newSet.delete(nftId);
+      } else {
+        newSet.add(nftId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all delistable NFTs
+  const selectAllDelistable = () => {
+    setSelectedNfts(new Set(delistableNfts.map((nft) => nft._id!)));
+  };
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedNfts(new Set());
+    setSelectionMode(false);
+  };
+
+  // Get selected NFT objects for bulk modal
+  const getSelectedNftObjects = () => {
+    return nftData.filter((nft) => nft._id && selectedNfts.has(nft._id));
+  };
+
   const formatDate = (timestamp?: number | string) => {
     if (!timestamp) return 'N/A';
     return new Date(timestamp).toLocaleDateString('en-US', {
@@ -575,11 +620,90 @@ const VendorProfilePage = () => {
           )}
         </div>
 
-        {/* Section Heading */}
+        {/* Section Heading with Bulk Selection Toggle */}
         <div className={styles.sectionHeading}>
           <h2>
             {activeFilter === 'burned' ? 'Burned Assets' : 'Collection'} ({filteredNFTs.length})
           </h2>
+
+          {/* Bulk Selection Controls - Only for own profile with listed items */}
+          {isOwnProfile && delistableNfts.length > 0 && activeFilter !== 'burned' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {selectionMode ? (
+                <>
+                  <span style={{ fontSize: '0.875rem', color: '#c8a1ff' }}>
+                    {selectedNfts.size} selected
+                  </span>
+                  <button
+                    onClick={selectAllDelistable}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(200, 161, 255, 0.1)',
+                      border: '1px solid #c8a1ff40',
+                      borderRadius: '6px',
+                      color: '#c8a1ff',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Select All Listed ({delistableNfts.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedNfts.size > 0) {
+                        setShowBulkDelistModal(true);
+                      }
+                    }}
+                    disabled={selectedNfts.size === 0}
+                    style={{
+                      padding: '6px 12px',
+                      background: selectedNfts.size > 0 ? '#f59e0b' : 'rgba(245, 158, 11, 0.3)',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: selectedNfts.size > 0 ? '#000' : '#666',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: selectedNfts.size > 0 ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    Bulk Delist ({selectedNfts.size})
+                  </button>
+                  <button
+                    onClick={clearSelection}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'transparent',
+                      border: '1px solid #333',
+                      borderRadius: '6px',
+                      color: '#a1a1a1',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setSelectionMode(true)}
+                  style={{
+                    padding: '6px 12px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    borderRadius: '6px',
+                    color: '#f59e0b',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <IoCheckboxOutline /> Bulk Delist Mode
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* NFT Grid - Using NFTCard component */}
@@ -593,7 +717,49 @@ const VendorProfilePage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.05 }}
+                  style={{
+                    position: 'relative',
+                    ...(selectionMode &&
+                      nft._id &&
+                      selectedNfts.has(nft._id) && {
+                        outline: '2px solid #c8a1ff',
+                        outlineOffset: '2px',
+                        borderRadius: '12px',
+                      }),
+                  }}
                 >
+                  {/* Selection checkbox overlay */}
+                  {selectionMode && isOwnProfile && nft.status === 'listed' && nft._id && (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleNftSelection(nft._id!);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        left: '8px',
+                        zIndex: 10,
+                        width: '28px',
+                        height: '28px',
+                        background: selectedNfts.has(nft._id) ? '#c8a1ff' : 'rgba(0, 0, 0, 0.6)',
+                        border: selectedNfts.has(nft._id) ? 'none' : '2px solid #fff',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(4px)',
+                      }}
+                    >
+                      {selectedNfts.has(nft._id) ? (
+                        <IoCheckboxOutline size={18} color="#000" />
+                      ) : (
+                        <IoSquareOutline size={18} color="#fff" />
+                      )}
+                    </div>
+                  )}
+
                   <NFTCard
                     nft={{
                       nftId: nft.nftId,
@@ -607,12 +773,16 @@ const VendorProfilePage = () => {
                       attributes: nft.attributes,
                     }}
                     onClick={() => {
-                      setSelectedNFT(nft);
-                      setShowDetailCard(true);
+                      if (selectionMode && nft.status === 'listed' && nft._id) {
+                        toggleNftSelection(nft._id);
+                      } else {
+                        setSelectedNFT(nft);
+                        setShowDetailCard(true);
+                      }
                     }}
                   />
                   {/* List for Sale button for own pending NFTs */}
-                  {isOwnProfile && nft.status === 'pending' && nft._id && (
+                  {isOwnProfile && nft.status === 'pending' && nft._id && !selectionMode && (
                     <button
                       className={styles.listForSaleBtn}
                       onClick={(e) => {
@@ -625,7 +795,7 @@ const VendorProfilePage = () => {
                     </button>
                   )}
                   {/* Request Delist button for own listed NFTs */}
-                  {isOwnProfile && nft.status === 'listed' && nft._id && (
+                  {isOwnProfile && nft.status === 'listed' && nft._id && !selectionMode && (
                     <button
                       className={styles.delistBtn}
                       onClick={(e) => {
@@ -718,6 +888,26 @@ const VendorProfilePage = () => {
           onSuccess={() => {
             // Refresh NFTs after successful delist request
             setDelistingNft(null);
+          }}
+        />
+      )}
+
+      {/* Bulk Delist Request Modal */}
+      {showBulkDelistModal && (
+        <BulkDelistModal
+          assets={getSelectedNftObjects().map((nft) => ({
+            _id: nft._id!,
+            model: nft.title,
+            mintAddress: nft.mintAddress,
+            priceUSD: nft.priceUSD,
+            image: nft.image,
+          }))}
+          onClose={() => {
+            setShowBulkDelistModal(false);
+          }}
+          onSuccess={() => {
+            // Clear selection and exit selection mode after successful submission
+            clearSelection();
           }}
         />
       )}
