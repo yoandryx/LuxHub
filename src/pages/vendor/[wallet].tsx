@@ -34,6 +34,7 @@ import {
   FaEllipsis,
 } from 'react-icons/fa6';
 import { IoClose, IoGridOutline, IoBookmarkOutline, IoFlameOutline } from 'react-icons/io5';
+import DelistRequestModal from '../../components/vendor/DelistRequestModal';
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
 const FUNDS_MINT = 'So11111111111111111111111111111111111111112';
@@ -88,6 +89,7 @@ const VendorProfilePage = () => {
   });
   const [showDetailCard, setShowDetailCard] = useState(false);
   const [listingAssetId, setListingAssetId] = useState<string | null>(null);
+  const [delistingNft, setDelistingNft] = useState<NFT | null>(null);
 
   const connection = useMemo(
     () =>
@@ -622,6 +624,18 @@ const VendorProfilePage = () => {
                       {listingAssetId === nft._id ? 'Listing...' : 'List for Sale'}
                     </button>
                   )}
+                  {/* Request Delist button for own listed NFTs */}
+                  {isOwnProfile && nft.status === 'listed' && nft._id && (
+                    <button
+                      className={styles.delistBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDelistingNft(nft);
+                      }}
+                    >
+                      Request Delist
+                    </button>
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -689,6 +703,24 @@ const VendorProfilePage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Delist Request Modal */}
+      {delistingNft && (
+        <DelistRequestModal
+          asset={{
+            _id: delistingNft._id || '',
+            model: delistingNft.title,
+            mintAddress: delistingNft.mintAddress,
+            priceUSD: delistingNft.priceUSD,
+            image: delistingNft.image,
+          }}
+          onClose={() => setDelistingNft(null)}
+          onSuccess={() => {
+            // Refresh NFTs after successful delist request
+            setDelistingNft(null);
+          }}
+        />
+      )}
     </div>
   );
 };
