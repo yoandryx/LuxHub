@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
-import { Transaction, Keypair } from '@solana/web3.js';
+import { Transaction } from '@solana/web3.js';
 import toast from 'react-hot-toast';
 import styles from '../../styles/AdminDashboard.module.css';
 import {
@@ -261,12 +261,9 @@ const MintRequestsPanel: React.FC = () => {
       toast.loading('Please sign the transaction in your wallet...', { id: toastId });
 
       // Step 2: Deserialize and sign the transaction
+      // The server already signed with the asset keypair, we just need admin signature
       const transactionBuffer = Buffer.from(prepareData.transaction, 'base64');
       const transaction = Transaction.from(transactionBuffer);
-
-      // Add the asset signer (required for mpl-core)
-      const assetKeypair = Keypair.fromSecretKey(new Uint8Array(prepareData.assetSecretKey));
-      transaction.partialSign(assetKeypair);
 
       // Sign with the admin wallet
       const signedTransaction = await wallet.signTransaction(transaction);
@@ -403,12 +400,9 @@ const MintRequestsPanel: React.FC = () => {
 
       toast.loading('Please sign the transaction in your wallet...', { id: toastId });
 
-      // Step 3: Deserialize and sign
+      // Step 3: Deserialize and sign (asset keypair already signed by server)
       const transactionBuffer = Buffer.from(prepareData.transaction, 'base64');
       const transaction = Transaction.from(transactionBuffer);
-
-      const assetKeypair = Keypair.fromSecretKey(new Uint8Array(prepareData.assetSecretKey));
-      transaction.partialSign(assetKeypair);
 
       const signedTransaction = await wallet.signTransaction(transaction);
 
