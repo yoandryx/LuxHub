@@ -588,13 +588,17 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         currentVendorId || (isVaultMint && luxhubVendor?.id ? luxhubVendor.id : undefined);
       console.log('[MINT] Vendor ID:', vendorId, '(LuxHub vault:', isVaultMint, ')');
 
+      // Store full image URL for display, ID for reference
+      const fullImageUrl = imageUri || (fileCid ? resolveImageUrl(fileCid, gateway) : '');
+
       const dbPayload = {
         ...(vendorId && { vendor: vendorId }),
         model,
         serial: serialNumber,
         description,
         priceUSD: priceSol * solPrice,
-        imageIpfsUrls: fileCid ? [fileCid] : [],
+        images: fullImageUrl ? [fullImageUrl] : [], // Full URL for direct display
+        imageIpfsUrls: fileCid ? [fileCid] : [], // ID/CID for reference
         metadataIpfsUrl: metadataUri,
         nftMint: mintAddress,
         nftOwnerWallet: actualOwner,
@@ -602,6 +606,27 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         status: marketStatus,
         poolEligible,
         category: 'watches',
+        // Store metadata attributes for display
+        metaplexMetadata: {
+          creator: wallet.publicKey.toBase58(),
+          attributes: {
+            brand,
+            material,
+            productionYear,
+            movement,
+            caseSize,
+            dialColor,
+            waterResistance,
+            condition,
+            boxPapers,
+            country,
+            limitedEdition,
+            certificate,
+            warrantyInfo,
+            features,
+            releaseDate,
+          },
+        },
         ...(verificationResult && {
           aiVerification: {
             verified: verificationResult.listingApproved,
@@ -993,13 +1018,17 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         // NFT owner is always the minter initially
         const actualOwnerBulk = wallet.publicKey.toBase58();
 
+        // Resolve full image URL for display
+        const bulkImageUrl = row.imageCid ? resolveImageUrl(row.imageCid, gateway) : '';
+
         const dbPayload = {
           ...(vendorId && { vendor: vendorId }),
           model: row.model,
           serial: refNumber, // Reference number (supports alphanumeric)
           description: row.description,
           priceUSD, // USD is the source of truth
-          imageIpfsUrls: row.imageCid ? [row.imageCid] : [],
+          images: bulkImageUrl ? [bulkImageUrl] : [], // Full URL for display
+          imageIpfsUrls: row.imageCid ? [row.imageCid] : [], // ID/CID for reference
           metadataIpfsUrl: metadataUri,
           nftMint: mintAddress,
           nftOwnerWallet: actualOwnerBulk,

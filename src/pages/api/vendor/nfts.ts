@@ -52,18 +52,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Transform assets to NFT format
     const nftsFromAssets = assets.map((asset: any) => {
-      const imageSource = asset.imageIpfsUrls?.[0] || asset.images?.[0];
+      // Prefer full URL from images array, then resolve from imageIpfsUrls
+      const imageSource = asset.images?.[0] || asset.imageIpfsUrls?.[0];
       const image = resolveImageUrl(imageSource);
 
-      // Get attributes from metaplexMetadata
+      // Get attributes from metaplexMetadata (comprehensive list)
       const attrs = asset.metaplexMetadata?.attributes || {};
       const attributes = [
         { trait_type: 'Brand', value: attrs.brand || '' },
         { trait_type: 'Model', value: asset.model || '' },
         { trait_type: 'Serial Number', value: asset.serial || '' },
         { trait_type: 'Material', value: attrs.material || '' },
-        { trait_type: 'Condition', value: attrs.condition || '' },
+        { trait_type: 'Condition', value: attrs.condition || asset.condition || '' },
         { trait_type: 'Production Year', value: attrs.productionYear || '' },
+        { trait_type: 'Movement', value: attrs.movement || '' },
+        { trait_type: 'Case Size', value: attrs.caseSize || '' },
+        { trait_type: 'Dial Color', value: attrs.dialColor || '' },
+        { trait_type: 'Water Resistance', value: attrs.waterResistance || '' },
+        { trait_type: 'Box & Papers', value: attrs.boxPapers || '' },
+        { trait_type: 'Country', value: attrs.country || '' },
+        { trait_type: 'Limited Edition', value: attrs.limitedEdition || '' },
+        { trait_type: 'Certificate', value: attrs.certificate || '' },
+        { trait_type: 'Warranty', value: attrs.warrantyInfo || '' },
+        { trait_type: 'Features', value: attrs.features || '' },
+        {
+          trait_type: 'Price USD',
+          value: asset.priceUSD ? `$${asset.priceUSD.toLocaleString()}` : '',
+        },
       ].filter((a) => a.value);
 
       return {
