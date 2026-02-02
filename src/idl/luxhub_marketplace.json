@@ -8,20 +8,82 @@
   },
   "instructions": [
     {
-      "name": "admin_only_example",
+      "name": "cancel_escrow",
+      "docs": [
+        "Cancel an escrow listing and return the NFT to seller.",
+        "Only callable by the original seller before a buyer deposits funds."
+      ],
       "discriminator": [
-        105,
-        183,
-        159,
-        157,
-        59,
-        202,
-        115,
-        175
+        156,
+        203,
+        54,
+        179,
+        38,
+        72,
+        33,
+        21
       ],
       "accounts": [
         {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "nft_vault",
+          "writable": true
+        },
+        {
+          "name": "wsol_vault",
+          "writable": true
+        },
+        {
+          "name": "seller_nft_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_config",
+      "docs": [
+        "Close the config account (for migration/reinitialization).",
+        "Returns rent to admin. Use with caution!"
+      ],
+      "discriminator": [
+        145,
+        9,
+        72,
+        157,
+        95,
+        125,
+        61,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
           "name": "config",
+          "docs": [
+            "The PDA seeds verification ensures this is the correct config account."
+          ],
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -44,13 +106,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "authority"
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
         }
       ],
       "args": []
@@ -294,6 +349,12 @@
     },
     {
       "name": "initialize_config",
+      "docs": [
+        "Initialize the protocol config. Can only be called once.",
+        "authority: The multisig that controls config updates",
+        "treasury: The vault where fees are sent",
+        "fee_bps: Fee in basis points (300 = 3%)"
+      ],
       "discriminator": [
         208,
         127,
@@ -343,12 +404,92 @@
       ],
       "args": [
         {
-          "name": "squads_multisig",
+          "name": "authority",
           "type": "pubkey"
         },
         {
-          "name": "squads_authority",
+          "name": "treasury",
           "type": "pubkey"
+        },
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "docs": [
+        "Update the protocol config. All parameters are optional.",
+        "Only callable by the current authority (should be multisig)."
+      ],
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  117,
+                  120,
+                  104,
+                  117,
+                  98,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_authority",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "new_treasury",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "new_fee_bps",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "new_paused",
+          "type": {
+            "option": "bool"
+          }
         }
       ]
     },
@@ -500,6 +641,21 @@
       "code": 6016,
       "name": "NotSeller",
       "msg": "Only the seller can perform this action."
+    },
+    {
+      "code": 6017,
+      "name": "CannotCancelWithBuyer",
+      "msg": "Cannot cancel escrow after buyer has deposited funds."
+    },
+    {
+      "code": 6018,
+      "name": "FeeTooHigh",
+      "msg": "Fee cannot exceed 10% (1000 basis points)."
+    },
+    {
+      "code": 6019,
+      "name": "ProtocolPaused",
+      "msg": "Protocol is currently paused."
     }
   ],
   "types": [
@@ -565,12 +721,39 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "squads_multisig",
+            "name": "authority",
+            "docs": [
+              "The Squads multisig that controls this config"
+            ],
             "type": "pubkey"
           },
           {
-            "name": "squads_authority",
+            "name": "treasury",
+            "docs": [
+              "The treasury vault where fees are sent (Squads Vault PDA)"
+            ],
             "type": "pubkey"
+          },
+          {
+            "name": "fee_bps",
+            "docs": [
+              "Fee in basis points (300 = 3%)"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Emergency pause flag"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump seed for PDA derivation"
+            ],
+            "type": "u8"
           }
         ]
       }
