@@ -2825,3 +2825,523 @@
 .justifyBetween {
   justify-content: space-between;
 }
+
+/* ========== TRANSFERRED SECTION STYLES ========== */
+.sectionHeader {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.sectionHeader h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sectionSubtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Transfer Badge - Shows where the NFT was sent */
+.transferBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+  z-index: 2;
+}
+
+.transferBadge[data-type='vault'] {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.3), rgba(138, 43, 226, 0.2));
+  border: 1px solid var(--accent-dim);
+  color: var(--accent-bright);
+}
+
+.transferBadge[data-type='vendor'] {
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.2), rgba(34, 197, 94, 0.15));
+  border: 1px solid var(--success-dim);
+  color: var(--success);
+}
+
+.transferBadge[data-type='other'] {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(59, 130, 246, 0.15));
+  border: 1px solid var(--info-dim);
+  color: var(--info);
+}
+
+/* Status Badge for market status */
+.statusBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  border-radius: 4px;
+}
+
+.statusBadge[data-status='pending'] {
+  background: var(--warning-dim);
+  color: var(--warning);
+}
+
+.statusBadge[data-status='listed'] {
+  background: var(--success-dim);
+  color: var(--success);
+}
+
+.statusBadge[data-status='in_escrow'] {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.statusBadge[data-status='sold'] {
+  background: var(--info-dim);
+  color: var(--info);
+}
+
+/* View Details Button */
+.viewDetailsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.15), rgba(138, 43, 226, 0.1));
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  color: var(--accent-bright);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewDetailsBtn:hover {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.25), rgba(138, 43, 226, 0.2));
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.4), rgba(20, 20, 25, 0.6));
+  border: 1px dashed var(--border-light);
+  border-radius: 16px;
+}
+
+.emptyState p {
+  margin: 16px 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.emptyState span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Make NFT cards in transferred section relative for badge positioning */
+.nftCard {
+  position: relative;
+}
+
+/* ========== MINTED SECTION HEADER ========== */
+.mintedHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mintedHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mintedHeaderLeft h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.nftCount {
+  padding: 4px 12px;
+  background: var(--accent-dim);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.mintedHeaderRight {
+  display: flex;
+  gap: 8px;
+}
+
+.selectionModeBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selectionModeBtn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.selectionModeBtn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.selectAllBtn {
+  padding: 8px 16px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selectAllBtn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ========== BULK ACTION BAR ========== */
+.bulkActionBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1), rgba(138, 43, 226, 0.05));
+  border: 1px solid var(--accent-dim);
+  border-radius: 12px;
+}
+
+.selectedCount {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.bulkActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.bulkSelect {
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-width: 180px;
+}
+
+.bulkSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.bulkTransferBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bulkTransferBtn:hover:not(:disabled) {
+  background: var(--accent-bright);
+  transform: translateY(-1px);
+}
+
+.bulkTransferBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========== COMPACT GRID ========== */
+.compactGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ========== COMPACT CARD ========== */
+.compactCard {
+  position: relative;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.compactCard:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.compactCard.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.compactCard.transferring {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Selection Checkbox */
+.selectionCheckbox {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+}
+
+.selectionCheckbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* Compact Badge */
+.compactBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  z-index: 5;
+}
+
+.compactBadge[data-status='pending'] {
+  background: var(--warning-dim);
+  color: var(--warning);
+}
+
+.compactBadge[data-status='listed'] {
+  background: var(--success-dim);
+  color: var(--success);
+}
+
+.compactBadge[data-status='in_escrow'] {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.compactBadge[data-status='sold'] {
+  background: var(--info-dim);
+  color: var(--info);
+}
+
+/* Compact Image */
+.compactImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bg-dark);
+}
+
+.compactImageWrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.transferOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.spinnerIcon {
+  font-size: 24px;
+  color: var(--accent);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Compact Info */
+.compactInfo {
+  padding: 12px;
+}
+
+.compactTitle {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compactMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.compactPrice {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.compactMint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.compactMint:hover {
+  color: var(--accent);
+}
+
+/* Compact Actions */
+.compactActions {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.compactSelect {
+  flex: 1;
+  padding: 6px 8px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.compactSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.compactTransferBtn,
+.compactViewBtn {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.compactTransferBtn:hover:not(:disabled),
+.compactViewBtn:hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.compactTransferBtn:disabled,
+.compactViewBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ========== RESPONSIVE COMPACT GRID ========== */
+@media screen and (max-width: 768px) {
+  .compactGrid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .mintedHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .bulkActionBar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .bulkActions {
+    flex-direction: column;
+  }
+
+  .bulkSelect {
+    width: 100%;
+  }
+}

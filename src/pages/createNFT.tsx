@@ -34,7 +34,7 @@ import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import { NftForm } from '../components/admins/NftForm';
 import styles from '../styles/CreateNFT.module.css';
 import NFTPreviewCard from '../components/admins/NFTPreviewCard';
-import { NFTGridCard } from '../components/common/UnifiedNFTCard';
+import UnifiedNFTCard, { NFTGridCard } from '../components/common/UnifiedNFTCard';
 import type { NFTStatus } from '../components/common/UnifiedNFTCard';
 import {
   FaCopy,
@@ -66,6 +66,7 @@ interface MintedNFT {
   metadataUri: string;
   mintAddress: string | null;
   currentOwner: string | null;
+  mintedBy: string | null; // Admin wallet who originally minted this NFT
   ipfs_pin_hash: string | null;
   marketStatus: string | null;
   updatedAt: string | null;
@@ -134,6 +135,39 @@ interface BulkMintResult {
 }
 
 const fallbackGateway = 'https://gateway.pinata.cloud/ipfs/';
+const irysGateway = 'https://gateway.irys.xyz/';
+
+/**
+ * Resolve a storage ID to a full gateway URL
+ * Handles IPFS hashes (Qm..., bafy...) and Irys/Arweave TX IDs
+ */
+function resolveImageUrl(idOrUrl: string | undefined | null, gateway: string): string {
+  if (!idOrUrl) return '/fallback.png';
+
+  // Already a full URL
+  if (idOrUrl.startsWith('http://') || idOrUrl.startsWith('https://')) {
+    return idOrUrl;
+  }
+
+  // Local path (like /fallback.png)
+  if (idOrUrl.startsWith('/')) {
+    return idOrUrl;
+  }
+
+  // IPFS CIDv0 (starts with Qm, 46 chars) or CIDv1 (starts with bafy)
+  if (idOrUrl.startsWith('Qm') || idOrUrl.startsWith('bafy')) {
+    return `${gateway}${idOrUrl}`;
+  }
+
+  // Irys/Arweave transaction ID (43-char base64url, doesn't start with IPFS prefixes)
+  // These are typically alphanumeric with - and _
+  if (idOrUrl.length === 43 && /^[A-Za-z0-9_-]+$/.test(idOrUrl)) {
+    return `${irysGateway}${idOrUrl}`;
+  }
+
+  // Default to IPFS gateway for unknown formats
+  return `${gateway}${idOrUrl}`;
+}
 
 type Props = {
   initialMintedNFTs: MintedNFT[];
@@ -200,6 +234,65 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [creatingEscrow, setCreatingEscrow] = useState<string | null>(null);
   const [escrowPrice, setEscrowPrice] = useState<{ [key: string]: string }>({});
 
+  // Vendor transfer state
+  const [selectedVendorTransfer, setSelectedVendorTransfer] = useState<{
+    [mintAddress: string]: string;
+  }>({});
+
+  // Selection mode for bulk transfers
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedNfts, setSelectedNfts] = useState<Set<string>>(new Set());
+  const [bulkTransferTarget, setBulkTransferTarget] = useState<string>('');
+
+  // Toggle NFT selection
+  const toggleNftSelection = (mintAddress: string) => {
+    setSelectedNfts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(mintAddress)) {
+        newSet.delete(mintAddress);
+      } else {
+        newSet.add(mintAddress);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all NFTs
+  const selectAllNfts = () => {
+    const allMints = ownedNfts.map((n) => n.mintAddress).filter(Boolean) as string[];
+    setSelectedNfts(new Set(allMints));
+  };
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedNfts(new Set());
+    setSelectionMode(false);
+  };
+
+  // Bulk transfer selected NFTs
+  const bulkTransferNfts = async (targetWallet: string) => {
+    if (!targetWallet || selectedNfts.size === 0) return;
+
+    const confirmed = window.confirm(
+      `Transfer ${selectedNfts.size} NFT(s) to ${getRecipientName(targetWallet)}?\n\nAddress: ${targetWallet.slice(0, 8)}...${targetWallet.slice(-8)}`
+    );
+
+    if (!confirmed) return;
+
+    // Find vendor ID if this wallet belongs to an approved vendor
+    const vendor = approvedVendors.find(
+      (v: { walletAddress?: string }) => v.walletAddress === targetWallet
+    );
+    const vendorId = vendor?._id;
+
+    // Transfer each selected NFT
+    for (const mintAddress of selectedNfts) {
+      await transferNft(mintAddress, targetWallet, vendorId);
+    }
+
+    clearSelection();
+  };
+
   // AI Analysis state
   const [analyzingImage, setAnalyzingImage] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -231,6 +324,13 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   });
   const vaultConfig = vaultConfigData?.data?.config;
   const luxhubVendor = vaultConfigData?.data?.luxhubVendor;
+
+  // Fetch approved vendors for transfer dropdown
+  const { data: vendorsData } = useSWR('/api/vendor/vendorList', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 300000, // Cache for 5 minutes
+  });
+  const approvedVendors = vendorsData?.vendors || [];
 
   // Memoize gateway URL
   const gateway = useMemo(() => process.env.NEXT_PUBLIC_GATEWAY_URL || fallbackGateway, []);
@@ -364,9 +464,11 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       setStatusMessage('Creating metadata...');
       console.log('[MINT] Creating metadata JSON...');
 
-      // Determine if this is a vault mint (admin minting to LuxHub vault)
-      const isVaultMint = !currentVendorId && vaultConfig?.vaultPda;
-      console.log('[MINT] Is vault mint:', isVaultMint);
+      // Note: NFTs always stay with the minter initially, then can be transferred to vendor/vault
+      // Vault verification metadata is still included for LuxHub-authenticated mints
+      const isVaultMint = false; // Disabled auto-transfer - minter keeps NFT
+      const hasVaultConfig = Boolean(vaultConfig?.vaultPda);
+      console.log('[MINT] Has vault config:', hasVaultConfig, '(auto-transfer disabled)');
 
       const metadataJson = createMetadata(
         title,
@@ -396,10 +498,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         undefined, // serviceHistory
         undefined, // features
         imageUri, // Full image URL (Irys or IPFS)
-        // LuxHub verification data for vault mints
-        isVaultMint
+        // LuxHub verification data for authenticated admin mints
+        hasVaultConfig
           ? {
-              isVaultMint: true,
+              isVaultMint: true, // Marks as LuxHub verified even if not auto-transferred
               vaultAddress: vaultConfig?.vaultPda,
               mintedBy: wallet.publicKey.toBase58(),
               collectionName: 'LuxHub Verified Timepieces',
@@ -429,11 +531,9 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       const assetSigner = generateSigner(umi);
       console.log('[MINT] Asset signer public key:', assetSigner.publicKey.toString());
 
-      // Determine NFT owner: vault PDA for vault mints, otherwise admin wallet
-      const vaultPda = process.env.NEXT_PUBLIC_VAULT_PDA || vaultConfig?.vaultPda;
-      const nftOwner = isVaultMint && vaultPda ? umiPublicKey(vaultPda) : umi.identity.publicKey;
-
-      console.log('[MINT] NFT Owner:', isVaultMint ? `Vault PDA (${vaultPda})` : 'Admin Wallet');
+      // NFT owner is always the minter - transfer to vault/vendor happens manually after
+      const nftOwner = umi.identity.publicKey;
+      console.log('[MINT] NFT Owner: Admin Wallet (minter)', wallet.publicKey.toBase58());
       console.log('[MINT] Sending createAsset transaction...');
 
       const txStartTime = Date.now();
@@ -454,10 +554,11 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       // Save to database
       setStatusMessage('Saving to database...');
       console.log('[MINT] Preparing database save...');
-      const newImage = fileCid ? `${gateway}${fileCid}` : '/fallback.png';
+      // Use full imageUri if available, otherwise resolve from fileCid
+      const newImage = imageUri || resolveImageUrl(fileCid, gateway);
 
-      // Determine the actual owner address for records
-      const actualOwner = isVaultMint && vaultPda ? vaultPda : wallet.publicKey.toBase58();
+      // NFT owner is always the minter initially
+      const actualOwner = wallet.publicKey.toBase58();
 
       // Optimistic update
       const newNft: MintedNFT = {
@@ -468,6 +569,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         metadataUri,
         mintAddress,
         currentOwner: actualOwner,
+        mintedBy: wallet.publicKey.toBase58(), // Track who minted this NFT
         ipfs_pin_hash: fileCid,
         marketStatus,
         updatedAt: new Date().toISOString(),
@@ -494,7 +596,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         imageIpfsUrls: fileCid ? [fileCid] : [],
         metadataIpfsUrl: metadataUri,
         nftMint: mintAddress,
-        nftOwnerWallet: actualOwner, // Vault PDA for vault mints
+        nftOwnerWallet: actualOwner,
+        mintedBy: wallet.publicKey.toBase58(), // Track original minter
         status: marketStatus,
         poolEligible,
         category: 'watches',
@@ -861,14 +964,11 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           `[BULK-MINT] Row ${index + 1}: Asset signer: ${assetSigner.publicKey.toString()}`
         );
 
-        // Determine NFT owner: vault PDA for vault mints
-        const vaultPda = process.env.NEXT_PUBLIC_VAULT_PDA || vaultConfig?.vaultPda;
-        const isVaultMintBulk = !currentVendorId && vaultPda;
-        const nftOwner = isVaultMintBulk ? umiPublicKey(vaultPda) : umi.identity.publicKey;
+        // NFT owner is always the minter - transfer to vault/vendor happens manually after
+        const isVaultMintBulk = false; // Disabled auto-transfer - minter keeps NFT
+        const nftOwner = umi.identity.publicKey;
 
-        console.log(
-          `[BULK-MINT] Row ${index + 1}: NFT Owner: ${isVaultMintBulk ? `Vault (${vaultPda})` : 'Admin'}`
-        );
+        console.log(`[BULK-MINT] Row ${index + 1}: NFT Owner: Admin Wallet (minter)`);
         console.log(`[BULK-MINT] Row ${index + 1}: Sending on-chain transaction...`);
         const txStartTime = Date.now();
         await createAsset(umi, {
@@ -887,11 +987,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         // Save to DB with USD as source of truth
         console.log(`[BULK-MINT] Row ${index + 1}: Saving to database...`);
 
-        // Use the vault mint check we already determined
-        const vendorId =
-          currentVendorId || (isVaultMintBulk && luxhubVendor?.id ? luxhubVendor.id : undefined);
-        const actualOwnerBulk =
-          isVaultMintBulk && vaultPda ? vaultPda : wallet.publicKey.toBase58();
+        // Vendor ID for DB record (if selected)
+        const vendorId = currentVendorId || undefined;
+        // NFT owner is always the minter initially
+        const actualOwnerBulk = wallet.publicKey.toBase58();
 
         const dbPayload = {
           ...(vendorId && { vendor: vendorId }),
@@ -902,7 +1001,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           imageIpfsUrls: row.imageCid ? [row.imageCid] : [],
           metadataIpfsUrl: metadataUri,
           nftMint: mintAddress,
-          nftOwnerWallet: actualOwnerBulk, // Vault PDA for vault mints
+          nftOwnerWallet: actualOwnerBulk,
+          mintedBy: wallet.publicKey.toBase58(), // Track original minter
           status: 'pending',
           poolEligible: true,
           // Additional metadata for the asset
@@ -976,11 +1076,12 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         const newNft: MintedNFT = {
           title: row.title,
           description: row.description || '',
-          image: row.imageCid ? `${gateway}${row.imageCid}` : '/fallback.png',
+          image: row.imageUrl || resolveImageUrl(row.imageCid, gateway),
           priceSol: priceSolConverted,
           metadataUri,
           mintAddress,
           currentOwner: wallet.publicKey.toBase58(),
+          mintedBy: wallet.publicKey.toBase58(), // Track original minter
           ipfs_pin_hash: row.imageCid || null,
           marketStatus: 'pending',
           updatedAt: new Date().toISOString(),
@@ -1060,14 +1161,63 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     }
   };
 
-  // Transfer NFT
-  const transferNft = async (mintAddress: string, newOwner: string) => {
+  // Get recipient display name for confirmation dialog
+  const getRecipientName = useCallback(
+    (address: string): string => {
+      // Check if it's the LuxHub vault
+      if (address === 'EEtCfR8kJxQ3ZVVtTSkVRXEkF4FfAyt9YnMSiXhtFMLJ') {
+        return 'LuxHub Treasury Vault (Squads Multisig)';
+      }
+
+      // Check operational wallets
+      const opWallet = vaultConfig?.operationalWallets?.find(
+        (w: { address: string; name: string }) => w.address === address
+      );
+      if (opWallet) {
+        return `${opWallet.name} (Operational Wallet)`;
+      }
+
+      // Check vendors
+      const vendor = approvedVendors.find(
+        (v: { walletAddress?: string }) => v.walletAddress === address
+      );
+      if (vendor) {
+        return `${(vendor as any).businessName || (vendor as any).username || 'Vendor'}`;
+      }
+
+      // Unknown address
+      return 'Custom Address';
+    },
+    [vaultConfig, approvedVendors]
+  );
+
+  // Transfer NFT with confirmation dialog
+  const transferNft = async (mintAddress: string, newOwner: string, vendorId?: string) => {
     if (!wallet.publicKey || !wallet.signTransaction) {
       return alert('Connect wallet');
     }
 
     if (!isValidSolanaAddress(newOwner)) {
       return alert('Invalid wallet address');
+    }
+
+    // Find the NFT details
+    const nft = mintedNFTs.find((n) => n.mintAddress === mintAddress);
+    const nftTitle = nft?.title || 'Unknown NFT';
+    const recipientName = getRecipientName(newOwner);
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `⚠️ CONFIRM NFT TRANSFER\n\n` +
+        `NFT: ${nftTitle}\n` +
+        `Mint: ${mintAddress.slice(0, 8)}...${mintAddress.slice(-8)}\n\n` +
+        `Recipient: ${recipientName}\n` +
+        `Address: ${newOwner.slice(0, 8)}...${newOwner.slice(-8)}\n\n` +
+        `This action cannot be undone. Continue?`
+    );
+
+    if (!confirmed) {
+      return;
     }
 
     setTransferringNfts((prev) => new Set(prev).add(mintAddress));
@@ -1084,13 +1234,14 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         newOwner: umiPublicKey(newOwner),
       }).sendAndConfirm(umi);
 
-      // Update database
+      // Update database (also links to vendor if vendorId provided or wallet matches a vendor)
       const response = await fetch('/api/nft/transfer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mintAddress,
           newOwnerWallet: newOwner,
+          vendorId, // If provided, explicitly links asset to this vendor
         }),
       });
 
@@ -1105,7 +1256,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         )
       );
 
-      // Clear transfer input
+      // Clear transfer input and vendor selection
       setTransferInputs((prev) => {
         const next = { ...prev };
         Object.keys(next).forEach((key) => {
@@ -1113,11 +1264,16 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         });
         return next;
       });
+      setSelectedVendorTransfer((prev) => {
+        const next = { ...prev };
+        delete next[mintAddress];
+        return next;
+      });
 
-      alert('Transfer successful!');
+      alert(`✅ Transfer successful!\n\n${nftTitle} has been transferred to ${recipientName}.`);
     } catch (err: any) {
       console.error('Transfer error:', err);
-      alert(`Transfer failed: ${err.message}`);
+      alert(`❌ Transfer failed: ${err.message}`);
     } finally {
       setTransferringNfts((prev) => {
         const next = new Set(prev);
@@ -1257,8 +1413,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
       if (!response.ok) throw new Error('DB update failed');
 
-      // Update local state
-      const newImage = fileCid ? `${gateway}${fileCid}` : editingNft.image;
+      // Update local state - use full imageUri if a new image was uploaded, otherwise keep existing
+      const newImage = fileCid ? imageUri || resolveImageUrl(fileCid, gateway) : editingNft.image;
       setMintedNFTs((prev) =>
         prev.map((n) =>
           n.mintAddress === editingNft.mintAddress
@@ -1298,16 +1454,20 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     setActiveTab('mint');
   }, []);
 
-  // Filter NFTs
+  // Filter NFTs - only show NFTs relevant to this admin
   const ownedNfts = useMemo(
     () => mintedNFTs.filter((n) => n.currentOwner === adminWallet),
     [mintedNFTs, adminWallet]
   );
 
-  const transferredNfts = useMemo(
-    () => mintedNFTs.filter((n) => n.currentOwner !== adminWallet),
+  // Only show NFTs that THIS admin minted and then transferred (not other admins' transfers)
+  const myTransferredNfts = useMemo(
+    () => mintedNFTs.filter((n) => n.mintedBy === adminWallet && n.currentOwner !== adminWallet),
     [mintedNFTs, adminWallet]
   );
+
+  // For backwards compatibility, keep transferredNfts as alias
+  const transferredNfts = myTransferredNfts;
 
   // Helper to get USD price from row (supports both priceUSD and legacy priceSol)
   const getRowPriceUSD = useCallback(
@@ -1669,9 +1829,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                   {parsedCsvRows.map((row, idx) => {
                     const result = bulkMintResults[idx];
                     const validation = csvValidationResults[idx];
-                    const imageUrl = row.imageCid
-                      ? `${gateway}${row.imageCid}`
-                      : row.imageUrl || undefined;
+                    // Prefer full imageUrl, otherwise resolve from imageCid
+                    const imageUrl =
+                      row.imageUrl ||
+                      (row.imageCid ? resolveImageUrl(row.imageCid, gateway) : undefined);
                     const priceUSD = getRowPriceUSD(row);
                     const priceSolConverted = usdToSol(priceUSD);
 
@@ -1854,9 +2015,11 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                           previewData={{
                             title: row.title || 'Untitled',
                             description: row.description || '',
-                            image: row.imageCid
-                              ? `${gateway}${row.imageCid}`
-                              : row.imageUrl || '/images/purpleLGG.png',
+                            image:
+                              row.imageUrl ||
+                              (row.imageCid
+                                ? resolveImageUrl(row.imageCid, gateway)
+                                : '/images/purpleLGG.png'),
                             priceSol: priceSolConverted,
                             attributes: [
                               {
@@ -1969,156 +2132,306 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         </div>
       )}
 
-      {/* Minted NFTs Tab */}
+      {/* Minted NFTs Tab - Compact Grid with Selection Mode */}
       {activeTab === 'minted' && (
         <div className={styles.mintedSection}>
-          <h2>Your Minted NFTs</h2>
-          <div className={styles.grid}>
-            {ownedNfts.length > 0 ? (
-              ownedNfts.map((nft, index) => {
-                const uniqueKey = `${nft.mintAddress ?? 'nomint'}-${index}`;
-                const newOwnerValue = transferInputs[uniqueKey] || '';
+          {/* Section Header with Controls */}
+          <div className={styles.mintedHeader}>
+            <div className={styles.mintedHeaderLeft}>
+              <h2>Your Minted NFTs</h2>
+              <span className={styles.nftCount}>
+                {ownedNfts.length} NFT{ownedNfts.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className={styles.mintedHeaderRight}>
+              <button
+                className={`${styles.selectionModeBtn} ${selectionMode ? styles.active : ''}`}
+                onClick={() => {
+                  setSelectionMode(!selectionMode);
+                  if (selectionMode) clearSelection();
+                }}
+              >
+                {selectionMode ? <FaTimes /> : <FaCheck />}
+                {selectionMode ? 'Cancel' : 'Select'}
+              </button>
+              {selectionMode && ownedNfts.length > 0 && (
+                <button className={styles.selectAllBtn} onClick={selectAllNfts}>
+                  Select All ({ownedNfts.length})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Bulk Action Bar - Shows when NFTs are selected */}
+          {selectionMode && selectedNfts.size > 0 && (
+            <div className={styles.bulkActionBar}>
+              <span className={styles.selectedCount}>{selectedNfts.size} selected</span>
+              <div className={styles.bulkActions}>
+                <select
+                  className={styles.bulkSelect}
+                  value={bulkTransferTarget}
+                  onChange={(e) => setBulkTransferTarget(e.target.value)}
+                >
+                  <option value="">Transfer to...</option>
+                  <option value="EEtCfR8kJxQ3ZVVtTSkVRXEkF4FfAyt9YnMSiXhtFMLJ">LuxHub Vault</option>
+                  {vaultConfig?.operationalWallets?.map((w: { name: string; address: string }) => (
+                    <option key={w.address} value={w.address}>
+                      {w.name}
+                    </option>
+                  ))}
+                  {approvedVendors.map(
+                    (v: {
+                      _id: string;
+                      businessName?: string;
+                      username?: string;
+                      walletAddress?: string;
+                    }) => (
+                      <option key={v._id} value={v.walletAddress || ''}>
+                        {v.businessName || v.username || 'Vendor'}
+                      </option>
+                    )
+                  )}
+                </select>
+                <button
+                  className={styles.bulkTransferBtn}
+                  onClick={() => bulkTransferNfts(bulkTransferTarget)}
+                  disabled={!bulkTransferTarget}
+                >
+                  <FaExchangeAlt /> Transfer Selected
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Compact NFT Grid */}
+          {ownedNfts.length > 0 ? (
+            <div className={styles.compactGrid}>
+              {ownedNfts.map((nft, index) => {
+                const isSelected = selectedNfts.has(nft.mintAddress || '');
                 const isTransferring = transferringNfts.has(nft.mintAddress || '');
-                const isCreatingEscrow = creatingEscrow === nft.mintAddress;
-                const escrowPriceValue = escrowPrice[nft.mintAddress || ''] || '';
+                const vendorWallet = selectedVendorTransfer[nft.mintAddress || ''] || '';
 
                 return (
-                  <div key={uniqueKey} className={styles.nftCard}>
-                    <img
-                      src={nft.image?.startsWith('http') ? nft.image : '/fallback.png'}
-                      alt={nft.title}
-                    />
-                    <h3>{nft.title}</h3>
-
-                    <div className={styles.cardInfoHolder}>
-                      <div className={styles.cardInfoHead}>Price:</div>
-                      <p>{nft.priceSol.toFixed(3)} SOL</p>
-                    </div>
-
-                    {nft.marketStatus && (
-                      <div className={styles.cardInfoHolder}>
-                        <div className={styles.cardInfoHead}>Status:</div>
-                        <p>{nft.marketStatus}</p>
+                  <div
+                    key={nft.mintAddress || index}
+                    className={`${styles.compactCard} ${isSelected ? styles.selected : ''} ${isTransferring ? styles.transferring : ''}`}
+                    onClick={
+                      selectionMode ? () => toggleNftSelection(nft.mintAddress || '') : undefined
+                    }
+                  >
+                    {/* Selection Checkbox */}
+                    {selectionMode && (
+                      <div className={styles.selectionCheckbox}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleNftSelection(nft.mintAddress || '')}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       </div>
                     )}
 
-                    {nft.mintAddress && (
-                      <div className={styles.cardInfoHolder}>
-                        <div className={styles.cardInfoHead}>Mint:</div>
-                        <div className={styles.copyWrapper}>
-                          <p
-                            className={styles.copyableText}
-                            onClick={() => handleCopy(`mint-${index}`, nft.mintAddress || '')}
+                    {/* Status Badge */}
+                    <div
+                      className={styles.compactBadge}
+                      data-status={nft.marketStatus || 'pending'}
+                    >
+                      {nft.marketStatus || 'pending'}
+                    </div>
+
+                    {/* Image */}
+                    <div className={styles.compactImageWrapper}>
+                      <img
+                        src={
+                          nft.image?.startsWith('http')
+                            ? nft.image
+                            : nft.image?.startsWith('/')
+                              ? nft.image
+                              : '/fallback.png'
+                        }
+                        alt={nft.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/fallback.png';
+                        }}
+                      />
+                      {isTransferring && (
+                        <div className={styles.transferOverlay}>
+                          <FaSpinner className={styles.spinnerIcon} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Info */}
+                    <div className={styles.compactInfo}>
+                      <h4 className={styles.compactTitle}>{nft.title || 'Untitled'}</h4>
+                      <div className={styles.compactMeta}>
+                        <span className={styles.compactPrice}>{nft.priceSol?.toFixed(2)} SOL</span>
+                        {nft.mintAddress && (
+                          <span
+                            className={styles.compactMint}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopy(`mint-${index}`, nft.mintAddress || '');
+                            }}
+                            title={nft.mintAddress}
                           >
                             {nft.mintAddress.slice(0, 4)}...{nft.mintAddress.slice(-4)}
-                            <FaCopy style={{ marginLeft: '6px' }} />
-                            <span className={styles.tooltip}>
-                              {copiedField === `mint-${index}` ? 'Copied!' : 'Copy'}
-                            </span>
-                          </p>
-                        </div>
+                            <FaCopy size={10} />
+                          </span>
+                        )}
                       </div>
-                    )}
-
-                    {/* Transfer Section */}
-                    <div className={styles.transferSection}>
-                      <div>
-                        <FaExchangeAlt /> Transfer NFT
-                      </div>
-                      <input
-                        className={styles.transferInput}
-                        type="text"
-                        placeholder="Recipient wallet address..."
-                        value={newOwnerValue}
-                        onChange={(e) =>
-                          handleTransferInputChange(uniqueKey, e.target.value.trim())
-                        }
-                        disabled={isTransferring}
-                      />
-                      {newOwnerValue && !isValidSolanaAddress(newOwnerValue) && (
-                        <p className={styles.transferWarning}>Invalid wallet address</p>
-                      )}
-                      <button
-                        onClick={() => transferNft(nft.mintAddress!, newOwnerValue)}
-                        disabled={!isValidSolanaAddress(newOwnerValue) || isTransferring}
-                      >
-                        {isTransferring ? 'Transferring...' : 'Transfer'}
-                      </button>
                     </div>
 
-                    {/* Escrow Section */}
-                    {nft.assetId && !nft.escrowPda && (
-                      <div className={styles.transferSection}>
-                        <div>
-                          <FaLock /> Create Escrow Listing
-                        </div>
-                        <input
-                          className={styles.transferInput}
-                          type="number"
-                          placeholder="Listing price (USD)..."
-                          value={escrowPriceValue}
-                          onChange={(e) =>
-                            handleEscrowPriceChange(nft.mintAddress || '', e.target.value)
-                          }
-                          disabled={isCreatingEscrow}
-                        />
-                        <button
-                          onClick={() => createEscrowForNft(nft)}
-                          disabled={isCreatingEscrow || !escrowPriceValue}
+                    {/* Quick Actions (hidden in selection mode) */}
+                    {!selectionMode && (
+                      <div className={styles.compactActions}>
+                        {/* Vendor Dropdown */}
+                        <select
+                          className={styles.compactSelect}
+                          value={vendorWallet}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setSelectedVendorTransfer((prev) => ({
+                              ...prev,
+                              [nft.mintAddress || '']: e.target.value,
+                            }));
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          disabled={isTransferring}
                         >
-                          {isCreatingEscrow ? 'Creating...' : 'Create Escrow'}
+                          <option value="">Transfer to...</option>
+                          <option value="EEtCfR8kJxQ3ZVVtTSkVRXEkF4FfAyt9YnMSiXhtFMLJ">
+                            LuxHub Vault
+                          </option>
+                          {approvedVendors.map(
+                            (v: {
+                              _id: string;
+                              businessName?: string;
+                              username?: string;
+                              walletAddress?: string;
+                            }) => (
+                              <option key={v._id} value={v.walletAddress || ''}>
+                                {v.businessName || v.username || 'Vendor'}
+                              </option>
+                            )
+                          )}
+                        </select>
+                        <button
+                          className={styles.compactTransferBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (vendorWallet) {
+                              // Find vendor ID if this wallet belongs to an approved vendor
+                              const vendor = approvedVendors.find(
+                                (v: { walletAddress?: string }) => v.walletAddress === vendorWallet
+                              );
+                              transferNft(nft.mintAddress!, vendorWallet, vendor?._id);
+                            }
+                          }}
+                          disabled={!vendorWallet || isTransferring}
+                          title="Transfer"
+                        >
+                          <FaExchangeAlt />
+                        </button>
+                        <button
+                          className={styles.compactViewBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMetadataUri(nft.metadataUri);
+                          }}
+                          title="View Details"
+                        >
+                          <FaEye />
                         </button>
                       </div>
                     )}
-
-                    {nft.escrowPda && (
-                      <div className={styles.cardInfoHolder}>
-                        <div className={styles.cardInfoHead}>Escrow:</div>
-                        <p style={{ color: '#4ade80' }}>Active</p>
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                      <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
-                        View Details
-                      </button>
-                      <button onClick={() => startEditing(nft)}>Edit</button>
-                    </div>
                   </div>
                 );
-              })
-            ) : (
-              <p>No minted NFTs yet.</p>
-            )}
-          </div>
+              })}
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <HiOutlineCollection size={48} opacity={0.3} />
+              <p>No minted NFTs yet</p>
+              <span>Mint NFTs in the Mint tab to see them here</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Transferred NFTs Tab */}
+      {/* Transferred NFTs Tab - Uses UnifiedNFTCard */}
       {activeTab === 'transferred' && (
         <div className={styles.mintedSection}>
-          <h2>Transferred NFTs</h2>
-          <div className={styles.grid}>
-            {transferredNfts.length > 0 ? (
-              transferredNfts.map((nft, index) => (
-                <div key={index} className={styles.nftCard}>
-                  <img src={nft.image} alt={nft.title} />
-                  <h3>{nft.title}</h3>
-                  <div className={styles.cardInfoHolder}>
-                    <div className={styles.cardInfoHead}>Owner:</div>
-                    <p>
-                      {nft.currentOwner?.slice(0, 4)}...{nft.currentOwner?.slice(-4)}
-                    </p>
-                  </div>
-                  <button onClick={() => setSelectedMetadataUri(nft.metadataUri)}>
-                    View Details
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p>No transferred NFTs yet.</p>
-            )}
+          <div className={styles.sectionHeader}>
+            <h2>Your Transferred NFTs</h2>
+            <p className={styles.sectionSubtitle}>
+              NFTs you minted and transferred to vendors or vaults
+            </p>
           </div>
+
+          {myTransferredNfts.length > 0 ? (
+            <div className={styles.compactGrid}>
+              {myTransferredNfts.map((nft, index) => {
+                const recipientName = nft.currentOwner
+                  ? getRecipientName(nft.currentOwner)
+                  : 'Unknown';
+                const isVault =
+                  nft.currentOwner === 'EEtCfR8kJxQ3ZVVtTSkVRXEkF4FfAyt9YnMSiXhtFMLJ' ||
+                  vaultConfig?.operationalWallets?.some(
+                    (w: { address: string }) => w.address === nft.currentOwner
+                  );
+                const isVendor = approvedVendors.some(
+                  (v: { walletAddress?: string }) => v.walletAddress === nft.currentOwner
+                );
+
+                // Map to NFTStatus
+                const mapStatus = (status: string | null): NFTStatus => {
+                  switch (status) {
+                    case 'pending':
+                      return 'pending';
+                    case 'listed':
+                      return 'listed';
+                    case 'in_escrow':
+                      return 'escrow';
+                    case 'sold':
+                      return 'sold';
+                    default:
+                      return 'verified';
+                  }
+                };
+
+                return (
+                  <UnifiedNFTCard
+                    key={`transferred-${nft.mintAddress || index}`}
+                    title={nft.title || 'Untitled'}
+                    image={nft.image?.startsWith('http') ? nft.image : undefined}
+                    price={nft.priceSol}
+                    priceLabel="SOL"
+                    mintAddress={nft.mintAddress || undefined}
+                    owner={
+                      recipientName !== 'Custom Address'
+                        ? recipientName
+                        : nft.currentOwner || undefined
+                    }
+                    status={mapStatus(nft.marketStatus)}
+                    isVerified={true}
+                    variant="compact"
+                    showBadge={true}
+                    showPrice={true}
+                    showOwner={true}
+                    onViewDetails={() => setSelectedMetadataUri(nft.metadataUri)}
+                    className={isVault ? styles.vaultCard : isVendor ? styles.vendorCard : ''}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <HiOutlineSwitchHorizontal size={48} opacity={0.3} />
+              <p>No transferred NFTs yet</p>
+              <span>NFTs you mint and transfer will appear here</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -2150,7 +2463,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
               previewData={{
                 title,
                 description,
-                image: `${gateway}${fileCid}`,
+                image: imageUri || resolveImageUrl(fileCid, gateway),
                 priceSol,
                 attributes: [
                   { trait_type: 'Brand', value: brand },
@@ -2236,8 +2549,11 @@ export async function getServerSideProps() {
     await dbConnect();
 
     const { Asset } = await import('../lib/models/Assets');
+    const NFT = (await import('../lib/models/NFT')).default;
 
+    // Fetch from both collections
     const assets = await Asset.find({ deleted: false }).lean();
+    const nfts = await NFT.find({}).lean();
 
     let solPrice = 150;
     try {
@@ -2254,24 +2570,64 @@ export async function getServerSideProps() {
 
     const gateway = process.env.NEXT_PUBLIC_GATEWAY_URL || fallbackGateway;
 
-    const minted: MintedNFT[] = assets.map((asset: any) => ({
-      title: asset.model || 'Untitled',
-      description: asset.description || '',
-      image: asset.imageIpfsUrls?.[0] ? `${gateway}${asset.imageIpfsUrls[0]}` : '/fallback.png',
-      priceSol: asset.priceUSD ? asset.priceUSD / solPrice : 0,
-      metadataUri: asset.metadataIpfsUrl || '',
-      mintAddress: asset.nftMint || null,
-      currentOwner: asset.nftOwnerWallet || null,
-      ipfs_pin_hash: asset.imageIpfsUrls?.[0] || null,
-      marketStatus: asset.status || null,
-      updatedAt: asset.updatedAt ? new Date(asset.updatedAt).toISOString() : null,
-      assetId: asset._id?.toString() || null,
-      escrowPda: asset.escrowPda || null,
-    }));
+    // Create a map of mintAddress -> NFT image for fallback lookup
+    const nftImageMap = new Map<string, string>();
+    for (const nft of nfts) {
+      if (nft.mintAddress && nft.image) {
+        nftImageMap.set(nft.mintAddress, nft.image);
+      }
+    }
+
+    // Map assets to MintedNFT format
+    const mintedFromAssets: MintedNFT[] = assets.map((asset: any) => {
+      // Try asset imageIpfsUrls first, then fall back to NFT collection image
+      const assetImage = asset.imageIpfsUrls?.[0];
+      const nftImage = asset.nftMint ? nftImageMap.get(asset.nftMint) : undefined;
+      const imageSource = assetImage || nftImage;
+
+      return {
+        title: asset.model || 'Untitled',
+        description: asset.description || '',
+        image: resolveImageUrl(imageSource, gateway),
+        priceSol: asset.priceUSD ? asset.priceUSD / solPrice : 0,
+        metadataUri: asset.metadataIpfsUrl || '',
+        mintAddress: asset.nftMint || null,
+        currentOwner: asset.nftOwnerWallet || null,
+        mintedBy: asset.mintedBy || asset.metaplexMetadata?.creator || null,
+        ipfs_pin_hash: asset.imageIpfsUrls?.[0] || null,
+        marketStatus: asset.status || null,
+        updatedAt: asset.updatedAt ? new Date(asset.updatedAt).toISOString() : null,
+        assetId: asset._id?.toString() || null,
+        escrowPda: asset.escrowPda || null,
+      };
+    });
+
+    // Map NFTs to MintedNFT format (for NFTs not in assets collection)
+    const assetMints = new Set(assets.map((a: any) => a.nftMint).filter(Boolean));
+    const mintedFromNfts: MintedNFT[] = nfts
+      .filter((nft: any) => nft.mintAddress && !assetMints.has(nft.mintAddress))
+      .map((nft: any) => ({
+        title: nft.name || nft.title || 'Untitled',
+        description: nft.description || '',
+        image: resolveImageUrl(nft.image, gateway),
+        priceSol: nft.priceSol || (nft.priceUSD ? nft.priceUSD / solPrice : 0),
+        metadataUri: nft.metadataUri || nft.uri || '',
+        mintAddress: nft.mintAddress || null,
+        currentOwner: nft.currentOwner || nft.ownerWallet || nft.owner || null,
+        mintedBy: nft.mintedBy || nft.vendorWallet || null,
+        ipfs_pin_hash: nft.ipfsCid || null,
+        marketStatus: nft.marketStatus || nft.status || null,
+        updatedAt: nft.updatedAt ? new Date(nft.updatedAt).toISOString() : null,
+        assetId: nft.assetId?.toString() || null,
+        escrowPda: nft.escrowPda || null,
+      }));
+
+    // Combine both, removing duplicates by mintAddress
+    const allMinted = [...mintedFromAssets, ...mintedFromNfts];
 
     return {
       props: {
-        initialMintedNFTs: minted,
+        initialMintedNFTs: allMinted,
         initialSolPrice: solPrice,
       },
     };
