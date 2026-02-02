@@ -5,7 +5,7 @@
 
   position: relative;
   width: 100%;
-  max-width: 320px;
+  min-width: 0; /* Allow shrinking in flex/grid containers */
   background: linear-gradient(135deg, rgba(20, 20, 25, 0.9) 0%, rgba(15, 15, 20, 0.95) 100%);
   border: 1px solid rgba(200, 161, 255, 0.15);
   border-radius: 16px;
