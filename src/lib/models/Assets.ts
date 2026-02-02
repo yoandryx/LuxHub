@@ -30,7 +30,18 @@ const AssetSchema = new Schema(
     nftMint: { type: String, index: true },
     status: {
       type: String,
-      enum: ['pending', 'reviewed', 'listed', 'in_escrow', 'pooled', 'sold', 'burned', 'frozen'],
+      enum: [
+        'pending',
+        'reviewed',
+        'listed',
+        'in_escrow',
+        'pooled',
+        'sold',
+        'sold_externally', // Sold outside LuxHub
+        'delisted', // Temporarily removed from marketplace
+        'burned',
+        'frozen',
+      ],
       default: 'pending',
       index: true,
     },
