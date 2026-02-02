@@ -75,19 +75,83 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Step 1: Upload image to storage if not already uploaded
-    let imageUrl = mintRequest.imageUrl;
-    let imageTxId = mintRequest.imageCid; // Can be IPFS hash or Irys txId
+    // Step 1: Upload image to storage (always upload to Irys for permanence)
+    let imageUrl = mintRequest.imageCid
+      ? getStorageConfig().provider === 'irys'
+        ? `https://gateway.irys.xyz/${mintRequest.imageCid}`
+        : mintRequest.imageUrl
+      : null;
+    let imageTxId = mintRequest.imageCid;
 
-    if (!imageUrl && mintRequest.imageBase64) {
+    // If no permanent storage yet, we need to upload
+    if (!imageTxId) {
       try {
-        // Extract base64 data and convert to buffer
-        const base64Data = mintRequest.imageBase64.replace(/^data:image\/\w+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-        const contentType =
-          mintRequest.imageBase64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/png';
+        let buffer: Buffer;
+        let contentType = 'image/png';
 
-        // Upload using unified storage (respects STORAGE_PROVIDER env var)
+        if (mintRequest.imageBase64 && mintRequest.imageBase64.startsWith('data:')) {
+          // Base64 image - extract and convert to buffer
+          const base64Data = mintRequest.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+          buffer = Buffer.from(base64Data, 'base64');
+          contentType =
+            mintRequest.imageBase64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/png';
+          console.log('📦 Processing base64 image...');
+        } else if (
+          mintRequest.imageUrl &&
+          (mintRequest.imageUrl.startsWith('http://') ||
+            mintRequest.imageUrl.startsWith('https://'))
+        ) {
+          // External URL (e.g., Dropbox) - fetch and upload to permanent storage
+          console.log(`📥 Fetching external image: ${mintRequest.imageUrl}`);
+
+          // Convert Dropbox share links to direct download links
+          let fetchUrl = mintRequest.imageUrl;
+          if (fetchUrl.includes('dropbox.com')) {
+            // Handle various Dropbox URL formats
+            // Format 1: www.dropbox.com/s/xxx/file.jpg?dl=0
+            // Format 2: www.dropbox.com/scl/fi/xxx/file.jpg?...&dl=0
+            // Convert to direct download
+            fetchUrl = fetchUrl
+              .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+              .replace(/[?&]dl=0/, '?dl=1')
+              .replace(/[?&]raw=1/, '?dl=1');
+
+            // If URL doesn't have dl parameter, add it
+            if (!fetchUrl.includes('dl=1')) {
+              fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'dl=1';
+            }
+            console.log(`🔄 Converted Dropbox URL: ${fetchUrl}`);
+          }
+
+          const response = await fetch(fetchUrl, {
+            headers: {
+              'User-Agent': 'LuxHub/1.0',
+            },
+            redirect: 'follow',
+          });
+
+          if (!response.ok) {
+            console.error(`❌ Fetch failed: ${response.status} ${response.statusText}`);
+            console.error(`   URL: ${fetchUrl}`);
+            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+          }
+
+          const arrayBuffer = await response.arrayBuffer();
+          buffer = Buffer.from(arrayBuffer);
+          contentType = response.headers.get('content-type') || 'image/png';
+
+          // Validate we got an image, not HTML
+          if (contentType.includes('text/html')) {
+            console.error('❌ Received HTML instead of image - URL may require authentication');
+            throw new Error('Image URL returned HTML - check if the image is publicly accessible');
+          }
+
+          console.log(`✅ Fetched image (${buffer.length} bytes, ${contentType})`);
+        } else {
+          return res.status(400).json({ error: 'No valid image source available' });
+        }
+
+        // Upload to permanent storage (Irys/Pinata)
         const imageResult = await uploadImage(buffer, contentType, {
           fileName: `${mintRequest.title.replace(/\s+/g, '-')}.png`,
         });
@@ -100,6 +164,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.error('Failed to upload image:', error);
         return res.status(500).json({
           error: 'Failed to upload image',
+          details: error instanceof Error ? error.message : 'Unknown error',
           hint: getStorageConfig(),
         });
       }
@@ -108,6 +173,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!imageUrl) {
       return res.status(400).json({ error: 'No image available for minting' });
     }
+
+    // Log all attributes for debugging
+    console.log('📋 Mint Request from MongoDB:', {
+      _id: mintRequest._id,
+      title: mintRequest.title,
+      brand: mintRequest.brand,
+      model: mintRequest.model,
+      referenceNumber: mintRequest.referenceNumber,
+      priceUSD: mintRequest.priceUSD,
+      material: mintRequest.material,
+      productionYear: mintRequest.productionYear,
+      movement: mintRequest.movement,
+      caseSize: mintRequest.caseSize,
+      waterResistance: mintRequest.waterResistance,
+      dialColor: mintRequest.dialColor,
+      condition: mintRequest.condition,
+      boxPapers: mintRequest.boxPapers,
+      limitedEdition: mintRequest.limitedEdition,
+      country: mintRequest.country,
+      certificate: mintRequest.certificate,
+      warrantyInfo: mintRequest.warrantyInfo,
+      provenance: mintRequest.provenance,
+      features: mintRequest.features,
+      releaseDate: mintRequest.releaseDate,
+      imageBase64: mintRequest.imageBase64
+        ? `(${mintRequest.imageBase64.length} chars)`
+        : '(empty)',
+      imageUrl: mintRequest.imageUrl || '(empty)',
+      imageCid: mintRequest.imageCid || '(empty)',
+    });
 
     // Step 2: Create NFT metadata
     const metadata = {
@@ -162,6 +257,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
     };
+
+    // Log the metadata being created
+    console.log('📝 NFT Metadata to upload:', JSON.stringify(metadata, null, 2));
+    console.log('📊 Attributes count:', metadata.attributes.length);
 
     // Step 3: Upload metadata to storage (Irys/Pinata based on STORAGE_PROVIDER)
     let metadataUri: string;
@@ -235,7 +334,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     await mintRequest.save();
 
-    // Step 8: Create Asset record in database
+    // Step 8: Create Asset record in database (auto-listed on marketplace)
     const asset = await Asset.create({
       vendor: null, // Can be linked later via vendor ID
       model: mintRequest.model,
@@ -247,14 +346,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       metadataIpfsUrl: metadataUri,
       nftMint: mintAddress,
       nftOwnerWallet: mintRequest.wallet,
-      status: 'reviewed', // Ready for listing
+      mintedBy: requestingWallet, // Track which admin minted this
+      status: 'listed', // Auto-listed on marketplace immediately
       category: 'watches',
+      // Include all attributes from mint request
+      brand: mintRequest.brand,
+      title: mintRequest.title,
+      material: mintRequest.material,
+      productionYear: mintRequest.productionYear,
+      movement: mintRequest.movement,
+      caseSize: mintRequest.caseSize,
+      waterResistance: mintRequest.waterResistance,
+      dialColor: mintRequest.dialColor,
+      condition: mintRequest.condition,
+      boxPapers: mintRequest.boxPapers,
+      limitedEdition: mintRequest.limitedEdition,
+      country: mintRequest.country,
+      certificate: mintRequest.certificate,
+      warrantyInfo: mintRequest.warrantyInfo,
+      provenance: mintRequest.provenance,
+      features: mintRequest.features,
+      releaseDate: mintRequest.releaseDate,
+      arweaveTxId: imageTxId, // Store the Irys/Arweave transaction ID
+      arweaveMetadataTxId: metadataUri.includes('gateway.irys.xyz')
+        ? metadataUri.split('/').pop()
+        : undefined,
       transferHistory: [
         {
           from: adminKeypair.publicKey.toBase58(),
           to: mintRequest.wallet,
-          timestamp: new Date(),
-          type: 'mint_transfer',
+          transferredAt: new Date(),
         },
       ],
       metaplexMetadata: {
@@ -270,6 +391,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ],
       },
     });
+
+    console.log(`✅ Asset created and auto-listed: ${asset._id}`);
 
     return res.status(200).json({
       message: 'NFT minted and transferred to vendor successfully',

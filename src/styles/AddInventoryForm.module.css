@@ -943,16 +943,22 @@
 
 .bulkDetailGrid {
   display: grid;
-  grid-template-columns: 100px 1fr;
-  gap: 16px;
+  grid-template-columns: 120px 1fr;
+  gap: 20px;
   align-items: start;
   max-width: 100%;
   overflow: hidden;
 }
 
+@media (max-width: 600px) {
+  .bulkDetailGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bulkDetailImage {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   flex-shrink: 0;
   border-radius: 10px;
   overflow: hidden;
@@ -961,6 +967,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .bulkDetailImage {
+    width: 100%;
+    height: 200px;
+    margin-bottom: 16px;
+  }
 }
 
 .bulkDetailImage img {
@@ -977,10 +991,10 @@
 }
 
 .bulkDetailFields {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
-  min-width: 0; /* Prevent grid from overflowing */
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0; /* Prevent flex from overflowing */
   overflow: hidden;
 }
 
@@ -1151,10 +1165,11 @@
 /* Detail Row Styles (for expanded bulk view) */
 .detailRow {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   min-width: 0; /* Allow text truncation */
   overflow: hidden;
 }
@@ -1184,6 +1199,41 @@
   font-size: 13px;
   color: #f44336;
   font-style: italic;
+}
+
+/* Detail Sections for expanded bulk view */
+.detailSection {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detailSection:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.detailSectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--accent-dim);
+}
+
+.detailDescription {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid var(--border);
 }
 
 /* Bulk Detail Validation Status */

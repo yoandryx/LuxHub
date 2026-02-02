@@ -9,6 +9,25 @@ const AssetSchema = new Schema(
     description: String,
     priceUSD: { type: Number, index: true },
     currentValueUSD: Number,
+
+    // Watch-specific attributes (populated from mint request)
+    brand: { type: String, index: true },
+    title: { type: String },
+    imageUrl: { type: String }, // Primary display image URL (Irys/Arweave)
+    material: { type: String },
+    productionYear: { type: String },
+    movement: { type: String },
+    caseSize: { type: String },
+    waterResistance: { type: String },
+    dialColor: { type: String },
+    boxPapers: { type: String },
+    limitedEdition: { type: String },
+    country: { type: String },
+    certificate: { type: String },
+    warrantyInfo: { type: String },
+    provenance: { type: String },
+    features: { type: String },
+    releaseDate: { type: String },
     priceHistory: [
       {
         price: Number,
@@ -129,6 +148,7 @@ AssetSchema.index({ status: 1, priceUSD: 1, luxScore: -1 });
 AssetSchema.index({ arweaveTxId: 1 });
 AssetSchema.index({ 'transferHistory.transactionSignature': 1 });
 AssetSchema.index({ category: 1, status: 1 });
+AssetSchema.index({ brand: 1, status: 1 }); // For brand-filtered marketplace queries
 
 AssetSchema.pre('save', function (next) {
   if (this.isModified('priceUSD') && typeof this.priceUSD === 'number') {
