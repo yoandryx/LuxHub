@@ -51,7 +51,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const maxProposals = parseInt(limit, 10);
 
     // Fetch the multisig account to get current transaction index and threshold
-    const multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msigPk);
+    let multisigAccount;
+    try {
+      multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msigPk);
+    } catch (e: any) {
+      // Multisig doesn't exist on-chain - return empty response
+      console.warn('[/api/squads/proposals] Multisig not found:', multisigPda);
+      return res.status(200).json({
+        proposals: [],
+        multisigPda,
+        transactionIndex: '0',
+        error: 'Multisig not found on-chain. Create one at https://devnet.squads.so',
+        notConfigured: true,
+      });
+    }
+
     const threshold = multisigAccount.threshold;
     // Convert to bigint to ensure consistent handling
     const currentTxIndex = BigInt(multisigAccount.transactionIndex.toString());

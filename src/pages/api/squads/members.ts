@@ -35,6 +35,7 @@ interface MultisigInfoResponse {
   vaults?: VaultInfo[];
   squadsUrl?: string;
   error?: string;
+  notConfigured?: boolean;
 }
 
 export default async function handler(
@@ -59,7 +60,11 @@ export default async function handler(
     };
 
     if (!rpc || !multisigPda) {
-      return res.status(500).json({ ok: false, error: 'RPC or MULTISIG env is not set' });
+      return res.status(200).json({
+        ok: false,
+        error: 'RPC or MULTISIG env is not set',
+        notConfigured: true,
+      });
     }
 
     const connection = new Connection(rpc, 'confirmed');
@@ -70,9 +75,16 @@ export default async function handler(
     try {
       multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msigPk);
     } catch {
-      return res.status(404).json({
+      // Return 200 with error flag so frontend can handle gracefully
+      console.warn('[/api/squads/members] Multisig not found:', multisigPda);
+      return res.status(200).json({
         ok: false,
-        error: `Multisig account not found: ${multisigPda}`,
+        multisigPda,
+        error: 'Multisig not found on-chain. Create one at https://devnet.squads.so',
+        notConfigured: true,
+        members: [],
+        vaults: [],
+        threshold: 0,
       });
     }
 
@@ -126,9 +138,12 @@ export default async function handler(
     });
   } catch (e: any) {
     console.error('[/api/squads/members] error:', e);
-    return res.status(500).json({
+    return res.status(200).json({
       ok: false,
       error: e?.message ?? 'Unknown error',
+      notConfigured: true,
+      members: [],
+      vaults: [],
     });
   }
 }
