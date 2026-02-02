@@ -33,7 +33,7 @@ import {
   FaRegCircleCheck,
   FaEllipsis,
 } from 'react-icons/fa6';
-import { IoClose, IoGridOutline, IoBookmarkOutline } from 'react-icons/io5';
+import { IoClose, IoGridOutline, IoBookmarkOutline, IoFlameOutline } from 'react-icons/io5';
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
 const FUNDS_MINT = 'So11111111111111111111111111111111111111112';
@@ -61,6 +61,7 @@ interface NFT {
 interface ProfileStats {
   totalItems: number;
   itemsListed: number;
+  itemsBurned: number;
   totalSales: number;
 }
 
@@ -75,10 +76,14 @@ const VendorProfilePage = () => {
   const [_loadingMint, setLoadingMint] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'available' | 'holding'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'available' | 'holding' | 'burned'>(
+    'all'
+  );
+  const [burnedNfts, setBurnedNfts] = useState<NFT[]>([]);
   const [stats, setStats] = useState<ProfileStats>({
     totalItems: 0,
     itemsListed: 0,
+    itemsBurned: 0,
     totalSales: 0,
   });
   const [showDetailCard, setShowDetailCard] = useState(false);
@@ -113,12 +118,34 @@ const VendorProfilePage = () => {
     fetchProfile();
   }, [query.wallet]);
 
+  // Helper to map API response to NFT interface
+  const mapNftData = (nfts: any[], ownerWallet: string): NFT[] => {
+    return nfts.map((nft: any) => ({
+      _id: nft._id,
+      mintAddress: nft.mintAddress,
+      title: nft.title || 'Untitled',
+      description: nft.description || '',
+      image: nft.image || '/fallback.png',
+      priceSol: nft.priceSol || 0,
+      priceUSD: nft.priceUSD || 0,
+      metadataUri: nft.metadataUri || '',
+      currentOwner: nft.currentOwner || ownerWallet,
+      marketStatus: nft.status === 'listed' ? 'active' : nft.status || 'inactive',
+      status: nft.status,
+      nftId: nft.nftId || nft.mintAddress,
+      fileCid: nft.fileCid || '',
+      timestamp: nft.timestamp || Date.now(),
+      seller: nft.seller || ownerWallet,
+      attributes: nft.attributes || [],
+    }));
+  };
+
   useEffect(() => {
     if (!profile?.wallet) return;
 
     const fetchNFTs = async () => {
       try {
-        // Fetch from database API (queries both Asset and NFT collections)
+        // Fetch active NFTs (excludes burned by default)
         const res = await fetch(`/api/vendor/nfts?wallet=${profile.wallet}`);
         const data = await res.json();
 
@@ -127,33 +154,13 @@ const VendorProfilePage = () => {
           return;
         }
 
-        // Map API response to NFT interface
-        const result: NFT[] = (data.nfts || []).map((nft: any) => ({
-          _id: nft._id,
-          mintAddress: nft.mintAddress,
-          title: nft.title || 'Untitled',
-          description: nft.description || '',
-          image: nft.image || '/fallback.png',
-          priceSol: nft.priceSol || 0,
-          priceUSD: nft.priceUSD || 0,
-          metadataUri: nft.metadataUri || '',
-          currentOwner: nft.currentOwner || profile.wallet,
-          marketStatus: nft.status === 'listed' ? 'active' : nft.status || 'inactive',
-          status: nft.status, // Raw status for listing check
-          nftId: nft.nftId || nft.mintAddress,
-          fileCid: nft.fileCid || '',
-          timestamp: nft.timestamp || Date.now(),
-          seller: nft.seller || profile.wallet,
-          attributes: nft.attributes || [],
-        }));
-
-        setNftData(result);
+        setNftData(mapNftData(data.nfts || [], profile.wallet));
 
         // Use stats from API
         setStats({
-          totalItems: data.stats?.totalItems || result.length,
-          itemsListed:
-            data.stats?.itemsListed || result.filter((n) => n.marketStatus === 'active').length,
+          totalItems: data.stats?.totalItems || 0,
+          itemsListed: data.stats?.itemsListed || 0,
+          itemsBurned: data.stats?.itemsBurned || 0,
           totalSales: data.stats?.totalSales || profile.totalSales || 0,
         });
       } catch (err) {
@@ -163,6 +170,26 @@ const VendorProfilePage = () => {
 
     fetchNFTs();
   }, [profile]);
+
+  // Fetch burned NFTs only when burned tab is selected (lazy load)
+  useEffect(() => {
+    if (!profile?.wallet || activeFilter !== 'burned' || burnedNfts.length > 0) return;
+
+    const fetchBurnedNFTs = async () => {
+      try {
+        const res = await fetch(`/api/vendor/nfts?wallet=${profile.wallet}&onlyBurned=true`);
+        const data = await res.json();
+
+        if (!data.error) {
+          setBurnedNfts(mapNftData(data.nfts || [], profile.wallet));
+        }
+      } catch (err) {
+        console.error('Failed to fetch burned NFTs:', err);
+      }
+    };
+
+    fetchBurnedNFTs();
+  }, [profile, activeFilter, burnedNfts.length]);
 
   const _handlePurchase = async (nft: NFT) => {
     if (!wallet.publicKey || !program) return alert('Connect wallet first.');
@@ -301,12 +328,15 @@ const VendorProfilePage = () => {
     }
   };
 
-  const filteredNFTs = nftData.filter((nft) => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'available') return nft.marketStatus === 'active';
-    if (activeFilter === 'holding') return nft.marketStatus !== 'active';
-    return true;
-  });
+  const filteredNFTs =
+    activeFilter === 'burned'
+      ? burnedNfts
+      : nftData.filter((nft) => {
+          if (activeFilter === 'all') return true;
+          if (activeFilter === 'available') return nft.marketStatus === 'active';
+          if (activeFilter === 'holding') return nft.marketStatus !== 'active';
+          return true;
+        });
 
   const formatDate = (timestamp?: number | string) => {
     if (!timestamp) return 'N/A';
@@ -531,11 +561,23 @@ const VendorProfilePage = () => {
             <IoBookmarkOutline />
             <span>HOLDING</span>
           </button>
+          {/* Only show Burned tab if there are burned items or viewing own profile */}
+          {(stats.itemsBurned > 0 || isOwnProfile) && (
+            <button
+              className={`${styles.tabItem} ${styles.burnedTab} ${activeFilter === 'burned' ? styles.activeTab : ''}`}
+              onClick={() => setActiveFilter('burned')}
+            >
+              <IoFlameOutline />
+              <span>BURNED{stats.itemsBurned > 0 ? ` (${stats.itemsBurned})` : ''}</span>
+            </button>
+          )}
         </div>
 
         {/* Section Heading */}
         <div className={styles.sectionHeading}>
-          <h2>Collection ({filteredNFTs.length})</h2>
+          <h2>
+            {activeFilter === 'burned' ? 'Burned Assets' : 'Collection'} ({filteredNFTs.length})
+          </h2>
         </div>
 
         {/* NFT Grid - Using NFTCard component */}
