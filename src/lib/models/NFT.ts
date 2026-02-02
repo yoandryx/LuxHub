@@ -7,6 +7,7 @@ const NftSchema = new mongoose.Schema(
     metadataUri: { type: String, required: true },
     vendorWallet: { type: String, required: true, index: true },
     currentOwner: { type: String, required: true },
+    mintedBy: { type: String, index: true }, // Admin wallet who originally minted this NFT
     marketStatus: { type: String, default: 'inactive', index: true },
     priceSol: { type: Number, default: 0 },
     fileCid: { type: String },
