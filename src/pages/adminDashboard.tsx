@@ -77,6 +77,7 @@ const PlatformSettingsPanel = lazy(() =>
 );
 const AssetCleanupPanel = lazy(() => import('../components/admins/AssetCleanupPanel'));
 const DelistRequestsPanel = lazy(() => import('../components/admins/DelistRequestsPanel'));
+const MintRequestsPanel = lazy(() => import('../components/admins/MintRequestsPanel'));
 
 // Loading fallback for lazy components
 const TabLoader = () => <div className={styles.loadingTab}>Loading...</div>;
@@ -2409,6 +2410,12 @@ const AdminDashboard: React.FC = () => {
             <DelistRequestsPanel />
           </Suspense>
         );
+      case 16: // Mint Requests
+        return (
+          <Suspense fallback={<TabLoader />}>
+            <MintRequestsPanel />
+          </Suspense>
+        );
       default:
         return null;
     }
@@ -2424,6 +2431,7 @@ const AdminDashboard: React.FC = () => {
   ];
 
   const nftNavItems = [
+    { id: 16, label: 'Mint Requests', icon: HiOutlineCube },
     { id: 12, label: 'Vault Inventory', icon: HiOutlineDatabase },
     { id: 15, label: 'Delist Requests', icon: HiOutlineExclamation },
     { id: 14, label: 'Asset Cleanup', icon: HiOutlineTrash },
@@ -2451,6 +2459,7 @@ const AdminDashboard: React.FC = () => {
     7: { title: 'Metadata Change Requests', subtitle: 'Review pending metadata update requests' },
     14: { title: 'Asset Cleanup', subtitle: 'Remove failed mints and clean up test data' },
     15: { title: 'Delist Requests', subtitle: 'Review and process vendor delist requests' },
+    16: { title: 'Mint Requests', subtitle: 'Review and approve vendor NFT mint requests' },
     13: {
       title: 'Platform Settings',
       subtitle: 'Configure multisig, wallets, fees, and feature flags',

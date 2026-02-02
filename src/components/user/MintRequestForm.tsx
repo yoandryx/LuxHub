@@ -3,9 +3,24 @@ import styles from '../../styles/CreateNFT.module.css';
 import RadixSelect from '../admins/RadixSelect';
 import { useWallet } from '@solana/wallet-adapter-react';
 import NFTPreviewCard from '../admins/NFTPreviewCard';
+import toast from 'react-hot-toast';
+
+interface MintRequestStatus {
+  _id: string;
+  title: string;
+  brand: string;
+  model: string;
+  referenceNumber: string;
+  priceUSD: number;
+  status: 'pending' | 'approved' | 'minted' | 'rejected';
+  rejectionNotes?: string;
+  createdAt: string;
+}
 
 const MintRequestForm = () => {
   const wallet = useWallet();
+  const [myRequests, setMyRequests] = useState<MintRequestStatus[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   // Image upload
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -51,6 +66,7 @@ const MintRequestForm = () => {
   const [condition, setCondition] = useState('');
   const [features, setFeatures] = useState('');
 
+  // Fetch SOL price
   useEffect(() => {
     const fetchSolPrice = async () => {
       try {
@@ -69,6 +85,27 @@ const MintRequestForm = () => {
     const interval = setInterval(fetchSolPrice, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch user's mint requests
+  const fetchMyRequests = async () => {
+    if (!wallet.publicKey) return;
+    setLoadingRequests(true);
+    try {
+      const res = await fetch(`/api/vendor/mint-request?wallet=${wallet.publicKey.toBase58()}`);
+      const data = await res.json();
+      if (res.ok) {
+        setMyRequests(data.requests || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch mint requests:', err);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyRequests();
+  }, [wallet.publicKey]);
 
   const handleUsdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const usd = e.target.value;
@@ -89,20 +126,33 @@ const MintRequestForm = () => {
 
   const handleSubmit = async () => {
     if (!wallet.publicKey || !imageBase64) {
-      return alert('Wallet must be connected and image must be uploaded.');
+      return toast.error('Wallet must be connected and image must be uploaded.');
+    }
+
+    if (!brand || !model) {
+      return toast.error('Brand and Model are required.');
+    }
+
+    if (!referenceNumber) {
+      return toast.error('Reference number is required.');
     }
 
     // Parse USD price as the source of truth
     const priceUSD = parseFloat(usdInput) || 0;
+    if (priceUSD <= 0) {
+      return toast.error('Valid price in USD is required.');
+    }
+
+    setStatus('Submitting...');
 
     const payload = {
       imageBase64,
-      title,
+      title: title || `${brand} ${model}`,
       description,
-      priceUSD, // USD as source of truth
+      priceUSD,
       brand,
       model,
-      referenceNumber, // Alphanumeric reference (e.g., "116595RBOW-2024")
+      referenceNumber,
       material,
       productionYear,
       limitedEdition,
@@ -119,19 +169,39 @@ const MintRequestForm = () => {
       condition,
       features,
       wallet: wallet.publicKey.toBase58(),
-      timestamp: Date.now(),
     };
 
-    const res = await fetch('/api/nft/requestMint', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch('/api/vendor/mint-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      setStatus('✅ Mint request submitted!');
-    } else {
-      setStatus('❌ Failed to submit mint request.');
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('Mint request submitted for admin review!');
+        setStatus('');
+        // Reset form
+        setTitle('');
+        setDescription('');
+        setBrand('');
+        setModel('');
+        setReferenceNumber('');
+        setUsdInput('');
+        setPriceSol(0);
+        setImageBase64(null);
+        setImagePreview(null);
+        // Refresh requests list
+        fetchMyRequests();
+      } else {
+        toast.error(data.error || 'Failed to submit mint request.');
+        setStatus('');
+      }
+    } catch (err) {
+      toast.error('Network error. Please try again.');
+      setStatus('');
     }
   };
 
@@ -310,10 +380,95 @@ const MintRequestForm = () => {
           )}
         </div>
 
-        <button onClick={handleSubmit} className={styles.mintButton}>
-          Submit Mint Request
+        <button onClick={handleSubmit} className={styles.mintButton} disabled={!!status}>
+          {status || 'Submit Mint Request'}
         </button>
-        {status && <p>{status}</p>}
+      </div>
+
+      {/* My Mint Requests Section */}
+      <div className={styles.formContainer} style={{ marginTop: '30px' }}>
+        <div className={styles.formSection}>
+          <div className={styles.formSectionTitle}>My Mint Requests</div>
+          {loadingRequests ? (
+            <p style={{ color: '#888' }}>Loading requests...</p>
+          ) : myRequests.length === 0 ? (
+            <p style={{ color: '#888' }}>No mint requests yet.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {myRequests.map((req) => (
+                <div
+                  key={req._id}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div>
+                      <strong style={{ color: '#fff' }}>{req.title}</strong>
+                      <span style={{ color: '#888', marginLeft: '8px', fontSize: '12px' }}>
+                        {req.referenceNumber}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        background:
+                          req.status === 'pending'
+                            ? 'rgba(255, 193, 7, 0.2)'
+                            : req.status === 'approved'
+                              ? 'rgba(33, 150, 243, 0.2)'
+                              : req.status === 'minted'
+                                ? 'rgba(76, 175, 80, 0.2)'
+                                : 'rgba(244, 67, 54, 0.2)',
+                        color:
+                          req.status === 'pending'
+                            ? '#ffc107'
+                            : req.status === 'approved'
+                              ? '#2196f3'
+                              : req.status === 'minted'
+                                ? '#4caf50'
+                                : '#f44336',
+                      }}
+                    >
+                      {req.status}
+                    </span>
+                  </div>
+                  <div style={{ marginTop: '8px', fontSize: '13px', color: '#aaa' }}>
+                    ${req.priceUSD?.toLocaleString()} ·{' '}
+                    {new Date(req.createdAt).toLocaleDateString()}
+                  </div>
+                  {req.status === 'rejected' && req.rejectionNotes && (
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '8px',
+                        background: 'rgba(244, 67, 54, 0.1)',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        color: '#f44336',
+                      }}
+                    >
+                      <strong>Reason:</strong> {req.rejectionNotes}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
