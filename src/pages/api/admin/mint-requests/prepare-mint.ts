@@ -62,11 +62,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Vendor wallet address missing from request' });
     }
 
-    console.log('🔑 Preparing mint metadata for:', {
-      signer: signerWallet.slice(0, 8) + '...',
-      mintRequestId,
-      title: mintRequest.title,
-    });
+    console.log('========================================');
+    console.log('[PREPARE-MINT] Starting metadata preparation');
+    console.log('========================================');
+    console.log('[PREPARE-MINT] Request ID:', mintRequestId);
+    console.log('[PREPARE-MINT] Admin Wallet:', signerWallet);
+    console.log('[PREPARE-MINT] Title:', mintRequest.title);
+    console.log('[PREPARE-MINT] Brand:', mintRequest.brand);
+    console.log('[PREPARE-MINT] Model:', mintRequest.model);
+    console.log('[PREPARE-MINT] Price USD:', mintRequest.priceUSD);
+    console.log('[PREPARE-MINT] Vendor Wallet:', mintRequest.wallet);
+    console.log('[PREPARE-MINT] Image URL:', mintRequest.imageUrl || '(base64)');
+    console.log('[PREPARE-MINT] Image CID:', mintRequest.imageCid || '(not yet uploaded)');
 
     // Step 1: Upload image if needed
     let imageUrl = mintRequest.imageCid
@@ -152,11 +159,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       description: mintRequest.description || `${mintRequest.brand} ${mintRequest.model}`,
       image: imageUrl,
       external_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io'}/nft/`,
+      seller_fee_basis_points: 500, // 5% royalty
       attributes: [
         { trait_type: 'Brand', value: mintRequest.brand },
         { trait_type: 'Model', value: mintRequest.model },
         { trait_type: 'Reference Number', value: mintRequest.referenceNumber },
         { trait_type: 'Price USD', value: mintRequest.priceUSD?.toString() || '0' },
+        { trait_type: 'LuxHub Verified', value: 'Yes' },
+        { trait_type: 'Vendor Mint', value: 'Official' },
         ...(mintRequest.material ? [{ trait_type: 'Material', value: mintRequest.material }] : []),
         ...(mintRequest.productionYear
           ? [{ trait_type: 'Production Year', value: mintRequest.productionYear }]
@@ -181,17 +191,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ...(mintRequest.country
           ? [{ trait_type: 'Country of Origin', value: mintRequest.country }]
           : []),
+        ...(mintRequest.certificate
+          ? [{ trait_type: 'Certificate', value: mintRequest.certificate }]
+          : []),
+        ...(mintRequest.warrantyInfo
+          ? [{ trait_type: 'Warranty Info', value: mintRequest.warrantyInfo }]
+          : []),
+        ...(mintRequest.provenance
+          ? [{ trait_type: 'Provenance', value: mintRequest.provenance }]
+          : []),
+        ...(mintRequest.features ? [{ trait_type: 'Features', value: mintRequest.features }] : []),
       ],
+      // Collection info for Explorer/Wallets
+      collection: {
+        name: 'LuxHub Verified Timepieces',
+        family: 'LuxHub',
+      },
       properties: {
         category: 'luxury_watch',
         creators: [{ address: signerWallet, share: 100 }],
-        luxhub: {
-          referenceNumber: mintRequest.referenceNumber,
-          priceUSD: mintRequest.priceUSD,
-          mintedAt: new Date().toISOString(),
-          mintedBy: signerWallet,
-          vendorWallet: mintRequest.wallet,
-        },
+        files: [
+          {
+            uri: imageUrl,
+            type: 'image/png',
+          },
+        ],
+      },
+      // LuxHub Verification for authenticated vendor mints
+      luxhub_verification: {
+        verified: true,
+        vendor_wallet: mintRequest.wallet,
+        minted_by: signerWallet,
+        minted_at: new Date().toISOString(),
+        reference_number: mintRequest.referenceNumber,
+        price_usd: mintRequest.priceUSD,
+        verification_url: `https://luxhub.io/verify?mint=`,
       },
     };
 
