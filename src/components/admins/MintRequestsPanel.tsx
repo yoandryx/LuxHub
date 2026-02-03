@@ -231,10 +231,17 @@ const MintRequestsPanel: React.FC = () => {
   // Step 2: Mint (for approved requests only) - UMI CLIENT-SIDE MINTING
   // Matches the pattern from createNFT.tsx for consistency
   const handleMint = async (requestId: string) => {
+    console.log('========================================');
+    console.log('[MINT] Starting mint process for request:', requestId);
+    console.log('========================================');
+
     if (!wallet.publicKey || !wallet.signTransaction) {
+      console.error('[MINT] ❌ Wallet not connected or does not support signing');
       toast.error('Please connect a wallet that supports signing');
       return;
     }
+
+    console.log('[MINT] ✅ Wallet connected:', wallet.publicKey.toBase58());
 
     const confirmed = window.confirm(
       'Mint this NFT? This will:\n\n' +
@@ -244,13 +251,17 @@ const MintRequestsPanel: React.FC = () => {
         'Your wallet will be prompted to sign.'
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      console.log('[MINT] ❌ User cancelled mint confirmation');
+      return;
+    }
 
     setProcessing(requestId);
     const toastId = toast.loading('Preparing metadata...');
 
     try {
       // Step 1: Prepare metadata (uploads image/metadata to storage)
+      console.log('[MINT] Step 1: Calling prepare-mint API...');
       const prepareRes = await fetch('/api/admin/mint-requests/prepare-mint', {
         method: 'POST',
         headers: {
@@ -261,54 +272,119 @@ const MintRequestsPanel: React.FC = () => {
       });
 
       const prepareData = await prepareRes.json();
+      console.log('[MINT] Prepare response:', JSON.stringify(prepareData, null, 2));
 
       if (!prepareData.success) {
+        console.error('[MINT] ❌ Prepare failed:', prepareData.error);
         toast.error(prepareData.error || 'Failed to prepare metadata', { id: toastId });
         return;
       }
 
+      console.log('[MINT] ✅ Metadata prepared successfully');
+      console.log('[MINT]   - Title:', prepareData.title);
+      console.log('[MINT]   - Metadata URI:', prepareData.metadataUri);
+      console.log('[MINT]   - Image URL:', prepareData.imageUrl);
+      console.log('[MINT]   - Vendor Wallet:', prepareData.vendorWallet);
+
       toast.loading('Minting NFT with your wallet...', { id: toastId });
 
       // Step 2: Create UMI instance with wallet adapter (matching createNFT.tsx)
+      console.log('[MINT] Step 2: Creating UMI instance...');
+      console.log('[MINT]   - RPC:', connection.rpcEndpoint);
       const umi = createUmi(connection.rpcEndpoint)
         .use(walletAdapterIdentity(wallet))
         .use(mplCore());
+      console.log('[MINT] ✅ UMI instance created');
 
       // Step 3: Generate asset signer and mint
+      console.log('[MINT] Step 3: Generating asset signer...');
       const assetSigner = generateSigner(umi);
       const nftOwner = umi.identity.publicKey;
+      console.log('[MINT]   - Asset Public Key:', assetSigner.publicKey.toString());
+      console.log('[MINT]   - NFT Owner (admin):', nftOwner.toString());
 
-      console.log('[MINT] Minting NFT:', prepareData.title);
-      console.log('[MINT] Metadata URI:', prepareData.metadataUri);
-      console.log('[MINT] Owner:', wallet.publicKey.toBase58());
+      console.log('[MINT] Step 4: Calling createAsset on-chain...');
+      console.log('[MINT]   - Name:', prepareData.title);
+      console.log('[MINT]   - URI:', prepareData.metadataUri);
 
-      await createAsset(umi, {
+      // Send and confirm with finalized commitment for reliability
+      const mintResult = await createAsset(umi, {
         asset: assetSigner,
         name: prepareData.title,
         uri: prepareData.metadataUri,
         owner: nftOwner,
-      }).sendAndConfirm(umi);
+      }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
 
       const mintAddress = assetSigner.publicKey.toString();
-      console.log('[MINT] Success! Mint address:', mintAddress);
+      console.log('[MINT] ✅ NFT MINTED SUCCESSFULLY!');
+      console.log('[MINT]   - Mint Address:', mintAddress);
+      console.log(
+        '[MINT]   - Signature:',
+        mintResult.signature
+          ? Buffer.from(mintResult.signature).toString('base64').slice(0, 20) + '...'
+          : 'N/A'
+      );
+      console.log(
+        '[MINT]   - Explorer: https://explorer.solana.com/address/' +
+          mintAddress +
+          '?cluster=devnet'
+      );
 
-      // Transfer NFT to vendor wallet
+      // Transfer NFT to vendor wallet with robust retry
+      console.log('[MINT] Step 5: Transferring NFT to vendor...');
+      console.log('[MINT]   - From:', wallet.publicKey.toBase58());
+      console.log('[MINT]   - To:', prepareData.vendorWallet);
       toast.loading('Transferring to vendor...', { id: toastId });
-      try {
-        const mintedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
-        await transfer(umi, {
-          asset: mintedAsset,
-          newOwner: umiPublicKey(prepareData.vendorWallet),
-        }).sendAndConfirm(umi);
-        console.log('[MINT] Transferred to vendor:', prepareData.vendorWallet);
-      } catch (transferErr) {
-        console.error('[MINT] Transfer failed, NFT stays with admin:', transferErr);
-        // Continue - NFT minted but not transferred, can be done manually
+
+      let transferSuccess = false;
+      let fetchedAsset = null;
+
+      // Retry fetching the asset with exponential backoff (devnet can be slow)
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+          const waitTime = attempt * 2000; // 2s, 4s, 6s, 8s, 10s
+          console.log(
+            `[MINT]   - Attempt ${attempt}/5: Waiting ${waitTime / 1000}s before fetch...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+
+          console.log(`[MINT]   - Attempt ${attempt}/5: Fetching asset from chain...`);
+          fetchedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
+          console.log(`[MINT]   - ✅ Asset found on attempt ${attempt}!`);
+          console.log(`[MINT]   - Asset owner:`, fetchedAsset.owner?.toString());
+          break;
+        } catch (fetchErr: any) {
+          console.log(`[MINT]   - ❌ Attempt ${attempt}/5 failed:`, fetchErr.message || fetchErr);
+          if (attempt === 5) {
+            console.log('[MINT]   - All fetch attempts exhausted');
+          }
+        }
+      }
+
+      if (fetchedAsset) {
+        try {
+          console.log('[MINT]   - Initiating transfer...');
+          await transfer(umi, {
+            asset: fetchedAsset,
+            newOwner: umiPublicKey(prepareData.vendorWallet),
+          }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
+          transferSuccess = true;
+          console.log('[MINT] ✅ NFT transferred to vendor:', prepareData.vendorWallet);
+        } catch (transferErr: any) {
+          console.error(
+            '[MINT] ❌ Transfer transaction failed:',
+            transferErr.message || transferErr
+          );
+        }
+      } else {
+        console.log('[MINT] ⚠️ Could not fetch asset after 5 attempts - NFT stays with admin');
+        console.log('[MINT]   - NFT can be transferred manually from createNFT page');
       }
 
       toast.loading('Creating marketplace listing...', { id: toastId });
 
-      // Step 4: Record the mint in the database
+      // Step 6: Record the mint in the database
+      console.log('[MINT] Step 6: Calling confirm-mint API...');
       const confirmRes = await fetch('/api/admin/mint-requests/confirm-mint', {
         method: 'POST',
         headers: {
@@ -318,14 +394,26 @@ const MintRequestsPanel: React.FC = () => {
         body: JSON.stringify({
           mintRequestId: requestId,
           mintAddress,
-          signature: mintAddress, // Using mint address as reference
-          transferToVendor: false,
+          signature: mintAddress,
+          transferToVendor: transferSuccess,
         }),
       });
 
       const confirmData = await confirmRes.json();
+      console.log('[MINT] Confirm response:', JSON.stringify(confirmData, null, 2));
 
       if (confirmData.success) {
+        console.log('[MINT] ========================================');
+        console.log('[MINT] ✅ MINT COMPLETE - ALL STEPS SUCCESSFUL!');
+        console.log('[MINT] ========================================');
+        console.log('[MINT] Summary:');
+        console.log('[MINT]   - Mint Address:', mintAddress);
+        console.log('[MINT]   - Asset ID:', confirmData.assetId);
+        console.log('[MINT]   - Escrow ID:', confirmData.escrowId);
+        console.log('[MINT]   - Vendor Wallet:', confirmData.vendorWallet);
+        console.log('[MINT]   - Listing Price: $' + confirmData.listingPriceUSD);
+        console.log('[MINT] ========================================');
+
         toast.success(
           <div>
             NFT minted & listed on marketplace!
@@ -343,6 +431,7 @@ const MintRequestsPanel: React.FC = () => {
         );
         await fetchRequests();
       } else {
+        console.log('[MINT] ⚠️ Mint succeeded but confirm-mint returned error:', confirmData.error);
         toast.success(
           <div>
             NFT minted! (listing pending)
@@ -354,13 +443,16 @@ const MintRequestsPanel: React.FC = () => {
         await fetchRequests();
       }
     } catch (err: any) {
-      console.error('Failed to mint:', err);
+      console.error('[MINT] ❌ MINT FAILED:', err);
+      console.error('[MINT] Error details:', err.message || err);
+      console.error('[MINT] Stack:', err.stack);
       if (err.message?.includes('User rejected')) {
         toast.error('Transaction cancelled by user', { id: toastId });
       } else {
         toast.error(err.message || 'Failed to mint NFT', { id: toastId });
       }
     } finally {
+      console.log('[MINT] Process finished, resetting state');
       setProcessing(null);
     }
   };
@@ -442,22 +534,43 @@ const MintRequestsPanel: React.FC = () => {
         name: prepareData.title,
         uri: prepareData.metadataUri,
         owner: nftOwner,
-      }).sendAndConfirm(umi);
+      }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
 
       const mintAddress = assetSigner.publicKey.toString();
       console.log('[MINT] Success! Mint address:', mintAddress);
 
-      // Transfer NFT to vendor wallet
+      // Transfer NFT to vendor wallet with retry logic
       toast.loading('Transferring to vendor...', { id: toastId });
-      try {
-        const mintedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
-        await transfer(umi, {
-          asset: mintedAsset,
-          newOwner: umiPublicKey(prepareData.vendorWallet),
-        }).sendAndConfirm(umi);
-        console.log('[MINT] Transferred to vendor:', prepareData.vendorWallet);
-      } catch (transferErr) {
-        console.error('[MINT] Transfer failed:', transferErr);
+      let transferSuccess = false;
+      let fetchedAsset = null;
+
+      // Retry fetching the asset with exponential backoff
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+          const waitTime = attempt * 2000; // 2s, 4s, 6s, 8s, 10s
+          console.log(`[MINT] Attempt ${attempt}/5: Waiting ${waitTime / 1000}s before fetch...`);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+          fetchedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
+          console.log(`[MINT] Asset found on attempt ${attempt}!`);
+          break;
+        } catch (fetchErr: any) {
+          console.log(`[MINT] Attempt ${attempt}/5 failed:`, fetchErr.message);
+        }
+      }
+
+      if (fetchedAsset) {
+        try {
+          await transfer(umi, {
+            asset: fetchedAsset,
+            newOwner: umiPublicKey(prepareData.vendorWallet),
+          }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
+          transferSuccess = true;
+          console.log('[MINT] Transferred to vendor:', prepareData.vendorWallet);
+        } catch (transferErr: any) {
+          console.error('[MINT] Transfer transaction failed:', transferErr.message);
+        }
+      } else {
+        console.log('[MINT] Could not fetch asset after 5 attempts - will transfer manually');
       }
 
       toast.loading('Creating marketplace listing...', { id: toastId });

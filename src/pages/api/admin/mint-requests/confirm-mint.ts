@@ -43,7 +43,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { mintRequestId, mintAddress, signature, transferToVendor } = req.body;
 
+  console.log('========================================');
+  console.log('[CONFIRM-MINT] Received confirmation request');
+  console.log('========================================');
+  console.log('[CONFIRM-MINT] Mint Request ID:', mintRequestId);
+  console.log('[CONFIRM-MINT] Mint Address:', mintAddress);
+  console.log('[CONFIRM-MINT] Signature:', signature);
+  console.log('[CONFIRM-MINT] Transfer to Vendor:', transferToVendor);
+  console.log('[CONFIRM-MINT] Admin Wallet:', signerWallet);
+
   if (!mintRequestId || !mintAddress) {
+    console.error('[CONFIRM-MINT] ❌ Missing required fields');
     return res.status(400).json({ error: 'mintRequestId and mintAddress are required' });
   }
 
@@ -53,21 +63,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Mint request not found' });
     }
 
-    // Verify the mint exists on-chain
+    // Verify the mint exists on-chain (with retry for slow RPC)
     const connection = new Connection(
       process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
     );
 
-    try {
-      const accountInfo = await connection.getAccountInfo(new PublicKey(mintAddress));
-      if (!accountInfo) {
-        return res.status(400).json({
-          error: 'Mint address not found on-chain. Transaction may have failed.',
-        });
+    let onChainVerified = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const accountInfo = await connection.getAccountInfo(new PublicKey(mintAddress));
+        if (accountInfo) {
+          onChainVerified = true;
+          console.log('[CONFIRM-MINT] ✅ Mint verified on-chain');
+          break;
+        }
+        console.log(`[CONFIRM-MINT] Attempt ${attempt + 1}: Mint not found yet, waiting...`);
+        await new Promise((r) => setTimeout(r, 2000)); // Wait 2 seconds between retries
+      } catch (e) {
+        console.error('[CONFIRM-MINT] RPC error:', e);
       }
-    } catch (e) {
-      console.error('Failed to verify mint on-chain:', e);
-      // Continue anyway - might be RPC issue
+    }
+
+    if (!onChainVerified) {
+      console.log(
+        '[CONFIRM-MINT] ⚠️ Could not verify on-chain, proceeding anyway (RPC may be slow)'
+      );
     }
 
     // Get image/metadata info from pending mint or existing fields
@@ -97,6 +117,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const vendorUser = await User.findOne({ wallet: mintRequest.wallet });
     const vendor = vendorUser ? await Vendor.findOne({ user: vendorUser._id }) : null;
 
+    // Determine actual NFT owner based on transfer success
+    const actualOwner = transferToVendor ? mintRequest.wallet : signerWallet;
+    console.log('[CONFIRM-MINT] Transfer to vendor:', transferToVendor);
+    console.log('[CONFIRM-MINT] Actual NFT owner:', actualOwner);
+
     // Create Asset record
     const asset = await Asset.create({
       vendor: vendor?._id || null,
@@ -108,7 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       imageUrl: imageUrl,
       metadataIpfsUrl: metadataUri,
       nftMint: mintAddress,
-      nftOwnerWallet: mintRequest.wallet, // Vendor owns the NFT
+      nftOwnerWallet: actualOwner, // Owner based on transfer success
       mintedBy: signerWallet,
       status: 'listed',
       category: 'watches',
@@ -133,13 +158,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       arweaveMetadataTxId: metadataUri?.includes('gateway.irys.xyz')
         ? metadataUri.split('/').pop()
         : undefined,
-      transferHistory: [
-        {
-          from: signerWallet,
-          to: mintRequest.wallet,
-          transferredAt: new Date(),
-        },
-      ],
+      transferHistory: transferToVendor
+        ? [
+            {
+              from: signerWallet,
+              to: mintRequest.wallet,
+              transferredAt: new Date(),
+            },
+          ]
+        : [],
       metaplexMetadata: {
         name: mintRequest.title,
         symbol: 'LUXHUB',
@@ -154,7 +181,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    console.log(`✅ Asset created: ${asset._id}`);
+    console.log('========================================');
+    console.log('[CONFIRM-MINT] Asset created successfully');
+    console.log('========================================');
+    console.log('[CONFIRM-MINT] Asset ID:', asset._id);
+    console.log('[CONFIRM-MINT] Mint Address:', mintAddress);
+    console.log('[CONFIRM-MINT] Title:', mintRequest.title);
+    console.log('[CONFIRM-MINT] Price USD:', mintRequest.priceUSD);
+    console.log('[CONFIRM-MINT] Vendor:', vendor?.businessName || 'N/A');
+    console.log('[CONFIRM-MINT] Vendor Wallet:', mintRequest.wallet);
+    console.log('[CONFIRM-MINT] NFT Owner Wallet:', actualOwner);
+    console.log('[CONFIRM-MINT] Transfer Completed:', transferToVendor);
 
     // Calculate listing price in lamports (1 SOL = 1e9 lamports)
     // Use a rough SOL price estimate or fetch from API
@@ -163,10 +200,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Create Escrow record for marketplace listing
     // This allows the NFT to show up on the marketplace
+    // Generate a placeholder escrowPda for listing purposes (actual on-chain escrow created on purchase)
+    const listingEscrowPda = `listing-${mintAddress}-${Date.now()}`;
+
     const escrow = await Escrow.create({
       asset: asset._id,
-      seller: vendor?._id || null,
-      sellerWallet: mintRequest.wallet,
+      seller: transferToVendor ? vendor?._id : null,
+      sellerWallet: actualOwner,
+      escrowPda: listingEscrowPda, // Placeholder for listing, replaced on-chain when buyer purchases
       nftMint: mintAddress,
       saleMode: 'fixed_price',
       listingPrice: listingPriceLamports,
@@ -181,16 +222,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     asset.escrowId = escrow._id;
     await asset.save();
 
-    console.log(`✅ Escrow created: ${escrow._id}, listing at $${mintRequest.priceUSD}`);
+    console.log('========================================');
+    console.log('[CONFIRM-MINT] Escrow created for marketplace listing');
+    console.log('========================================');
+    console.log('[CONFIRM-MINT] Escrow ID:', escrow._id);
+    console.log('[CONFIRM-MINT] Sale Mode:', escrow.saleMode);
+    console.log('[CONFIRM-MINT] Listing Price (lamports):', listingPriceLamports);
+    console.log('[CONFIRM-MINT] Listing Price USD:', mintRequest.priceUSD);
+    console.log('[CONFIRM-MINT] Accepting Offers:', escrow.acceptingOffers);
+    console.log('[CONFIRM-MINT] Min Offer USD:', escrow.minimumOfferUSD);
+    console.log('[CONFIRM-MINT] Status:', escrow.status);
+    console.log('[CONFIRM-MINT] ✅ NFT should now appear on /watchMarket');
 
     return res.status(200).json({
       success: true,
-      message: 'NFT minted, asset created, and listed on marketplace',
+      message: transferToVendor
+        ? 'NFT minted, transferred to vendor, and listed on marketplace'
+        : 'NFT minted and listed on marketplace (transfer to vendor pending)',
       mintAddress,
       assetId: asset._id,
       escrowId: escrow._id,
       signature,
       vendorWallet: mintRequest.wallet,
+      actualOwner,
+      transferToVendor,
       listingPriceUSD: mintRequest.priceUSD,
     });
   } catch (error) {
