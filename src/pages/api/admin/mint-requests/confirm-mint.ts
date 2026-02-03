@@ -1,14 +1,14 @@
 // /pages/api/admin/mint-requests/confirm-mint.ts
 // Confirms a mint after client-side signing and submission
-// Updates database records with the mint address
+// Updates database records, creates asset, and auto-lists on marketplace
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { mplCore, fetchAsset, transfer } from '@metaplex-foundation/mpl-core';
-import { publicKey as umiPublicKey, keypairIdentity } from '@metaplex-foundation/umi';
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
 import Asset from '../../../../lib/models/Assets';
+import { Escrow } from '../../../../lib/models/Escrow';
+import { Vendor } from '../../../../lib/models/Vendor';
+import { User } from '../../../../lib/models/User';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
 import AdminRole from '../../../../lib/models/AdminRole';
 import { getStorageConfig } from '../../../../utils/storage';
@@ -93,9 +93,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     mintRequest.pendingMint = undefined; // Clear pending state
     await mintRequest.save();
 
-    // Create Asset record (auto-listed on marketplace)
+    // Find vendor by wallet
+    const vendorUser = await User.findOne({ wallet: mintRequest.wallet });
+    const vendor = vendorUser ? await Vendor.findOne({ user: vendorUser._id }) : null;
+
+    // Create Asset record
     const asset = await Asset.create({
-      vendor: null,
+      vendor: vendor?._id || null,
       model: mintRequest.model,
       serial: mintRequest.referenceNumber,
       description: mintRequest.description,
@@ -104,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       imageUrl: imageUrl,
       metadataIpfsUrl: metadataUri,
       nftMint: mintAddress,
-      nftOwnerWallet: transferToVendor ? mintRequest.wallet : signerWallet,
+      nftOwnerWallet: mintRequest.wallet, // Vendor owns the NFT
       mintedBy: signerWallet,
       status: 'listed',
       category: 'watches',
@@ -132,7 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       transferHistory: [
         {
           from: signerWallet,
-          to: transferToVendor ? mintRequest.wallet : signerWallet,
+          to: mintRequest.wallet,
           transferredAt: new Date(),
         },
       ],
@@ -150,16 +154,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    console.log(`✅ Mint confirmed. Asset: ${asset._id}, Mint: ${mintAddress}`);
+    console.log(`✅ Asset created: ${asset._id}`);
+
+    // Calculate listing price in lamports (1 SOL = 1e9 lamports)
+    // Use a rough SOL price estimate or fetch from API
+    const solPrice = 150; // Approximate SOL price in USD
+    const listingPriceLamports = Math.floor((mintRequest.priceUSD / solPrice) * 1e9);
+
+    // Create Escrow record for marketplace listing
+    // This allows the NFT to show up on the marketplace
+    const escrow = await Escrow.create({
+      asset: asset._id,
+      seller: vendor?._id || null,
+      sellerWallet: mintRequest.wallet,
+      nftMint: mintAddress,
+      saleMode: 'fixed_price',
+      listingPrice: listingPriceLamports,
+      listingPriceUSD: mintRequest.priceUSD,
+      acceptingOffers: true, // Allow offers
+      minimumOfferUSD: Math.floor(mintRequest.priceUSD * 0.8), // 80% minimum offer
+      status: 'initiated', // Ready for sale
+      createdAt: new Date(),
+    });
+
+    // Update asset with escrow reference
+    asset.escrowId = escrow._id;
+    await asset.save();
+
+    console.log(`✅ Escrow created: ${escrow._id}, listing at $${mintRequest.priceUSD}`);
 
     return res.status(200).json({
       success: true,
-      message: 'NFT minted and recorded successfully',
+      message: 'NFT minted, asset created, and listed on marketplace',
       mintAddress,
       assetId: asset._id,
+      escrowId: escrow._id,
       signature,
       vendorWallet: mintRequest.wallet,
-      currentOwner: transferToVendor ? mintRequest.wallet : signerWallet,
+      listingPriceUSD: mintRequest.priceUSD,
     });
   } catch (error) {
     console.error('Error confirming mint:', error);

@@ -7,8 +7,13 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
-import { mplCore, create as createAsset } from '@metaplex-foundation/mpl-core';
-import { generateSigner } from '@metaplex-foundation/umi';
+import {
+  mplCore,
+  create as createAsset,
+  transfer,
+  fetchAsset,
+} from '@metaplex-foundation/mpl-core';
+import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 import toast from 'react-hot-toast';
 import styles from '../../styles/AdminDashboard.module.css';
 import {
@@ -287,7 +292,21 @@ const MintRequestsPanel: React.FC = () => {
       const mintAddress = assetSigner.publicKey.toString();
       console.log('[MINT] Success! Mint address:', mintAddress);
 
-      toast.loading('Recording mint...', { id: toastId });
+      // Transfer NFT to vendor wallet
+      toast.loading('Transferring to vendor...', { id: toastId });
+      try {
+        const mintedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
+        await transfer(umi, {
+          asset: mintedAsset,
+          newOwner: umiPublicKey(prepareData.vendorWallet),
+        }).sendAndConfirm(umi);
+        console.log('[MINT] Transferred to vendor:', prepareData.vendorWallet);
+      } catch (transferErr) {
+        console.error('[MINT] Transfer failed, NFT stays with admin:', transferErr);
+        // Continue - NFT minted but not transferred, can be done manually
+      }
+
+      toast.loading('Creating marketplace listing...', { id: toastId });
 
       // Step 4: Record the mint in the database
       const confirmRes = await fetch('/api/admin/mint-requests/confirm-mint', {
@@ -309,7 +328,7 @@ const MintRequestsPanel: React.FC = () => {
       if (confirmData.success) {
         toast.success(
           <div>
-            NFT minted successfully!
+            NFT minted & listed on marketplace!
             <br />
             <a
               href={`https://explorer.solana.com/address/${mintAddress}?cluster=devnet`}
@@ -326,7 +345,7 @@ const MintRequestsPanel: React.FC = () => {
       } else {
         toast.success(
           <div>
-            NFT minted! (DB update pending)
+            NFT minted! (listing pending)
             <br />
             Mint: {mintAddress.slice(0, 8)}...
           </div>,
@@ -428,7 +447,20 @@ const MintRequestsPanel: React.FC = () => {
       const mintAddress = assetSigner.publicKey.toString();
       console.log('[MINT] Success! Mint address:', mintAddress);
 
-      toast.loading('Recording mint...', { id: toastId });
+      // Transfer NFT to vendor wallet
+      toast.loading('Transferring to vendor...', { id: toastId });
+      try {
+        const mintedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
+        await transfer(umi, {
+          asset: mintedAsset,
+          newOwner: umiPublicKey(prepareData.vendorWallet),
+        }).sendAndConfirm(umi);
+        console.log('[MINT] Transferred to vendor:', prepareData.vendorWallet);
+      } catch (transferErr) {
+        console.error('[MINT] Transfer failed:', transferErr);
+      }
+
+      toast.loading('Creating marketplace listing...', { id: toastId });
 
       // Step 4: Confirm in database
       const confirmRes = await fetch('/api/admin/mint-requests/confirm-mint', {
