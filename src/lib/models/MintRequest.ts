@@ -55,10 +55,9 @@ const MintRequestSchema = new mongoose.Schema(
     mintAddress: { type: String }, // NFT mint address after minting
     mintSignature: { type: String }, // Transaction signature
 
-    // Pending mint state (for client-side signing flow)
+    // Pending mint state (metadata prepared, awaiting client-side mint)
     pendingMint: {
       type: {
-        assetPublicKey: String,
         metadataUri: String,
         imageUrl: String,
         imageTxId: String,
