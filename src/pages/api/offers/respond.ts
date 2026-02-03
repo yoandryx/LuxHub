@@ -52,9 +52,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    if (action === 'counter' && (!counterAmount || !counterAmountUSD)) {
+    if (action === 'counter' && !counterAmountUSD) {
       return res.status(400).json({
-        error: 'counterAmount and counterAmountUSD are required for counter offers',
+        error: 'counterAmountUSD is required for counter offers',
       });
     }
 
@@ -199,9 +199,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       case 'counter': {
+        // Calculate counterAmount in lamports if not provided (use SOL price ~$150)
+        const solPrice = 150;
+        const calculatedCounterAmount =
+          counterAmount || Math.floor((counterAmountUSD! / solPrice) * 1e9);
+
         // Add counter offer to history
         const counterOffer = {
-          amount: counterAmount!,
+          amount: calculatedCounterAmount,
           amountUSD: counterAmountUSD!,
           from: vendorWallet,
           fromType: 'vendor',
@@ -230,7 +235,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             counterOffer: counterAmountUSD,
           },
           counterOffer: {
-            amount: counterAmount,
+            amount: calculatedCounterAmount,
             amountUSD: counterAmountUSD,
             message: counterMessage,
           },

@@ -1,4 +1,4 @@
-import type { LeanDocument } from "../../../types/mongoose";
+import type { LeanDocument } from '../../../types/mongoose';
 // /pages/api/vendor/offers.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
@@ -61,13 +61,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       assetTitle: offer.asset?.model || 'Asset',
       assetImage: offer.asset?.imageIpfsUrls?.[0] || offer.asset?.images?.[0],
       listPrice: offer.asset?.priceUSD || 0,
-      offerAmount: offer.offerPriceUSD,
-      buyerWallet: offer.fromUser?.wallet || 'Unknown',
+      listPriceUSD: offer.asset?.priceUSD || 0,
+      offerAmount: offer.offerAmount,
+      offerPriceUSD: offer.offerPriceUSD,
+      offerCurrency: offer.offerCurrency || 'SOL',
+      buyerWallet: offer.fromUser?.wallet || offer.buyerWallet || 'Unknown',
       buyerUsername: offer.fromUser?.username,
       status: offer.status,
+      message: offer.message,
+      rejectionReason: offer.rejectionReason,
       counterOffers: offer.counterOffers || [],
       negotiationNotes: offer.negotiationNotes || [],
       escrowPda: offer.escrowPda,
+      expiresAt: offer.expiresAt,
       createdAt: offer.createdAt,
       updatedAt: offer.updatedAt,
     }));

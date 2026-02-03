@@ -41,7 +41,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(403).json({ error: 'Admin access required' });
   }
 
-  const { mintRequestId, mintAddress, signature, transferToVendor } = req.body;
+  const {
+    mintRequestId,
+    mintAddress,
+    signature,
+    transferToVendor,
+    transferDestination,
+    transferDestinationType,
+    transferSuccess,
+  } = req.body;
 
   console.log('========================================');
   console.log('[CONFIRM-MINT] Received confirmation request');
@@ -50,6 +58,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   console.log('[CONFIRM-MINT] Mint Address:', mintAddress);
   console.log('[CONFIRM-MINT] Signature:', signature);
   console.log('[CONFIRM-MINT] Transfer to Vendor:', transferToVendor);
+  console.log('[CONFIRM-MINT] Transfer Destination:', transferDestination);
+  console.log('[CONFIRM-MINT] Transfer Destination Type:', transferDestinationType);
+  console.log('[CONFIRM-MINT] Transfer Success:', transferSuccess);
   console.log('[CONFIRM-MINT] Admin Wallet:', signerWallet);
 
   if (!mintRequestId || !mintAddress) {
@@ -111,16 +122,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (imageTxId) mintRequest.imageCid = imageTxId;
     if (imageUrl) mintRequest.imageUrl = imageUrl;
     mintRequest.pendingMint = undefined; // Clear pending state
+
+    // Store transfer destination info
+    mintRequest.transferDestination = transferDestination || signerWallet;
+    mintRequest.transferDestinationType = transferDestinationType || 'admin';
+    mintRequest.transferredTo = transferSuccess
+      ? transferDestination || signerWallet
+      : signerWallet;
+    mintRequest.transferSuccess = transferSuccess;
+
     await mintRequest.save();
 
-    // Find vendor by wallet
-    const vendorUser = await User.findOne({ wallet: mintRequest.wallet });
-    const vendor = vendorUser ? await Vendor.findOne({ user: vendorUser._id }) : null;
-
-    // Determine actual NFT owner based on transfer success
-    const actualOwner = transferToVendor ? mintRequest.wallet : signerWallet;
-    console.log('[CONFIRM-MINT] Transfer to vendor:', transferToVendor);
+    // Determine actual NFT owner based on transfer destination
+    const actualOwner = transferSuccess && transferDestination ? transferDestination : signerWallet;
+    console.log('[CONFIRM-MINT] Transfer destination:', transferDestination);
+    console.log('[CONFIRM-MINT] Transfer success:', transferSuccess);
     console.log('[CONFIRM-MINT] Actual NFT owner:', actualOwner);
+
+    // Find vendor by the actual owner wallet (could be requester, selected vendor, or admin)
+    const ownerUser = await User.findOne({ wallet: actualOwner });
+    const ownerVendor = ownerUser ? await Vendor.findOne({ user: ownerUser._id }) : null;
+
+    // Also find the original requester's vendor for reference
+    const requesterUser = await User.findOne({ wallet: mintRequest.wallet });
+    const requesterVendor = requesterUser
+      ? await Vendor.findOne({ user: requesterUser._id })
+      : null;
+
+    // Use the owner's vendor if available, otherwise use requester's vendor
+    const vendor = ownerVendor || requesterVendor;
 
     // Create Asset record
     const asset = await Asset.create({
@@ -188,10 +218,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('[CONFIRM-MINT] Mint Address:', mintAddress);
     console.log('[CONFIRM-MINT] Title:', mintRequest.title);
     console.log('[CONFIRM-MINT] Price USD:', mintRequest.priceUSD);
-    console.log('[CONFIRM-MINT] Vendor:', vendor?.businessName || 'N/A');
-    console.log('[CONFIRM-MINT] Vendor Wallet:', mintRequest.wallet);
+    console.log('[CONFIRM-MINT] Owner Vendor:', ownerVendor?.businessName || 'N/A');
+    console.log('[CONFIRM-MINT] Requester Wallet:', mintRequest.wallet);
     console.log('[CONFIRM-MINT] NFT Owner Wallet:', actualOwner);
-    console.log('[CONFIRM-MINT] Transfer Completed:', transferToVendor);
+    console.log('[CONFIRM-MINT] Transfer Destination Type:', transferDestinationType);
+    console.log('[CONFIRM-MINT] Transfer Completed:', transferSuccess);
 
     // Calculate listing price in lamports (1 SOL = 1e9 lamports)
     // Use a rough SOL price estimate or fetch from API
@@ -205,7 +236,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const escrow = await Escrow.create({
       asset: asset._id,
-      seller: transferToVendor ? vendor?._id : null,
+      seller: ownerVendor?._id || null, // Use the vendor who owns the NFT
       sellerWallet: actualOwner,
       escrowPda: listingEscrowPda, // Placeholder for listing, replaced on-chain when buyer purchases
       nftMint: mintAddress,
@@ -234,18 +265,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('[CONFIRM-MINT] Status:', escrow.status);
     console.log('[CONFIRM-MINT] ✅ NFT should now appear on /watchMarket');
 
+    // Determine transfer status message
+    let transferMessage = 'NFT minted and listed on marketplace';
+    if (transferSuccess && transferDestination) {
+      if (transferDestinationType === 'requester') {
+        transferMessage =
+          'NFT minted, transferred to vendor (requester), and listed on marketplace';
+      } else if (transferDestinationType === 'vendor') {
+        transferMessage = 'NFT minted, transferred to selected vendor, and listed on marketplace';
+      } else if (transferDestinationType === 'custom') {
+        transferMessage = 'NFT minted, transferred to custom address, and listed on marketplace';
+      }
+    } else if (transferDestinationType === 'admin') {
+      transferMessage = 'NFT minted and kept in admin wallet, listed on marketplace';
+    }
+
     return res.status(200).json({
       success: true,
-      message: transferToVendor
-        ? 'NFT minted, transferred to vendor, and listed on marketplace'
-        : 'NFT minted and listed on marketplace (transfer to vendor pending)',
+      message: transferMessage,
       mintAddress,
       assetId: asset._id,
       escrowId: escrow._id,
       signature,
-      vendorWallet: mintRequest.wallet,
+      requesterWallet: mintRequest.wallet,
       actualOwner,
-      transferToVendor,
+      transferDestination: transferDestination || signerWallet,
+      transferDestinationType: transferDestinationType || 'admin',
+      transferSuccess: !!transferSuccess,
       listingPriceUSD: mintRequest.priceUSD,
     });
   } catch (error) {

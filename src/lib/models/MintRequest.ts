@@ -70,6 +70,23 @@ const MintRequestSchema = new mongoose.Schema(
     // Squads integration
     squadsProposalIndex: { type: Number }, // If minted through Squads
     squadsMemberWallet: { type: String }, // Which Squads member authorized
+
+    // Request source tracking
+    requestSource: {
+      type: String,
+      enum: ['vendor', 'admin'],
+      default: 'vendor',
+    },
+
+    // Transfer destination (set by admin during mint)
+    transferDestination: { type: String }, // Target wallet address
+    transferDestinationType: {
+      type: String,
+      enum: ['requester', 'vendor', 'custom', 'admin'],
+      default: 'requester',
+    },
+    transferredTo: { type: String }, // Actual wallet NFT was transferred to
+    transferSuccess: { type: Boolean }, // Whether transfer succeeded
   },
   { timestamps: true }
 );
