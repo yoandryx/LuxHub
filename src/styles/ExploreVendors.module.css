@@ -1,34 +1,27 @@
-/* src/styles/ExploreVendors.module.css */
-/* LuxHub Glassmorphic Theme - Vendors Page */
+/* ============================================
+   LUXHUB VENDORS PAGE - Compact Grid Layout
+   Glassmorphic Purple Accent Theme
+   ============================================ */
 
 .pageContainer {
   --accent: #c8a1ff;
-  --accent-bright: #a855f7;
   --accent-dim: rgba(200, 161, 255, 0.4);
   --accent-glow: rgba(200, 161, 255, 0.12);
   --bg-dark: #0d0d0d;
-  --bg-card: #111111;
   --border: #222222;
-  --border-light: rgba(255, 255, 255, 0.1);
-  --glass: rgba(13, 13, 13, 0.85);
-  --glass-light: rgba(30, 30, 35, 0.6);
+  --border-light: rgba(255, 255, 255, 0.08);
+  --glass: rgba(20, 20, 25, 0.7);
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.7);
   --text-muted: rgba(255, 255, 255, 0.5);
 
   min-height: 100vh;
   padding: 80px 20px 100px;
-  background: linear-gradient(
-    135deg,
-    rgba(13, 13, 13, 1) 0%,
-    rgba(15, 10, 20, 1) 50%,
-    rgba(10, 10, 15, 1) 100%
-  );
+  background: linear-gradient(180deg, #0a0a0f 0%, #0d0d12 50%, #0a0a0f 100%);
   position: relative;
-  overflow-x: hidden;
 }
 
-/* Background glow effect */
+/* Background glow */
 .pageContainer::before {
   content: '';
   position: absolute;
@@ -42,54 +35,75 @@
 }
 
 /* ============================================
-   TITLE SECTION
+   HERO SECTION - Compact
    ============================================ */
-.title {
-  font-size: 2.5rem;
-  font-weight: 700;
+.heroSection {
   text-align: center;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
-  background: linear-gradient(
-    135deg,
-    var(--text-primary) 0%,
-    var(--accent) 50%,
-    var(--text-primary) 100%
-  );
+  background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, #fff 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmerText 4s linear infinite;
-  margin: 0 0 16px 0;
-  position: relative;
+  animation: shimmer 4s linear infinite;
+  margin: 0 0 8px 0;
 }
 
-@keyframes shimmerText {
+@keyframes shimmer {
   to {
     background-position: 200% center;
   }
 }
 
 .subtitle {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
-  text-align: center;
-  max-width: 600px;
-  margin: 0 auto 48px;
-  line-height: 1.7;
+  margin: 0;
 }
 
 /* ============================================
-   SECTION HEADINGS
+   LOADING STATE
+   ============================================ */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   SECTION HEADINGS - Minimal
    ============================================ */
 .sectionHeading {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin: 48px 0 24px;
-  position: relative;
+  gap: 10px;
+  margin: 32px 0 16px;
 }
 
 .sectionHeading::before,
@@ -97,61 +111,75 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
-  max-width: 200px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  max-width: 120px;
+}
+
+.sectionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 50%;
+  color: #000;
+  font-size: 0.6rem;
 }
 
 .sectionHeading h2 {
-  font-size: 1.2rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--text-primary);
-  padding: 12px 24px;
-  background: linear-gradient(135deg, var(--glass-light) 0%, rgba(20, 20, 25, 0.8) 100%);
-  border: 1px solid var(--accent-dim);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
+  color: var(--text-secondary);
   margin: 0;
 }
 
 /* ============================================
-   VENDOR GRID
+   VENDOR GRID - Compact & Scalable
    ============================================ */
 .vendorList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  padding: 16px 0;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
   max-width: 1400px;
   margin: 0 auto;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .vendorList {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .vendorList {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
   }
 }
 
 /* ============================================
-   VENDOR CARD
+   VENDOR CARD - Compact Tile
    ============================================ */
 .vendorCard {
-  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, var(--glass-light) 0%, rgba(20, 20, 25, 0.8) 100%);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  padding: 16px 12px;
+  background: var(--glass);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.25s ease;
   cursor: pointer;
-  overflow: hidden;
   text-decoration: none;
+  position: relative;
+  overflow: hidden;
 }
 
 .vendorCard::before {
@@ -160,93 +188,231 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   background: linear-gradient(90deg, transparent, var(--accent), transparent);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .vendorCard:hover {
   border-color: var(--accent-dim);
   transform: translateY(-4px);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    0 0 30px rgba(200, 161, 255, 0.1);
+    0 12px 30px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(200, 161, 255, 0.08);
 }
 
 .vendorCard:hover::before {
   opacity: 1;
 }
 
-/* Row layout inside card */
-.rowItems {
-  display: none; /* Hidden, using new layout */
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-}
-
 /* ============================================
-   AVATAR
+   AVATAR - Compact
    ============================================ */
+.avatarWrapper {
+  position: relative;
+  margin-bottom: 10px;
+}
+
 .avatar {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--accent-dim);
-  flex-shrink: 0;
-  background: var(--bg-card);
-  transition: border-color 0.3s ease;
+  border: 2px solid var(--border);
+  transition: border-color 0.25s ease;
 }
 
-.vendorCard:hover .avatar {
+.avatarPlaceholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: linear-gradient(135deg, #1a1a20 0%, #15151a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.vendorCard:hover .avatar,
+.vendorCard:hover .avatarPlaceholder {
   border-color: var(--accent);
 }
 
-/* ============================================
-   VENDOR INFO
-   ============================================ */
-.viewLink {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.nameWrapper {
+.verifiedBadge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  color: var(--accent);
   font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
 }
 
-.verifiedIcon {
-  color: var(--accent);
-  font-size: 1rem;
-  flex-shrink: 0;
+/* ============================================
+   VENDOR INFO - Compact
+   ============================================ */
+.vendorName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  margin-bottom: 2px;
 }
 
 .username {
-  font-size: 0.9rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ============================================
+   STATS ROW - Inline Compact
+   ============================================ */
+.statsRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.statItem {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.statDot {
+  font-size: 0.5rem;
   color: var(--text-muted);
 }
 
 /* ============================================
-   BANNER (if used)
+   TIER BADGE - Compact Pill
    ============================================ */
-.banner {
+.tierBadge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tierShine {
+  position: absolute;
+  top: 0;
+  left: -100%;
   width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 12px 12px 0 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+}
+
+.tierLabel {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Tier Styles */
+.tierStarter {
+  background: rgba(100, 100, 100, 0.2);
+  border: 1px solid rgba(136, 136, 136, 0.3);
+}
+.tierStarter .tierLabel {
+  color: #888;
+}
+
+.tierBronze {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.25) 0%, rgba(180, 100, 40, 0.2) 100%);
+  border: 1px solid rgba(205, 127, 50, 0.4);
+}
+.tierBronze .tierLabel {
+  color: #cd7f32;
+}
+.tierBronze .tierShine {
+  animation: shine 3s ease-in-out infinite;
+}
+
+.tierSilver {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.25) 0%, rgba(169, 169, 169, 0.2) 100%);
+  border: 1px solid rgba(192, 192, 192, 0.5);
+}
+.tierSilver .tierLabel {
+  color: #c0c0c0;
+}
+.tierSilver .tierShine {
+  animation: shine 2.5s ease-in-out infinite;
+}
+
+.tierGold {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(218, 165, 32, 0.2) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+}
+.tierGold .tierLabel {
+  color: #ffd700;
+}
+.tierGold .tierShine {
+  animation: shine 2s ease-in-out infinite;
+}
+
+.tierPlatinum {
+  background: linear-gradient(135deg, rgba(229, 228, 226, 0.3) 0%, rgba(200, 200, 200, 0.2) 100%);
+  border: 1px solid rgba(229, 228, 226, 0.6);
+}
+.tierPlatinum .tierLabel {
+  color: #e5e4e2;
+}
+.tierPlatinum .tierShine {
+  animation: shine 1.8s ease-in-out infinite;
+}
+
+.tierDiamond {
+  background: linear-gradient(135deg, rgba(185, 242, 255, 0.3) 0%, rgba(220, 200, 255, 0.25) 100%);
+  border: 1px solid rgba(185, 242, 255, 0.6);
+  animation: pulse 2s ease-in-out infinite;
+}
+.tierDiamond .tierLabel {
+  color: #b9f2ff;
+  text-shadow: 0 0 6px rgba(185, 242, 255, 0.5);
+}
+.tierDiamond .tierShine {
+  animation: shine 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  50%,
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(185, 242, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(185, 242, 255, 0.4);
+  }
 }
 
 /* ============================================
@@ -254,56 +420,69 @@
    ============================================ */
 .emptyState {
   grid-column: 1 / -1;
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-muted);
-  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
 }
 
 .emptyStateIcon {
-  font-size: 3rem;
-  color: var(--accent-dim);
-  margin-bottom: 16px;
+  font-size: 2rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.emptyState p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 /* ============================================
    RESPONSIVE
    ============================================ */
-@media (max-width: 640px) {
+@media (max-width: 480px) {
   .pageContainer {
-    padding: 70px 16px 80px;
+    padding: 70px 12px 80px;
   }
 
   .title {
-    font-size: 1.8rem;
-    letter-spacing: 1px;
-  }
-
-  .sectionHeading h2 {
-    font-size: 1rem;
-    padding: 10px 16px;
-  }
-
-  .sectionHeading::before,
-  .sectionHeading::after {
-    max-width: 60px;
+    font-size: 1.5rem;
   }
 
   .vendorList {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 
   .vendorCard {
-    padding: 16px;
+    padding: 12px 8px;
   }
 
-  .avatar {
-    width: 50px;
-    height: 50px;
+  .avatar,
+  .avatarPlaceholder {
+    width: 40px;
+    height: 40px;
   }
 
-  .nameWrapper {
-    font-size: 1rem;
+  .vendorName {
+    font-size: 0.75rem;
+  }
+
+  .username {
+    font-size: 0.6rem;
+  }
+
+  .statsRow {
+    display: none;
+  }
+
+  .tierBadge {
+    padding: 2px 8px;
+  }
+
+  .tierLabel {
+    font-size: 0.55rem;
   }
 }

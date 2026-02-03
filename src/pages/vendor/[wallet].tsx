@@ -44,9 +44,13 @@ import {
   IoPin,
 } from 'react-icons/io5';
 import { HiOutlineShoppingCart, HiOutlineTag } from 'react-icons/hi';
+import { FiX, FiTruck, FiDollarSign, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import DelistRequestModal from '../../components/vendor/DelistRequestModal';
 import BulkDelistModal from '../../components/vendor/BulkDelistModal';
+import ShippingAddressForm, {
+  type ShippingAddress,
+} from '../../components/common/ShippingAddressForm';
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
 const FUNDS_MINT = 'So11111111111111111111111111111111111111112';
@@ -129,6 +133,15 @@ const VendorProfilePage = () => {
 
   // Offer state
   const [offeringMint, setOfferingMint] = useState<string | null>(null);
+
+  // Purchase/Offer modal state
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [selectedNftForAction, setSelectedNftForAction] = useState<NFT | null>(null);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
+  const [isShippingValid, setIsShippingValid] = useState(false);
+  const [offerAmount, setOfferAmount] = useState<string>('');
+  const [offerMessage, setOfferMessage] = useState<string>('');
 
   const connection = useMemo(
     () =>
@@ -467,9 +480,9 @@ const VendorProfilePage = () => {
     }
   };
 
-  // Handle purchase from vendor profile
-  const handleBuyNow = async (nft: NFT) => {
-    if (!wallet.publicKey || !program) {
+  // Open buy modal
+  const handleBuyNow = (nft: NFT) => {
+    if (!wallet.publicKey) {
       toast.error('Please connect your wallet');
       return;
     }
@@ -479,11 +492,24 @@ const VendorProfilePage = () => {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Purchase "${nft.title}" for ${nft.priceSol} SOL ($${nft.priceUSD?.toLocaleString() || '?'})?`
-    );
-    if (!confirmed) return;
+    setSelectedNftForAction(nft);
+    setShowPurchaseModal(true);
+  };
 
+  // Execute the actual purchase
+  const executePurchase = async () => {
+    if (
+      !wallet.publicKey ||
+      !program ||
+      !selectedNftForAction ||
+      !shippingAddress ||
+      !isShippingValid
+    ) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    const nft = selectedNftForAction;
     setBuyingMint(nft.mintAddress);
 
     try {
@@ -556,7 +582,18 @@ const VendorProfilePage = () => {
         })
         .rpc();
 
-      // Update backend
+      // Update backend with purchase and shipping address
+      await fetch('/api/escrow/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mintAddress: nft.mintAddress,
+          buyerWallet: buyer.toBase58(),
+          shippingAddress: shippingAddress,
+        }),
+      });
+
+      // Also update the legacy endpoint
       await fetch('/api/nft/updateBuyer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -568,7 +605,12 @@ const VendorProfilePage = () => {
         }),
       });
 
-      toast.success('Purchase successful!');
+      toast.success('Purchase successful! Vendor will ship to your address.');
+
+      // Close modal and reset state
+      setShowPurchaseModal(false);
+      setSelectedNftForAction(null);
+      setShippingAddress(null);
 
       // Remove from local state
       setNftData((prev) => prev.filter((n) => n.mintAddress !== nft.mintAddress));
@@ -580,8 +622,8 @@ const VendorProfilePage = () => {
     }
   };
 
-  // Handle making an offer on an NFT
-  const handleMakeOffer = async (nft: NFT) => {
+  // Open offer modal
+  const handleMakeOffer = (nft: NFT) => {
     if (!wallet.publicKey) {
       toast.error('Please connect your wallet');
       return;
@@ -592,19 +634,26 @@ const VendorProfilePage = () => {
       return;
     }
 
-    // Prompt for offer amount
-    const offerInput = window.prompt(
-      `Make an offer on "${nft.title}"\n\nListed Price: $${nft.priceUSD?.toLocaleString() || '?'} (${nft.priceSol} SOL)\n\nEnter your offer in USD:`
-    );
+    setSelectedNftForAction(nft);
+    setOfferAmount('');
+    setOfferMessage('');
+    setShowOfferModal(true);
+  };
 
-    if (!offerInput) return;
+  // Execute the offer submission
+  const executeOffer = async () => {
+    if (!wallet.publicKey || !selectedNftForAction || !shippingAddress || !isShippingValid) {
+      toast.error('Please fill in all required fields including shipping address');
+      return;
+    }
 
-    const offerAmountUSD = parseFloat(offerInput);
+    const offerAmountUSD = parseFloat(offerAmount);
     if (isNaN(offerAmountUSD) || offerAmountUSD <= 0) {
       toast.error('Please enter a valid offer amount');
       return;
     }
 
+    const nft = selectedNftForAction;
     setOfferingMint(nft.mintAddress);
 
     try {
@@ -615,7 +664,8 @@ const VendorProfilePage = () => {
           mintAddress: nft.mintAddress,
           offerPriceUSD: offerAmountUSD,
           buyerWallet: wallet.publicKey.toBase58(),
-          message: `Offer on ${nft.title} from ${wallet.publicKey.toBase58().slice(0, 8)}...`,
+          message: offerMessage || `Offer on ${nft.title}`,
+          shippingAddress: shippingAddress,
         }),
       });
 
@@ -623,6 +673,12 @@ const VendorProfilePage = () => {
 
       if (data.success) {
         toast.success(`Offer of $${offerAmountUSD.toLocaleString()} submitted!`);
+        // Close modal and reset state
+        setShowOfferModal(false);
+        setSelectedNftForAction(null);
+        setShippingAddress(null);
+        setOfferAmount('');
+        setOfferMessage('');
       } else {
         toast.error(data.error || 'Failed to submit offer');
       }
@@ -1296,6 +1352,198 @@ const VendorProfilePage = () => {
           }}
         />
       )}
+
+      {/* Purchase Modal with Shipping Address */}
+      <AnimatePresence>
+        {showPurchaseModal && selectedNftForAction && (
+          <motion.div
+            className={styles.modalOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowPurchaseModal(false)}
+          >
+            <motion.div
+              className={styles.purchaseModal}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button className={styles.modalCloseBtn} onClick={() => setShowPurchaseModal(false)}>
+                <FiX />
+              </button>
+
+              <div className={styles.purchaseHeader}>
+                <h2>Complete Purchase</h2>
+                <p>Enter your shipping address to complete the purchase</p>
+              </div>
+
+              <div className={styles.purchaseItem}>
+                <div className={styles.purchaseItemImage}>
+                  <img
+                    src={selectedNftForAction.image || '/placeholder-watch.png'}
+                    alt={selectedNftForAction.title}
+                  />
+                </div>
+                <div className={styles.purchaseItemInfo}>
+                  <h3>{selectedNftForAction.title}</h3>
+                  <div className={styles.purchasePrice}>
+                    <span className={styles.priceUSD}>
+                      ${selectedNftForAction.priceUSD?.toLocaleString() || '0'}
+                    </span>
+                    <span className={styles.priceSOL}>{selectedNftForAction.priceSol} SOL</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.shippingSection}>
+                <ShippingAddressForm
+                  onAddressChange={(address, isValid) => {
+                    setShippingAddress(address);
+                    setIsShippingValid(isValid);
+                  }}
+                  compact
+                />
+              </div>
+
+              <div className={styles.purchaseActions}>
+                <button
+                  className={styles.cancelBtn}
+                  onClick={() => setShowPurchaseModal(false)}
+                  disabled={buyingMint !== null}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={styles.confirmPurchaseBtn}
+                  onClick={executePurchase}
+                  disabled={!isShippingValid || buyingMint !== null}
+                >
+                  {buyingMint ? (
+                    <>
+                      <FiLoader className={styles.spinner} />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <FiTruck />
+                      Confirm Purchase
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Offer Modal with Shipping Address */}
+      <AnimatePresence>
+        {showOfferModal && selectedNftForAction && (
+          <motion.div
+            className={styles.modalOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowOfferModal(false)}
+          >
+            <motion.div
+              className={styles.purchaseModal}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button className={styles.modalCloseBtn} onClick={() => setShowOfferModal(false)}>
+                <FiX />
+              </button>
+
+              <div className={styles.purchaseHeader}>
+                <h2>Make an Offer</h2>
+                <p>Enter your offer amount and shipping address</p>
+              </div>
+
+              <div className={styles.purchaseItem}>
+                <div className={styles.purchaseItemImage}>
+                  <img
+                    src={selectedNftForAction.image || '/placeholder-watch.png'}
+                    alt={selectedNftForAction.title}
+                  />
+                </div>
+                <div className={styles.purchaseItemInfo}>
+                  <h3>{selectedNftForAction.title}</h3>
+                  <div className={styles.purchasePrice}>
+                    <span className={styles.priceLabel}>Listed Price:</span>
+                    <span className={styles.priceUSD}>
+                      ${selectedNftForAction.priceUSD?.toLocaleString() || '0'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.offerInputSection}>
+                <label>Your Offer (USD)</label>
+                <div className={styles.offerInputWrapper}>
+                  <FiDollarSign className={styles.dollarIcon} />
+                  <input
+                    type="number"
+                    placeholder="Enter offer amount"
+                    value={offerAmount}
+                    onChange={(e) => setOfferAmount(e.target.value)}
+                    min={0}
+                    step="0.01"
+                  />
+                </div>
+                <label style={{ marginTop: '12px' }}>Message (Optional)</label>
+                <textarea
+                  placeholder="Add a message to the vendor..."
+                  value={offerMessage}
+                  onChange={(e) => setOfferMessage(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              <div className={styles.shippingSection}>
+                <ShippingAddressForm
+                  onAddressChange={(address, isValid) => {
+                    setShippingAddress(address);
+                    setIsShippingValid(isValid);
+                  }}
+                  compact
+                />
+              </div>
+
+              <div className={styles.purchaseActions}>
+                <button
+                  className={styles.cancelBtn}
+                  onClick={() => setShowOfferModal(false)}
+                  disabled={offeringMint !== null}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={styles.confirmOfferBtn}
+                  onClick={executeOffer}
+                  disabled={!isShippingValid || !offerAmount || offeringMint !== null}
+                >
+                  {offeringMint ? (
+                    <>
+                      <FiLoader className={styles.spinner} />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <HiOutlineTag />
+                      Submit Offer
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

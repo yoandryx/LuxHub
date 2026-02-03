@@ -27,6 +27,20 @@ const EscrowSchema = new Schema(
     minimumOfferUSD: { type: Number }, // Min offer in USD
     acceptingOffers: { type: Boolean, default: false }, // Toggle for offer mode
 
+    // ========== BUYER SHIPPING ADDRESS (NEW) ==========
+    buyerShippingAddress: {
+      fullName: { type: String },
+      street1: { type: String },
+      street2: { type: String },
+      city: { type: String },
+      state: { type: String }, // State/Province
+      postalCode: { type: String },
+      country: { type: String },
+      phone: { type: String },
+      email: { type: String },
+      deliveryInstructions: { type: String },
+    },
+
     // ========== SHIPMENT TRACKING (ENHANCED) ==========
     shipmentStatus: {
       type: String,
@@ -36,10 +50,21 @@ const EscrowSchema = new Schema(
     },
     trackingCarrier: { type: String }, // FedEx, UPS, DHL, etc.
     trackingNumber: { type: String },
+    trackingUrl: { type: String }, // Direct tracking URL
     shipmentProofUrls: [{ type: String }], // Photo proof uploaded to IPFS
     shipmentSubmittedAt: { type: Date },
     shipmentVerifiedAt: { type: Date },
     shipmentVerifiedBy: { type: String }, // Admin wallet who verified
+    estimatedDeliveryDate: { type: Date }, // ETA from carrier
+    actualDeliveryDate: { type: Date }, // Confirmed delivery date
+
+    // ========== VENDOR SHIPMENT INFO (NEW) ==========
+    vendorShipmentNotes: { type: String }, // Notes from vendor about shipment
+    shippedFromAddress: {
+      city: { type: String },
+      state: { type: String },
+      country: { type: String },
+    },
 
     // ========== POOL CONVERSION (NEW) ==========
     convertedToPool: { type: Boolean, default: false },

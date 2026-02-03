@@ -1370,3 +1370,324 @@
     gap: 12px;
   }
 }
+
+/* ============================================
+   PURCHASE / OFFER MODAL STYLES
+   ============================================ */
+.purchaseModal {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: linear-gradient(135deg, rgba(31, 31, 31, 0.98) 0%, rgba(19, 19, 19, 0.99) 100%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  backdrop-filter: blur(40px);
+}
+
+.modalCloseBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modalCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.purchaseHeader {
+  margin-bottom: 24px;
+}
+
+.purchaseHeader h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.purchaseHeader p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.purchaseItem {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.purchaseItemImage {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.purchaseItemImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.purchaseItemInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.purchaseItemInfo h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+}
+
+.purchasePrice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.priceLabel {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.priceUSD {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.priceSOL {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.shippingSection {
+  margin-bottom: 20px;
+}
+
+.offerInputSection {
+  margin-bottom: 20px;
+}
+
+.offerInputSection label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.offerInputWrapper {
+  position: relative;
+}
+
+.dollarIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.offerInputSection input {
+  width: 100%;
+  padding: 14px 14px 14px 42px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.offerInputSection input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.15);
+}
+
+.offerInputSection textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 60px;
+  transition: all 0.2s ease;
+}
+
+.offerInputSection textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.purchaseActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: 14px 20px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmPurchaseBtn {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(22, 163, 74, 0.4) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  border-radius: 10px;
+  color: #22c55e;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.confirmPurchaseBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.5) 0%, rgba(22, 163, 74, 0.6) 100%);
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+  transform: translateY(-1px);
+}
+
+.confirmPurchaseBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmOfferBtn {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.25) 0%, rgba(155, 93, 229, 0.35) 100%);
+  border: 1px solid rgba(200, 161, 255, 0.5);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.confirmOfferBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.4) 0%, rgba(155, 93, 229, 0.5) 100%);
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.confirmOfferBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile adjustments for purchase modal */
+@media (max-width: 576px) {
+  .purchaseModal {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .purchaseHeader h2 {
+    font-size: 1.15rem;
+  }
+
+  .purchaseItem {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .purchaseItemImage {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+  }
+
+  .purchasePrice {
+    justify-content: center;
+  }
+
+  .purchaseActions {
+    flex-direction: column;
+  }
+
+  .cancelBtn,
+  .confirmPurchaseBtn,
+  .confirmOfferBtn {
+    flex: none;
+    width: 100%;
+  }
+}

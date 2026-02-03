@@ -24,6 +24,20 @@ const OfferSchema = new Schema(
     },
     message: { type: String }, // Optional buyer message to vendor
 
+    // ========== BUYER SHIPPING ADDRESS (NEW) ==========
+    shippingAddress: {
+      fullName: { type: String },
+      street1: { type: String },
+      street2: { type: String },
+      city: { type: String },
+      state: { type: String }, // State/Province
+      postalCode: { type: String },
+      country: { type: String },
+      phone: { type: String },
+      email: { type: String },
+      deliveryInstructions: { type: String },
+    },
+
     // ========== NEGOTIATION HISTORY ==========
     counterOffers: [
       {
