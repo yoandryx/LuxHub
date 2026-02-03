@@ -65,7 +65,18 @@ interface MintRequest {
   mintedAt?: string;
   mintAddress?: string;
   squadsMemberWallet?: string;
+  requestSource?: 'vendor' | 'admin';
+  transferDestination?: string;
+  transferDestinationType?: 'requester' | 'vendor' | 'custom' | 'admin';
+  transferredTo?: string;
+  transferSuccess?: boolean;
   createdAt: string;
+}
+
+interface VendorOption {
+  wallet: string;
+  name: string;
+  username?: string;
 }
 
 interface SquadsMembership {
@@ -109,6 +120,15 @@ const MintRequestsPanel: React.FC = () => {
   const [squadsMembership, setSquadsMembership] = useState<SquadsMembership | null>(null);
   const [checkingSquads, setCheckingSquads] = useState(false);
 
+  // Transfer destination state
+  const [transferType, setTransferType] = useState<
+    Record<string, 'requester' | 'vendor' | 'custom' | 'admin'>
+  >({});
+  const [customAddress, setCustomAddress] = useState<Record<string, string>>({});
+  const [selectedVendor, setSelectedVendor] = useState<Record<string, string>>({});
+  const [verifiedVendors, setVerifiedVendors] = useState<VendorOption[]>([]);
+  const [loadingVendors, setLoadingVendors] = useState(false);
+
   // Check Squads membership when wallet connects
   useEffect(() => {
     const checkMembership = async () => {
@@ -134,6 +154,55 @@ const MintRequestsPanel: React.FC = () => {
 
     checkMembership();
   }, [wallet.publicKey]);
+
+  // Fetch verified vendors for transfer dropdown
+  useEffect(() => {
+    const fetchVendors = async () => {
+      setLoadingVendors(true);
+      try {
+        const res = await fetch('/api/vendor/vendorList?approved=true');
+        const data = await res.json();
+        if (data.vendors) {
+          setVerifiedVendors(
+            data.vendors.map((v: any) => ({
+              wallet: v.wallet,
+              name: v.name || v.username || 'Unknown Vendor',
+              username: v.username,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Failed to fetch vendors:', error);
+      } finally {
+        setLoadingVendors(false);
+      }
+    };
+
+    fetchVendors();
+  }, []);
+
+  // Get transfer destination wallet based on selection
+  const getTransferDestination = (request: MintRequest): string | null => {
+    const type = transferType[request._id] || 'requester';
+
+    switch (type) {
+      case 'requester':
+        return request.wallet; // Original requester (vendor who submitted)
+      case 'vendor':
+        return selectedVendor[request._id] || null; // Admin-selected vendor
+      case 'custom':
+        return customAddress[request._id] || null; // Custom address
+      case 'admin':
+        return null; // Keep in admin wallet (no transfer)
+      default:
+        return request.wallet;
+    }
+  };
+
+  // Check if requester is a verified vendor
+  const isRequesterVerifiedVendor = (wallet: string): boolean => {
+    return verifiedVendors.some((v) => v.wallet === wallet);
+  };
 
   const fetchRequests = useCallback(async () => {
     if (!wallet.publicKey) return;
@@ -230,7 +299,7 @@ const MintRequestsPanel: React.FC = () => {
 
   // Step 2: Mint (for approved requests only) - UMI CLIENT-SIDE MINTING
   // Matches the pattern from createNFT.tsx for consistency
-  const handleMint = async (requestId: string) => {
+  const handleMint = async (requestId: string, request: MintRequest) => {
     console.log('========================================');
     console.log('[MINT] Starting mint process for request:', requestId);
     console.log('========================================');
@@ -241,13 +310,35 @@ const MintRequestsPanel: React.FC = () => {
       return;
     }
 
+    // Determine transfer destination
+    const transferDest = getTransferDestination(request);
+    const transferTypeSelected = transferType[requestId] || 'requester';
+
+    // Validate custom address if selected
+    if (transferTypeSelected === 'custom' && !transferDest) {
+      toast.error('Please enter a valid wallet address for transfer');
+      return;
+    }
+
+    if (transferTypeSelected === 'vendor' && !transferDest) {
+      toast.error('Please select a vendor from the dropdown');
+      return;
+    }
+
     console.log('[MINT] ✅ Wallet connected:', wallet.publicKey.toBase58());
+    console.log('[MINT] Transfer destination:', transferDest || 'Admin Wallet (no transfer)');
+    console.log('[MINT] Transfer type:', transferTypeSelected);
+
+    const transferNote = transferDest
+      ? `Transfer to: ${transferDest.slice(0, 8)}...`
+      : 'NFT will stay in admin wallet';
 
     const confirmed = window.confirm(
       'Mint this NFT? This will:\n\n' +
         '1. Upload the image to permanent storage (Irys)\n' +
         '2. Mint the NFT with your wallet\n' +
-        '3. Auto-list on marketplace\n\n' +
+        `3. ${transferDest ? 'Transfer to: ' + transferDest.slice(0, 8) + '...' : 'Keep in admin wallet'}\n` +
+        '4. Auto-list on marketplace\n\n' +
         'Your wallet will be prompted to sign.'
     );
 
@@ -330,55 +421,62 @@ const MintRequestsPanel: React.FC = () => {
           '?cluster=devnet'
       );
 
-      // Transfer NFT to vendor wallet with robust retry
-      console.log('[MINT] Step 5: Transferring NFT to vendor...');
-      console.log('[MINT]   - From:', wallet.publicKey.toBase58());
-      console.log('[MINT]   - To:', prepareData.vendorWallet);
-      toast.loading('Transferring to vendor...', { id: toastId });
-
+      // Transfer NFT to destination wallet (if specified)
       let transferSuccess = false;
+      let actualTransferDest: string | null = null;
       let fetchedAsset = null;
 
-      // Retry fetching the asset with exponential backoff (devnet can be slow)
-      for (let attempt = 1; attempt <= 5; attempt++) {
-        try {
-          const waitTime = attempt * 2000; // 2s, 4s, 6s, 8s, 10s
-          console.log(
-            `[MINT]   - Attempt ${attempt}/5: Waiting ${waitTime / 1000}s before fetch...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, waitTime));
+      if (transferDest) {
+        console.log('[MINT] Step 5: Transferring NFT to destination...');
+        console.log('[MINT]   - From:', wallet.publicKey.toBase58());
+        console.log('[MINT]   - To:', transferDest);
+        toast.loading(`Transferring to ${transferDest.slice(0, 8)}...`, { id: toastId });
 
-          console.log(`[MINT]   - Attempt ${attempt}/5: Fetching asset from chain...`);
-          fetchedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
-          console.log(`[MINT]   - ✅ Asset found on attempt ${attempt}!`);
-          console.log(`[MINT]   - Asset owner:`, fetchedAsset.owner?.toString());
-          break;
-        } catch (fetchErr: any) {
-          console.log(`[MINT]   - ❌ Attempt ${attempt}/5 failed:`, fetchErr.message || fetchErr);
-          if (attempt === 5) {
-            console.log('[MINT]   - All fetch attempts exhausted');
+        // Retry fetching the asset with exponential backoff (devnet can be slow)
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          try {
+            const waitTime = attempt * 2000; // 2s, 4s, 6s, 8s, 10s
+            console.log(
+              `[MINT]   - Attempt ${attempt}/5: Waiting ${waitTime / 1000}s before fetch...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
+
+            console.log(`[MINT]   - Attempt ${attempt}/5: Fetching asset from chain...`);
+            fetchedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
+            console.log(`[MINT]   - ✅ Asset found on attempt ${attempt}!`);
+            console.log(`[MINT]   - Asset owner:`, fetchedAsset.owner?.toString());
+            break;
+          } catch (fetchErr: any) {
+            console.log(`[MINT]   - ❌ Attempt ${attempt}/5 failed:`, fetchErr.message || fetchErr);
+            if (attempt === 5) {
+              console.log('[MINT]   - All fetch attempts exhausted');
+            }
           }
         }
-      }
 
-      if (fetchedAsset) {
-        try {
-          console.log('[MINT]   - Initiating transfer...');
-          await transfer(umi, {
-            asset: fetchedAsset,
-            newOwner: umiPublicKey(prepareData.vendorWallet),
-          }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
-          transferSuccess = true;
-          console.log('[MINT] ✅ NFT transferred to vendor:', prepareData.vendorWallet);
-        } catch (transferErr: any) {
-          console.error(
-            '[MINT] ❌ Transfer transaction failed:',
-            transferErr.message || transferErr
-          );
+        if (fetchedAsset) {
+          try {
+            console.log('[MINT]   - Initiating transfer...');
+            await transfer(umi, {
+              asset: fetchedAsset,
+              newOwner: umiPublicKey(transferDest),
+            }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
+            transferSuccess = true;
+            actualTransferDest = transferDest;
+            console.log('[MINT] ✅ NFT transferred to:', transferDest);
+          } catch (transferErr: any) {
+            console.error(
+              '[MINT] ❌ Transfer transaction failed:',
+              transferErr.message || transferErr
+            );
+          }
+        } else {
+          console.log('[MINT] ⚠️ Could not fetch asset after 5 attempts - NFT stays with admin');
+          console.log('[MINT]   - NFT can be transferred manually later');
         }
       } else {
-        console.log('[MINT] ⚠️ Could not fetch asset after 5 attempts - NFT stays with admin');
-        console.log('[MINT]   - NFT can be transferred manually from createNFT page');
+        console.log('[MINT] Step 5: Skipping transfer - NFT stays in admin wallet');
+        transferSuccess = true; // Consider "no transfer needed" as success
       }
 
       toast.loading('Creating marketplace listing...', { id: toastId });
@@ -395,7 +493,10 @@ const MintRequestsPanel: React.FC = () => {
           mintRequestId: requestId,
           mintAddress,
           signature: mintAddress,
-          transferToVendor: transferSuccess,
+          transferToVendor: transferSuccess && !!actualTransferDest,
+          transferDestination: actualTransferDest || wallet.publicKey.toBase58(),
+          transferDestinationType: transferTypeSelected,
+          transferSuccess,
         }),
       });
 
@@ -558,14 +659,19 @@ const MintRequestsPanel: React.FC = () => {
         }
       }
 
-      if (fetchedAsset) {
+      // For Approve & Mint, default to transferring to the requester (vendor)
+      const transferDest = prepareData.vendorWallet;
+      let actualTransferDest: string | null = null;
+
+      if (fetchedAsset && transferDest) {
         try {
           await transfer(umi, {
             asset: fetchedAsset,
-            newOwner: umiPublicKey(prepareData.vendorWallet),
+            newOwner: umiPublicKey(transferDest),
           }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
           transferSuccess = true;
-          console.log('[MINT] Transferred to vendor:', prepareData.vendorWallet);
+          actualTransferDest = transferDest;
+          console.log('[MINT] Transferred to vendor:', transferDest);
         } catch (transferErr: any) {
           console.error('[MINT] Transfer transaction failed:', transferErr.message);
         }
@@ -586,7 +692,10 @@ const MintRequestsPanel: React.FC = () => {
           mintRequestId: requestId,
           mintAddress,
           signature: mintAddress,
-          transferToVendor: false,
+          transferToVendor: transferSuccess && !!actualTransferDest,
+          transferDestination: actualTransferDest || wallet.publicKey.toBase58(),
+          transferDestinationType: 'requester', // Default for quick mint
+          transferSuccess,
         }),
       });
 
@@ -1180,8 +1289,190 @@ const MintRequestsPanel: React.FC = () => {
                         {request.reviewedAt ? formatDate(request.reviewedAt) : 'N/A'}. Ready to
                         mint.
                       </div>
+                      {/* Transfer Destination Selector */}
+                      <div
+                        style={{
+                          padding: '16px',
+                          background: 'rgba(200, 161, 255, 0.05)',
+                          border: '1px solid rgba(200, 161, 255, 0.2)',
+                          borderRadius: '8px',
+                          marginBottom: '12px',
+                        }}
+                      >
+                        <div style={{ marginBottom: '12px' }}>
+                          <span style={{ color: '#c8a1ff', fontSize: '0.85rem', fontWeight: 600 }}>
+                            Transfer Destination
+                          </span>
+                          <p style={{ color: '#888', fontSize: '0.75rem', margin: '4px 0 0 0' }}>
+                            Choose where to send the NFT after minting
+                          </p>
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(2, 1fr)',
+                            gap: '8px',
+                            marginBottom: '12px',
+                          }}
+                        >
+                          {/* Requester Option */}
+                          <button
+                            onClick={() =>
+                              setTransferType((prev) => ({ ...prev, [request._id]: 'requester' }))
+                            }
+                            style={{
+                              padding: '10px 12px',
+                              background:
+                                (transferType[request._id] || 'requester') === 'requester'
+                                  ? 'rgba(34, 197, 94, 0.2)'
+                                  : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${(transferType[request._id] || 'requester') === 'requester' ? '#22c55e' : '#333'}`,
+                              borderRadius: '6px',
+                              color:
+                                (transferType[request._id] || 'requester') === 'requester'
+                                  ? '#22c55e'
+                                  : '#aaa',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <div style={{ fontWeight: 600 }}>Vendor (Requester)</div>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+                              {shortenWallet(request.wallet)}
+                              {isRequesterVerifiedVendor(request.wallet) && ' ✓'}
+                            </div>
+                          </button>
+
+                          {/* Choose Vendor Option */}
+                          <button
+                            onClick={() =>
+                              setTransferType((prev) => ({ ...prev, [request._id]: 'vendor' }))
+                            }
+                            style={{
+                              padding: '10px 12px',
+                              background:
+                                transferType[request._id] === 'vendor'
+                                  ? 'rgba(59, 130, 246, 0.2)'
+                                  : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${transferType[request._id] === 'vendor' ? '#3b82f6' : '#333'}`,
+                              borderRadius: '6px',
+                              color: transferType[request._id] === 'vendor' ? '#3b82f6' : '#aaa',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <div style={{ fontWeight: 600 }}>Choose Vendor</div>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Select from list</div>
+                          </button>
+
+                          {/* Custom Address Option */}
+                          <button
+                            onClick={() =>
+                              setTransferType((prev) => ({ ...prev, [request._id]: 'custom' }))
+                            }
+                            style={{
+                              padding: '10px 12px',
+                              background:
+                                transferType[request._id] === 'custom'
+                                  ? 'rgba(245, 158, 11, 0.2)'
+                                  : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${transferType[request._id] === 'custom' ? '#f59e0b' : '#333'}`,
+                              borderRadius: '6px',
+                              color: transferType[request._id] === 'custom' ? '#f59e0b' : '#aaa',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <div style={{ fontWeight: 600 }}>Custom Address</div>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Enter wallet</div>
+                          </button>
+
+                          {/* Keep in Admin Wallet Option */}
+                          <button
+                            onClick={() =>
+                              setTransferType((prev) => ({ ...prev, [request._id]: 'admin' }))
+                            }
+                            style={{
+                              padding: '10px 12px',
+                              background:
+                                transferType[request._id] === 'admin'
+                                  ? 'rgba(200, 161, 255, 0.2)'
+                                  : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${transferType[request._id] === 'admin' ? '#c8a1ff' : '#333'}`,
+                              borderRadius: '6px',
+                              color: transferType[request._id] === 'admin' ? '#c8a1ff' : '#aaa',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <div style={{ fontWeight: 600 }}>Admin Wallet</div>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>No transfer</div>
+                          </button>
+                        </div>
+
+                        {/* Vendor Dropdown (shown when "Choose Vendor" selected) */}
+                        {transferType[request._id] === 'vendor' && (
+                          <select
+                            value={selectedVendor[request._id] || ''}
+                            onChange={(e) =>
+                              setSelectedVendor((prev) => ({
+                                ...prev,
+                                [request._id]: e.target.value,
+                              }))
+                            }
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid #333',
+                              borderRadius: '6px',
+                              color: '#fff',
+                              fontSize: '0.85rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <option value="">Select a vendor...</option>
+                            {verifiedVendors.map((v) => (
+                              <option key={v.wallet} value={v.wallet}>
+                                {v.name} ({shortenWallet(v.wallet)})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        {/* Custom Address Input (shown when "Custom Address" selected) */}
+                        {transferType[request._id] === 'custom' && (
+                          <input
+                            type="text"
+                            placeholder="Enter wallet address (e.g., BTeix...)"
+                            value={customAddress[request._id] || ''}
+                            onChange={(e) =>
+                              setCustomAddress((prev) => ({
+                                ...prev,
+                                [request._id]: e.target.value,
+                              }))
+                            }
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid #333',
+                              borderRadius: '6px',
+                              color: '#fff',
+                              fontSize: '0.85rem',
+                              fontFamily: 'monospace',
+                            }}
+                          />
+                        )}
+                      </div>
+
                       <button
-                        onClick={() => handleMint(request._id)}
+                        onClick={() => handleMint(request._id, request)}
                         disabled={processing === request._id}
                         style={{
                           padding: '14px 20px',
@@ -1197,6 +1488,7 @@ const MintRequestsPanel: React.FC = () => {
                           justifyContent: 'center',
                           gap: '8px',
                           opacity: processing === request._id ? 0.6 : 1,
+                          width: '100%',
                         }}
                       >
                         <HiOutlineSparkles />

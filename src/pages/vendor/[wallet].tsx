@@ -76,7 +76,18 @@ interface ProfileStats {
   itemsListed: number;
   itemsBurned: number;
   totalSales: number;
+  inventoryValue: number;
 }
+
+// Inventory value tiers for badge styling
+const getInventoryTier = (value: number) => {
+  if (value >= 500000) return { tier: 'diamond', label: 'Diamond', color: '#b9f2ff' };
+  if (value >= 250000) return { tier: 'platinum', label: 'Platinum', color: '#e5e4e2' };
+  if (value >= 100000) return { tier: 'gold', label: 'Gold', color: '#ffd700' };
+  if (value >= 25000) return { tier: 'silver', label: 'Silver', color: '#c0c0c0' };
+  if (value >= 5000) return { tier: 'bronze', label: 'Bronze', color: '#cd7f32' };
+  return { tier: 'starter', label: 'Starter', color: '#888888' };
+};
 
 const VendorProfilePage = () => {
   const router = useRouter();
@@ -98,6 +109,7 @@ const VendorProfilePage = () => {
     itemsListed: 0,
     itemsBurned: 0,
     totalSales: 0,
+    inventoryValue: 0,
   });
   const [showDetailCard, setShowDetailCard] = useState(false);
   const [listingAssetId, setListingAssetId] = useState<string | null>(null);
@@ -187,14 +199,19 @@ const VendorProfilePage = () => {
           return;
         }
 
-        setNftData(mapNftData(data.nfts || [], profile.wallet));
+        const nfts = mapNftData(data.nfts || [], profile.wallet);
+        setNftData(nfts);
 
-        // Use stats from API
+        // Calculate inventory value from NFT prices
+        const inventoryValue = nfts.reduce((sum, nft) => sum + (nft.priceUSD || 0), 0);
+
+        // Use stats from API + calculated inventory value
         setStats({
           totalItems: data.stats?.totalItems || 0,
           itemsListed: data.stats?.itemsListed || 0,
           itemsBurned: data.stats?.itemsBurned || 0,
           totalSales: data.stats?.totalSales || profile.totalSales || 0,
+          inventoryValue,
         });
       } catch (err) {
         console.error('Failed to fetch NFTs:', err);
@@ -799,19 +816,32 @@ const VendorProfilePage = () => {
               </a>
             </div>
 
-            {/* Stats Row - X/Twitter Style */}
+            {/* Stats Row - Badge Style */}
             <div className={styles.statsRow}>
-              <div className={styles.statItem}>
+              <div className={styles.statBadge}>
                 <span className={styles.statValue}>{stats.totalItems}</span>
                 <span className={styles.statLabel}>Items</span>
               </div>
-              <div className={styles.statItem}>
+              <div className={styles.statBadge}>
                 <span className={styles.statValue}>{stats.itemsListed}</span>
                 <span className={styles.statLabel}>Listed</span>
               </div>
-              <div className={styles.statItem}>
-                <span className={styles.statValue}>{stats.totalSales}</span>
-                <span className={styles.statLabel}>Sales</span>
+              {/* Tiered Inventory Badge */}
+              <div
+                className={`${styles.inventoryBadge} ${styles[`tier${getInventoryTier(stats.inventoryValue).tier.charAt(0).toUpperCase() + getInventoryTier(stats.inventoryValue).tier.slice(1)}`]}`}
+                title={`${getInventoryTier(stats.inventoryValue).label} Tier - $${stats.inventoryValue.toLocaleString()} inventory`}
+              >
+                <div className={styles.tierGlow} />
+                <div className={styles.tierShine} />
+                <span className={styles.tierValue}>
+                  $
+                  {stats.inventoryValue >= 1000
+                    ? `${(stats.inventoryValue / 1000).toFixed(0)}k`
+                    : stats.inventoryValue}
+                </span>
+                <span className={styles.tierLabel}>
+                  {getInventoryTier(stats.inventoryValue).label}
+                </span>
               </div>
             </div>
           </div>

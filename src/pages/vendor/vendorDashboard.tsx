@@ -116,6 +116,20 @@ const VendorDashboard = () => {
 
   const [offers, setOffers] = useState<any[]>([]);
   const [offersLoading, setOffersLoading] = useState(false);
+  const [offerFilter, setOfferFilter] = useState<
+    'all' | 'pending' | 'accepted' | 'rejected' | 'countered'
+  >('all');
+  const [selectedOffer, setSelectedOffer] = useState<any | null>(null);
+  const [offerActionLoading, setOfferActionLoading] = useState(false);
+
+  // Counter offer modal state
+  const [showCounterModal, setShowCounterModal] = useState(false);
+  const [counterAmount, setCounterAmount] = useState<string>('');
+  const [counterMessage, setCounterMessage] = useState<string>('');
+
+  // Reject offer modal state
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState<string>('');
 
   const [payouts, setPayouts] = useState<any[]>([]);
   const [payoutsLoading, setPayoutsLoading] = useState(false);
@@ -299,6 +313,141 @@ const VendorDashboard = () => {
       setPayoutsLoading(false);
     }
   };
+
+  // Offer action handlers
+  const handleAcceptOffer = async (offer: any) => {
+    if (!publicKey) return;
+    if (
+      !confirm(
+        `Accept this offer of $${offer.offerPriceUSD?.toLocaleString() || offer.offerAmount?.toLocaleString()}?`
+      )
+    )
+      return;
+
+    setOfferActionLoading(true);
+    try {
+      const res = await fetch('/api/offers/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: offer._id,
+          vendorWallet: publicKey.toBase58(),
+          action: 'accept',
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Offer accepted! The buyer will be notified.');
+        fetchOffers();
+      } else {
+        toast.error(data.error || 'Failed to accept offer');
+      }
+    } catch (err) {
+      console.error('Error accepting offer:', err);
+      toast.error('Failed to accept offer');
+    } finally {
+      setOfferActionLoading(false);
+    }
+  };
+
+  const openRejectModal = (offer: any) => {
+    setSelectedOffer(offer);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
+  const handleRejectOffer = async () => {
+    if (!publicKey || !selectedOffer) return;
+    if (!rejectReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+
+    setOfferActionLoading(true);
+    try {
+      const res = await fetch('/api/offers/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: selectedOffer._id,
+          vendorWallet: publicKey.toBase58(),
+          action: 'reject',
+          rejectionReason: rejectReason.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Offer rejected');
+        setShowRejectModal(false);
+        setSelectedOffer(null);
+        setRejectReason('');
+        fetchOffers();
+      } else {
+        toast.error(data.error || 'Failed to reject offer');
+      }
+    } catch (err) {
+      console.error('Error rejecting offer:', err);
+      toast.error('Failed to reject offer');
+    } finally {
+      setOfferActionLoading(false);
+    }
+  };
+
+  const openCounterModal = (offer: any) => {
+    setSelectedOffer(offer);
+    setCounterAmount('');
+    setCounterMessage('');
+    setShowCounterModal(true);
+  };
+
+  const handleCounterOffer = async () => {
+    if (!publicKey || !selectedOffer) return;
+
+    const counterAmountNum = parseFloat(counterAmount);
+    if (!counterAmountNum || counterAmountNum <= 0) {
+      toast.error('Please enter a valid counter amount');
+      return;
+    }
+
+    setOfferActionLoading(true);
+    try {
+      const res = await fetch('/api/offers/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: selectedOffer._id,
+          vendorWallet: publicKey.toBase58(),
+          action: 'counter',
+          counterAmountUSD: counterAmountNum,
+          counterMessage: counterMessage.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Counter offer sent! Awaiting buyer response.');
+        setShowCounterModal(false);
+        setSelectedOffer(null);
+        setCounterAmount('');
+        setCounterMessage('');
+        fetchOffers();
+      } else {
+        toast.error(data.error || 'Failed to send counter offer');
+      }
+    } catch (err) {
+      console.error('Error sending counter offer:', err);
+      toast.error('Failed to send counter offer');
+    } finally {
+      setOfferActionLoading(false);
+    }
+  };
+
+  // Filter offers by status
+  const filteredOffers = offers.filter((o) =>
+    offerFilter === 'all' ? true : o.status === offerFilter
+  );
 
   // Load data based on active tab
   useEffect(() => {
@@ -1030,23 +1179,52 @@ const VendorDashboard = () => {
                 <h2 className={styles.sectionTitle}>Incoming Offers</h2>
               </div>
 
+              {/* Offer Filter Tabs */}
+              <div className={styles.filterTabs}>
+                {(['all', 'pending', 'countered', 'accepted', 'rejected'] as const).map(
+                  (filter) => (
+                    <button
+                      key={filter}
+                      className={`${styles.filterTab} ${offerFilter === filter ? styles.activeFilter : ''}`}
+                      onClick={() => setOfferFilter(filter)}
+                    >
+                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      {filter !== 'all' && (
+                        <span className={styles.filterCount}>
+                          {offers.filter((o) => o.status === filter).length}
+                        </span>
+                      )}
+                      {filter === 'all' && (
+                        <span className={styles.filterCount}>{offers.length}</span>
+                      )}
+                    </button>
+                  )
+                )}
+              </div>
+
               {offersLoading ? (
                 <div className={styles.loadingState}>
                   <FiLoader className={styles.spinner} />
                   <p>Loading offers...</p>
                 </div>
-              ) : offers.length === 0 ? (
+              ) : filteredOffers.length === 0 ? (
                 <div className={styles.emptyState}>
                   <FiInbox className={styles.emptyIcon} />
-                  <h3>No Pending Offers</h3>
-                  <p>Offers from buyers will appear here. Keep your listings active!</p>
+                  <h3>{offerFilter === 'all' ? 'No Offers Yet' : `No ${offerFilter} Offers`}</h3>
+                  <p>
+                    {offerFilter === 'all'
+                      ? 'Offers from buyers will appear here. Keep your listings active!'
+                      : `You don't have any ${offerFilter} offers.`}
+                  </p>
                 </div>
               ) : (
                 <div className={styles.offersList}>
-                  {offers.map((offer: any) => (
+                  {filteredOffers.map((offer: any) => (
                     <div key={offer._id} className={styles.offerCard}>
                       <div className={styles.offerHeader}>
-                        <span className={styles.offerAsset}>{offer.assetTitle || 'Asset'}</span>
+                        <span className={styles.offerAsset}>
+                          {offer.assetTitle || offer.asset?.model || 'Asset'}
+                        </span>
                         <span
                           className={`${styles.offerStatus} ${
                             offer.status === 'pending'
@@ -1055,7 +1233,9 @@ const VendorDashboard = () => {
                                 ? styles.statusListed
                                 : offer.status === 'rejected'
                                   ? styles.statusRejected
-                                  : ''
+                                  : offer.status === 'countered'
+                                    ? styles.statusInfo
+                                    : ''
                           }`}
                         >
                           {offer.status?.toUpperCase()}
@@ -1066,15 +1246,26 @@ const VendorDashboard = () => {
                           <div className={styles.offerPrice}>
                             <span className={styles.offerPriceLabel}>Offer</span>
                             <span className={styles.offerPriceValue}>
-                              ${offer.offerAmount?.toLocaleString()}
+                              ${(offer.offerPriceUSD || offer.offerAmount)?.toLocaleString()}
                             </span>
                           </div>
                           <div className={styles.offerPrice}>
                             <span className={styles.offerPriceLabel}>Listed</span>
                             <span className={styles.offerPriceOriginal}>
-                              ${offer.listPrice?.toLocaleString()}
+                              ${(offer.listPriceUSD || offer.listPrice)?.toLocaleString()}
                             </span>
                           </div>
+                          {offer.status === 'countered' && offer.counterOffers?.length > 0 && (
+                            <div className={styles.offerPrice}>
+                              <span className={styles.offerPriceLabel}>Counter</span>
+                              <span className={styles.offerPriceCounter}>
+                                $
+                                {offer.counterOffers[
+                                  offer.counterOffers.length - 1
+                                ]?.amountUSD?.toLocaleString()}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className={styles.offerMeta}>
                           <span>From: {offer.buyerWallet?.slice(0, 8)}...</span>
@@ -1082,16 +1273,161 @@ const VendorDashboard = () => {
                             {offer.createdAt ? new Date(offer.createdAt).toLocaleDateString() : ''}
                           </span>
                         </div>
+                        {offer.message && (
+                          <div className={styles.offerMessage}>
+                            <span className={styles.offerMessageLabel}>Message:</span>
+                            <p>{offer.message}</p>
+                          </div>
+                        )}
+                        {offer.status === 'rejected' && offer.rejectionReason && (
+                          <div className={styles.offerRejection}>
+                            <FiAlertCircle />
+                            <span>Rejected: {offer.rejectionReason}</span>
+                          </div>
+                        )}
                       </div>
-                      {offer.status === 'pending' && (
+                      {(offer.status === 'pending' || offer.status === 'countered') && (
                         <div className={styles.offerActions}>
-                          <button className={styles.acceptButton}>Accept</button>
-                          <button className={styles.counterButton}>Counter</button>
-                          <button className={styles.rejectButton}>Reject</button>
+                          <button
+                            className={styles.acceptButton}
+                            onClick={() => handleAcceptOffer(offer)}
+                            disabled={offerActionLoading}
+                          >
+                            <FiCheckCircle /> Accept
+                          </button>
+                          <button
+                            className={styles.counterButton}
+                            onClick={() => openCounterModal(offer)}
+                            disabled={offerActionLoading}
+                          >
+                            <FiRefreshCw /> Counter
+                          </button>
+                          <button
+                            className={styles.rejectButton}
+                            onClick={() => openRejectModal(offer)}
+                            disabled={offerActionLoading}
+                          >
+                            <FiX /> Reject
+                          </button>
                         </div>
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Counter Offer Modal */}
+              {showCounterModal && selectedOffer && (
+                <div className={styles.modalOverlay} onClick={() => setShowCounterModal(false)}>
+                  <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className={styles.modalClose}
+                      onClick={() => setShowCounterModal(false)}
+                    >
+                      <FiX />
+                    </button>
+                    <h2 className={styles.modalTitle}>Counter Offer</h2>
+                    <p className={styles.modalSubtitle}>
+                      Counter the offer of $
+                      {(selectedOffer.offerPriceUSD || selectedOffer.offerAmount)?.toLocaleString()}{' '}
+                      for {selectedOffer.assetTitle || 'this item'}
+                    </p>
+
+                    <div className={styles.formField}>
+                      <label>Counter Amount (USD) *</label>
+                      <input
+                        type="number"
+                        placeholder="Enter your counter price"
+                        value={counterAmount}
+                        onChange={(e) => setCounterAmount(e.target.value)}
+                        min={0}
+                        step="0.01"
+                      />
+                    </div>
+
+                    <div className={styles.formField}>
+                      <label>Message (optional)</label>
+                      <textarea
+                        placeholder="Add a message for the buyer..."
+                        value={counterMessage}
+                        onChange={(e) => setCounterMessage(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className={styles.modalActions}>
+                      <button
+                        className={styles.cancelButton}
+                        onClick={() => setShowCounterModal(false)}
+                        disabled={offerActionLoading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className={styles.primaryButton}
+                        onClick={handleCounterOffer}
+                        disabled={offerActionLoading || !counterAmount}
+                      >
+                        {offerActionLoading ? (
+                          <>
+                            <FiLoader className={styles.buttonSpinner} /> Sending...
+                          </>
+                        ) : (
+                          'Send Counter Offer'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Reject Offer Modal */}
+              {showRejectModal && selectedOffer && (
+                <div className={styles.modalOverlay} onClick={() => setShowRejectModal(false)}>
+                  <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                    <button className={styles.modalClose} onClick={() => setShowRejectModal(false)}>
+                      <FiX />
+                    </button>
+                    <h2 className={styles.modalTitle}>Reject Offer</h2>
+                    <p className={styles.modalSubtitle}>
+                      Reject the offer of $
+                      {(selectedOffer.offerPriceUSD || selectedOffer.offerAmount)?.toLocaleString()}{' '}
+                      for {selectedOffer.assetTitle || 'this item'}
+                    </p>
+
+                    <div className={styles.formField}>
+                      <label>Reason for Rejection *</label>
+                      <textarea
+                        placeholder="Please provide a reason for rejecting this offer..."
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className={styles.modalActions}>
+                      <button
+                        className={styles.cancelButton}
+                        onClick={() => setShowRejectModal(false)}
+                        disabled={offerActionLoading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className={styles.rejectButton}
+                        onClick={handleRejectOffer}
+                        disabled={offerActionLoading || !rejectReason.trim()}
+                      >
+                        {offerActionLoading ? (
+                          <>
+                            <FiLoader className={styles.buttonSpinner} /> Rejecting...
+                          </>
+                        ) : (
+                          'Reject Offer'
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </>

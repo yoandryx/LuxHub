@@ -2829,6 +2829,138 @@
   color: #fff;
 }
 
+.acceptButton:disabled,
+.counterButton:disabled,
+.rejectButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.acceptButton svg,
+.counterButton svg,
+.rejectButton svg {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Offer Price Counter */
+.offerPriceCounter {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #c8a1ff;
+}
+
+@media screen and (min-width: 576px) {
+  .offerPriceCounter {
+    font-size: 1.4rem;
+  }
+}
+
+/* Offer Message */
+.offerMessage {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
+
+.offerMessageLabel {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.offerMessage p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #ccc;
+  line-height: 1.5;
+}
+
+/* Offer Rejection */
+.offerRejection {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #ff6b6b;
+}
+
+.offerRejection svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Modal Title & Subtitle */
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.modalSubtitle {
+  font-size: 0.9rem;
+  color: #888;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+/* Modal Actions */
+.modalActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: 1px solid #444;
+  color: #888;
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: #666;
+}
+
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Button with Spinner */
+.buttonSpinner {
+  animation: spin 1s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Earnings Summary */
 .earningsSummary {
   display: grid;
