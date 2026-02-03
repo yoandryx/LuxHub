@@ -25,6 +25,7 @@ import {
   FiAlertCircle,
 } from 'react-icons/fi';
 import AddInventoryForm from '../../components/vendor/AddInventoryForm';
+import OrderShipmentPanel from '../../components/vendor/OrderShipmentPanel';
 import toast from 'react-hot-toast';
 import { NFTGridCard } from '../../components/common/UnifiedNFTCard';
 import type { NFTStatus } from '../../components/common/UnifiedNFTCard';
@@ -1104,73 +1105,8 @@ const VendorDashboard = () => {
             </>
           )}
 
-          {/* Orders Tab */}
-          {activeTab === 'orders' && (
-            <>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Orders & Escrows</h2>
-              </div>
-
-              {ordersLoading ? (
-                <div className={styles.loadingState}>
-                  <FiLoader className={styles.spinner} />
-                  <p>Loading orders...</p>
-                </div>
-              ) : orders.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <FiTruck className={styles.emptyIcon} />
-                  <h3>No Active Orders</h3>
-                  <p>When a buyer purchases one of your items, it will appear here.</p>
-                </div>
-              ) : (
-                <div className={styles.ordersList}>
-                  {orders.map((order: any) => (
-                    <div key={order._id} className={styles.orderCard}>
-                      <div className={styles.orderHeader}>
-                        <span className={styles.orderId}>Order #{order._id?.slice(-8)}</span>
-                        <span
-                          className={`${styles.orderStatus} ${
-                            order.status === 'in_escrow'
-                              ? styles.statusPending
-                              : order.status === 'shipped'
-                                ? styles.statusInfo
-                                : order.status === 'delivered'
-                                  ? styles.statusListed
-                                  : ''
-                          }`}
-                        >
-                          {order.status?.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </div>
-                      <div className={styles.orderBody}>
-                        <div className={styles.orderItem}>
-                          <span className={styles.orderItemTitle}>
-                            {order.assetTitle || 'Asset'}
-                          </span>
-                          <span className={styles.orderItemPrice}>
-                            ${order.amount?.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className={styles.orderMeta}>
-                          <span>Buyer: {order.buyerWallet?.slice(0, 8)}...</span>
-                          <span>
-                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
-                          </span>
-                        </div>
-                      </div>
-                      {order.status === 'in_escrow' && (
-                        <div className={styles.orderActions}>
-                          <button className={styles.primaryButton}>
-                            <FiTruck /> Add Tracking
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+          {/* Orders Tab - Full Shipment Management */}
+          {activeTab === 'orders' && <OrderShipmentPanel />}
 
           {/* Offers Tab */}
           {activeTab === 'offers' && (
