@@ -1,22 +1,7 @@
 // /pages/api/admin/mint-requests/prepare-mint.ts
-// Prepares a mint transaction for client-side signing
-// Returns a serialized transaction that the admin wallet can sign
+// Prepares metadata for minting - uploads image and metadata to storage
+// Returns the metadataUri for the client to use with UMI minting
 import type { NextApiRequest, NextApiResponse } from 'next';
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  Transaction,
-  TransactionInstruction,
-} from '@solana/web3.js';
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { mplCore, create as createAsset } from '@metaplex-foundation/mpl-core';
-import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
-import {
-  toWeb3JsInstruction,
-  toWeb3JsKeypair,
-  toWeb3JsPublicKey,
-} from '@metaplex-foundation/umi-web3js-adapters';
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
@@ -77,9 +62,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Vendor wallet address missing from request' });
     }
 
-    console.log('🔑 Preparing mint transaction for client-side signing:', {
+    console.log('🔑 Preparing mint metadata for:', {
       signer: signerWallet.slice(0, 8) + '...',
       mintRequestId,
+      title: mintRequest.title,
     });
 
     // Step 1: Upload image if needed
@@ -100,11 +86,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           buffer = Buffer.from(base64Data, 'base64');
           contentType =
             mintRequest.imageBase64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/png';
+          console.log('📦 Processing base64 image...');
         } else if (
           mintRequest.imageUrl &&
           (mintRequest.imageUrl.startsWith('http://') ||
             mintRequest.imageUrl.startsWith('https://'))
         ) {
+          console.log(`📥 Fetching external image: ${mintRequest.imageUrl}`);
           let fetchUrl = mintRequest.imageUrl;
           if (fetchUrl.includes('dropbox.com')) {
             fetchUrl = fetchUrl
@@ -132,6 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (contentType.includes('text/html')) {
             throw new Error('Image URL returned HTML - not publicly accessible');
           }
+          console.log(`✅ Fetched image (${buffer.length} bytes)`);
         } else {
           return res.status(400).json({ error: 'No valid image source available' });
         }
@@ -156,7 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'No image available for minting' });
     }
 
-    // Step 2: Create and upload metadata
+    // Step 2: Create and upload metadata (matching createNFT.tsx format)
     const metadata = {
       name: mintRequest.title,
       symbol: 'LUXHUB',
@@ -216,56 +205,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Failed to upload metadata' });
     }
 
-    // Step 3: Create the mint transaction for client-side signing
-    const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-    );
-
-    const umi = createUmi(connection.rpcEndpoint).use(mplCore());
-
-    // Generate a new asset keypair - we'll need to send this to the client
-    const assetSigner = generateSigner(umi);
-
-    // Build the create instruction using UMI
-    const createBuilder = createAsset(umi, {
-      asset: assetSigner,
-      name: mintRequest.title,
-      uri: metadataUri,
-      owner: umiPublicKey(signerWallet), // Admin becomes initial owner
-    });
-
-    // Get the instructions from the builder
-    const umiInstructions = createBuilder.getInstructions();
-
-    // Get latest blockhash
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-
-    // Convert UMI instructions to web3.js instructions
-    const web3Instructions: TransactionInstruction[] = umiInstructions.map((ix) =>
-      toWeb3JsInstruction(ix)
-    );
-
-    // Create a legacy Transaction
-    const transaction = new Transaction();
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = new PublicKey(signerWallet);
-    transaction.add(...web3Instructions);
-
-    // Convert UMI signer to web3.js Keypair and partial sign
-    const assetKeypair = toWeb3JsKeypair(assetSigner);
-    transaction.partialSign(assetKeypair);
-
-    // Serialize the transaction (admin wallet will add their signature on client)
-    const serializedTransaction = transaction
-      .serialize({
-        requireAllSignatures: false,
-        verifySignatures: false,
-      })
-      .toString('base64');
-
     // Store the pending mint info for confirmation later
     mintRequest.pendingMint = {
-      assetPublicKey: assetSigner.publicKey.toString(),
       metadataUri,
       imageUrl,
       imageTxId,
@@ -274,19 +215,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
     await mintRequest.save();
 
-    console.log(`✅ Transaction prepared for signing. Asset: ${assetSigner.publicKey}`);
+    console.log(`✅ Metadata prepared for minting: ${mintRequest.title}`);
 
+    // Return metadata URI for client-side minting with UMI
     return res.status(200).json({
       success: true,
-      transaction: serializedTransaction,
-      assetPublicKey: assetSigner.publicKey.toString(),
       metadataUri,
       imageUrl,
       imageTxId,
-      blockhash,
-      lastValidBlockHeight,
+      title: mintRequest.title,
       vendorWallet: mintRequest.wallet,
-      message: 'Transaction prepared. Sign with your wallet to complete minting.',
+      mintRequestId: mintRequest._id,
+      message: 'Metadata ready. Use UMI to mint on the client.',
     });
   } catch (error) {
     console.error('Error preparing mint:', error);
