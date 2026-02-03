@@ -797,28 +797,156 @@
   border-color: #f59e0b;
 }
 
-/* Buy Now Button */
+/* ============================================
+   GLASSMORPHIC ACTION BUTTONS - LuxHub Style
+   Liquid glass effect with premium feel
+   ============================================ */
+
+/* Action Buttons Container */
+.actionBtns {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Buy Now Button - Luxurious Glassmorphic */
 .buyBtn {
-  width: 100%;
-  margin-top: 8px;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 0.875rem;
-  font-weight: 600;
+  flex: 1;
+  padding: 12px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.25) 0%,
+    rgba(22, 163, 74, 0.35) 50%,
+    rgba(34, 197, 94, 0.25) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 12px;
+  color: #4ade80;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Liquid shine effect */
+.buyBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: left 0.5s ease;
+}
+
+.buyBtn:hover::before {
+  left: 100%;
 }
 
 .buyBtn:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.4) 0%,
+    rgba(22, 163, 74, 0.5) 50%,
+    rgba(34, 197, 94, 0.4) 100%
+  );
+  border-color: rgba(74, 222, 128, 0.7);
+  color: #86efac;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+  box-shadow:
+    0 8px 24px rgba(34, 197, 94, 0.3),
+    0 0 40px rgba(34, 197, 94, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.buyBtn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .buyBtn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+/* Offer Button - Luxurious Glassmorphic Purple */
+.offerBtn {
+  flex: 1;
+  padding: 12px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.2) 0%,
+    rgba(155, 93, 229, 0.3) 50%,
+    rgba(200, 161, 255, 0.2) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  border-radius: 12px;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Liquid shine effect */
+.offerBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: left 0.5s ease;
+}
+
+.offerBtn:hover::before {
+  left: 100%;
+}
+
+.offerBtn:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.35) 0%,
+    rgba(155, 93, 229, 0.45) 50%,
+    rgba(200, 161, 255, 0.35) 100%
+  );
+  border-color: rgba(200, 161, 255, 0.7);
+  color: #e0c4ff;
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(200, 161, 255, 0.3),
+    0 0 40px rgba(200, 161, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.offerBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.offerBtn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 

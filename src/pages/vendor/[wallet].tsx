@@ -43,7 +43,7 @@ import {
   IoPinOutline,
   IoPin,
 } from 'react-icons/io5';
-import { HiOutlineShoppingCart } from 'react-icons/hi';
+import { HiOutlineShoppingCart, HiOutlineTag } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import DelistRequestModal from '../../components/vendor/DelistRequestModal';
 import BulkDelistModal from '../../components/vendor/BulkDelistModal';
@@ -114,6 +114,9 @@ const VendorProfilePage = () => {
 
   // Buying state
   const [buyingMint, setBuyingMint] = useState<string | null>(null);
+
+  // Offer state
+  const [offeringMint, setOfferingMint] = useState<string | null>(null);
 
   const connection = useMemo(
     () =>
@@ -560,6 +563,60 @@ const VendorProfilePage = () => {
     }
   };
 
+  // Handle making an offer on an NFT
+  const handleMakeOffer = async (nft: NFT) => {
+    if (!wallet.publicKey) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    if (wallet.publicKey.toBase58() === profile?.wallet) {
+      toast.error("You can't make an offer on your own NFT");
+      return;
+    }
+
+    // Prompt for offer amount
+    const offerInput = window.prompt(
+      `Make an offer on "${nft.title}"\n\nListed Price: $${nft.priceUSD?.toLocaleString() || '?'} (${nft.priceSol} SOL)\n\nEnter your offer in USD:`
+    );
+
+    if (!offerInput) return;
+
+    const offerAmountUSD = parseFloat(offerInput);
+    if (isNaN(offerAmountUSD) || offerAmountUSD <= 0) {
+      toast.error('Please enter a valid offer amount');
+      return;
+    }
+
+    setOfferingMint(nft.mintAddress);
+
+    try {
+      const res = await fetch('/api/offers/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mintAddress: nft.mintAddress,
+          offerPriceUSD: offerAmountUSD,
+          buyerWallet: wallet.publicKey.toBase58(),
+          message: `Offer on ${nft.title} from ${wallet.publicKey.toBase58().slice(0, 8)}...`,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(`Offer of $${offerAmountUSD.toLocaleString()} submitted!`);
+      } else {
+        toast.error(data.error || 'Failed to submit offer');
+      }
+    } catch (err) {
+      console.error('Offer error:', err);
+      toast.error('Failed to submit offer');
+    } finally {
+      setOfferingMint(null);
+    }
+  };
+
   const formatDate = (timestamp?: number | string) => {
     if (!timestamp) return 'N/A';
     return new Date(timestamp).toLocaleDateString('en-US', {
@@ -917,19 +974,32 @@ const VendorProfilePage = () => {
                       setShowDetailCard(true);
                     }}
                   />
-                  {/* Buy button for visitors on listed pinned NFTs */}
+                  {/* Buy & Offer buttons for visitors on listed pinned NFTs */}
                   {!isOwnProfile && nft.status === 'listed' && (
-                    <button
-                      className={styles.buyBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBuyNow(nft);
-                      }}
-                      disabled={buyingMint === nft.mintAddress}
-                    >
-                      <HiOutlineShoppingCart style={{ marginRight: '6px' }} />
-                      {buyingMint === nft.mintAddress ? 'Processing...' : `Buy ${nft.priceSol} SOL`}
-                    </button>
+                    <div className={styles.actionBtns}>
+                      <button
+                        className={styles.buyBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBuyNow(nft);
+                        }}
+                        disabled={buyingMint === nft.mintAddress}
+                      >
+                        <HiOutlineShoppingCart />
+                        {buyingMint === nft.mintAddress ? 'Buying...' : 'Buy'}
+                      </button>
+                      <button
+                        className={styles.offerBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMakeOffer(nft);
+                        }}
+                        disabled={offeringMint === nft.mintAddress}
+                      >
+                        <HiOutlineTag />
+                        {offeringMint === nft.mintAddress ? 'Sending...' : 'Offer'}
+                      </button>
+                    </div>
                   )}
                 </motion.div>
               ))}
@@ -1062,23 +1132,32 @@ const VendorProfilePage = () => {
                         </button>
                       )}
 
-                      {/* Buy button for visitors on listed NFTs */}
+                      {/* Buy & Offer buttons for visitors on listed NFTs */}
                       {!isOwnProfile && nft.status === 'listed' && (
-                        <button
-                          className={styles.buyBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleBuyNow(nft);
-                          }}
-                          disabled={buyingMint === nft.mintAddress}
-                        >
-                          <HiOutlineShoppingCart
-                            style={{ marginRight: '6px', verticalAlign: 'middle' }}
-                          />
-                          {buyingMint === nft.mintAddress
-                            ? 'Processing...'
-                            : `Buy ${nft.priceSol} SOL`}
-                        </button>
+                        <div className={styles.actionBtns}>
+                          <button
+                            className={styles.buyBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBuyNow(nft);
+                            }}
+                            disabled={buyingMint === nft.mintAddress}
+                          >
+                            <HiOutlineShoppingCart />
+                            {buyingMint === nft.mintAddress ? 'Buying...' : 'Buy'}
+                          </button>
+                          <button
+                            className={styles.offerBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMakeOffer(nft);
+                            }}
+                            disabled={offeringMint === nft.mintAddress}
+                          >
+                            <HiOutlineTag />
+                            {offeringMint === nft.mintAddress ? 'Sending...' : 'Offer'}
+                          </button>
+                        </div>
                       )}
                     </>
                   )}
