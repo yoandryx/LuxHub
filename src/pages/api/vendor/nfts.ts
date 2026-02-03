@@ -62,8 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Transform assets to NFT format
     const nftsFromAssets = assets.map((asset: any) => {
-      // Prefer full URL from images array, then resolve from imageIpfsUrls
-      const imageSource = asset.images?.[0] || asset.imageIpfsUrls?.[0];
+      // Prefer full URL: imageUrl > images[0] > imageIpfsUrls[0]
+      const imageSource = asset.imageUrl || asset.images?.[0] || asset.imageIpfsUrls?.[0];
       const image = resolveImageUrl(imageSource);
 
       // Get attributes from metaplexMetadata (comprehensive list)

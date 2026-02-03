@@ -8,9 +8,10 @@ import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
 
 interface CreateOfferRequest {
-  escrowPda: string;
+  escrowPda?: string;
+  mintAddress?: string; // Alternative to escrowPda - find by NFT mint
   buyerWallet: string;
-  offerAmount: number; // In lamports
+  offerAmount?: number; // In lamports (optional if offerPriceUSD provided)
   offerPriceUSD: number;
   offerCurrency?: 'SOL' | 'USDC' | 'WSOL';
   message?: string; // Optional message to vendor
@@ -25,8 +26,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const {
       escrowPda,
+      mintAddress,
       buyerWallet,
-      offerAmount,
+      offerAmount: rawOfferAmount,
       offerPriceUSD,
       offerCurrency = 'SOL',
       message,
@@ -34,13 +36,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } = req.body as CreateOfferRequest;
 
     // Validation
-    if (!escrowPda || !buyerWallet || !offerAmount || !offerPriceUSD) {
+    if ((!escrowPda && !mintAddress) || !buyerWallet || !offerPriceUSD) {
       return res.status(400).json({
-        error: 'Missing required fields: escrowPda, buyerWallet, offerAmount, offerPriceUSD',
+        error: 'Missing required fields: (escrowPda or mintAddress), buyerWallet, offerPriceUSD',
       });
     }
 
-    if (offerAmount <= 0 || offerPriceUSD <= 0) {
+    if (offerPriceUSD <= 0) {
       return res.status(400).json({
         error: 'Offer amount must be positive',
       });
@@ -48,8 +50,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
-    // Find the escrow
-    const escrow = await Escrow.findOne({ escrowPda, deleted: false }).populate('seller');
+    // Find the escrow by escrowPda or nftMint
+    let escrow;
+    if (escrowPda) {
+      escrow = await Escrow.findOne({ escrowPda, deleted: false }).populate('seller');
+    } else if (mintAddress) {
+      escrow = await Escrow.findOne({ nftMint: mintAddress, deleted: false }).populate('seller');
+    }
+
+    // Calculate offerAmount in lamports if not provided (use SOL price ~$150)
+    const solPrice = 150;
+    const offerAmount = rawOfferAmount || Math.floor((offerPriceUSD / solPrice) * 1e9);
     if (!escrow) {
       return res.status(404).json({ error: 'Escrow not found' });
     }
@@ -92,10 +103,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { upsert: true, new: true }
     );
 
+    // Get the actual escrowPda from the found escrow
+    const actualEscrowPda = escrow.escrowPda;
+
     // Run independent queries in parallel
     const [existingOffer, asset] = await Promise.all([
       Offer.findOne({
-        escrowPda,
+        escrowPda: actualEscrowPda,
         buyerWallet,
         status: { $in: ['pending', 'countered'] },
         deleted: false,
@@ -121,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const offer = new Offer({
       asset: escrow.asset,
       escrowId: escrow._id,
-      escrowPda,
+      escrowPda: actualEscrowPda,
       fromUser: buyerUser._id,
       buyerWallet,
       toVendor: escrow.seller?._id,
@@ -139,12 +153,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Update escrow offer tracking - run queries in parallel
     const [pendingOfferCount, highestOffer] = await Promise.all([
       Offer.countDocuments({
-        escrowPda,
+        escrowPda: actualEscrowPda,
         status: { $in: ['pending', 'countered'] },
         deleted: false,
       }),
       Offer.findOne({
-        escrowPda,
+        escrowPda: actualEscrowPda,
         status: { $in: ['pending', 'countered'] },
         deleted: false,
       }).sort({ offerAmount: -1 }),
@@ -161,7 +175,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       offer: {
         _id: offer._id,
-        escrowPda,
+        escrowPda: actualEscrowPda,
         buyerWallet,
         offerAmount,
         offerPriceUSD,
