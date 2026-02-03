@@ -7,6 +7,19 @@ import { Offer } from '../../../lib/models/Offer';
 import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
 
+interface ShippingAddress {
+  fullName: string;
+  street1: string;
+  street2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone?: string;
+  email?: string;
+  deliveryInstructions?: string;
+}
+
 interface CreateOfferRequest {
   escrowPda?: string;
   mintAddress?: string; // Alternative to escrowPda - find by NFT mint
@@ -16,6 +29,7 @@ interface CreateOfferRequest {
   offerCurrency?: 'SOL' | 'USDC' | 'WSOL';
   message?: string; // Optional message to vendor
   expiresInHours?: number; // Optional expiration
+  shippingAddress: ShippingAddress; // Required shipping address
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -33,12 +47,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       offerCurrency = 'SOL',
       message,
       expiresInHours,
+      shippingAddress,
     } = req.body as CreateOfferRequest;
 
     // Validation
     if ((!escrowPda && !mintAddress) || !buyerWallet || !offerPriceUSD) {
       return res.status(400).json({
         error: 'Missing required fields: (escrowPda or mintAddress), buyerWallet, offerPriceUSD',
+      });
+    }
+
+    // Validate shipping address
+    if (!shippingAddress) {
+      return res.status(400).json({
+        error: 'Shipping address is required',
+      });
+    }
+
+    const { fullName, street1, city, state, postalCode, country } = shippingAddress;
+    if (!fullName || !street1 || !city || !state || !postalCode || !country) {
+      return res.status(400).json({
+        error:
+          'Incomplete shipping address. Required: fullName, street1, city, state, postalCode, country',
       });
     }
 
@@ -131,7 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
     }
 
-    // Create the offer
+    // Create the offer with shipping address
     const offer = new Offer({
       asset: escrow.asset,
       escrowId: escrow._id,
@@ -146,6 +176,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message,
       status: 'pending',
       expiresAt,
+      shippingAddress: {
+        fullName: shippingAddress.fullName,
+        street1: shippingAddress.street1,
+        street2: shippingAddress.street2,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        postalCode: shippingAddress.postalCode,
+        country: shippingAddress.country,
+        phone: shippingAddress.phone,
+        email: shippingAddress.email,
+        deliveryInstructions: shippingAddress.deliveryInstructions,
+      },
     });
 
     await offer.save();

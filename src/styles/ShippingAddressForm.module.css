@@ -1,0 +1,183 @@
+/* ShippingAddressForm.module.css */
+/* Glassmorphic shipping address form matching LuxHub design */
+
+.container {
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --border: #333;
+  --bg-dark: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+  --error: #ff4d4f;
+
+  background: linear-gradient(135deg, rgba(31, 31, 31, 0.9) 0%, rgba(19, 19, 19, 0.95) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+}
+
+.container.compact {
+  padding: 16px;
+}
+
+.container.compact .header h3 {
+  font-size: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.headerIcon {
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fieldIcon {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: #666;
+}
+
+.field select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a1a1a1' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.field select option {
+  background: #1a1a1a;
+  color: var(--text-primary);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.inputError {
+  border-color: var(--error) !important;
+  background: rgba(255, 77, 79, 0.05) !important;
+}
+
+.error {
+  font-size: 0.75rem;
+  color: var(--error);
+  margin-top: 2px;
+}
+
+.securityNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(200, 161, 255, 0.05);
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.securityNote svg {
+  flex-shrink: 0;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+/* Compact mode adjustments */
+.compact .field input,
+.compact .field select,
+.compact .field textarea {
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.compact .row {
+  gap: 12px;
+}
+
+.compact .form {
+  gap: 12px;
+}
+
+.compact .securityNote {
+  margin-top: 12px;
+  padding: 10px;
+  font-size: 0.75rem;
+}
