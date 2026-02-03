@@ -32,6 +32,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@coral-xyz/anchor": "^0.31.0",
+    "@easypost/api": "^8.4.0",
     "@irys/sdk": "^0.2.11",
     "@metaplex-foundation/js": "^0.20.1",
     "@metaplex-foundation/mpl-core": "^1.7.0",

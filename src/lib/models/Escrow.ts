@@ -66,6 +66,25 @@ const EscrowSchema = new Schema(
       country: { type: String },
     },
 
+    // ========== EASYPOST INTEGRATION (NEW) ==========
+    easypostShipmentId: { type: String }, // EasyPost shipment ID
+    pendingShipmentId: { type: String }, // Shipment ID before label purchase
+    shippingLabelUrl: { type: String }, // URL to download shipping label
+    shippingLabelFormat: { type: String, default: 'PDF' }, // Label format (PDF, PNG, ZPL)
+    shippingRate: { type: Number }, // Rate paid for shipping
+    shippingInsurance: { type: Number }, // Insurance amount in USD
+    lastTrackingUpdate: { type: Date }, // Last time tracking was refreshed
+
+    // ========== DELIVERY CONFIRMATION (NEW) ==========
+    deliveryConfirmation: {
+      confirmedBy: { type: String }, // Wallet that confirmed
+      confirmationType: { type: String, enum: ['buyer', 'admin'] },
+      confirmedAt: { type: Date },
+      rating: { type: Number, min: 1, max: 5 },
+      reviewText: { type: String },
+    },
+    deliveryNotes: { type: String }, // Notes from buyer about delivery
+
     // ========== POOL CONVERSION (NEW) ==========
     convertedToPool: { type: Boolean, default: false },
     poolId: { type: Schema.Types.ObjectId, ref: 'Pool' },
