@@ -882,3 +882,235 @@
     justify-content: center;
   }
 }
+
+/* ========== EasyPost Integration Styles ========== */
+
+/* Mode Badge */
+.modeBadge {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* Mode Tabs */
+.modeTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  border-radius: 10px;
+}
+
+.modeTab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modeTab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.modeTab.active {
+  background: var(--accent);
+  color: #000;
+  font-weight: 500;
+}
+
+/* Form Sections */
+.formSection {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.formSection:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.formSection h4 {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Get Rates Button */
+.getRatesButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.getRatesButton:hover:not(:disabled) {
+  background: var(--accent-glow);
+}
+
+.getRatesButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Rates List */
+.ratesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 16px;
+}
+
+.rateCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rateCard:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent-dim);
+}
+
+.rateCard.selected {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+
+.rateInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rateCarrier {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rateService {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.rateDelivery {
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.ratePrice {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Purchase Label Button */
+.purchaseLabelButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.purchaseLabelButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+}
+
+.purchaseLabelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Download Label Button */
+.downloadLabelBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #9366d2 100%);
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.downloadLabelBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(200, 161, 255, 0.3);
+}
+
+/* EasyPost Responsive */
+@media (max-width: 768px) {
+  .modeTabs {
+    flex-direction: column;
+  }
+
+  .modeTab {
+    padding: 12px 16px;
+  }
+
+  .rateCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .ratePrice {
+    align-self: flex-end;
+  }
+}

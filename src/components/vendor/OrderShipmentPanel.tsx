@@ -1,5 +1,6 @@
 // src/components/vendor/OrderShipmentPanel.tsx
 // Vendor panel to view orders, see buyer shipping addresses, and submit tracking info
+// Integrated with EasyPost for rate comparison and label generation
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +20,9 @@ import {
   FiAlertCircle,
   FiCamera,
   FiInfo,
+  FiPrinter,
+  FiDollarSign,
+  FiShield,
 } from 'react-icons/fi';
 
 interface ShippingAddress {
@@ -68,6 +72,36 @@ interface OrderStats {
   completed: number;
 }
 
+interface ShippingRate {
+  id: string;
+  carrier: string;
+  service: string;
+  rate: number;
+  currency: string;
+  deliveryDays: number | null;
+  deliveryDateGuaranteed: boolean;
+}
+
+interface VendorAddress {
+  name: string;
+  street1: string;
+  street2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  phone?: string;
+  email?: string;
+}
+
+const PARCEL_PRESETS = [
+  { value: 'watch', label: 'Watch', description: '6x6x4 in, 1 lb' },
+  { value: 'jewelry', label: 'Jewelry', description: '4x4x2 in, 0.5 lb' },
+  { value: 'small_collectible', label: 'Small Collectible', description: '8x8x6 in, 2 lb' },
+  { value: 'large_collectible', label: 'Large Collectible', description: '12x12x10 in, 5 lb' },
+  { value: 'art', label: 'Art Piece', description: '24x20x4 in, 4 lb' },
+];
+
 const CARRIERS = [
   { value: 'fedex', label: 'FedEx' },
   { value: 'ups', label: 'UPS' },
@@ -108,6 +142,44 @@ const OrderShipmentPanel: React.FC = () => {
   const [proofFiles, setProofFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // EasyPost Label Generation State
+  const [shipmentMode, setShipmentMode] = useState<'easypost' | 'manual'>('easypost');
+  const [vendorAddress, setVendorAddress] = useState<VendorAddress>({
+    name: '',
+    street1: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: 'US',
+  });
+  const [parcelPreset, setParcelPreset] = useState('watch');
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [selectedRateId, setSelectedRateId] = useState<string | null>(null);
+  const [pendingShipmentId, setPendingShipmentId] = useState<string | null>(null);
+  const [insuranceAmount, setInsuranceAmount] = useState<number>(0);
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [isPurchasingLabel, setIsPurchasingLabel] = useState(false);
+  const [labelResult, setLabelResult] = useState<{
+    trackingCode: string;
+    trackingUrl: string;
+    labelUrl: string;
+    carrier: string;
+    service: string;
+  } | null>(null);
+  const [easypostMode, setEasypostMode] = useState<'demo' | 'test' | 'production'>('demo');
+
+  // Check EasyPost status on mount
+  useEffect(() => {
+    fetch('/api/shipping/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setEasypostMode(data.mode);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   // Fetch orders
   const fetchOrders = useCallback(async () => {
@@ -164,7 +236,111 @@ const OrderShipmentPanel: React.FC = () => {
     setShipmentNotes(order.vendorShipmentNotes || '');
     setProofFiles([]);
     setSubmitSuccess(false);
+    // Reset EasyPost state
+    setShipmentMode('easypost');
+    setShippingRates([]);
+    setSelectedRateId(null);
+    setPendingShipmentId(null);
+    setLabelResult(null);
+    setInsuranceAmount(order.amount > 1000 ? order.amount : 0); // Auto-suggest insurance for high value
     setShowShipmentModal(true);
+  };
+
+  // Get shipping rates from EasyPost
+  const fetchShippingRates = async () => {
+    if (!selectedOrder || !wallet.publicKey) return;
+
+    // Validate vendor address
+    if (
+      !vendorAddress.street1 ||
+      !vendorAddress.city ||
+      !vendorAddress.state ||
+      !vendorAddress.zip
+    ) {
+      setError('Please fill in your shipping address');
+      return;
+    }
+
+    setIsLoadingRates(true);
+    setError(null);
+    setShippingRates([]);
+
+    try {
+      const res = await fetch('/api/shipping/rates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          escrowId: selectedOrder._id,
+          vendorWallet: wallet.publicKey.toBase58(),
+          fromAddress: vendorAddress,
+          parcelPreset,
+          insuranceAmount: insuranceAmount > 0 ? insuranceAmount : undefined,
+          signatureRequired: true,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setShippingRates(data.rates || []);
+        setPendingShipmentId(data.shipmentId);
+        if (data.rates?.length > 0) {
+          // Auto-select cheapest rate
+          setSelectedRateId(data.rates[0].id);
+        }
+      } else {
+        setError(data.error || 'Failed to get shipping rates');
+      }
+    } catch (err) {
+      console.error('Error fetching rates:', err);
+      setError('Failed to get shipping rates');
+    } finally {
+      setIsLoadingRates(false);
+    }
+  };
+
+  // Purchase shipping label
+  const purchaseShippingLabel = async () => {
+    if (!selectedOrder || !wallet.publicKey || !pendingShipmentId || !selectedRateId) {
+      setError('Please select a shipping rate first');
+      return;
+    }
+
+    setIsPurchasingLabel(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/shipping/purchase-label', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          escrowId: selectedOrder._id,
+          shipmentId: pendingShipmentId,
+          rateId: selectedRateId,
+          vendorWallet: wallet.publicKey.toBase58(),
+          insuranceAmount: insuranceAmount > 0 ? insuranceAmount : undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setLabelResult(data.label);
+        setSubmitSuccess(true);
+        // Refresh orders after a delay
+        setTimeout(() => {
+          setShowShipmentModal(false);
+          fetchOrders();
+        }, 3000);
+      } else {
+        setError(data.error || 'Failed to purchase label');
+      }
+    } catch (err) {
+      console.error('Error purchasing label:', err);
+      setError('Failed to purchase shipping label');
+    } finally {
+      setIsPurchasingLabel(false);
+    }
   };
 
   // Handle proof file selection
@@ -558,17 +734,50 @@ const OrderShipmentPanel: React.FC = () => {
               {submitSuccess ? (
                 <div className={styles.successState}>
                   <FiCheckCircle className={styles.successIcon} />
-                  <h2>Shipment Submitted!</h2>
+                  <h2>{labelResult ? 'Label Generated!' : 'Shipment Submitted!'}</h2>
                   <p>The buyer will be notified with tracking information.</p>
+                  {labelResult && (
+                    <a
+                      href={labelResult.labelUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.downloadLabelBtn}
+                    >
+                      <FiPrinter /> Download Label
+                    </a>
+                  )}
                 </div>
               ) : (
                 <>
                   <div className={styles.modalHeader}>
                     <FiTruck className={styles.modalIcon} />
                     <div>
-                      <h2>Add Shipment Details</h2>
-                      <p>Enter tracking info for {selectedOrder.assetTitle}</p>
+                      <h2>Ship Order</h2>
+                      <p>{selectedOrder.assetTitle}</p>
                     </div>
+                  </div>
+
+                  {/* Mode Badge */}
+                  {easypostMode !== 'production' && (
+                    <div className={styles.modeBadge}>
+                      {easypostMode === 'demo' ? 'Demo Mode' : 'Test Mode'} - Labels are simulated
+                    </div>
+                  )}
+
+                  {/* Mode Tabs */}
+                  <div className={styles.modeTabs}>
+                    <button
+                      className={`${styles.modeTab} ${shipmentMode === 'easypost' ? styles.active : ''}`}
+                      onClick={() => setShipmentMode('easypost')}
+                    >
+                      <FiPrinter /> Generate Label
+                    </button>
+                    <button
+                      className={`${styles.modeTab} ${shipmentMode === 'manual' ? styles.active : ''}`}
+                      onClick={() => setShipmentMode('manual')}
+                    >
+                      <FiTruck /> Manual Entry
+                    </button>
                   </div>
 
                   {/* Ship To Summary */}
@@ -577,6 +786,11 @@ const OrderShipmentPanel: React.FC = () => {
                       <h4>Shipping To:</h4>
                       <p>
                         <strong>{selectedOrder.buyerShippingAddress.fullName}</strong>
+                        <br />
+                        {selectedOrder.buyerShippingAddress.street1}
+                        {selectedOrder.buyerShippingAddress.street2 && (
+                          <>, {selectedOrder.buyerShippingAddress.street2}</>
+                        )}
                         <br />
                         {selectedOrder.buyerShippingAddress.city},{' '}
                         {selectedOrder.buyerShippingAddress.state}{' '}
@@ -587,104 +801,285 @@ const OrderShipmentPanel: React.FC = () => {
                     </div>
                   )}
 
-                  <div className={styles.modalForm}>
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label>Carrier *</label>
-                        <select
-                          value={trackingCarrier}
-                          onChange={(e) => setTrackingCarrier(e.target.value)}
-                          disabled={isSubmitting}
+                  {/* EasyPost Label Generation Mode */}
+                  {shipmentMode === 'easypost' && (
+                    <div className={styles.modalForm}>
+                      {/* Step 1: Vendor Address */}
+                      <div className={styles.formSection}>
+                        <h4>Your Shipping Address</h4>
+                        <div className={styles.formRow}>
+                          <div className={styles.formGroup}>
+                            <label>Business Name</label>
+                            <input
+                              type="text"
+                              placeholder="Your business name"
+                              value={vendorAddress.name}
+                              onChange={(e) =>
+                                setVendorAddress({ ...vendorAddress, name: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>Phone</label>
+                            <input
+                              type="text"
+                              placeholder="Phone number"
+                              value={vendorAddress.phone || ''}
+                              onChange={(e) =>
+                                setVendorAddress({ ...vendorAddress, phone: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label>Street Address *</label>
+                          <input
+                            type="text"
+                            placeholder="Street address"
+                            value={vendorAddress.street1}
+                            onChange={(e) =>
+                              setVendorAddress({ ...vendorAddress, street1: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className={styles.formRow}>
+                          <div className={styles.formGroup}>
+                            <label>City *</label>
+                            <input
+                              type="text"
+                              placeholder="City"
+                              value={vendorAddress.city}
+                              onChange={(e) =>
+                                setVendorAddress({ ...vendorAddress, city: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>State *</label>
+                            <input
+                              type="text"
+                              placeholder="State"
+                              value={vendorAddress.state}
+                              onChange={(e) =>
+                                setVendorAddress({ ...vendorAddress, state: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>ZIP *</label>
+                            <input
+                              type="text"
+                              placeholder="ZIP"
+                              value={vendorAddress.zip}
+                              onChange={(e) =>
+                                setVendorAddress({ ...vendorAddress, zip: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Step 2: Package Details */}
+                      <div className={styles.formSection}>
+                        <h4>Package Details</h4>
+                        <div className={styles.formRow}>
+                          <div className={styles.formGroup}>
+                            <label>Package Type</label>
+                            <select
+                              value={parcelPreset}
+                              onChange={(e) => setParcelPreset(e.target.value)}
+                            >
+                              {PARCEL_PRESETS.map((p) => (
+                                <option key={p.value} value={p.value}>
+                                  {p.label} ({p.description})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>
+                              <FiShield /> Insurance (USD)
+                            </label>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              value={insuranceAmount || ''}
+                              onChange={(e) => setInsuranceAmount(parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+                        </div>
+
+                        <button
+                          className={styles.getRatesButton}
+                          onClick={fetchShippingRates}
+                          disabled={isLoadingRates || !vendorAddress.street1}
                         >
-                          <option value="">Select carrier...</option>
-                          {CARRIERS.map((c) => (
-                            <option key={c.value} value={c.value}>
-                              {c.label}
-                            </option>
-                          ))}
-                        </select>
+                          {isLoadingRates ? (
+                            <>
+                              <FiLoader className={styles.spinner} /> Getting Rates...
+                            </>
+                          ) : (
+                            <>
+                              <FiDollarSign /> Get Shipping Rates
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <div className={styles.formGroup}>
-                        <label>Tracking Number *</label>
-                        <input
-                          type="text"
-                          placeholder="Enter tracking number"
-                          value={trackingNumber}
-                          onChange={(e) => setTrackingNumber(e.target.value)}
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
 
-                    <div className={styles.formGroup}>
-                      <label>Shipment Notes (optional)</label>
-                      <textarea
-                        placeholder="Add any notes about the shipment..."
-                        value={shipmentNotes}
-                        onChange={(e) => setShipmentNotes(e.target.value)}
-                        rows={2}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                      {/* Step 3: Rate Selection */}
+                      {shippingRates.length > 0 && (
+                        <div className={styles.formSection}>
+                          <h4>Select Shipping Rate</h4>
+                          <div className={styles.ratesList}>
+                            {shippingRates.map((rate) => (
+                              <div
+                                key={rate.id}
+                                className={`${styles.rateCard} ${selectedRateId === rate.id ? styles.selected : ''}`}
+                                onClick={() => setSelectedRateId(rate.id)}
+                              >
+                                <div className={styles.rateInfo}>
+                                  <span className={styles.rateCarrier}>{rate.carrier}</span>
+                                  <span className={styles.rateService}>{rate.service}</span>
+                                  {rate.deliveryDays && (
+                                    <span className={styles.rateDelivery}>
+                                      {rate.deliveryDays} day{rate.deliveryDays > 1 ? 's' : ''}
+                                      {rate.deliveryDateGuaranteed && ' (Guaranteed)'}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className={styles.ratePrice}>${rate.rate.toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
 
-                    <div className={styles.formGroup}>
-                      <label>
-                        <FiCamera /> Proof of Shipment (optional, max 5)
-                      </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleProofSelect}
-                        className={styles.fileInput}
-                        disabled={isSubmitting}
-                      />
-                      <span className={styles.fileHint}>
-                        Upload photos of shipping label, receipt, or package
-                      </span>
-                      {proofFiles.length > 0 && (
-                        <div className={styles.fileList}>
-                          {proofFiles.map((file, idx) => (
-                            <span key={idx} className={styles.fileName}>
-                              {file.name}
-                            </span>
-                          ))}
+                          <button
+                            className={styles.purchaseLabelButton}
+                            onClick={purchaseShippingLabel}
+                            disabled={isPurchasingLabel || !selectedRateId}
+                          >
+                            {isPurchasingLabel ? (
+                              <>
+                                <FiLoader className={styles.spinner} /> Creating Label...
+                              </>
+                            ) : (
+                              <>
+                                <FiPrinter /> Purchase Label & Ship
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      {error && (
+                        <div className={styles.formError}>
+                          <FiAlertCircle />
+                          <span>{error}</span>
                         </div>
                       )}
                     </div>
+                  )}
 
-                    {error && (
-                      <div className={styles.formError}>
-                        <FiAlertCircle />
-                        <span>{error}</span>
+                  {/* Manual Entry Mode */}
+                  {shipmentMode === 'manual' && (
+                    <div className={styles.modalForm}>
+                      <div className={styles.formRow}>
+                        <div className={styles.formGroup}>
+                          <label>Carrier *</label>
+                          <select
+                            value={trackingCarrier}
+                            onChange={(e) => setTrackingCarrier(e.target.value)}
+                            disabled={isSubmitting}
+                          >
+                            <option value="">Select carrier...</option>
+                            {CARRIERS.map((c) => (
+                              <option key={c.value} value={c.value}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label>Tracking Number *</label>
+                          <input
+                            type="text"
+                            placeholder="Enter tracking number"
+                            value={trackingNumber}
+                            onChange={(e) => setTrackingNumber(e.target.value)}
+                            disabled={isSubmitting}
+                          />
+                        </div>
                       </div>
-                    )}
 
-                    <div className={styles.modalActions}>
-                      <button
-                        className={styles.cancelButton}
-                        onClick={() => setShowShipmentModal(false)}
-                        disabled={isSubmitting}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className={styles.submitButton}
-                        onClick={handleSubmitShipment}
-                        disabled={isSubmitting || !trackingCarrier || !trackingNumber}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <FiLoader className={styles.spinner} /> Submitting...
-                          </>
-                        ) : (
-                          <>
-                            <FiCheckCircle /> Submit Shipment
-                          </>
+                      <div className={styles.formGroup}>
+                        <label>Shipment Notes (optional)</label>
+                        <textarea
+                          placeholder="Add any notes about the shipment..."
+                          value={shipmentNotes}
+                          onChange={(e) => setShipmentNotes(e.target.value)}
+                          rows={2}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label>
+                          <FiCamera /> Proof of Shipment (optional, max 5)
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleProofSelect}
+                          className={styles.fileInput}
+                          disabled={isSubmitting}
+                        />
+                        <span className={styles.fileHint}>
+                          Upload photos of shipping label, receipt, or package
+                        </span>
+                        {proofFiles.length > 0 && (
+                          <div className={styles.fileList}>
+                            {proofFiles.map((file, idx) => (
+                              <span key={idx} className={styles.fileName}>
+                                {file.name}
+                              </span>
+                            ))}
+                          </div>
                         )}
-                      </button>
+                      </div>
+
+                      {error && (
+                        <div className={styles.formError}>
+                          <FiAlertCircle />
+                          <span>{error}</span>
+                        </div>
+                      )}
+
+                      <div className={styles.modalActions}>
+                        <button
+                          className={styles.cancelButton}
+                          onClick={() => setShowShipmentModal(false)}
+                          disabled={isSubmitting}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className={styles.submitButton}
+                          onClick={handleSubmitShipment}
+                          disabled={isSubmitting || !trackingCarrier || !trackingNumber}
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <FiLoader className={styles.spinner} /> Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <FiCheckCircle /> Submit Shipment
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
             </motion.div>
