@@ -1,0 +1,240 @@
+/* ============================================
+   LUXHUB TIER BADGE - Reusable Component
+   Glassmorphic Animated Inventory Tier Badges
+   ============================================ */
+
+.tierBadge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ============================================
+   SIZE VARIANTS
+   ============================================ */
+.sizeSmall {
+  padding: 2px 6px;
+}
+
+.sizeMedium {
+  padding: 3px 10px;
+}
+
+.sizeLarge {
+  padding: 4px 14px;
+}
+
+.sizeSmall .tierLabel {
+  font-size: 0.5rem;
+  letter-spacing: 0.3px;
+}
+
+.sizeMedium .tierLabel {
+  font-size: 0.6rem;
+  letter-spacing: 0.5px;
+}
+
+.sizeLarge .tierLabel {
+  font-size: 0.7rem;
+  letter-spacing: 0.6px;
+}
+
+.sizeSmall .tierValue {
+  font-size: 0.45rem;
+}
+
+.sizeMedium .tierValue {
+  font-size: 0.55rem;
+}
+
+.sizeLarge .tierValue {
+  font-size: 0.65rem;
+}
+
+/* ============================================
+   SHINE EFFECT
+   ============================================ */
+.tierShine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+}
+
+/* ============================================
+   LABEL STYLING
+   ============================================ */
+.tierLabel {
+  font-weight: 600;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.tierValue {
+  font-weight: 500;
+  opacity: 0.8;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   TIER: STARTER
+   ============================================ */
+.tierStarter {
+  background: rgba(100, 100, 100, 0.2);
+  border: 1px solid rgba(136, 136, 136, 0.3);
+}
+
+.tierStarter .tierLabel,
+.tierStarter .tierValue {
+  color: #888;
+}
+
+/* ============================================
+   TIER: BRONZE
+   ============================================ */
+.tierBronze {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.25) 0%, rgba(180, 100, 40, 0.2) 100%);
+  border: 1px solid rgba(205, 127, 50, 0.4);
+}
+
+.tierBronze .tierLabel,
+.tierBronze .tierValue {
+  color: #cd7f32;
+}
+
+.tierBronze .tierShine {
+  animation: shine 3s ease-in-out infinite;
+}
+
+/* ============================================
+   TIER: SILVER
+   ============================================ */
+.tierSilver {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.25) 0%, rgba(169, 169, 169, 0.2) 100%);
+  border: 1px solid rgba(192, 192, 192, 0.5);
+}
+
+.tierSilver .tierLabel,
+.tierSilver .tierValue {
+  color: #c0c0c0;
+}
+
+.tierSilver .tierShine {
+  animation: shine 2.5s ease-in-out infinite;
+}
+
+/* ============================================
+   TIER: GOLD
+   ============================================ */
+.tierGold {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(218, 165, 32, 0.2) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+}
+
+.tierGold .tierLabel,
+.tierGold .tierValue {
+  color: #ffd700;
+}
+
+.tierGold .tierShine {
+  animation: shine 2s ease-in-out infinite;
+}
+
+/* ============================================
+   TIER: PLATINUM
+   ============================================ */
+.tierPlatinum {
+  background: linear-gradient(135deg, rgba(229, 228, 226, 0.3) 0%, rgba(200, 200, 200, 0.2) 100%);
+  border: 1px solid rgba(229, 228, 226, 0.6);
+}
+
+.tierPlatinum .tierLabel,
+.tierPlatinum .tierValue {
+  color: #e5e4e2;
+}
+
+.tierPlatinum .tierShine {
+  animation: shine 1.8s ease-in-out infinite;
+}
+
+/* ============================================
+   TIER: DIAMOND
+   ============================================ */
+.tierDiamond {
+  background: linear-gradient(135deg, rgba(185, 242, 255, 0.3) 0%, rgba(220, 200, 255, 0.25) 100%);
+  border: 1px solid rgba(185, 242, 255, 0.6);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.tierDiamond .tierLabel,
+.tierDiamond .tierValue {
+  color: #b9f2ff;
+  text-shadow: 0 0 6px rgba(185, 242, 255, 0.5);
+}
+
+.tierDiamond .tierShine {
+  animation: shine 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  50%,
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(185, 242, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(185, 242, 255, 0.4);
+  }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 480px) {
+  .sizeSmall {
+    padding: 1px 5px;
+  }
+
+  .sizeMedium {
+    padding: 2px 8px;
+  }
+
+  .sizeLarge {
+    padding: 3px 10px;
+  }
+
+  .sizeSmall .tierLabel {
+    font-size: 0.45rem;
+  }
+
+  .sizeMedium .tierLabel {
+    font-size: 0.5rem;
+  }
+
+  .sizeLarge .tierLabel {
+    font-size: 0.6rem;
+  }
+}
