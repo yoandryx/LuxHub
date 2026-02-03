@@ -19,7 +19,8 @@ import {
 } from '@solana/spl-token';
 import { Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js';
 import Link from 'next/link';
-import { FaRegCircleCheck, FaAngleRight, FaChartLine, FaLock, FaUsers } from 'react-icons/fa6';
+import { FaAngleRight, FaChartLine, FaLock, FaUsers } from 'react-icons/fa6';
+import { VendorCard } from '../components/common/VendorCard';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import styles from '../styles/WatchMarket.module.css';
 import { IoMdInformationCircle } from 'react-icons/io';
@@ -458,29 +459,6 @@ const Marketplace = () => {
     []
   );
 
-  const VendorSliderCard = ({ vendor }: { vendor: VendorProfile }) => {
-    const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
-
-    return (
-      <Link href={`/vendor/${vendor.wallet}`} className={styles.vendorSliderCard}>
-        <div className={styles.vendorSliderAvatarWrapper}>
-          {vendor.avatarUrl ? (
-            <img src={vendor.avatarUrl} alt={vendor.name} className={styles.vendorSliderAvatar} />
-          ) : (
-            <div className={styles.vendorSliderAvatarPlaceholder} />
-          )}
-        </div>
-        <div className={styles.vendorSliderInfo}>
-          <p className={styles.vendorSliderName}>
-            {vendor.name}
-            {vendor.verified && <FaRegCircleCheck className={styles.verifiedIconSmall} />}
-          </p>
-          <p className={styles.vendorSliderUsername}>@{vendor.username}</p>
-        </div>
-      </Link>
-    );
-  };
-
   const metaplex = useMemo(() => {
     if (wallet.publicKey) {
       return Metaplex.make(connection).use(walletAdapterIdentity(wallet));
@@ -504,7 +482,8 @@ const Marketplace = () => {
 
     try {
       // First: Fetch from escrow API (no wallet required)
-      const escrowRes = await fetch('/api/escrow/list?status=initiated&limit=100');
+      // Fetch listed escrows (status: listed or initiated)
+      const escrowRes = await fetch('/api/escrow/list?status=listed,initiated&limit=100');
       if (escrowRes.ok) {
         const { listings } = await escrowRes.json();
         console.log('📦 Escrow listings:', listings?.length || 0);
@@ -936,7 +915,7 @@ const Marketplace = () => {
         <div className={styles.vendorSlider}>
           {/* Verified dealers first */}
           {verifiedVendors.map((vendor) => (
-            <VendorSliderCard key={`verified-${vendor.wallet}`} vendor={vendor} />
+            <VendorCard key={`verified-${vendor.wallet}`} vendor={vendor} variant="slider" />
           ))}
 
           {/* Then other approved dealers (avoid duplicates) */}
@@ -944,7 +923,7 @@ const Marketplace = () => {
             .filter((v) => !verifiedVendors.some((vv) => vv.wallet === v.wallet))
             .slice(0, 12)
             .map((vendor) => (
-              <VendorSliderCard key={vendor.wallet} vendor={vendor} />
+              <VendorCard key={vendor.wallet} vendor={vendor} variant="slider" />
             ))}
 
           {/* Loading/skeleton fallback */}
@@ -1054,13 +1033,12 @@ const Marketplace = () => {
                   )}
                   <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
                   <div className={styles.sellerActions}>
+                    {/* Action Buttons */}
                     {nft.marketStatus === 'pending' ? (
-                      <p className={styles.statusPending}>Pending Approval</p>
-                    ) : nft.marketStatus === 'requested' ? (
-                      <p className={styles.statusListed}>Listed</p>
+                      <span className={`${styles.statusPill} ${styles.statusHold}`}>Pending</span>
                     ) : nft.marketStatus === 'Holding LuxHub' ? (
                       <button
-                        className={styles.contactButton}
+                        className={styles.contactBtn}
                         onClick={() =>
                           window.open(
                             `https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`,
@@ -1072,37 +1050,49 @@ const Marketplace = () => {
                       </button>
                     ) : nft.acceptingOffers && nft.escrowPda ? (
                       <>
-                        <button className={styles.offerButton} onClick={() => handleMakeOffer(nft)}>
+                        <button className={styles.offerBtn} onClick={() => handleMakeOffer(nft)}>
                           Offer
                         </button>
                         <button
+                          className={styles.buyBtn}
                           onClick={() => handlePurchase(nft)}
                           disabled={loadingMint === nft.mintAddress}
                         >
-                          {loadingMint === nft.mintAddress ? '...' : 'BUY'}
+                          {loadingMint === nft.mintAddress ? '...' : 'Buy'}
                         </button>
                       </>
                     ) : (
                       <button
+                        className={styles.buyBtn}
                         onClick={() => handlePurchase(nft)}
                         disabled={loadingMint === nft.mintAddress}
                       >
-                        {loadingMint === nft.mintAddress ? '...' : 'BUY'}
+                        {loadingMint === nft.mintAddress ? '...' : 'Buy Now'}
                       </button>
                     )}
 
-                    <p className={styles.priceInfo}>
+                    {/* Price Display */}
+                    <div className={styles.priceDisplay}>
                       <SiSolana />
                       {nft.priceSol.toFixed(1)}
-                    </p>
+                    </div>
 
-                    <p className={styles.statusBadge}>
+                    {/* Status Badge */}
+                    <span
+                      className={`${styles.statusPill} ${
+                        nft.acceptingOffers
+                          ? styles.statusOffers
+                          : nft.marketStatus === 'active'
+                            ? styles.statusLive
+                            : styles.statusHold
+                      }`}
+                    >
                       {nft.acceptingOffers
                         ? 'Offers'
                         : nft.marketStatus === 'active'
                           ? 'Live'
                           : 'Hold'}
-                    </p>
+                    </span>
                   </div>
                 </div>
               ))}

@@ -21,11 +21,12 @@ export const defaultSWRConfig: SWRConfiguration = {
 };
 
 // Vendor list hook - returns any[] to avoid conflicts with VendorProfile model
+// Includes stats (totalItems, itemsListed, inventoryValue) for tier badges
 export function useVendors() {
   const { data, error, isLoading, mutate } = useSWR<{
     vendors: any[];
     verifiedVendors: any[];
-  }>('/api/vendor/vendorList', fetcher, {
+  }>('/api/vendor/vendorList?includeStats=true', fetcher, {
     ...defaultSWRConfig,
     revalidateOnFocus: false, // Vendors don't change often
     dedupingInterval: 30000, // 30 second cache

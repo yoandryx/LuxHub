@@ -466,6 +466,12 @@
     height: 40px;
   }
 
+  .verifiedBadge {
+    width: 16px;
+    height: 16px;
+    font-size: 0.9rem;
+  }
+
   .vendorName {
     font-size: 0.75rem;
   }
@@ -475,7 +481,12 @@
   }
 
   .statsRow {
-    display: none;
+    gap: 3px;
+    margin-bottom: 6px;
+  }
+
+  .statItem {
+    font-size: 0.55rem;
   }
 
   .tierBadge {
@@ -483,6 +494,6 @@
   }
 
   .tierLabel {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
   }
 }
