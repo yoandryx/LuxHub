@@ -1,17 +1,37 @@
 // src/components/marketplace/BuyModal.tsx
-// Modal for buyers to purchase an escrow listing with shipping address
-import React, { useState } from 'react';
+// Modal for buyers to purchase an escrow listing with on-chain exchange
+import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { FaShoppingCart, FaShippingFast, FaCheckCircle, FaLock } from 'react-icons/fa';
+import { useConnection } from '@solana/wallet-adapter-react';
+import {
+  PublicKey,
+  SystemProgram,
+  TransactionInstruction,
+  LAMPORTS_PER_SOL,
+} from '@solana/web3.js';
+import {
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
+  createSyncNativeInstruction,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
+import { FaShoppingCart, FaShippingFast, FaCheckCircle, FaLock, FaWallet } from 'react-icons/fa';
 import { HiOutlineX } from 'react-icons/hi';
 import { LuSparkles } from 'react-icons/lu';
+import { getProgram } from '../../utils/programUtils';
 import styles from '../../styles/BuyModal.module.css';
+
+// Constants
+const WSOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
+const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
 
 interface Escrow {
   escrowPda: string;
   nftMint?: string;
-  listingPrice?: number;
+  listingPrice?: number; // lamports
   listingPriceUSD: number;
+  seed?: number;
   asset?: {
     model?: string;
     brand?: string;
@@ -38,7 +58,7 @@ interface ShippingAddress {
 
 interface BuyModalProps {
   escrow: Escrow;
-  solPrice?: number;
+  solPrice?: number; // USD per SOL
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -58,10 +78,17 @@ const COUNTRIES = [
 ];
 
 const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, onSuccess }) => {
-  const { publicKey, connected } = useWallet();
-  const [step, setStep] = useState<'details' | 'shipping' | 'confirm' | 'success'>('details');
+  const wallet = useWallet();
+  const { connection } = useConnection();
+  const { publicKey, connected, signTransaction } = wallet;
+
+  const [step, setStep] = useState<'details' | 'shipping' | 'confirm' | 'signing' | 'success'>(
+    'details'
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [txSignature, setTxSignature] = useState<string | null>(null);
+  const [solBalance, setSolBalance] = useState<number | null>(null);
 
   const [shipping, setShipping] = useState<ShippingAddress>({
     fullName: '',
@@ -76,10 +103,27 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
     deliveryInstructions: '',
   });
 
+  // Calculate prices
   const priceUSD = escrow.listingPriceUSD || 0;
-  const priceSol = (priceUSD / solPrice).toFixed(2);
-  const platformFee = priceUSD * 0.03; // 3% platform fee
-  const totalUSD = priceUSD + platformFee;
+  const priceSol = priceUSD / solPrice;
+  const priceLamports = Math.floor(priceSol * LAMPORTS_PER_SOL);
+  const platformFeePercent = 3; // 3% taken at confirm_delivery, not purchase
+  const totalSol = priceSol; // Buyer pays full amount, fee taken later
+
+  // Fetch SOL balance
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (publicKey && connection) {
+        try {
+          const balance = await connection.getBalance(publicKey);
+          setSolBalance(balance / LAMPORTS_PER_SOL);
+        } catch (err) {
+          console.error('Failed to fetch balance:', err);
+        }
+      }
+    };
+    fetchBalance();
+  }, [publicKey, connection]);
 
   const isShippingValid =
     shipping.fullName.trim() &&
@@ -89,6 +133,78 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
     shipping.postalCode.trim() &&
     shipping.country;
 
+  const hasEnoughBalance = solBalance !== null && solBalance >= totalSol + 0.01; // +0.01 for tx fees
+
+  // Execute on-chain exchange instruction
+  const executeExchange = async (): Promise<string> => {
+    if (!publicKey || !connected || !signTransaction) {
+      throw new Error('Wallet not connected');
+    }
+
+    const program = getProgram(wallet);
+    const escrowPda = new PublicKey(escrow.escrowPda);
+    const nftMint = escrow.nftMint ? new PublicKey(escrow.nftMint) : null;
+
+    if (!nftMint) {
+      throw new Error('NFT mint address not found');
+    }
+
+    // Derive addresses
+    const buyerWsolAta = await getAssociatedTokenAddress(WSOL_MINT, publicKey);
+
+    // Derive wSOL vault PDA (same pattern as create-with-mint.ts)
+    const [wsolVault] = PublicKey.findProgramAddressSync(
+      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM
+    );
+
+    // Check if buyer wSOL ATA exists
+    const buyerWsolAtaInfo = await connection.getAccountInfo(buyerWsolAta);
+
+    // Build pre-instructions for ATA creation and SOL wrapping
+    const preInstructions: TransactionInstruction[] = [];
+
+    // Create buyer wSOL ATA if needed
+    if (!buyerWsolAtaInfo) {
+      console.log('Creating buyer wSOL ATA...');
+      preInstructions.push(
+        createAssociatedTokenAccountInstruction(publicKey, buyerWsolAta, publicKey, WSOL_MINT)
+      );
+    }
+
+    // Wrap SOL into wSOL
+    console.log(`Wrapping ${totalSol} SOL (${priceLamports} lamports) into wSOL...`);
+    preInstructions.push(
+      SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: buyerWsolAta,
+        lamports: priceLamports,
+      }),
+      createSyncNativeInstruction(buyerWsolAta)
+    );
+
+    // Execute exchange instruction
+    console.log('Executing exchange instruction...');
+    const tx = await program.methods
+      .exchange()
+      .accounts({
+        taker: publicKey,
+        escrow: escrowPda,
+        mintA: WSOL_MINT,
+        mintB: nftMint,
+        takerFundsAta: buyerWsolAta,
+        wsolVault: wsolVault,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .preInstructions(preInstructions)
+      .rpc();
+
+    console.log('Exchange successful! TX:', tx);
+    return tx;
+  };
+
+  // Handle purchase flow
   const handlePurchase = async () => {
     if (!connected || !publicKey) {
       setError('Please connect your wallet');
@@ -100,10 +216,21 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
       return;
     }
 
+    if (!hasEnoughBalance) {
+      setError(`Insufficient SOL balance. You need at least ${totalSol.toFixed(4)} SOL`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setStep('signing');
 
     try {
+      // Step 1: Execute on-chain exchange
+      const signature = await executeExchange();
+      setTxSignature(signature);
+
+      // Step 2: Update MongoDB with buyer info and shipping address
       const response = await fetch('/api/escrow/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,6 +238,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
           escrowPda: escrow.escrowPda,
           mintAddress: escrow.nftMint,
           buyerWallet: publicKey.toBase58(),
+          txSignature: signature,
           shippingAddress: {
             fullName: shipping.fullName.trim(),
             street1: shipping.street1.trim(),
@@ -129,7 +257,8 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process purchase');
+        console.warn('MongoDB update failed but on-chain succeeded:', data.error);
+        // Don't throw - on-chain is the source of truth
       }
 
       setStep('success');
@@ -137,7 +266,9 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
         onSuccess?.();
       }, 3000);
     } catch (err: any) {
-      setError(err.message);
+      console.error('Purchase failed:', err);
+      setError(err.message || 'Transaction failed. Please try again.');
+      setStep('confirm'); // Go back to confirm step
     } finally {
       setLoading(false);
     }
@@ -153,24 +284,24 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
         {/* Progress Steps */}
         <div className={styles.progressBar}>
           <div
-            className={`${styles.progressStep} ${step !== 'success' ? styles.active : styles.completed}`}
+            className={`${styles.progressStep} ${['details', 'shipping', 'confirm', 'signing'].includes(step) ? styles.active : ''} ${step === 'success' ? styles.completed : ''}`}
           >
             <span className={styles.stepIcon}>1</span>
             <span className={styles.stepLabel}>Details</span>
           </div>
           <div className={styles.progressLine} />
           <div
-            className={`${styles.progressStep} ${step === 'shipping' || step === 'confirm' ? styles.active : ''} ${step === 'success' ? styles.completed : ''}`}
+            className={`${styles.progressStep} ${['shipping', 'confirm', 'signing'].includes(step) ? styles.active : ''} ${step === 'success' ? styles.completed : ''}`}
           >
             <span className={styles.stepIcon}>2</span>
             <span className={styles.stepLabel}>Shipping</span>
           </div>
           <div className={styles.progressLine} />
           <div
-            className={`${styles.progressStep} ${step === 'confirm' ? styles.active : ''} ${step === 'success' ? styles.completed : ''}`}
+            className={`${styles.progressStep} ${['confirm', 'signing'].includes(step) ? styles.active : ''} ${step === 'success' ? styles.completed : ''}`}
           >
             <span className={styles.stepIcon}>3</span>
-            <span className={styles.stepLabel}>Confirm</span>
+            <span className={styles.stepLabel}>Pay</span>
           </div>
         </div>
 
@@ -207,19 +338,32 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                 <span className={styles.priceValue}>${priceUSD.toLocaleString()}</span>
               </div>
               <div className={styles.priceRow}>
-                <span>Platform Fee (3%)</span>
-                <span>${platformFee.toFixed(2)}</span>
+                <span>Platform Fee ({platformFeePercent}%)</span>
+                <span className={styles.feeNote}>Deducted at delivery confirmation</span>
               </div>
               <div className={`${styles.priceRow} ${styles.totalRow}`}>
-                <span>Total</span>
+                <span>You Pay</span>
                 <div className={styles.totalValue}>
-                  <span className={styles.totalUSD}>${totalUSD.toLocaleString()}</span>
                   <span className={styles.totalSol}>
-                    <LuSparkles /> ~{(totalUSD / solPrice).toFixed(2)} SOL
+                    <LuSparkles /> {totalSol.toFixed(4)} SOL
                   </span>
+                  <span className={styles.totalUSD}>≈ ${priceUSD.toLocaleString()}</span>
                 </div>
               </div>
             </div>
+
+            {/* Balance Check */}
+            {connected && solBalance !== null && (
+              <div
+                className={`${styles.balanceCheck} ${hasEnoughBalance ? styles.sufficient : styles.insufficient}`}
+              >
+                <FaWallet />
+                <span>
+                  Your balance: {solBalance.toFixed(4)} SOL
+                  {!hasEnoughBalance && ' (Insufficient)'}
+                </span>
+              </div>
+            )}
 
             <button className={styles.primaryBtn} onClick={() => setStep('shipping')}>
               Continue to Shipping
@@ -386,7 +530,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               <h2 className={styles.title}>
                 <FaLock /> Confirm Purchase
               </h2>
-              <p className={styles.subtitle}>Review and complete your order</p>
+              <p className={styles.subtitle}>Review and sign transaction</p>
             </div>
 
             {/* Order Summary */}
@@ -402,7 +546,9 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                   <span className={styles.summaryModel}>
                     {escrow.asset?.title || escrow.asset?.model}
                   </span>
-                  <span className={styles.summaryPrice}>${priceUSD.toLocaleString()}</span>
+                  <span className={styles.summaryPrice}>
+                    <LuSparkles /> {totalSol.toFixed(4)} SOL
+                  </span>
                 </div>
               </div>
             </div>
@@ -426,8 +572,8 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               <div className={styles.escrowText}>
                 <strong>Escrow Protected</strong>
                 <span>
-                  Funds held securely until you confirm delivery. You have 7 days to inspect the
-                  item.
+                  Your SOL is held in escrow until you confirm delivery. Vendor receives 97% after
+                  confirmation.
                 </span>
               </div>
             </div>
@@ -435,12 +581,39 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
             {error && <div className={styles.error}>{error}</div>}
 
             <div className={styles.buttonRow}>
-              <button className={styles.secondaryBtn} onClick={() => setStep('shipping')}>
+              <button
+                className={styles.secondaryBtn}
+                onClick={() => setStep('shipping')}
+                disabled={loading}
+              >
                 Back
               </button>
-              <button className={styles.confirmBtn} onClick={handlePurchase} disabled={loading}>
-                {loading ? 'Processing...' : `Pay $${totalUSD.toLocaleString()}`}
+              <button
+                className={styles.confirmBtn}
+                onClick={handlePurchase}
+                disabled={loading || !hasEnoughBalance}
+              >
+                {loading ? 'Processing...' : `Pay ${totalSol.toFixed(4)} SOL`}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step: Signing */}
+        {step === 'signing' && (
+          <div className={styles.stepContent}>
+            <div className={styles.signingContent}>
+              <div className={styles.signingSpinner}>
+                <div className={styles.spinner}></div>
+              </div>
+              <h2 className={styles.signingTitle}>Signing Transaction</h2>
+              <p className={styles.signingMessage}>
+                Please approve the transaction in your wallet...
+              </p>
+              <div className={styles.signingDetails}>
+                <p>Amount: {totalSol.toFixed(4)} SOL</p>
+                <p>To: Escrow Vault</p>
+              </div>
             </div>
           </div>
         )}
@@ -454,15 +627,25 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               </div>
               <h2 className={styles.successTitle}>Purchase Successful!</h2>
               <p className={styles.successMessage}>
-                Your order has been placed. The vendor will ship the item to your address.
+                Your {totalSol.toFixed(4)} SOL has been deposited to escrow.
               </p>
+              {txSignature && (
+                <a
+                  href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.txLink}
+                >
+                  View Transaction ↗
+                </a>
+              )}
               <div className={styles.nextSteps}>
                 <h4>What happens next?</h4>
                 <ul>
                   <li>Vendor will prepare and ship your item</li>
-                  <li>You'll receive tracking information via email</li>
+                  <li>You&apos;ll receive tracking information via email</li>
                   <li>Confirm delivery once you receive the item</li>
-                  <li>Funds released to vendor after confirmation</li>
+                  <li>Funds released to vendor (97%) after your confirmation</li>
                 </ul>
               </div>
               <button className={styles.primaryBtn} onClick={onClose}>

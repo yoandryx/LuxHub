@@ -4,61 +4,113 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 16px;
+  animation: overlayFadeIn 0.3s ease;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(20px);
+  }
 }
 
 .modal {
   --accent: #c8a1ff;
   --accent-dim: rgba(200, 161, 255, 0.25);
+  --accent-glow: rgba(200, 161, 255, 0.15);
   --success: #4ade80;
-  --bg-card: rgba(20, 15, 30, 0.98);
-  --border: rgba(200, 161, 255, 0.15);
+  --bg-glass: rgba(13, 10, 20, 0.85);
+  --bg-card: rgba(20, 15, 30, 0.95);
+  --border: rgba(200, 161, 255, 0.12);
+  --border-bright: rgba(200, 161, 255, 0.25);
   --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-secondary: rgba(255, 255, 255, 0.65);
   --text-muted: rgba(255, 255, 255, 0.4);
 
   position: relative;
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
-  background: var(--bg-card);
+  background: var(--bg-glass);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 28px;
+  border-radius: 28px;
+  padding: 32px;
   overflow-y: auto;
   box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.6),
-    0 0 60px rgba(200, 161, 255, 0.08);
+    0 32px 100px rgba(0, 0, 0, 0.5),
+    0 0 80px rgba(200, 161, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Custom Scrollbar */
+.modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.modal::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-dim);
 }
 
 .closeButton {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.08);
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-radius: 50%;
   color: var(--text-secondary);
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10;
 }
 
 .closeButton:hover {
   background: var(--accent-dim);
   border-color: var(--accent);
   color: var(--accent);
+  transform: rotate(90deg);
 }
 
 /* Progress Bar */
@@ -66,18 +118,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 28px;
-  padding-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
   border-bottom: 1px solid var(--border);
 }
 
 .progressStep {
   display: flex;
   align-items: center;
-  gap: 8px;
-  opacity: 0.4;
-  transition: all 0.3s ease;
+  gap: 10px;
+  opacity: 0.35;
+  transition: all 0.4s ease;
 }
 
 .progressStep.active {
@@ -89,63 +141,69 @@
 }
 
 .progressStep.completed .stepIcon {
-  background: var(--success);
-  border-color: var(--success);
+  background: linear-gradient(135deg, var(--success) 0%, #22c55e 100%);
+  border-color: transparent;
   color: #000;
+  box-shadow: 0 4px 16px rgba(74, 222, 128, 0.3);
 }
 
 .stepIcon {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: 2px solid var(--text-muted);
   border-radius: 50%;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-muted);
-  transition: all 0.3s ease;
+  transition: all 0.4s ease;
 }
 
 .progressStep.active .stepIcon {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, #9b5de5 100%);
+  border-color: transparent;
   color: #000;
+  box-shadow: 0 4px 16px rgba(200, 161, 255, 0.35);
 }
 
 .stepLabel {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: inherit;
+  letter-spacing: 0.3px;
 }
 
 .progressLine {
-  width: 40px;
+  width: 50px;
   height: 2px;
-  background: var(--border);
+  background: linear-gradient(90deg, var(--border) 0%, var(--accent-dim) 100%);
+  border-radius: 1px;
 }
 
 /* Header */
 .header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .title {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  font-size: 22px;
+  gap: 12px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 8px 0;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.3px;
 }
 
 .title svg {
   color: var(--accent);
+  filter: drop-shadow(0 2px 8px rgba(200, 161, 255, 0.4));
 }
 
 .subtitle {
@@ -156,13 +214,13 @@
 
 /* Step Content */
 .stepContent {
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.4s ease;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -173,20 +231,28 @@
 /* Asset Preview */
 .assetPreview {
   display: flex;
-  gap: 16px;
-  padding: 16px;
+  gap: 18px;
+  padding: 18px;
   background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  margin-bottom: 24px;
+  border-radius: 18px;
+  margin-bottom: 28px;
+  transition: all 0.3s ease;
+}
+
+.assetPreview:hover {
+  border-color: var(--border-bright);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .assetImage {
   width: 100px;
   height: 100px;
-  border-radius: 12px;
+  border-radius: 14px;
   object-fit: cover;
   border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .assetInfo {
@@ -198,18 +264,19 @@
 
 .assetBrand {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
 }
 
 .assetModel {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.2px;
 }
 
 .vendorName {
@@ -219,10 +286,11 @@
 
 /* Price Section */
 .priceSection {
-  padding: 20px;
+  padding: 22px;
   background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 18px;
   margin-bottom: 24px;
 }
 
@@ -230,10 +298,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: 12px 0;
   font-size: 14px;
   color: var(--text-secondary);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .priceRow:last-child {
@@ -246,15 +314,16 @@
 }
 
 .totalRow {
-  padding-top: 16px;
-  margin-top: 8px;
+  padding-top: 18px;
+  margin-top: 10px;
   border-top: 1px solid var(--accent-dim);
   border-bottom: none;
 }
 
 .totalRow span:first-child {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+  font-size: 15px;
 }
 
 .totalValue {
@@ -263,27 +332,32 @@
 
 .totalUSD {
   display: block;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 .totalSol {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 22px;
+  font-weight: 700;
   color: var(--accent);
-  margin-top: 4px;
+  text-shadow: 0 2px 12px rgba(200, 161, 255, 0.3);
+}
+
+.totalSol svg {
+  font-size: 16px;
 }
 
 /* Form Styles */
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 18px;
+  margin-bottom: 28px;
 }
 
 .formRow {
@@ -293,42 +367,47 @@
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
 .label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
+  letter-spacing: 0.2px;
 }
 
 .input,
 .select,
 .textarea {
   width: 100%;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--text-primary);
-  font-size: 14px;
-  transition: all 0.2s ease;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.25s ease;
 }
 
 .input:focus,
 .select:focus,
 .textarea:focus {
   outline: none;
-  border-color: var(--accent-dim);
+  border-color: var(--accent);
   background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.1);
 }
 
 .input::placeholder,
 .textarea::placeholder {
   color: var(--text-muted);
+  font-weight: 400;
 }
 
 .select {
@@ -336,111 +415,131 @@
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23c8a1ff' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+  background-position: right 14px center;
+  padding-right: 40px;
 }
 
 .select option {
-  background: #1a1a1a;
+  background: #1a1520;
   color: #fff;
+  padding: 10px;
 }
 
 .textarea {
   resize: vertical;
-  min-height: 60px;
+  min-height: 70px;
+  line-height: 1.5;
 }
 
 /* Buttons */
 .buttonRow {
   display: flex;
-  gap: 12px;
+  gap: 14px;
 }
 
 .primaryBtn,
 .secondaryBtn,
 .confirmBtn {
   flex: 1;
-  padding: 14px 24px;
-  border-radius: 12px;
+  padding: 16px 28px;
+  border-radius: 14px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.3px;
 }
 
 .primaryBtn {
   background: linear-gradient(135deg, #c8a1ff 0%, #9b5de5 100%);
   border: none;
   color: #000;
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.25);
 }
 
 .primaryBtn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(200, 161, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(200, 161, 255, 0.4);
+}
+
+.primaryBtn:active:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .primaryBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
 }
 
 .secondaryBtn {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   color: var(--text-secondary);
 }
 
-.secondaryBtn:hover {
-  border-color: var(--accent-dim);
+.secondaryBtn:hover:not(:disabled) {
+  border-color: var(--accent);
   color: var(--accent);
+  background: rgba(200, 161, 255, 0.08);
+}
+
+.secondaryBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .confirmBtn {
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.2) 0%, rgba(34, 197, 94, 0.3) 100%);
-  border: 1px solid rgba(74, 222, 128, 0.5);
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(34, 197, 94, 0.25) 100%);
+  border: 1px solid rgba(74, 222, 128, 0.4);
   color: #4ade80;
+  box-shadow: 0 4px 20px rgba(74, 222, 128, 0.15);
 }
 
 .confirmBtn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(74, 222, 128, 0.2);
-  border-color: rgba(74, 222, 128, 0.8);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(74, 222, 128, 0.25);
+  border-color: rgba(74, 222, 128, 0.7);
 }
 
 .confirmBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
 }
 
 /* Summary Section */
 .summarySection {
-  padding: 16px;
+  padding: 18px;
   background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 16px;
+  border-radius: 14px;
+  margin-bottom: 18px;
 }
 
 .summaryTitle {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 0 0 12px 0;
+  letter-spacing: 1px;
+  margin: 0 0 14px 0;
 }
 
 .summaryItem {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
 }
 
 .summaryImage {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
   object-fit: cover;
+  border: 1px solid var(--border);
 }
 
 .summaryInfo {
@@ -449,22 +548,25 @@
 
 .summaryModel {
   display: block;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .summaryPrice {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .addressBlock {
   font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .addressBlock p {
@@ -474,98 +576,111 @@
 /* Escrow Notice */
 .escrowNotice {
   display: flex;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(74, 222, 128, 0.08);
+  gap: 14px;
+  padding: 18px;
+  background: rgba(74, 222, 128, 0.06);
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(74, 222, 128, 0.2);
-  border-radius: 12px;
-  margin-bottom: 20px;
+  border-radius: 14px;
+  margin-bottom: 24px;
 }
 
 .escrowIcon {
   color: var(--success);
-  font-size: 20px;
+  font-size: 22px;
   flex-shrink: 0;
   margin-top: 2px;
+  filter: drop-shadow(0 2px 6px rgba(74, 222, 128, 0.3));
 }
 
 .escrowText {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .escrowText strong {
   color: var(--success);
   font-size: 14px;
+  font-weight: 700;
 }
 
 .escrowText span {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 /* Error */
 .error {
-  padding: 12px 16px;
+  padding: 14px 18px;
   background: rgba(239, 68, 68, 0.1);
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 10px;
+  border-radius: 12px;
   color: #ef4444;
   font-size: 13px;
-  margin-bottom: 16px;
+  font-weight: 500;
+  margin-bottom: 18px;
 }
 
 /* Success */
 .successContent {
   text-align: center;
-  padding: 20px 0;
+  padding: 24px 0;
 }
 
 .successIcon {
-  font-size: 64px;
+  font-size: 72px;
   color: var(--success);
-  margin-bottom: 20px;
-  animation: scaleIn 0.5s ease;
+  margin-bottom: 24px;
+  animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: drop-shadow(0 8px 24px rgba(74, 222, 128, 0.4));
 }
 
 @keyframes scaleIn {
   from {
     transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
   }
   to {
     transform: scale(1);
+    opacity: 1;
   }
 }
 
 .successTitle {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 12px 0;
+  margin: 0 0 14px 0;
+  letter-spacing: -0.3px;
 }
 
 .successMessage {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-secondary);
-  margin: 0 0 24px 0;
+  margin: 0 0 28px 0;
 }
 
 .nextSteps {
   text-align: left;
-  padding: 16px;
+  padding: 18px;
   background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 24px;
+  border-radius: 14px;
+  margin-bottom: 28px;
 }
 
 .nextSteps h4 {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 12px 0;
+  margin: 0 0 14px 0;
 }
 
 .nextSteps ul {
@@ -576,23 +691,164 @@
 .nextSteps li {
   font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 8px;
-  line-height: 1.4;
+  margin-bottom: 10px;
+  line-height: 1.5;
 }
 
 .nextSteps li:last-child {
   margin-bottom: 0;
 }
 
-/* Responsive */
-@media screen and (max-width: 480px) {
+/* Balance Check */
+.balanceCheck {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.balanceCheck.sufficient {
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  color: var(--success);
+}
+
+.balanceCheck.insufficient {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.balanceCheck svg {
+  font-size: 18px;
+}
+
+/* Fee Note */
+.feeNote {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Signing State */
+.signingContent {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.signingSpinner {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.spinner {
+  width: 64px;
+  height: 64px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 24px rgba(200, 161, 255, 0.2);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.signingTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 14px 0;
+}
+
+.signingMessage {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0 0 28px 0;
+}
+
+.signingDetails {
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.signingDetails p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.signingDetails p:last-child {
+  margin-bottom: 0;
+}
+
+/* Transaction Link */
+.txLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: rgba(200, 161, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--accent-dim);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  margin-bottom: 28px;
+  transition: all 0.25s ease;
+}
+
+.txLink:hover {
+  background: rgba(200, 161, 255, 0.15);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(200, 161, 255, 0.15);
+}
+
+/* Responsive - Full Page on Mobile */
+@media screen and (max-width: 600px) {
+  .overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
   .modal {
-    padding: 20px;
+    max-width: 100%;
     max-height: 95vh;
+    border-radius: 28px 28px 0 0;
+    padding: 24px 20px 32px;
+    animation: modalSlideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes modalSlideUpMobile {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .progressBar {
-    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
   }
 
   .stepLabel {
@@ -600,25 +856,76 @@
   }
 
   .progressLine {
-    width: 24px;
+    width: 32px;
+  }
+
+  .stepIcon {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .title {
+    font-size: 20px;
   }
 
   .formGrid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .buttonRow {
     flex-direction: column;
+    gap: 12px;
   }
 
   .assetPreview {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    padding: 20px;
+  }
+
+  .assetImage {
+    width: 140px;
+    height: 140px;
+    border-radius: 16px;
+  }
+
+  .assetModel {
+    font-size: 16px;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    padding: 16px;
+    font-size: 16px; /* Prevents iOS zoom */
+  }
+
+  .primaryBtn,
+  .secondaryBtn,
+  .confirmBtn {
+    padding: 18px;
+    font-size: 16px;
+  }
+
+  .totalSol {
+    font-size: 20px;
+  }
+}
+
+@media screen and (max-width: 380px) {
+  .modal {
+    padding: 20px 16px 28px;
   }
 
   .assetImage {
     width: 120px;
     height: 120px;
+  }
+
+  .priceSection {
+    padding: 18px;
   }
 }

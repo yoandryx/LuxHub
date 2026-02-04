@@ -159,7 +159,11 @@ export default function Marketplace() {
 
   // SWR hooks for data fetching with caching
   const { vendors, verifiedVendors, isLoading: isLoadingVendors } = useVendors();
-  const { listings, isLoading: isLoadingListings } = useEscrowListings('listed,initiated', 100);
+  const {
+    listings,
+    isLoading: isLoadingListings,
+    mutate: mutateListings,
+  } = useEscrowListings('listed,initiated', 100);
   const { pools: openPools, isLoading: isLoadingPools } = usePools('open');
   const { pools: listedPools, isLoading: isLoadingCustody } = usePools('listed');
   const { price: solPrice } = useSolPrice();
@@ -1098,6 +1102,7 @@ export default function Marketplace() {
             onSuccess={() => {
               setShowBuyModal(false);
               // Refresh listings after successful purchase
+              mutateListings();
             }}
           />
         )}
