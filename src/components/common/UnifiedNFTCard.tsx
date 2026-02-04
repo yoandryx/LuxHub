@@ -2,7 +2,7 @@
 // Unified NFT Card component for consistent styling across LuxHub
 import React, { useState, memo, useMemo, useCallback } from 'react';
 import styles from '../../styles/UnifiedNFTCard.module.css';
-import { FaCheck, FaClock, FaLock, FaShoppingCart, FaFire, FaEye } from 'react-icons/fa';
+import { FaCheck, FaClock, FaLock, FaShoppingCart, FaFire, FaEye, FaGavel } from 'react-icons/fa';
 import { LuShield, LuBadgeCheck, LuSparkles } from 'react-icons/lu';
 
 // Status types for NFT badges
@@ -38,10 +38,17 @@ export interface UnifiedNFTCardProps {
   model?: string;
   serialNumber?: string;
 
+  // Watch attributes
+  material?: string;
+  dialColor?: string;
+  caseSize?: string;
+  condition?: string;
+
   // Status
   status?: NFTStatus;
   isVerified?: boolean;
   poolEligible?: boolean;
+  acceptingOffers?: boolean;
 
   // Display options
   variant?: CardVariant;
@@ -50,11 +57,13 @@ export interface UnifiedNFTCardProps {
   showOwner?: boolean;
   showOverlay?: boolean;
   showBuyButton?: boolean;
+  showActionButtons?: boolean; // Show buy/offer buttons below card
 
   // Actions
   onClick?: () => void;
   onViewDetails?: () => void;
   onQuickBuy?: () => void;
+  onOffer?: () => void;
 
   // Additional
   description?: string;
@@ -111,18 +120,25 @@ const UnifiedNFTCard = memo(
     owner,
     brand,
     model,
+    material,
+    dialColor,
+    caseSize,
+    condition,
     status = 'verified',
     isVerified = true,
     poolEligible,
+    acceptingOffers,
     variant = 'default',
     showBadge = true,
     showPrice = true,
     showOwner = true,
     showOverlay = true,
     showBuyButton = false,
+    showActionButtons = false,
     onClick,
     onViewDetails,
     onQuickBuy,
+    onOffer,
     description,
     className,
   }: UnifiedNFTCardProps) => {
@@ -221,6 +237,27 @@ const UnifiedNFTCard = memo(
                   </div>
                 )}
 
+                {material && (
+                  <div className={styles.overlayRow}>
+                    <span>Material</span>
+                    <span>{material}</span>
+                  </div>
+                )}
+
+                {caseSize && (
+                  <div className={styles.overlayRow}>
+                    <span>Size</span>
+                    <span>{caseSize}</span>
+                  </div>
+                )}
+
+                {condition && (
+                  <div className={styles.overlayRow}>
+                    <span>Condition</span>
+                    <span>{condition}</span>
+                  </div>
+                )}
+
                 {showOwner && owner && (
                   <div className={styles.overlayRow}>
                     <span>Owner</span>
@@ -265,6 +302,17 @@ const UnifiedNFTCard = memo(
                       Quick Buy
                     </button>
                   )}
+                  {onOffer && acceptingOffers && (
+                    <button
+                      className={styles.offerButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOffer();
+                      }}
+                    >
+                      Make Offer
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -304,6 +352,34 @@ const UnifiedNFTCard = memo(
             )}
           </div>
         </div>
+
+        {/* Action Buttons - Below footer for marketplace */}
+        {showActionButtons && (
+          <div className={styles.actionButtons}>
+            {onQuickBuy && status === 'listed' && (
+              <button
+                className={styles.luxuryBuyBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickBuy();
+                }}
+              >
+                <FaShoppingCart /> Buy Now
+              </button>
+            )}
+            {onOffer && acceptingOffers && (
+              <button
+                className={styles.luxuryOfferBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOffer();
+                }}
+              >
+                <FaGavel /> Offer
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   }

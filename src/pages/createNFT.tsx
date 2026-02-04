@@ -49,6 +49,7 @@ import {
   FaMagic,
   FaSpinner,
   FaClock,
+  FaSync,
 } from 'react-icons/fa';
 import { HiOutlineSparkles, HiOutlineCollection, HiOutlineSwitchHorizontal } from 'react-icons/hi';
 import pLimit from 'p-limit';
@@ -234,15 +235,28 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [creatingEscrow, setCreatingEscrow] = useState<string | null>(null);
   const [escrowPrice, setEscrowPrice] = useState<{ [key: string]: string }>({});
 
+  // Ownership sync state
+  const [isSyncing, setIsSyncing] = useState(false);
+
   // Vendor transfer state
   const [selectedVendorTransfer, setSelectedVendorTransfer] = useState<{
     [mintAddress: string]: string;
+  }>({});
+
+  // Custom wallet transfer state (for manual address entry)
+  const [customWalletInputs, setCustomWalletInputs] = useState<{
+    [mintAddress: string]: string;
+  }>({});
+  const [showCustomInput, setShowCustomInput] = useState<{
+    [mintAddress: string]: boolean;
   }>({});
 
   // Selection mode for bulk transfers
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedNfts, setSelectedNfts] = useState<Set<string>>(new Set());
   const [bulkTransferTarget, setBulkTransferTarget] = useState<string>('');
+  const [showBulkCustomInput, setShowBulkCustomInput] = useState(false);
+  const [bulkCustomWallet, setBulkCustomWallet] = useState<string>('');
 
   // Toggle NFT selection
   const toggleNftSelection = (mintAddress: string) => {
@@ -1256,13 +1270,26 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     try {
       const umi = getUmi();
 
-      // Fetch the asset
+      // Fetch the asset to get current state
       const asset = await fetchAsset(umi, umiPublicKey(mintAddress));
 
-      // Transfer using mpl-core
+      // Verify the connected wallet is the owner
+      const connectedWallet = wallet.publicKey?.toBase58();
+      const assetOwner = asset.owner.toString();
+
+      if (assetOwner !== connectedWallet) {
+        throw new Error(
+          `You are not the owner of this NFT.\n` +
+            `Owner: ${assetOwner.slice(0, 8)}...${assetOwner.slice(-4)}\n` +
+            `Your wallet: ${connectedWallet?.slice(0, 8)}...${connectedWallet?.slice(-4)}`
+        );
+      }
+
+      // Transfer using mpl-core with explicit authority
       await transfer(umi, {
         asset,
         newOwner: umiPublicKey(newOwner),
+        authority: umi.identity, // Explicitly pass the connected wallet as authority
       }).sendAndConfirm(umi);
 
       // Update database (also links to vendor if vendorId provided or wallet matches a vendor)
@@ -1311,6 +1338,61 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         next.delete(mintAddress);
         return next;
       });
+    }
+  };
+
+  // Sync on-chain ownership with database
+  const syncOwnership = async () => {
+    if (!wallet.publicKey) {
+      return alert('Connect wallet first');
+    }
+
+    setIsSyncing(true);
+
+    try {
+      const response = await fetch('/api/nft/sync-ownership', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminWallet: wallet.publicKey.toBase58(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Sync failed');
+      }
+
+      // Update local state with synced ownership
+      if (data.results && data.results.length > 0) {
+        setMintedNFTs((prev) =>
+          prev.map((nft) => {
+            const syncResult = data.results.find(
+              (r: { mintAddress: string; onChainOwner: string | null }) =>
+                r.mintAddress === nft.mintAddress
+            );
+            if (syncResult && syncResult.onChainOwner) {
+              return { ...nft, currentOwner: syncResult.onChainOwner };
+            }
+            return nft;
+          })
+        );
+      }
+
+      const { summary } = data;
+      alert(
+        `Sync Complete\n\n` +
+          `Total: ${summary.total}\n` +
+          `Updated: ${summary.updated}\n` +
+          `Unchanged: ${summary.unchanged}\n` +
+          `Errors: ${summary.errors}`
+      );
+    } catch (err: any) {
+      console.error('Sync error:', err);
+      alert(`Sync failed: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -2176,6 +2258,15 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
             </div>
             <div className={styles.mintedHeaderRight}>
               <button
+                className={styles.syncBtn}
+                onClick={syncOwnership}
+                disabled={isSyncing}
+                title="Sync on-chain ownership with database"
+              >
+                <FaSync className={isSyncing ? styles.spinning : ''} />
+                {isSyncing ? 'Syncing...' : 'Sync'}
+              </button>
+              <button
                 className={`${styles.selectionModeBtn} ${selectionMode ? styles.active : ''}`}
                 onClick={() => {
                   setSelectionMode(!selectionMode);
@@ -2198,39 +2289,89 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
             <div className={styles.bulkActionBar}>
               <span className={styles.selectedCount}>{selectedNfts.size} selected</span>
               <div className={styles.bulkActions}>
-                <select
-                  className={styles.bulkSelect}
-                  value={bulkTransferTarget}
-                  onChange={(e) => setBulkTransferTarget(e.target.value)}
-                >
-                  <option value="">Transfer to...</option>
-                  <option value="EEtCfR8kJxQ3ZVVtTSkVRXEkF4FfAyt9YnMSiXhtFMLJ">LuxHub Vault</option>
-                  {vaultConfig?.operationalWallets?.map((w: { name: string; address: string }) => (
-                    <option key={w.address} value={w.address}>
-                      {w.name}
-                    </option>
-                  ))}
-                  {approvedVendors.map(
-                    (v: {
-                      _id: string;
-                      businessName?: string;
-                      username?: string;
-                      wallet?: string;
-                      walletAddress?: string;
-                    }) => (
-                      <option key={v._id} value={v.wallet || v.walletAddress || ''}>
-                        {v.businessName || v.username || 'Vendor'}
+                {showBulkCustomInput ? (
+                  /* Custom wallet input for bulk transfer */
+                  <div className={styles.bulkCustomRow}>
+                    <input
+                      type="text"
+                      className={styles.bulkCustomInput}
+                      placeholder="Enter wallet address..."
+                      value={bulkCustomWallet}
+                      onChange={(e) => setBulkCustomWallet(e.target.value)}
+                    />
+                    <button
+                      className={styles.bulkTransferBtn}
+                      onClick={() => {
+                        if (bulkCustomWallet) {
+                          bulkTransferNfts(bulkCustomWallet);
+                          setBulkCustomWallet('');
+                          setShowBulkCustomInput(false);
+                        }
+                      }}
+                      disabled={!bulkCustomWallet}
+                    >
+                      <FaExchangeAlt /> Transfer
+                    </button>
+                    <button
+                      className={styles.bulkCancelBtn}
+                      onClick={() => {
+                        setShowBulkCustomInput(false);
+                        setBulkCustomWallet('');
+                      }}
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      className={styles.bulkSelect}
+                      value={bulkTransferTarget}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '__custom__') {
+                          setShowBulkCustomInput(true);
+                          setBulkTransferTarget('');
+                        } else {
+                          setBulkTransferTarget(value);
+                        }
+                      }}
+                    >
+                      <option value="">Transfer to...</option>
+                      <option value="EEtCfR8kJxQ3ZVVtTSkVRXEkF4FfAyt9YnMSiXhtFMLJ">
+                        LuxHub Vault
                       </option>
-                    )
-                  )}
-                </select>
-                <button
-                  className={styles.bulkTransferBtn}
-                  onClick={() => bulkTransferNfts(bulkTransferTarget)}
-                  disabled={!bulkTransferTarget}
-                >
-                  <FaExchangeAlt /> Transfer Selected
-                </button>
+                      {vaultConfig?.operationalWallets?.map(
+                        (w: { name: string; address: string }) => (
+                          <option key={w.address} value={w.address}>
+                            {w.name}
+                          </option>
+                        )
+                      )}
+                      {approvedVendors.map(
+                        (v: {
+                          _id: string;
+                          businessName?: string;
+                          username?: string;
+                          wallet?: string;
+                          walletAddress?: string;
+                        }) => (
+                          <option key={v._id} value={v.wallet || v.walletAddress || ''}>
+                            {v.businessName || v.username || 'Vendor'}
+                          </option>
+                        )
+                      )}
+                      <option value="__custom__">Custom Address...</option>
+                    </select>
+                    <button
+                      className={styles.bulkTransferBtn}
+                      onClick={() => bulkTransferNfts(bulkTransferTarget)}
+                      disabled={!bulkTransferTarget}
+                    >
+                      <FaExchangeAlt /> Transfer Selected
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -2317,66 +2458,136 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                     {/* Quick Actions (hidden in selection mode) */}
                     {!selectionMode && (
                       <div className={styles.compactActions}>
-                        {/* Vendor Dropdown */}
-                        <select
-                          className={styles.compactSelect}
-                          value={vendorWallet}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            setSelectedVendorTransfer((prev) => ({
-                              ...prev,
-                              [nft.mintAddress || '']: e.target.value,
-                            }));
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          disabled={isTransferring}
-                        >
-                          <option value="">Transfer to...</option>
-                          <option value="EEtCfR8kJxQ3ZVVtTSkVRXEkF4FfAyt9YnMSiXhtFMLJ">
-                            LuxHub Vault
-                          </option>
-                          {approvedVendors.map(
-                            (v: {
-                              _id: string;
-                              businessName?: string;
-                              username?: string;
-                              wallet?: string;
-                              walletAddress?: string;
-                            }) => (
-                              <option key={v._id} value={v.wallet || v.walletAddress || ''}>
-                                {v.businessName || v.username || 'Vendor'}
+                        {/* Transfer Section */}
+                        {showCustomInput[nft.mintAddress || ''] ? (
+                          /* Custom Wallet Input */
+                          <>
+                            <input
+                              type="text"
+                              className={styles.customWalletInput}
+                              placeholder="Enter wallet address..."
+                              value={customWalletInputs[nft.mintAddress || ''] || ''}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setCustomWalletInputs((prev) => ({
+                                  ...prev,
+                                  [nft.mintAddress || '']: e.target.value,
+                                }));
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={isTransferring}
+                            />
+                            <div className={styles.compactActionRow}>
+                              <button
+                                className={styles.compactTransferBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const customWallet = customWalletInputs[nft.mintAddress || ''];
+                                  if (customWallet) {
+                                    transferNft(nft.mintAddress!, customWallet);
+                                  }
+                                }}
+                                disabled={
+                                  !customWalletInputs[nft.mintAddress || ''] || isTransferring
+                                }
+                              >
+                                <FaExchangeAlt /> Transfer
+                              </button>
+                              <button
+                                className={styles.compactCancelBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowCustomInput((prev) => ({
+                                    ...prev,
+                                    [nft.mintAddress || '']: false,
+                                  }));
+                                  setCustomWalletInputs((prev) => {
+                                    const next = { ...prev };
+                                    delete next[nft.mintAddress || ''];
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <FaTimes /> Cancel
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          /* Vendor Dropdown + Actions */
+                          <>
+                            <select
+                              className={styles.compactSelect}
+                              value={vendorWallet}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const value = e.target.value;
+                                if (value === '__custom__') {
+                                  setShowCustomInput((prev) => ({
+                                    ...prev,
+                                    [nft.mintAddress || '']: true,
+                                  }));
+                                  setSelectedVendorTransfer((prev) => ({
+                                    ...prev,
+                                    [nft.mintAddress || '']: '',
+                                  }));
+                                } else {
+                                  setSelectedVendorTransfer((prev) => ({
+                                    ...prev,
+                                    [nft.mintAddress || '']: value,
+                                  }));
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={isTransferring}
+                            >
+                              <option value="">Select recipient...</option>
+                              <option value="EEtCfR8kJxQ3ZVVtTSkVRXEkF4FfAyt9YnMSiXhtFMLJ">
+                                LuxHub Vault
                               </option>
-                            )
-                          )}
-                        </select>
-                        <button
-                          className={styles.compactTransferBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (vendorWallet) {
-                              // Find vendor ID if this wallet belongs to an approved vendor
-                              const vendor = approvedVendors.find(
-                                (v: { wallet?: string; walletAddress?: string }) =>
-                                  (v.wallet || v.walletAddress) === vendorWallet
-                              );
-                              transferNft(nft.mintAddress!, vendorWallet, vendor?._id);
-                            }
-                          }}
-                          disabled={!vendorWallet || isTransferring}
-                          title="Transfer"
-                        >
-                          <FaExchangeAlt />
-                        </button>
-                        <button
-                          className={styles.compactViewBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMetadataUri(nft.metadataUri);
-                          }}
-                          title="View Details"
-                        >
-                          <FaEye />
-                        </button>
+                              {approvedVendors.map(
+                                (v: {
+                                  _id: string;
+                                  businessName?: string;
+                                  username?: string;
+                                  wallet?: string;
+                                  walletAddress?: string;
+                                }) => (
+                                  <option key={v._id} value={v.wallet || v.walletAddress || ''}>
+                                    {v.businessName || v.username || 'Vendor'}
+                                  </option>
+                                )
+                              )}
+                              <option value="__custom__">Custom Address...</option>
+                            </select>
+                            <div className={styles.compactActionRow}>
+                              <button
+                                className={styles.compactTransferBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (vendorWallet) {
+                                    const vendor = approvedVendors.find(
+                                      (v: { wallet?: string; walletAddress?: string }) =>
+                                        (v.wallet || v.walletAddress) === vendorWallet
+                                    );
+                                    transferNft(nft.mintAddress!, vendorWallet, vendor?._id);
+                                  }
+                                }}
+                                disabled={!vendorWallet || isTransferring}
+                              >
+                                <FaExchangeAlt /> Transfer
+                              </button>
+                              <button
+                                className={styles.compactViewBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedMetadataUri(nft.metadataUri);
+                                }}
+                              >
+                                <FaEye /> View
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2393,7 +2604,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         </div>
       )}
 
-      {/* Transferred NFTs Tab - Uses UnifiedNFTCard */}
+      {/* Transferred NFTs Tab - Custom cards with destination badges */}
       {activeTab === 'transferred' && (
         <div className={styles.mintedSection}>
           <div className={styles.sectionHeader}>
@@ -2418,45 +2629,77 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                   (v: { wallet?: string; walletAddress?: string }) =>
                     (v.wallet || v.walletAddress) === nft.currentOwner
                 );
-
-                // Map to NFTStatus
-                const mapStatus = (status: string | null): NFTStatus => {
-                  switch (status) {
-                    case 'pending':
-                      return 'pending';
-                    case 'listed':
-                      return 'listed';
-                    case 'in_escrow':
-                      return 'escrow';
-                    case 'sold':
-                      return 'sold';
-                    default:
-                      return 'verified';
-                  }
-                };
+                const destinationType = isVault ? 'vault' : isVendor ? 'vendor' : 'custom';
 
                 return (
-                  <UnifiedNFTCard
+                  <div
                     key={`transferred-${nft.mintAddress || index}`}
-                    title={nft.title || 'Untitled'}
-                    image={nft.image?.startsWith('http') ? nft.image : undefined}
-                    price={nft.priceSol}
-                    priceLabel="SOL"
-                    mintAddress={nft.mintAddress || undefined}
-                    owner={
-                      recipientName !== 'Custom Address'
-                        ? recipientName
-                        : nft.currentOwner || undefined
-                    }
-                    status={mapStatus(nft.marketStatus)}
-                    isVerified={true}
-                    variant="compact"
-                    showBadge={true}
-                    showPrice={true}
-                    showOwner={true}
-                    onViewDetails={() => setSelectedMetadataUri(nft.metadataUri)}
-                    className={isVault ? styles.vaultCard : isVendor ? styles.vendorCard : ''}
-                  />
+                    className={`${styles.transferredCard} ${styles[`transferredCard_${destinationType}`]}`}
+                  >
+                    {/* Destination Badge */}
+                    <div className={styles.destinationBadge} data-type={destinationType}>
+                      {isVault ? 'Vault' : isVendor ? 'Vendor' : 'Custom'}
+                    </div>
+
+                    {/* Image */}
+                    <div className={styles.transferredImageWrapper}>
+                      <img
+                        src={
+                          nft.image?.startsWith('http')
+                            ? nft.image
+                            : nft.image?.startsWith('/')
+                              ? nft.image
+                              : '/fallback.png'
+                        }
+                        alt={nft.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/fallback.png';
+                        }}
+                      />
+                      <div className={styles.transferredOverlay}>
+                        <FaExchangeAlt className={styles.transferIcon} />
+                      </div>
+                    </div>
+
+                    {/* Card Info */}
+                    <div className={styles.transferredInfo}>
+                      <h4 className={styles.transferredTitle}>{nft.title || 'Untitled'}</h4>
+                      <div className={styles.transferredMeta}>
+                        <span className={styles.transferredPrice}>
+                          {nft.priceSol?.toFixed(2)} SOL
+                        </span>
+                      </div>
+                      <div className={styles.transferredRecipient}>
+                        <span className={styles.recipientLabel}>Sent to:</span>
+                        <span className={styles.recipientValue} title={nft.currentOwner || ''}>
+                          {recipientName !== 'Custom Address'
+                            ? recipientName
+                            : `${nft.currentOwner?.slice(0, 6)}...${nft.currentOwner?.slice(-4)}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className={styles.transferredActions}>
+                      {nft.mintAddress && (
+                        <span
+                          className={styles.transferredMint}
+                          onClick={() => handleCopy(`transferred-${index}`, nft.mintAddress || '')}
+                          title={nft.mintAddress}
+                        >
+                          {nft.mintAddress.slice(0, 4)}...{nft.mintAddress.slice(-4)}
+                          <FaCopy size={10} />
+                        </span>
+                      )}
+                      <button
+                        className={styles.transferredViewBtn}
+                        onClick={() => setSelectedMetadataUri(nft.metadataUri)}
+                        title="View Details"
+                      >
+                        <FaEye />
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>

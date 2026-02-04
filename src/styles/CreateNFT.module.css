@@ -2998,6 +2998,35 @@
   gap: 8px;
 }
 
+/* Sync Button */
+.syncBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  color: #60a5fa;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.syncBtn:hover:not(:disabled) {
+  background: rgba(96, 165, 250, 0.2);
+  border-color: #60a5fa;
+}
+
+.syncBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.syncBtn .spinning {
+  animation: spin 1s linear infinite;
+}
+
 .selectionModeBtn {
   display: flex;
   align-items: center;
@@ -3273,46 +3302,89 @@
 /* Compact Actions */
 .compactActions {
   display: flex;
-  gap: 6px;
-  padding: 0 12px 12px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid var(--border);
 }
 
 .compactSelect {
-  flex: 1;
-  padding: 6px 8px;
+  width: 100%;
+  padding: 10px 12px;
   background: var(--bg-dark);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1a1' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
 }
 
 .compactSelect:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
-.compactTransferBtn,
+.compactSelect:hover {
+  border-color: var(--accent-dim);
+}
+
+.compactActionRow {
+  display: flex;
+  gap: 8px;
+}
+
+.compactTransferBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--accent) 0%, #9b6dff 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.compactTransferBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(200, 161, 255, 0.3);
+}
+
+.compactTransferBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--border);
+}
+
 .compactViewBtn {
-  padding: 6px 10px;
+  padding: 10px 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-secondary);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.compactTransferBtn:hover:not(:disabled),
 .compactViewBtn:hover:not(:disabled) {
   background: var(--accent-dim);
   border-color: var(--accent);
   color: var(--accent);
 }
 
-.compactTransferBtn:disabled,
 .compactViewBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -3343,5 +3415,339 @@
 
   .bulkSelect {
     width: 100%;
+  }
+}
+
+/* ========== CUSTOM WALLET INPUT ========== */
+.customWalletRow {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  align-items: center;
+}
+
+.customWalletInput {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+.customWalletInput::placeholder {
+  color: var(--text-muted);
+}
+
+.customWalletInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.compactCancelBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+  color: var(--error);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.compactCancelBtn:hover {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: var(--error);
+  transform: translateY(-1px);
+}
+
+/* ========== BULK CUSTOM WALLET ========== */
+.bulkCustomRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+.bulkCustomInput {
+  flex: 1;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: monospace;
+  min-width: 280px;
+}
+
+.bulkCustomInput::placeholder {
+  color: var(--text-muted);
+}
+
+.bulkCustomInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.bulkCancelBtn {
+  padding: 8px 14px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+  color: var(--error);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bulkCancelBtn:hover {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: var(--error);
+}
+
+/* ========== TRANSFERRED CARD ========== */
+.transferredCard {
+  position: relative;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.transferredCard:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Destination type variations */
+.transferredCard_vault {
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.transferredCard_vault:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 8px 24px rgba(96, 165, 250, 0.1);
+}
+
+.transferredCard_vendor {
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.transferredCard_vendor:hover {
+  border-color: rgba(74, 222, 128, 0.6);
+  box-shadow: 0 8px 24px rgba(74, 222, 128, 0.1);
+}
+
+.transferredCard_custom {
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.transferredCard_custom:hover {
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.1);
+}
+
+/* Destination Badge */
+.destinationBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  z-index: 5;
+}
+
+.destinationBadge[data-type='vault'] {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.destinationBadge[data-type='vendor'] {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+}
+
+.destinationBadge[data-type='custom'] {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+/* Transferred Image */
+.transferredImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bg-dark);
+}
+
+.transferredImageWrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.transferredOverlay {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.transferIcon {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* Transferred Info */
+.transferredInfo {
+  padding: 12px;
+}
+
+.transferredTitle {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transferredMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.transferredPrice {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.transferredRecipient {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.recipientLabel {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.recipientValue {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Transferred Actions */
+.transferredActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px 12px;
+  gap: 8px;
+}
+
+.transferredMint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  font-family: monospace;
+}
+
+.transferredMint:hover {
+  color: var(--accent);
+}
+
+.transferredViewBtn {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.transferredViewBtn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ========== RESPONSIVE TRANSFERRED CARDS ========== */
+@media screen and (max-width: 768px) {
+  .customWalletRow {
+    flex-wrap: wrap;
+  }
+
+  .customWalletInput {
+    flex-basis: 100%;
+  }
+
+  .bulkCustomRow {
+    flex-wrap: wrap;
+  }
+
+  .bulkCustomInput {
+    min-width: 100%;
+    flex-basis: 100%;
+  }
+
+  .transferredRecipient {
+    padding: 6px;
+  }
+
+  .recipientValue {
+    font-size: 0.75rem;
   }
 }
