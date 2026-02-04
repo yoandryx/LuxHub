@@ -407,6 +407,49 @@
   box-shadow: 0 4px 15px rgba(200, 161, 255, 0.3);
 }
 
+/* Offer button in overlay */
+.offerButton {
+  flex: 1;
+  padding: 10px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.2) 0%,
+    rgba(155, 93, 229, 0.3) 50%,
+    rgba(200, 161, 255, 0.2) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.offerButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  transition: left 0.5s ease;
+}
+
+.offerButton:hover::before {
+  left: 100%;
+}
+
+.offerButton:hover {
+  transform: translateY(-2px);
+  border-color: rgba(200, 161, 255, 0.7);
+  box-shadow: 0 8px 25px rgba(155, 93, 229, 0.25);
+}
+
 /* ========== CARD FOOTER ========== */
 .footer {
   display: flex;
@@ -455,6 +498,124 @@
 
 .footerBuyButton:active {
   transform: translateY(0);
+}
+
+/* ========== MARKETPLACE ACTION BUTTONS ========== */
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+
+.luxuryBuyBtn,
+.luxuryOfferBtn {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* Luxurious Green Buy Button */
+.luxuryBuyBtn {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.25) 0%,
+    rgba(22, 163, 74, 0.35) 50%,
+    rgba(34, 197, 94, 0.25) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  color: #4ade80;
+  text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+  box-shadow:
+    0 4px 15px rgba(34, 197, 94, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.luxuryBuyBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  transition: left 0.5s ease;
+}
+
+.luxuryBuyBtn:hover::before {
+  left: 100%;
+}
+
+.luxuryBuyBtn:hover {
+  transform: translateY(-3px);
+  border-color: rgba(74, 222, 128, 0.8);
+  box-shadow:
+    0 8px 25px rgba(34, 197, 94, 0.35),
+    0 0 40px rgba(74, 222, 128, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Luxurious Purple Offer Button */
+.luxuryOfferBtn {
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.2) 0%,
+    rgba(155, 93, 229, 0.3) 50%,
+    rgba(200, 161, 255, 0.2) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(200, 161, 255, 0.4);
+  box-shadow:
+    0 4px 15px rgba(155, 93, 229, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.luxuryOfferBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
+  transition: left 0.5s ease;
+}
+
+.luxuryOfferBtn:hover::before {
+  left: 100%;
+}
+
+.luxuryOfferBtn:hover {
+  transform: translateY(-3px);
+  border-color: rgba(200, 161, 255, 0.7);
+  box-shadow:
+    0 8px 25px rgba(155, 93, 229, 0.25),
+    0 0 40px rgba(200, 161, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .title {
@@ -746,6 +907,17 @@
     border-top: 1px solid var(--border);
     border-radius: 0 0 12px 12px;
   }
+
+  .actionButtons {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .luxuryBuyBtn,
+  .luxuryOfferBtn {
+    padding: 10px 14px;
+    font-size: 0.75rem;
+  }
 }
 
 /* Extra small screens */
@@ -757,21 +929,108 @@
   .statusBadge {
     padding: 3px 5px;
     font-size: 0.55rem;
+    top: 6px;
+    left: 6px;
+  }
+
+  .verifiedBadge {
+    width: 22px;
+    height: 22px;
+    top: 6px;
+    right: 6px;
   }
 
   .footer {
-    padding: 8px 10px;
+    padding: 8px;
   }
 
   .title {
+    font-size: 0.7rem;
+  }
+
+  .brand {
+    font-size: 0.6rem;
+  }
+
+  .priceValue {
+    font-size: 0.8rem;
+  }
+
+  .priceLabel {
+    font-size: 0.55rem;
+  }
+
+  .priceUSD {
+    font-size: 0.6rem;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .luxuryBuyBtn,
+  .luxuryOfferBtn {
+    padding: 8px 10px;
+    font-size: 0.65rem;
+    gap: 4px;
+  }
+}
+
+/* Very small screens (360px and below) */
+@media screen and (max-width: 360px) {
+  .card {
+    border-radius: 8px;
+  }
+
+  .statusBadge {
+    padding: 2px 4px;
+    font-size: 0.5rem;
+    gap: 3px;
+  }
+
+  .statusBadge svg {
+    font-size: 0.55rem;
+  }
+
+  .verifiedBadge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+  }
+
+  .footer {
+    padding: 6px;
+  }
+
+  .title {
+    font-size: 0.65rem;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .priceValue {
     font-size: 0.75rem;
   }
 
-  .priceAmount {
-    font-size: 0.85rem;
+  .priceLabel {
+    font-size: 0.5rem;
   }
 
-  .priceCurrency {
-    font-size: 0.65rem;
+  .priceUSD {
+    display: none;
+  }
+
+  .actionButtons {
+    padding: 5px 6px;
+  }
+
+  .luxuryBuyBtn,
+  .luxuryOfferBtn {
+    padding: 6px 8px;
+    font-size: 0.6rem;
   }
 }

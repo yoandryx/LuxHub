@@ -57,6 +57,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
     }
 
+    // First, get the current asset to capture the 'from' address
+    const existingAsset = await Asset.findOne({ nftMint: mintAddress });
+    const fromWallet = existingAsset?.nftOwnerWallet || existingAsset?.mintedBy || null;
+
     // Find and update the asset
     const asset = await Asset.findOneAndUpdate(
       { nftMint: mintAddress },
@@ -64,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ...updateFields,
         $push: {
           transferHistory: {
-            from: undefined, // Will be populated from current owner
+            from: fromWallet,
             to: newOwnerWallet,
             transactionSignature,
             transferredAt: new Date(),
