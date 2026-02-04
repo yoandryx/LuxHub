@@ -137,7 +137,7 @@ export default function Navbar() {
           </div>
 
           <div className={styles.links}>
-            <Link href="/watchMarket" onClick={closeMenu}>
+            <Link href="/marketplace" onClick={closeMenu}>
               Marketplace
             </Link>
             <Link href="/pools" onClick={closeMenu}>
@@ -258,7 +258,7 @@ export default function Navbar() {
         <div className={styles.mobileMenuContent}>
           <div className={styles.mobileNavSection}>
             <div className={styles.headerTab}>MARKETPLACE</div>
-            <Link href="/watchMarket" onClick={closeMenu}>
+            <Link href="/marketplace" onClick={closeMenu}>
               Marketplace
             </Link>
             <Link href="/pools" onClick={closeMenu}>
