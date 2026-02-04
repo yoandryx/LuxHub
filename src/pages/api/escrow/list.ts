@@ -4,6 +4,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
+// Import models needed for populate (must be registered before .populate() calls)
+import '../../../lib/models/Assets';
+import '../../../lib/models/Vendor';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

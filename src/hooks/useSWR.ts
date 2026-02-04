@@ -44,7 +44,7 @@ export function useVendors() {
 // Pools hook for investment pools - returns any[] to avoid type conflicts
 export function usePools(status: string = 'open') {
   const { data, error, isLoading, mutate } = useSWR<{ pools: any[] }>(
-    `/api/pools?status=${status}`,
+    `/api/pool/list?status=${status}`,
     fetcher,
     {
       ...defaultSWRConfig,
@@ -157,7 +157,7 @@ export function useOffers(escrowPda: string | undefined) {
 
 // SOL price hook for USD conversions
 export function useSolPrice() {
-  const { data, error, isLoading } = useSWR('/api/solana/price', fetcher, {
+  const { data, error, isLoading } = useSWR('/api/users/sol-price', fetcher, {
     ...defaultSWRConfig,
     refreshInterval: 60000, // Refresh every minute
     dedupingInterval: 30000,
