@@ -1403,7 +1403,7 @@
   .topBar {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
+    gap: 12px;
   }
 
   .tabs {
@@ -1414,21 +1414,39 @@
     max-width: 100%;
   }
 
+  .searchInput {
+    padding: 10px 38px 10px 42px;
+    font-size: 0.85rem;
+  }
+
+  .searchIcon {
+    left: 14px;
+    font-size: 1rem;
+  }
+
   .controls {
     justify-content: space-between;
+    gap: 8px;
   }
 
   .sortWrapper {
     flex: 1;
+    min-width: 0;
   }
 
   .sortSelect {
     width: 100%;
+    padding: 8px 32px 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .viewToggle {
+    display: none; /* Hide on mobile - always grid */
   }
 
   .grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 10px;
   }
 
   .vendorGrid {
@@ -1436,17 +1454,17 @@
   }
 
   .vendorSlideCard {
-    flex: 0 0 240px;
-    padding: 16px;
+    flex: 0 0 200px;
+    padding: 14px;
   }
 
   /* Compact card styles for mobile */
   .cardContent {
-    padding: 12px;
+    padding: 10px;
   }
 
   .cardTitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 
   .cardMeta {
@@ -1454,16 +1472,16 @@
   }
 
   .priceUsd {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   .priceSol {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
 
   .cardPricing {
-    margin-bottom: 12px;
-    padding-top: 10px;
+    margin-bottom: 10px;
+    padding-top: 8px;
   }
 
   .cardActions {
@@ -1473,14 +1491,39 @@
 
   .buyBtn,
   .offerBtn {
-    padding: 10px 12px;
-    font-size: 0.75rem;
+    padding: 8px 10px;
+    font-size: 0.7rem;
   }
 }
 
 @media screen and (max-width: 480px) {
   .main {
-    padding: 90px 12px 60px; /* Maintain navbar clearance on mobile */
+    padding: 90px 10px 60px; /* Maintain navbar clearance on mobile */
+  }
+
+  .topBar {
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .searchInput {
+    padding: 10px 36px 10px 38px;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+
+  .controls {
+    gap: 6px;
+  }
+
+  .sortSelect {
+    padding: 8px 28px 8px 10px;
+    font-size: 0.75rem;
+  }
+
+  .mobileFilterBtn {
+    width: 40px;
+    height: 40px;
   }
 
   .grid {
@@ -1494,7 +1537,7 @@
   }
 
   .cardBrand {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
   }
 
   .cardCondition {
@@ -1537,7 +1580,32 @@
 /* Very small screens (360px and below) */
 @media screen and (max-width: 360px) {
   .main {
-    padding: 85px 8px 40px; /* Maintain navbar clearance */
+    padding: 85px 6px 40px; /* Maintain navbar clearance */
+  }
+
+  .topBar {
+    gap: 8px;
+    padding: 10px 0;
+  }
+
+  .searchInput {
+    padding: 8px 32px 8px 34px;
+    font-size: 0.75rem;
+  }
+
+  .searchIcon {
+    left: 10px;
+    font-size: 0.9rem;
+  }
+
+  .sortSelect {
+    padding: 8px 24px 8px 8px;
+    font-size: 0.7rem;
+  }
+
+  .mobileFilterBtn {
+    width: 36px;
+    height: 36px;
   }
 
   .grid {
@@ -1546,11 +1614,16 @@
   }
 
   .vendorSlideCard {
-    flex: 0 0 180px;
+    flex: 0 0 160px;
+    padding: 10px;
+  }
+
+  .vendorSliderTrack {
+    gap: 10px;
   }
 
   .detailOverlay {
-    padding: 8px;
+    padding: 6px;
   }
 }
 
