@@ -45,6 +45,7 @@ interface EscrowListing {
     _id: string;
     model: string;
     brand?: string;
+    title?: string;
     description?: string;
     imageUrl?: string;
     imageIpfsUrls?: string[];
@@ -53,6 +54,7 @@ interface EscrowListing {
     caseSize?: string;
     condition?: string;
     productionYear?: string;
+    movement?: string;
   };
   vendor?: {
     businessName?: string;

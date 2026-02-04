@@ -44,7 +44,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const escrows = await Escrow.find(filter)
-      .populate('asset', 'model serial priceUSD description imageUrl imageIpfsUrls images')
+      .populate(
+        'asset',
+        'model serial priceUSD description imageUrl imageIpfsUrls images brand title material dialColor caseSize condition productionYear movement'
+      )
       .populate('seller', 'businessName username verified')
       .sort({ createdAt: -1 })
       .skip(parseInt(offset as string))
@@ -67,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       minimumOffer: escrow.minimumOffer,
       minimumOfferUSD: escrow.minimumOfferUSD,
       amountUSD: escrow.amountUSD,
-      // Asset details
+      // Asset details (all watch attributes for UnifiedNFTCard)
       asset: escrow.asset
         ? {
             model: escrow.asset.model,
@@ -77,6 +80,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             imageUrl: escrow.asset.imageUrl,
             imageIpfsUrls: escrow.asset.imageIpfsUrls,
             images: escrow.asset.images,
+            brand: escrow.asset.brand,
+            title: escrow.asset.title,
+            material: escrow.asset.material,
+            dialColor: escrow.asset.dialColor,
+            caseSize: escrow.asset.caseSize,
+            condition: escrow.asset.condition,
+            productionYear: escrow.asset.productionYear,
+            movement: escrow.asset.movement,
           }
         : null,
       // Vendor details
