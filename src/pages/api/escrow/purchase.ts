@@ -24,6 +24,7 @@ interface PurchaseRequest {
   escrowPda?: string;
   mintAddress?: string; // Alternative lookup by NFT mint
   buyerWallet: string;
+  txSignature?: string; // On-chain exchange transaction signature
   shippingAddress: ShippingAddress;
 }
 
@@ -33,7 +34,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { escrowPda, mintAddress, buyerWallet, shippingAddress } = req.body as PurchaseRequest;
+    const { escrowPda, mintAddress, buyerWallet, txSignature, shippingAddress } =
+      req.body as PurchaseRequest;
 
     // Validation
     if ((!escrowPda && !mintAddress) || !buyerWallet) {
@@ -129,6 +131,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: 'funded', // Mark as funded/purchased
           fundedAt: new Date(),
           fundedAmount: escrow.listingPrice,
+          // Store on-chain transaction signature if provided
+          ...(txSignature && { txSignature, lastTxSignature: txSignature }),
         },
       },
       { new: true }
