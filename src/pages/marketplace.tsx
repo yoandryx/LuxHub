@@ -21,6 +21,7 @@ import { BiTargetLock } from 'react-icons/bi';
 import { SiSolana } from 'react-icons/si';
 import styles from '../styles/Marketplace.module.css';
 import MakeOfferModal from '../components/marketplace/MakeOfferModal';
+import BuyModal from '../components/marketplace/BuyModal';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import UnifiedNFTCard from '../components/common/UnifiedNFTCard';
 import { VendorCard } from '../components/common/VendorCard';
@@ -186,6 +187,7 @@ export default function Marketplace() {
   // Modal state
   const [selectedListing, setSelectedListing] = useState<EscrowListing | null>(null);
   const [showOfferModal, setShowOfferModal] = useState(false);
+  const [showBuyModal, setShowBuyModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
 
@@ -353,9 +355,7 @@ export default function Marketplace() {
         return;
       }
       setSelectedListing(listing);
-      alert(
-        `Buy functionality coming soon!\n\nAsset: ${listing.asset?.model}\nPrice: $${listing.listingPriceUSD?.toLocaleString()}`
-      );
+      setShowBuyModal(true);
     },
     [wallet.connected]
   );
@@ -1020,8 +1020,33 @@ export default function Marketplace() {
                 <HiOutlineX />
               </button>
               <NftDetailCard
-                metadataUri=""
                 mintAddress={selectedListing.nftMint}
+                owner={selectedListing.sellerWallet}
+                priceSol={parseFloat(formatSol(selectedListing.listingPriceUSD || 0))}
+                previewData={{
+                  title:
+                    selectedListing.asset?.title || selectedListing.asset?.model || 'Luxury Watch',
+                  image: resolveImage(selectedListing),
+                  description: selectedListing.asset?.description || '',
+                  priceSol: parseFloat(formatSol(selectedListing.listingPriceUSD || 0)),
+                  attributes: [
+                    { trait_type: 'Brand', value: selectedListing.asset?.brand || '~' },
+                    { trait_type: 'Model', value: selectedListing.asset?.model || '~' },
+                    { trait_type: 'Material', value: selectedListing.asset?.material || '~' },
+                    { trait_type: 'Dial Color', value: selectedListing.asset?.dialColor || '~' },
+                    { trait_type: 'Case Size', value: selectedListing.asset?.caseSize || '~' },
+                    { trait_type: 'Condition', value: selectedListing.asset?.condition || '~' },
+                    {
+                      trait_type: 'Production Year',
+                      value: selectedListing.asset?.productionYear || '~',
+                    },
+                    { trait_type: 'Movement', value: selectedListing.asset?.movement || '~' },
+                    {
+                      trait_type: 'Price',
+                      value: `$${selectedListing.listingPriceUSD?.toLocaleString() || '0'}`,
+                    },
+                  ],
+                }}
                 onClose={() => setShowDetailModal(false)}
               />
             </div>
@@ -1046,6 +1071,33 @@ export default function Marketplace() {
             onClose={() => setShowOfferModal(false)}
             onSuccess={() => {
               setShowOfferModal(false);
+            }}
+          />
+        )}
+
+        {/* Buy Modal */}
+        {showBuyModal && selectedListing && (
+          <BuyModal
+            escrow={{
+              escrowPda: selectedListing.escrowPda || '',
+              nftMint: selectedListing.nftMint,
+              listingPrice: selectedListing.listingPrice,
+              listingPriceUSD: selectedListing.listingPriceUSD,
+              asset: {
+                model: selectedListing.asset?.model,
+                brand: selectedListing.asset?.brand,
+                title: selectedListing.asset?.title,
+                imageUrl: resolveImage(selectedListing),
+              },
+              vendor: selectedListing.vendor
+                ? { businessName: selectedListing.vendor.businessName }
+                : undefined,
+            }}
+            solPrice={solPrice || 100}
+            onClose={() => setShowBuyModal(false)}
+            onSuccess={() => {
+              setShowBuyModal(false);
+              // Refresh listings after successful purchase
             }}
           />
         )}
