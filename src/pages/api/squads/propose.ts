@@ -1,26 +1,50 @@
 // src/pages/api/squads/propose.ts
+// SECURED: Requires admin wallet authorization
 import type { NextApiRequest, NextApiResponse } from 'next';
 import {
   Connection,
   Keypair,
   PublicKey,
-  Transaction,
   TransactionMessage,
   VersionedTransaction,
 } from '@solana/web3.js';
 import * as multisig from '@sqds/multisig';
 import { readFileSync } from 'fs';
+import dbConnect from '../../../lib/database/mongodb';
+import { User } from '../../../lib/models/User';
+import { withWalletAuth, AuthenticatedRequest } from '../../../lib/middleware/walletAuth';
 
 type IxKey = { pubkey: string; isSigner: boolean; isWritable: boolean };
+
+// Admin wallets from environment
+const ADMIN_WALLETS = (process.env.ADMIN_WALLETS || '').split(',').filter(Boolean);
 
 export const config = {
   runtime: 'nodejs', // ensure we're not on Edge (fs needed)
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Get verified wallet from middleware
+    const requestingWallet = (req as AuthenticatedRequest).wallet;
+
+    // Verify admin authorization
+    await dbConnect();
+    const adminUser = await User.findOne({ wallet: requestingWallet });
+    const isEnvAdmin = ADMIN_WALLETS.includes(requestingWallet);
+    const isDbAdmin = adminUser?.role === 'admin';
+
+    if (!isEnvAdmin && !isDbAdmin) {
+      console.warn('[squads/propose] Unauthorized access attempt by:', requestingWallet);
+      return res.status(403).json({
+        error: 'Admin authorization required',
+        code: 'ADMIN_REQUIRED',
+        message: 'Only admin wallets can create Squads proposals',
+      });
     }
 
     const {
@@ -28,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       keys,
       dataBase64,
       vaultIndex = 0,
-      autoApprove = true, // Auto-approve by the creator (recommended)
+      autoApprove = false, // CHANGED: Default to false for safety - require explicit approval
       rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT,
       multisigPda = process.env.NEXT_PUBLIC_SQUADS_MSIG,
     } = req.body as {
@@ -177,3 +201,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: e?.message ?? 'Unknown error' });
   }
 }
+
+// Wrap with wallet authentication middleware (requires signed message)
+export default withWalletAuth(handler);
