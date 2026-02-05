@@ -2,6 +2,7 @@
 // Modal for buyers to make offers on escrow listings
 import React, { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { resolveImageUrl, handleImageError, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 import styles from '../../styles/MakeOfferModal.module.css';
 
 interface Escrow {
@@ -98,13 +99,12 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({ escrow, onClose, onSucc
 
         {/* Asset Preview */}
         <div className={styles.assetPreview}>
-          {escrow.asset?.imageUrl && (
-            <img
-              src={escrow.asset.imageUrl}
-              alt={escrow.asset.model}
-              className={styles.assetImage}
-            />
-          )}
+          <img
+            src={resolveImageUrl(escrow.asset?.imageUrl) || PLACEHOLDER_IMAGE}
+            alt={escrow.asset?.model || 'Watch'}
+            className={styles.assetImage}
+            onError={handleImageError}
+          />
           <div className={styles.assetInfo}>
             <h3 className={styles.assetModel}>{escrow.asset?.model || 'Luxury Watch'}</h3>
             {escrow.vendor?.businessName && (

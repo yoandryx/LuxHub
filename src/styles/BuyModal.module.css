@@ -31,7 +31,7 @@
   --accent-dim: rgba(200, 161, 255, 0.25);
   --accent-glow: rgba(200, 161, 255, 0.15);
   --success: #4ade80;
-  --bg-glass: rgba(13, 10, 20, 0.85);
+  --bg-glass: rgba(13, 10, 20, 0.92);
   --bg-card: rgba(20, 15, 30, 0.95);
   --border: rgba(200, 161, 255, 0.12);
   --border-bright: rgba(200, 161, 255, 0.25);
@@ -40,16 +40,17 @@
   --text-muted: rgba(255, 255, 255, 0.4);
 
   position: relative;
-  width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
+  width: calc(100% - 32px);
+  max-width: 480px;
+  max-height: 85vh;
   background: var(--bg-glass);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border: 1px solid var(--border);
-  border-radius: 28px;
-  padding: 32px;
+  border-radius: 24px;
+  padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow:
     0 32px 100px rgba(0, 0, 0, 0.5),
     0 0 80px rgba(200, 161, 255, 0.06),
@@ -356,8 +357,8 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin-bottom: 28px;
+  gap: 14px;
+  margin-bottom: 20px;
 }
 
 .formRow {
@@ -367,7 +368,7 @@
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 
 .label {
@@ -384,15 +385,16 @@
 .select,
 .textarea {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.25s ease;
+  box-sizing: border-box;
 }
 
 .input:focus,
@@ -427,8 +429,109 @@
 
 .textarea {
   resize: vertical;
-  min-height: 70px;
-  line-height: 1.5;
+  min-height: 56px;
+  line-height: 1.4;
+}
+
+/* Form Header with Edit Button */
+.formHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.formHeader span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.editBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(200, 161, 255, 0.05);
+}
+
+.editBtn svg {
+  font-size: 14px;
+}
+
+/* Save Address Checkbox */
+.saveAddressRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: rgba(200, 161, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 4px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.checkboxLabel:hover {
+  color: var(--text-primary);
+}
+
+.checkboxLabel svg {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.labelInput {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.2s ease;
+  margin-left: 28px;
+  max-width: 180px;
+}
+
+.labelInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.labelInput::placeholder {
+  color: var(--text-muted);
 }
 
 /* Buttons */
@@ -827,10 +930,11 @@
   }
 
   .modal {
+    width: 100%;
     max-width: 100%;
-    max-height: 95vh;
-    border-radius: 28px 28px 0 0;
-    padding: 24px 20px 32px;
+    max-height: 92vh;
+    border-radius: 24px 24px 0 0;
+    padding: 20px 16px 28px;
     animation: modalSlideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -846,9 +950,9 @@
   }
 
   .progressBar {
-    gap: 8px;
-    margin-bottom: 24px;
-    padding-bottom: 20px;
+    gap: 6px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
   }
 
   .stepLabel {
@@ -856,76 +960,286 @@
   }
 
   .progressLine {
-    width: 32px;
+    width: 28px;
   }
 
   .stepIcon {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .header {
+    margin-bottom: 20px;
   }
 
   .title {
-    font-size: 20px;
+    font-size: 18px;
+    gap: 10px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .form {
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   .formGrid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .label {
+    font-size: 12px;
+    gap: 6px;
   }
 
   .buttonRow {
-    flex-direction: column;
-    gap: 12px;
+    flex-direction: row;
+    gap: 10px;
   }
 
   .assetPreview {
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    text-align: center;
-    padding: 20px;
+    text-align: left;
+    padding: 14px;
+    gap: 14px;
+    margin-bottom: 20px;
   }
 
   .assetImage {
-    width: 140px;
-    height: 140px;
-    border-radius: 16px;
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .assetBrand {
+    font-size: 10px;
+    margin-bottom: 4px;
   }
 
   .assetModel {
-    font-size: 16px;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .vendorName {
+    font-size: 11px;
   }
 
   .input,
   .select,
   .textarea {
-    padding: 16px;
+    padding: 12px;
     font-size: 16px; /* Prevents iOS zoom */
+    border-radius: 8px;
   }
 
   .primaryBtn,
   .secondaryBtn,
   .confirmBtn {
-    padding: 18px;
-    font-size: 16px;
+    padding: 14px 16px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  .priceSection {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 14px;
+  }
+
+  .priceRow {
+    padding: 10px 0;
+    font-size: 13px;
   }
 
   .totalSol {
-    font-size: 20px;
+    font-size: 18px;
+  }
+
+  .totalUSD {
+    font-size: 12px;
+  }
+
+  .balanceCheck {
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .summarySection {
+    padding: 14px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+  }
+
+  .summaryTitle {
+    font-size: 10px;
+    margin-bottom: 10px;
+  }
+
+  .summaryImage {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+  }
+
+  .summaryModel {
+    font-size: 14px;
+  }
+
+  .summaryPrice {
+    font-size: 13px;
+  }
+
+  .addressBlock {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Form Header Mobile */
+  .formHeader {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .formHeader span {
+    font-size: 13px;
+  }
+
+  .editBtn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* Save Address Mobile */
+  .saveAddressRow {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .checkboxLabel {
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .checkbox {
+    width: 16px;
+    height: 16px;
+  }
+
+  .labelInput {
+    padding: 8px 10px;
+    font-size: 13px;
+    margin-left: 24px;
+  }
+
+  .escrowNotice {
+    padding: 14px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    gap: 12px;
+  }
+
+  .escrowIcon {
+    font-size: 18px;
+  }
+
+  .escrowText strong {
+    font-size: 13px;
+  }
+
+  .escrowText span {
+    font-size: 12px;
+  }
+
+  .nextSteps {
+    padding: 14px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+  }
+
+  .nextSteps h4 {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .nextSteps li {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .successIcon {
+    font-size: 56px;
+    margin-bottom: 20px;
+  }
+
+  .successTitle {
+    font-size: 22px;
+  }
+
+  .successMessage {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .signingContent {
+    padding: 32px 16px;
+  }
+
+  .spinner {
+    width: 52px;
+    height: 52px;
+  }
+
+  .signingTitle {
+    font-size: 18px;
+  }
+
+  .signingMessage {
+    font-size: 14px;
+  }
+
+  .signingDetails {
+    padding: 14px;
+  }
+
+  .signingDetails p {
+    font-size: 13px;
   }
 }
 
 @media screen and (max-width: 380px) {
   .modal {
-    padding: 20px 16px 28px;
+    padding: 16px 14px 24px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .buttonRow {
+    flex-direction: column;
+    gap: 10px;
   }
 
   .assetImage {
-    width: 120px;
-    height: 120px;
+    width: 64px;
+    height: 64px;
   }
 
   .priceSection {
-    padding: 18px;
+    padding: 14px;
+  }
+
+  .title {
+    font-size: 16px;
   }
 }

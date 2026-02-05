@@ -2,16 +2,20 @@
 // Wrapper for UnifiedNFTCard to maintain backwards compatibility
 import React, { memo, useMemo } from 'react';
 import UnifiedNFTCard, { NFTStatus } from '../common/UnifiedNFTCard';
+import { resolveAssetImage } from '../../utils/imageUtils';
 
 interface NFT {
   nftId: string;
-  fileCid: string;
+  fileCid?: string;
   salePrice?: number;
   timestamp: number;
   seller: string;
   buyer?: string;
   marketStatus: string;
   image?: string;
+  imageUrl?: string;
+  imageIpfsUrls?: string[];
+  images?: string[];
   title?: string;
   attributes?: { trait_type: string; value: string }[];
 }
@@ -37,6 +41,19 @@ const mapStatus = (status: string): NFTStatus => {
 };
 
 const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
+  // Resolve image using the comprehensive asset image resolver
+  const resolvedImage = useMemo(
+    () =>
+      resolveAssetImage({
+        imageUrl: nft.imageUrl,
+        images: nft.images,
+        imageIpfsUrls: nft.imageIpfsUrls,
+        image: nft.image,
+        fileCid: nft.fileCid,
+      }),
+    [nft.imageUrl, nft.images, nft.imageIpfsUrls, nft.image, nft.fileCid]
+  );
+
   // Memoized price calculation
   const price = useMemo(
     () =>
@@ -72,8 +89,7 @@ const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
   return (
     <UnifiedNFTCard
       title={nft.title || 'Untitled NFT'}
-      image={nft.image}
-      imageCid={nft.fileCid}
+      image={resolvedImage}
       price={price}
       priceLabel="SOL"
       priceUSD={priceUSD}

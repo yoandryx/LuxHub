@@ -18,7 +18,10 @@ import {
 import { FaShoppingCart, FaShippingFast, FaCheckCircle, FaLock, FaWallet } from 'react-icons/fa';
 import { HiOutlineX } from 'react-icons/hi';
 import { LuSparkles } from 'react-icons/lu';
+import { FiSave, FiEdit2 } from 'react-icons/fi';
 import { getProgram } from '../../utils/programUtils';
+import { resolveImageUrl, handleImageError, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
+import SavedAddressSelector, { SavedAddress } from '../common/SavedAddressSelector';
 import styles from '../../styles/BuyModal.module.css';
 
 // Constants
@@ -103,6 +106,12 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
     deliveryInstructions: '',
   });
 
+  // Saved address state
+  const [selectedSavedAddress, setSelectedSavedAddress] = useState<SavedAddress | null>(null);
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const [saveNewAddress, setSaveNewAddress] = useState(false);
+  const [addressLabel, setAddressLabel] = useState('Home');
+
   // Calculate prices
   const priceUSD = escrow.listingPriceUSD || 0;
   const priceSol = priceUSD / solPrice;
@@ -125,13 +134,17 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
     fetchBalance();
   }, [publicKey, connection]);
 
-  const isShippingValid =
+  // Check if shipping is valid (either saved address selected or new address form filled)
+  const isNewAddressValid =
     shipping.fullName.trim() &&
     shipping.street1.trim() &&
     shipping.city.trim() &&
     shipping.state.trim() &&
     shipping.postalCode.trim() &&
     shipping.country;
+
+  const isShippingValid =
+    selectedSavedAddress !== null || (showNewAddressForm && isNewAddressValid);
 
   const hasEnoughBalance = solBalance !== null && solBalance >= totalSol + 0.01; // +0.01 for tx fees
 
@@ -230,16 +243,21 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
       const signature = await executeExchange();
       setTxSignature(signature);
 
-      // Step 2: Update MongoDB with buyer info and shipping address
-      const response = await fetch('/api/escrow/purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          escrowPda: escrow.escrowPda,
-          mintAddress: escrow.nftMint,
-          buyerWallet: publicKey.toBase58(),
-          txSignature: signature,
-          shippingAddress: {
+      // Determine shipping address (saved or new)
+      const shippingAddress = selectedSavedAddress
+        ? {
+            fullName: selectedSavedAddress.fullName,
+            street1: selectedSavedAddress.street1,
+            street2: selectedSavedAddress.street2 || undefined,
+            city: selectedSavedAddress.city,
+            state: selectedSavedAddress.state,
+            postalCode: selectedSavedAddress.postalCode,
+            country: selectedSavedAddress.country,
+            phone: selectedSavedAddress.phone || undefined,
+            email: selectedSavedAddress.email || undefined,
+            deliveryInstructions: selectedSavedAddress.deliveryInstructions || undefined,
+          }
+        : {
             fullName: shipping.fullName.trim(),
             street1: shipping.street1.trim(),
             street2: shipping.street2.trim() || undefined,
@@ -250,9 +268,38 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
             phone: shipping.phone.trim() || undefined,
             email: shipping.email.trim() || undefined,
             deliveryInstructions: shipping.deliveryInstructions.trim() || undefined,
-          },
+          };
+
+      // Step 2: Update MongoDB with buyer info and shipping address
+      const response = await fetch('/api/escrow/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          escrowPda: escrow.escrowPda,
+          mintAddress: escrow.nftMint,
+          buyerWallet: publicKey.toBase58(),
+          txSignature: signature,
+          shippingAddress,
         }),
       });
+
+      // Step 3: Save new address if checkbox is checked
+      if (saveNewAddress && !selectedSavedAddress && isNewAddressValid) {
+        try {
+          await fetch('/api/addresses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wallet: publicKey.toBase58(),
+              label: addressLabel || 'Home',
+              ...shippingAddress,
+            }),
+          });
+        } catch (saveErr) {
+          console.warn('Failed to save address:', saveErr);
+          // Don't fail the purchase if address save fails
+        }
+      }
 
       const data = await response.json();
 
@@ -318,9 +365,10 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
             {/* Asset Preview */}
             <div className={styles.assetPreview}>
               <img
-                src={escrow.asset?.imageUrl || '/images/purpleLGG.png'}
+                src={resolveImageUrl(escrow.asset?.imageUrl) || PLACEHOLDER_IMAGE}
                 alt={escrow.asset?.model}
                 className={styles.assetImage}
+                onError={handleImageError}
               />
               <div className={styles.assetInfo}>
                 <span className={styles.assetBrand}>{escrow.asset?.brand}</span>
@@ -381,132 +429,192 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               <p className={styles.subtitle}>Where should we ship your item?</p>
             </div>
 
-            <div className={styles.form}>
-              <div className={styles.formRow}>
-                <label className={styles.label}>
-                  Full Name *
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={shipping.fullName}
-                    onChange={(e) => setShipping({ ...shipping, fullName: e.target.value })}
-                    placeholder="John Doe"
-                  />
-                </label>
-              </div>
-
-              <div className={styles.formRow}>
-                <label className={styles.label}>
-                  Street Address *
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={shipping.street1}
-                    onChange={(e) => setShipping({ ...shipping, street1: e.target.value })}
-                    placeholder="123 Main St"
-                  />
-                </label>
-              </div>
-
-              <div className={styles.formRow}>
-                <label className={styles.label}>
-                  Apt, Suite, Unit (Optional)
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={shipping.street2}
-                    onChange={(e) => setShipping({ ...shipping, street2: e.target.value })}
-                    placeholder="Apt 4B"
-                  />
-                </label>
-              </div>
-
-              <div className={styles.formGrid}>
-                <label className={styles.label}>
-                  City *
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={shipping.city}
-                    onChange={(e) => setShipping({ ...shipping, city: e.target.value })}
-                    placeholder="New York"
-                  />
-                </label>
-                <label className={styles.label}>
-                  State *
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={shipping.state}
-                    onChange={(e) => setShipping({ ...shipping, state: e.target.value })}
-                    placeholder="NY"
-                  />
-                </label>
-              </div>
-
-              <div className={styles.formGrid}>
-                <label className={styles.label}>
-                  Postal Code *
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={shipping.postalCode}
-                    onChange={(e) => setShipping({ ...shipping, postalCode: e.target.value })}
-                    placeholder="10001"
-                  />
-                </label>
-                <label className={styles.label}>
-                  Country *
-                  <select
-                    className={styles.select}
-                    value={shipping.country}
-                    onChange={(e) => setShipping({ ...shipping, country: e.target.value })}
-                  >
-                    {COUNTRIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <div className={styles.formGrid}>
-                <label className={styles.label}>
-                  Phone (for delivery)
-                  <input
-                    type="tel"
-                    className={styles.input}
-                    value={shipping.phone}
-                    onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
-                    placeholder="+1 555-123-4567"
-                  />
-                </label>
-                <label className={styles.label}>
-                  Email (for tracking)
-                  <input
-                    type="email"
-                    className={styles.input}
-                    value={shipping.email}
-                    onChange={(e) => setShipping({ ...shipping, email: e.target.value })}
-                    placeholder="john@example.com"
-                  />
-                </label>
-              </div>
-
-              <label className={styles.label}>
-                Delivery Instructions (Optional)
-                <textarea
-                  className={styles.textarea}
-                  value={shipping.deliveryInstructions}
-                  onChange={(e) =>
-                    setShipping({ ...shipping, deliveryInstructions: e.target.value })
+            {/* Saved Address Selector */}
+            {!showNewAddressForm && (
+              <SavedAddressSelector
+                wallet={publicKey?.toBase58() || null}
+                selectedAddressId={selectedSavedAddress?._id || null}
+                onSelectAddress={(addr) => {
+                  setSelectedSavedAddress(addr);
+                  if (addr) {
+                    setShowNewAddressForm(false);
                   }
-                  placeholder="Leave at door, ring doorbell, etc."
-                  rows={2}
-                />
-              </label>
-            </div>
+                }}
+                onAddNewClick={() => {
+                  setShowNewAddressForm(true);
+                  setSelectedSavedAddress(null);
+                }}
+                compact
+              />
+            )}
+
+            {/* New Address Form */}
+            {showNewAddressForm && (
+              <>
+                <div className={styles.formHeader}>
+                  <span>New Address</span>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => {
+                      setShowNewAddressForm(false);
+                    }}
+                  >
+                    <FiEdit2 /> Use Saved
+                  </button>
+                </div>
+
+                <div className={styles.form}>
+                  <div className={styles.formRow}>
+                    <label className={styles.label}>
+                      Full Name *
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={shipping.fullName}
+                        onChange={(e) => setShipping({ ...shipping, fullName: e.target.value })}
+                        placeholder="John Doe"
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.formRow}>
+                    <label className={styles.label}>
+                      Street Address *
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={shipping.street1}
+                        onChange={(e) => setShipping({ ...shipping, street1: e.target.value })}
+                        placeholder="123 Main St"
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.formRow}>
+                    <label className={styles.label}>
+                      Apt, Suite, Unit (Optional)
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={shipping.street2}
+                        onChange={(e) => setShipping({ ...shipping, street2: e.target.value })}
+                        placeholder="Apt 4B"
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.formGrid}>
+                    <label className={styles.label}>
+                      City *
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={shipping.city}
+                        onChange={(e) => setShipping({ ...shipping, city: e.target.value })}
+                        placeholder="New York"
+                      />
+                    </label>
+                    <label className={styles.label}>
+                      State *
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={shipping.state}
+                        onChange={(e) => setShipping({ ...shipping, state: e.target.value })}
+                        placeholder="NY"
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.formGrid}>
+                    <label className={styles.label}>
+                      Postal Code *
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={shipping.postalCode}
+                        onChange={(e) => setShipping({ ...shipping, postalCode: e.target.value })}
+                        placeholder="10001"
+                      />
+                    </label>
+                    <label className={styles.label}>
+                      Country *
+                      <select
+                        className={styles.select}
+                        value={shipping.country}
+                        onChange={(e) => setShipping({ ...shipping, country: e.target.value })}
+                      >
+                        {COUNTRIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className={styles.formGrid}>
+                    <label className={styles.label}>
+                      Phone (for delivery)
+                      <input
+                        type="tel"
+                        className={styles.input}
+                        value={shipping.phone}
+                        onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
+                        placeholder="+1 555-123-4567"
+                      />
+                    </label>
+                    <label className={styles.label}>
+                      Email (for tracking)
+                      <input
+                        type="email"
+                        className={styles.input}
+                        value={shipping.email}
+                        onChange={(e) => setShipping({ ...shipping, email: e.target.value })}
+                        placeholder="john@example.com"
+                      />
+                    </label>
+                  </div>
+
+                  <label className={styles.label}>
+                    Delivery Instructions (Optional)
+                    <textarea
+                      className={styles.textarea}
+                      value={shipping.deliveryInstructions}
+                      onChange={(e) =>
+                        setShipping({ ...shipping, deliveryInstructions: e.target.value })
+                      }
+                      placeholder="Leave at door, ring doorbell, etc."
+                      rows={2}
+                    />
+                  </label>
+
+                  {/* Save Address Checkbox */}
+                  <div className={styles.saveAddressRow}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={saveNewAddress}
+                        onChange={(e) => setSaveNewAddress(e.target.checked)}
+                        className={styles.checkbox}
+                      />
+                      <FiSave />
+                      <span>Save this address for future purchases</span>
+                    </label>
+                    {saveNewAddress && (
+                      <input
+                        type="text"
+                        className={styles.labelInput}
+                        value={addressLabel}
+                        onChange={(e) => setAddressLabel(e.target.value)}
+                        placeholder="Label (e.g., Home)"
+                        maxLength={20}
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className={styles.buttonRow}>
               <button className={styles.secondaryBtn} onClick={() => setStep('details')}>
@@ -538,9 +646,10 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               <h4 className={styles.summaryTitle}>Order Summary</h4>
               <div className={styles.summaryItem}>
                 <img
-                  src={escrow.asset?.imageUrl || '/images/purpleLGG.png'}
+                  src={resolveImageUrl(escrow.asset?.imageUrl) || PLACEHOLDER_IMAGE}
                   alt={escrow.asset?.model}
                   className={styles.summaryImage}
+                  onError={handleImageError}
                 />
                 <div className={styles.summaryInfo}>
                   <span className={styles.summaryModel}>
@@ -556,13 +665,28 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
             <div className={styles.summarySection}>
               <h4 className={styles.summaryTitle}>Ship To</h4>
               <div className={styles.addressBlock}>
-                <p>{shipping.fullName}</p>
-                <p>{shipping.street1}</p>
-                {shipping.street2 && <p>{shipping.street2}</p>}
-                <p>
-                  {shipping.city}, {shipping.state} {shipping.postalCode}
-                </p>
-                <p>{shipping.country}</p>
+                {selectedSavedAddress ? (
+                  <>
+                    <p>{selectedSavedAddress.fullName}</p>
+                    <p>{selectedSavedAddress.street1}</p>
+                    {selectedSavedAddress.street2 && <p>{selectedSavedAddress.street2}</p>}
+                    <p>
+                      {selectedSavedAddress.city}, {selectedSavedAddress.state}{' '}
+                      {selectedSavedAddress.postalCode}
+                    </p>
+                    <p>{selectedSavedAddress.country}</p>
+                  </>
+                ) : (
+                  <>
+                    <p>{shipping.fullName}</p>
+                    <p>{shipping.street1}</p>
+                    {shipping.street2 && <p>{shipping.street2}</p>}
+                    <p>
+                      {shipping.city}, {shipping.state} {shipping.postalCode}
+                    </p>
+                    <p>{shipping.country}</p>
+                  </>
+                )}
               </div>
             </div>
 
