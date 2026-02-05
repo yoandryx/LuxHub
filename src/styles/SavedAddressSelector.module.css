@@ -1,0 +1,335 @@
+/* src/styles/SavedAddressSelector.module.css */
+/* Glassmorphic saved address selector matching LuxHub design */
+
+.container {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.25);
+  --accent-glow: rgba(200, 161, 255, 0.12);
+  --success: #4ade80;
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --border: rgba(200, 161, 255, 0.12);
+  --border-bright: rgba(200, 161, 255, 0.3);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --error: #ef4444;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.container.compact {
+  gap: 10px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.headerIcon {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.addressList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.addressList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.addressList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.addressList::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.addressCard {
+  position: relative;
+  padding: 14px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.addressCard:hover {
+  border-color: var(--accent-dim);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.addressCard.selected {
+  border-color: var(--accent);
+  background: rgba(200, 161, 255, 0.08);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.defaultBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.15) 0%, rgba(155, 93, 229, 0.2) 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.defaultBadge svg {
+  font-size: 10px;
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, var(--success) 0%, #22c55e 100%);
+  border-radius: 50%;
+  color: #000;
+  font-size: 12px;
+}
+
+.deleteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.addressCard:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--error);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardBody p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px !important;
+}
+
+.street {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cityState {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.country {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Add New Button */
+.addNewBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.addNewBtn:hover {
+  border-color: var(--accent);
+  border-style: solid;
+  color: var(--accent);
+  background: rgba(200, 161, 255, 0.05);
+}
+
+.addNewBtn svg {
+  font-size: 16px;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error */
+.error {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: var(--error);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* Compact Mode */
+.compact .addressList {
+  max-height: 180px;
+}
+
+.compact .addressCard {
+  padding: 12px;
+}
+
+.compact .label {
+  font-size: 13px;
+}
+
+.compact .name {
+  font-size: 13px;
+}
+
+.compact .street,
+.compact .cityState {
+  font-size: 12px;
+}
+
+.compact .addNewBtn {
+  padding: 12px;
+  font-size: 13px;
+}
+
+/* Mobile */
+@media screen and (max-width: 600px) {
+  .addressList {
+    max-height: 200px;
+  }
+
+  .addressCard {
+    padding: 12px;
+  }
+
+  .label {
+    font-size: 13px;
+  }
+
+  .name {
+    font-size: 13px;
+  }
+
+  .street,
+  .cityState {
+    font-size: 12px;
+  }
+
+  .country {
+    font-size: 11px;
+  }
+
+  .addNewBtn {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .deleteBtn {
+    opacity: 1;
+  }
+}
