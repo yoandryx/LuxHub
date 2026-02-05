@@ -17,6 +17,7 @@ import { BiTargetLock } from 'react-icons/bi';
 import Footer from '../components/common/Footer';
 import NFTCard from '../components/marketplace/NFTCard';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
+import { resolvePoolImage, handleImageError } from '../utils/imageUtils';
 import styles from '../styles/IndexTest.module.css';
 
 // Dynamic imports for 3D/heavy components
@@ -493,10 +494,13 @@ export default function IndexTest() {
                 ) : pools.length > 0 ? (
                   pools.map((pool, i) => {
                     const fundingPercent = Math.round((pool.sharesSold / pool.totalShares) * 100);
-                    const imageUrl =
-                      pool.asset?.images?.[0] ||
-                      pool.asset?.imageIpfsUrls?.[0] ||
-                      '/images/purpleLGG.png';
+                    // Resolve pool image with consistent fallback handling
+                    const imageUrl = resolvePoolImage({
+                      image: pool.asset?.images?.[0] || pool.asset?.imageIpfsUrls?.[0],
+                      asset: {
+                        imageUrl: pool.asset?.images?.[0] || pool.asset?.imageIpfsUrls?.[0],
+                      },
+                    });
                     const isDemo = pool._id.startsWith('pool_');
 
                     return (
@@ -513,9 +517,7 @@ export default function IndexTest() {
                           <img
                             src={imageUrl}
                             alt={pool.title || pool.asset?.model}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                            }}
+                            onError={handleImageError}
                           />
                           <span className={styles.poolBrandTag}>{pool.asset?.brand}</span>
                         </div>

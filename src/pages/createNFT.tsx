@@ -54,6 +54,11 @@ import {
 import { HiOutlineSparkles, HiOutlineCollection, HiOutlineSwitchHorizontal } from 'react-icons/hi';
 import pLimit from 'p-limit';
 import useSWR, { mutate } from 'swr';
+import {
+  PLACEHOLDER_IMAGE,
+  handleImageError,
+  resolveImageUrl as resolveImageUrlUtil,
+} from '../utils/imageUtils';
 
 // SWR fetcher
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -141,16 +146,17 @@ const irysGateway = 'https://gateway.irys.xyz/';
 /**
  * Resolve a storage ID to a full gateway URL
  * Handles IPFS hashes (Qm..., bafy...) and Irys/Arweave TX IDs
+ * Uses centralized resolveImageUrl for consistency, with gateway override
  */
 function resolveImageUrl(idOrUrl: string | undefined | null, gateway: string): string {
-  if (!idOrUrl) return '/fallback.png';
+  if (!idOrUrl) return PLACEHOLDER_IMAGE;
 
   // Already a full URL
   if (idOrUrl.startsWith('http://') || idOrUrl.startsWith('https://')) {
     return idOrUrl;
   }
 
-  // Local path (like /fallback.png)
+  // Local path (like /images/purpleLGG.png)
   if (idOrUrl.startsWith('/')) {
     return idOrUrl;
   }
@@ -2415,17 +2421,9 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                     {/* Image */}
                     <div className={styles.compactImageWrapper}>
                       <img
-                        src={
-                          nft.image?.startsWith('http')
-                            ? nft.image
-                            : nft.image?.startsWith('/')
-                              ? nft.image
-                              : '/fallback.png'
-                        }
+                        src={resolveImageUrlUtil(nft.image) || PLACEHOLDER_IMAGE}
                         alt={nft.title}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/fallback.png';
-                        }}
+                        onError={handleImageError}
                       />
                       {isTransferring && (
                         <div className={styles.transferOverlay}>
@@ -2644,17 +2642,9 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                     {/* Image */}
                     <div className={styles.transferredImageWrapper}>
                       <img
-                        src={
-                          nft.image?.startsWith('http')
-                            ? nft.image
-                            : nft.image?.startsWith('/')
-                              ? nft.image
-                              : '/fallback.png'
-                        }
+                        src={resolveImageUrlUtil(nft.image) || PLACEHOLDER_IMAGE}
                         alt={nft.title}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/fallback.png';
-                        }}
+                        onError={handleImageError}
                       />
                       <div className={styles.transferredOverlay}>
                         <FaExchangeAlt className={styles.transferIcon} />
