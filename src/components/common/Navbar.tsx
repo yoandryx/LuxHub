@@ -9,6 +9,7 @@ import { PublicKey } from '@solana/web3.js';
 import { FaWallet } from 'react-icons/fa6';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth/solana';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const router = useRouter();
@@ -177,6 +178,11 @@ export default function Navbar() {
               <input type="text" placeholder="Search collection" className={styles.searchBar} />
             </div>
 
+            {/* Notification Bell */}
+            {isConnected && (
+              <NotificationBell walletAddress={activePublicKey?.toBase58() || null} />
+            )}
+
             <div className={styles.walletContainer}>
               <FaWallet className={styles.icon} />
               {isClient && (
@@ -215,6 +221,11 @@ export default function Navbar() {
                   <CiSearch className={styles.mobileSearchIcon} />
                 )}
               </div>
+
+              {/* Mobile Notification Bell */}
+              {isConnected && (
+                <NotificationBell walletAddress={activePublicKey?.toBase58() || null} />
+              )}
 
               <div className={styles.mobileWalletContainer}>
                 <FaWallet className={styles.icon} />

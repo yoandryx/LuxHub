@@ -51,6 +51,7 @@ import BulkDelistModal from '../../components/vendor/BulkDelistModal';
 import ShippingAddressForm, {
   type ShippingAddress,
 } from '../../components/common/ShippingAddressForm';
+import { PLACEHOLDER_IMAGE, resolveImageUrl } from '../../utils/imageUtils';
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
 const FUNDS_MINT = 'So11111111111111111111111111111111111111112';
@@ -183,7 +184,7 @@ const VendorProfilePage = () => {
       mintAddress: nft.mintAddress,
       title: nft.title || 'Untitled',
       description: nft.description || '',
-      image: nft.image || '/fallback.png',
+      image: resolveImageUrl(nft.image) || PLACEHOLDER_IMAGE,
       priceSol: nft.priceSol || 0,
       priceUSD: nft.priceUSD || 0,
       metadataUri: nft.metadataUri || '',
