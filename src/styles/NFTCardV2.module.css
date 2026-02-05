@@ -1,0 +1,491 @@
+/* src/styles/NFTCardV2.module.css */
+/* Modern NFT Card with glass-morphism, skeleton loading, and smooth animations */
+
+/* CSS Variables - LuxHub Design System */
+.card {
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --border: #222222;
+  --border-hover: #333333;
+  --glass: rgba(13, 13, 13, 0.85);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+  --transition: 0.2s ease;
+}
+
+/* Main Card Container */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
+  will-change: transform;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-dim);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 20px var(--accent-glow);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Glow Effect */
+.glowEffect {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity var(--transition);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card:hover .glowEffect {
+  opacity: 1;
+}
+
+/* Image Container */
+.imageContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bg-dark);
+  overflow: hidden;
+}
+
+/* Image */
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.imageLoading {
+  opacity: 0;
+}
+
+.card:hover .image {
+  transform: scale(1.05);
+}
+
+/* Shine Effect */
+.imageShine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 55%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.card:hover .imageShine {
+  transform: translateX(100%);
+}
+
+/* Skeleton Loading */
+.skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--bg-dark) 0%, var(--bg-card) 50%, var(--bg-dark) 100%);
+  z-index: 1;
+}
+
+.skeletonShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Status Badge */
+.statusBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
+  z-index: 2;
+}
+
+.badgeVerified {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.badgeListed {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+}
+
+.badgePending {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.badgeEscrow {
+  background: rgba(33, 150, 243, 0.2);
+  color: #2196f3;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.badgeSold {
+  background: rgba(156, 39, 176, 0.2);
+  color: #ce93d8;
+  border: 1px solid rgba(156, 39, 176, 0.3);
+}
+
+.badgePooled {
+  background: rgba(0, 188, 212, 0.2);
+  color: #00bcd4;
+  border: 1px solid rgba(0, 188, 212, 0.3);
+}
+
+.badgeBurned {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.badgePreview {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.badgeMinting {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  animation: pulse 1.5s infinite;
+}
+
+.badgeReady {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.badgeError {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Verified Badge */
+.verifiedBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 50%;
+  backdrop-filter: blur(8px);
+  z-index: 2;
+}
+
+.verifiedBadge svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Card Footer */
+.footer {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.priceSection {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.price {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.priceSol {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Action Buttons */
+.actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.buyBtn,
+.offerBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.buyBtn {
+  background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+  color: #0d0d0d;
+}
+
+.buyBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--accent-dim);
+}
+
+.offerBtn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+}
+
+.offerBtn:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+
+/* Variant: Compact */
+.variantCompact {
+  border-radius: 12px;
+}
+
+.variantCompact .imageContainer {
+  aspect-ratio: 4/3;
+}
+
+.variantCompact .footer {
+  padding: 12px;
+}
+
+.variantCompact .title {
+  font-size: 13px;
+}
+
+.variantCompact .price {
+  font-size: 14px;
+}
+
+/* Variant: List */
+.variantList {
+  flex-direction: row;
+  border-radius: 12px;
+}
+
+.variantList .imageContainer {
+  width: 140px;
+  min-width: 140px;
+  aspect-ratio: 1;
+}
+
+.variantList .footer {
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  border-top: none;
+  border-left: 1px solid var(--border);
+}
+
+.variantList .actions {
+  padding: 16px;
+  padding-top: 0;
+}
+
+/* Compact Card (separate component) */
+.compactCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.compactCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-dim);
+}
+
+.compactImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bg-dark);
+}
+
+.compactImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.compactBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.compactInfo {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compactTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compactBrand {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.compactPrice {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .footer {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 13px;
+  }
+
+  .price {
+    font-size: 14px;
+  }
+
+  .actions {
+    padding: 0 12px 12px;
+  }
+
+  .buyBtn,
+  .offerBtn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}

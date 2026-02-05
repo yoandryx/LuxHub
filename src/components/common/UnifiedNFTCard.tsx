@@ -4,6 +4,7 @@ import React, { useState, memo, useMemo, useCallback } from 'react';
 import styles from '../../styles/UnifiedNFTCard.module.css';
 import { FaCheck, FaClock, FaLock, FaShoppingCart, FaFire, FaEye, FaGavel } from 'react-icons/fa';
 import { LuShield, LuBadgeCheck, LuSparkles } from 'react-icons/lu';
+import { resolveImageUrl, resolveAssetImage, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 
 // Status types for NFT badges
 export type NFTStatus =
@@ -27,6 +28,9 @@ export interface UnifiedNFTCardProps {
   title: string;
   image?: string;
   imageCid?: string;
+  imageUrl?: string; // Full gateway URL (Irys/IPFS)
+  arweaveTxId?: string; // Irys/Arweave transaction ID
+  imageIpfsUrls?: string[]; // Array of IPFS/Irys TX IDs
   price?: number;
   priceLabel?: string; // e.g., "SOL" or "USD"
   priceUSD?: number; // Fixed USD price of the watch
@@ -71,27 +75,6 @@ export interface UnifiedNFTCardProps {
   className?: string;
 }
 
-const PLACEHOLDER_IMAGE = '/images/purpleLGG.png';
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
-const IRYS_GATEWAY = 'https://gateway.irys.xyz/';
-
-/**
- * Resolve image URL from CID, Irys TX ID, or full URL
- */
-function resolveImageUrl(idOrUrl: string | undefined | null): string {
-  if (!idOrUrl) return PLACEHOLDER_IMAGE;
-  // Already a full URL
-  if (idOrUrl.startsWith('http://') || idOrUrl.startsWith('https://')) return idOrUrl;
-  // Local path
-  if (idOrUrl.startsWith('/')) return idOrUrl;
-  // IPFS CIDv0 (Qm...) or CIDv1 (bafy...)
-  if (idOrUrl.startsWith('Qm') || idOrUrl.startsWith('bafy')) return `${GATEWAY_URL}${idOrUrl}`;
-  // Irys/Arweave TX ID (43-char base64url)
-  if (idOrUrl.length === 43 && /^[A-Za-z0-9_-]+$/.test(idOrUrl)) return `${IRYS_GATEWAY}${idOrUrl}`;
-  // Default to IPFS gateway
-  return `${GATEWAY_URL}${idOrUrl}`;
-}
-
 // Status badge configuration
 const statusConfig: Record<NFTStatus, { label: string; icon: React.ReactNode; className: string }> =
   {
@@ -113,6 +96,9 @@ const UnifiedNFTCard = memo(
     title,
     image,
     imageCid,
+    imageUrl: imageUrlProp,
+    arweaveTxId,
+    imageIpfsUrls,
     price,
     priceLabel = 'SOL',
     priceUSD,
@@ -145,14 +131,21 @@ const UnifiedNFTCard = memo(
     const [imgError, setImgError] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
-    // Compute image URL with intelligent gateway resolution
-    const imageUrl = useMemo(() => {
+    // Compute image URL using comprehensive asset image resolution
+    // Priority: image prop > imageUrl > imageIpfsUrls[0] > imageCid > arweaveTxId > placeholder
+    const resolvedImageUrl = useMemo(() => {
       if (imgError) return PLACEHOLDER_IMAGE;
-      // Resolve image URL (handles Irys, IPFS, and full URLs)
-      if (image) return resolveImageUrl(image);
-      if (imageCid) return resolveImageUrl(imageCid);
-      return PLACEHOLDER_IMAGE;
-    }, [image, imageCid, imgError]);
+
+      // Use the comprehensive resolver that handles all image field variations
+      const resolved = resolveAssetImage({
+        imageUrl: image || imageUrlProp,
+        imageIpfsUrls,
+        image: imageCid,
+        arweaveTxId,
+      });
+
+      return resolved;
+    }, [image, imageUrlProp, imageIpfsUrls, imageCid, arweaveTxId, imgError]);
 
     // Truncate wallet addresses
     const truncateAddress = useCallback((addr: string) => {
@@ -185,7 +178,7 @@ const UnifiedNFTCard = memo(
         {/* Image Container */}
         <div className={styles.imageContainer}>
           <img
-            src={imageUrl}
+            src={resolvedImageUrl}
             alt={title}
             className={styles.image}
             onError={() => setImgError(true)}
@@ -395,6 +388,8 @@ export const NFTGridCard = memo(
     title,
     image,
     imageUrl,
+    arweaveTxId,
+    imageIpfsUrls,
     price,
     priceLabel = 'SOL',
     priceUSD,
@@ -407,6 +402,8 @@ export const NFTGridCard = memo(
     title: string;
     image?: string;
     imageUrl?: string;
+    arweaveTxId?: string;
+    imageIpfsUrls?: string[];
     price?: number | string;
     priceLabel?: string;
     priceUSD?: number;
@@ -417,8 +414,14 @@ export const NFTGridCard = memo(
     onClick?: () => void;
   }) => {
     const [imgError, setImgError] = useState(false);
-    // Resolve image URL with intelligent gateway detection
-    const finalImage = imgError ? PLACEHOLDER_IMAGE : resolveImageUrl(image || imageUrl);
+    // Resolve image URL using comprehensive asset image resolution
+    const finalImage = imgError
+      ? PLACEHOLDER_IMAGE
+      : resolveAssetImage({
+          imageUrl: image || imageUrl,
+          imageIpfsUrls,
+          arweaveTxId,
+        });
     const badgeConfig = statusConfig[status];
 
     // Format price display based on label (USD-first support)

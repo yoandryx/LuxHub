@@ -50,6 +50,8 @@ interface EscrowListing {
     description?: string;
     imageUrl?: string;
     imageIpfsUrls?: string[];
+    images?: string[];
+    arweaveTxId?: string;
     material?: string;
     dialColor?: string;
     caseSize?: string;
@@ -132,25 +134,16 @@ const SORT_OPTIONS = [
   { value: 'brand_az', label: 'Brand: A-Z' },
 ];
 
-// Gateway for images
-const IPFS_GATEWAY = 'https://teal-working-frog-718.mypinata.cloud/ipfs/';
-const IRYS_GATEWAY = 'https://gateway.irys.xyz/';
+// Import shared image utilities for consistent gateway handling
+import {
+  resolveAssetImage,
+  resolvePoolImage,
+  handleImageError,
+  PLACEHOLDER_IMAGE,
+} from '../utils/imageUtils';
 
 function resolveImage(listing: EscrowListing): string {
-  const asset = listing.asset;
-  if (!asset) return '/images/purpleLGG.png';
-
-  if (asset.imageUrl?.startsWith('http')) return asset.imageUrl;
-  if (asset.imageIpfsUrls?.[0]) {
-    const cid = asset.imageIpfsUrls[0];
-    if (cid.startsWith('http')) return cid;
-    // Check if Irys TX ID (43 char base64url)
-    if (cid.length === 43 && /^[A-Za-z0-9_-]+$/.test(cid)) {
-      return `${IRYS_GATEWAY}${cid}`;
-    }
-    return `${IPFS_GATEWAY}${cid}`;
-  }
-  return '/images/purpleLGG.png';
+  return resolveAssetImage(listing.asset);
 }
 
 // Marketplace Page Component
@@ -319,7 +312,7 @@ export default function Marketplace() {
       poolId: pool._id,
       title: pool.asset?.model || pool.title || 'Luxury Item',
       description: pool.description || 'Verified item in LuxHub custody.',
-      image: pool.asset?.imageUrl || pool.image || '/images/purpleLGG.png',
+      image: resolvePoolImage(pool),
       originalPurchaseUSD: pool.targetAmountUSD,
       resaleListingPriceUSD: pool.targetAmountUSD * 1.15, // 15% markup
       resaleListingPriceSol: (pool.targetAmountUSD * 1.15) / (solPrice || 100),
@@ -799,12 +792,10 @@ export default function Marketplace() {
                           <div key={pool._id} className={styles.poolCard}>
                             <div className={styles.poolImageWrapper}>
                               <img
-                                src={pool.asset?.imageUrl || pool.image || '/images/purpleLGG.png'}
+                                src={resolvePoolImage(pool)}
                                 alt={pool.title}
                                 className={styles.poolImage}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                                }}
+                                onError={handleImageError}
                               />
                               <div className={styles.poolBrand}>{pool.brand}</div>
                             </div>
@@ -892,9 +883,7 @@ export default function Marketplace() {
                               src={item.image}
                               alt={item.title}
                               className={styles.custodyImage}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/images/purpleLGG.png';
-                              }}
+                              onError={handleImageError}
                             />
                           </div>
                           <div className={styles.custodyContent}>
@@ -1031,6 +1020,9 @@ export default function Marketplace() {
                   title:
                     selectedListing.asset?.title || selectedListing.asset?.model || 'Luxury Watch',
                   image: resolveImage(selectedListing),
+                  imageUrl: selectedListing.asset?.imageUrl,
+                  imageIpfsUrls: selectedListing.asset?.imageIpfsUrls,
+                  images: selectedListing.asset?.images,
                   description: selectedListing.asset?.description || '',
                   priceSol: parseFloat(formatSol(selectedListing.listingPriceUSD || 0)),
                   attributes: [

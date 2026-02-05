@@ -16,6 +16,38 @@ const nextConfig = {
     NEXT_PUBLIC_GATEWAY_URL: "https://teal-working-frog-718.mypinata.cloud/ipfs/",
     NEXT_PUBLIC_LUXHUB_WALLET: process.env.NEXT_PUBLIC_LUXHUB_WALLET,
   },
+  // Image optimization configuration for Irys/IPFS gateways
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'gateway.irys.xyz',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'arweave.net',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'teal-working-frog-718.mypinata.cloud',
+        pathname: '/ipfs/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.mypinata.cloud',
+        pathname: '/ipfs/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ipfs.io',
+        pathname: '/ipfs/**',
+      },
+    ],
+    // Enable unoptimized for external URLs that may vary
+    unoptimized: false,
+  },
   webpack(config, { isServer }) {
     if (!isServer) {
       config.resolve.fallback = {
