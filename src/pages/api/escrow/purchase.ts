@@ -6,6 +6,7 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
+import { notifyNewOrder, notifyUser } from '../../../lib/services/notificationService';
 
 interface ShippingAddress {
   fullName: string;
@@ -137,6 +138,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       { new: true }
     );
+
+    // Send notifications
+    try {
+      const assetTitle = asset?.title || asset?.model || 'Luxury item';
+
+      // Notify vendor of new order
+      if (updatedEscrow.sellerWallet) {
+        await notifyNewOrder({
+          vendorWallet: updatedEscrow.sellerWallet,
+          buyerWallet,
+          escrowId: updatedEscrow._id.toString(),
+          escrowPda: updatedEscrow.escrowPda,
+          assetTitle,
+          amountUSD: updatedEscrow.listingPriceUSD || 0,
+        });
+      }
+
+      // Notify buyer of purchase confirmation
+      await notifyUser({
+        userWallet: buyerWallet,
+        type: 'order_funded',
+        title: 'Purchase Confirmed',
+        message: `Your purchase of "${assetTitle}" has been confirmed. The vendor will ship your item soon!`,
+        metadata: {
+          escrowId: updatedEscrow._id.toString(),
+          escrowPda: updatedEscrow.escrowPda,
+          amountUSD: updatedEscrow.listingPriceUSD,
+          actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io'}/orders`,
+        },
+      });
+    } catch (notifyError) {
+      // Don't fail the request if notification fails
+      console.error('[/api/escrow/purchase] Notification error:', notifyError);
+    }
 
     return res.status(200).json({
       success: true,

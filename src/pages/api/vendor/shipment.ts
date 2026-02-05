@@ -5,6 +5,11 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { Vendor } from '../../../lib/models/Vendor';
 import { User } from '../../../lib/models/User';
+import { Asset } from '../../../lib/models/Assets';
+import {
+  notifyOrderShipped,
+  notifyShipmentProofSubmitted,
+} from '../../../lib/services/notificationService';
 
 interface ShipmentRequest {
   escrowId?: string;
@@ -149,6 +154,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { $set: updateData },
       { new: true }
     );
+
+    // Send notifications
+    try {
+      // Get asset title for notification
+      const asset = await Asset.findById(escrow.asset);
+      const assetTitle = asset?.title || 'Your item';
+
+      // Notify buyer that their order has shipped
+      if (updatedEscrow.buyerWallet) {
+        await notifyOrderShipped({
+          buyerWallet: updatedEscrow.buyerWallet,
+          escrowId: updatedEscrow._id.toString(),
+          escrowPda: updatedEscrow.escrowPda,
+          assetTitle,
+          trackingNumber: updatedEscrow.trackingNumber,
+          trackingCarrier: updatedEscrow.trackingCarrier,
+          trackingUrl: updatedEscrow.trackingUrl,
+        });
+      }
+
+      // If proof was submitted, notify admins for verification
+      if (proofUrls && proofUrls.length > 0) {
+        const adminWallets = (process.env.ADMIN_WALLETS || '').split(',').filter(Boolean);
+        if (adminWallets.length > 0) {
+          await notifyShipmentProofSubmitted({
+            adminWallets,
+            vendorWallet,
+            escrowId: updatedEscrow._id.toString(),
+            escrowPda: updatedEscrow.escrowPda,
+            assetTitle,
+          });
+        }
+      }
+    } catch (notifyError) {
+      // Don't fail the request if notification fails
+      console.error('[/api/vendor/shipment] Notification error:', notifyError);
+    }
 
     return res.status(200).json({
       success: true,
