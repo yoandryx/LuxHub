@@ -1,32 +1,25 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import styles from '../../styles/NFTDetailCard.module.css';
 import { FaTimes, FaCopy } from 'react-icons/fa';
 import { LuRotate3D, LuShield, LuBadgeCheck, LuSparkles, LuGem } from 'react-icons/lu';
-import { Metaplex } from '@metaplex-foundation/js';
 import { Connection, PublicKey } from '@solana/web3.js';
 import VanillaTilt from 'vanilla-tilt';
 import { usePriceDisplay } from '../marketplace/PriceDisplay';
+import { resolveImageUrl, resolveAssetImage, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
-const IRYS_GATEWAY = 'https://gateway.irys.xyz/';
-const PLACEHOLDER_IMAGE = '/fallback.png';
+// Dynamic import for Metaplex (only loaded when needed - ~87KB saved for previewData cases)
+const loadMetaplex = async () => {
+  const { Metaplex } = await import('@metaplex-foundation/js');
+  return Metaplex;
+};
 
-/**
- * Resolve image URL from CID, Irys TX ID, or full URL
- */
-function resolveImageUrl(idOrUrl: string | undefined | null): string {
-  if (!idOrUrl) return PLACEHOLDER_IMAGE;
-  // Already a full URL
-  if (idOrUrl.startsWith('http://') || idOrUrl.startsWith('https://')) return idOrUrl;
-  // Local path
-  if (idOrUrl.startsWith('/')) return idOrUrl;
-  // IPFS CIDv0 (Qm...) or CIDv1 (bafy...)
-  if (idOrUrl.startsWith('Qm') || idOrUrl.startsWith('bafy')) return `${GATEWAY_URL}${idOrUrl}`;
-  // Irys/Arweave TX ID (43-char base64url)
-  if (idOrUrl.length === 43 && /^[A-Za-z0-9_-]+$/.test(idOrUrl)) return `${IRYS_GATEWAY}${idOrUrl}`;
-  // Default to IPFS gateway
-  return `${GATEWAY_URL}${idOrUrl}`;
-}
+// Dynamic import for mpl-core (for new NFT format)
+const loadMplCore = async () => {
+  const { createUmi } = await import('@metaplex-foundation/umi-bundle-defaults');
+  const { fetchAsset } = await import('@metaplex-foundation/mpl-core');
+  const { publicKey } = await import('@metaplex-foundation/umi');
+  return { createUmi, fetchAsset, publicKey };
+};
 
 export interface NFTMetadata {
   name: string;
@@ -59,6 +52,9 @@ interface NftDetailCardProps {
   previewData?: {
     title: string;
     image: string;
+    imageUrl?: string;
+    imageIpfsUrls?: string[];
+    images?: string[];
     description: string;
     priceSol: number;
     attributes: { trait_type: string; value: string }[];
@@ -219,19 +215,33 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     setTimeout(() => setCopiedField(null), 1500);
   };
 
-  // Metadata fetching
+  // Metadata fetching - optimized with dynamic imports
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
         let uri = metadataUri;
+        const rpcEndpoint =
+          process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com';
 
         if (!uri && mintAddress) {
-          const connection = new Connection(
-            process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-          );
-          const metaplex = Metaplex.make(connection);
-          const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mintAddress) });
-          uri = nft.uri;
+          // Try mpl-core first (new NFT format)
+          try {
+            const { createUmi, fetchAsset, publicKey } = await loadMplCore();
+            const umi = createUmi(rpcEndpoint);
+            const asset = await fetchAsset(umi, publicKey(mintAddress));
+            uri = asset.uri;
+            console.log('[NftDetailCard] Fetched mpl-core asset URI:', uri);
+          } catch {
+            // Fall back to Metaplex for old NFTs
+            console.log('[NftDetailCard] Trying Metaplex for old NFT format...');
+            const connection = new Connection(rpcEndpoint);
+            const Metaplex = await loadMetaplex();
+            const metaplex = Metaplex.make(connection);
+            const nft = await metaplex
+              .nfts()
+              .findByMint({ mintAddress: new PublicKey(mintAddress) });
+            uri = nft.uri;
+          }
         }
 
         if (!uri) return;
@@ -244,6 +254,7 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
           priceSol: parseFloat(
             json.priceSol ??
               json.attributes?.find((a: any) => a.trait_type === 'Price')?.value ??
+              json.attributes?.find((a: any) => a.trait_type === 'Price USD')?.value ??
               prev?.priceSol ??
               priceSol?.toString() ??
               '0'
@@ -267,14 +278,22 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     }
   }, [metadataUri, mintAddress, previewData, priceSol, owner]);
 
-  // Handle previewData
+  // Handle previewData - use comprehensive image resolution
   useEffect(() => {
     if (previewData && !metadata) {
+      // Resolve image using the comprehensive asset resolver
+      const resolvedPreviewImage = resolveAssetImage({
+        imageUrl: previewData.imageUrl,
+        images: previewData.images,
+        imageIpfsUrls: previewData.imageIpfsUrls,
+        image: previewData.image,
+      });
+
       setMetadata({
         name: previewData.title,
         symbol: '',
         description: previewData.description,
-        image: previewData.image,
+        image: resolvedPreviewImage,
         seller_fee_basis_points: 500,
         attributes: previewData.attributes,
         priceSol: previewData.priceSol,
