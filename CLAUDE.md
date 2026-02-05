@@ -131,9 +131,14 @@ anchor deploy        # Deploy to configured cluster
 - `PROGRAM_ID` - Deployed Anchor program ID
 - `MONGODB_URI` - MongoDB connection string
 - `NEXT_PUBLIC_PINATA_API_KEY`, `NEXT_PUBLIC_PINATA_SECRET_KEY` - Pinata credentials
-- `JWT_SECRET` - JWT signing secret
+- `JWT_SECRET` - JWT signing secret (min 32 chars)
 - `NEXT_PUBLIC_LUXHUB_WALLET` - Treasury wallet address
 - `ANTHROPIC_API_KEY` - Claude API key for AI watch analysis feature
+
+**Security Environment Variables:**
+- `PII_ENCRYPTION_KEY` - 64-char hex key for AES-256-GCM encryption (generate with `generateEncryptionKey()`)
+- `ADMIN_WALLETS` - Comma-separated list of admin wallet addresses
+- `PII_HASH_SALT` - Salt for searchable hashes on encrypted data
 
 ## Key Entry Points
 
@@ -141,6 +146,8 @@ anchor deploy        # Deploy to configured cluster
 - Anchor program access: `src/utils/programUtils.ts`
 - Database connection: `src/lib/database/mongodb.ts`
 - Auth middleware: `src/lib/middleware/auth.ts`
+- **Wallet signature auth**: `src/lib/middleware/walletAuth.ts`
+- **PII encryption**: `src/lib/security/encryption.ts`
 - Main escrow program: `Solana-Anchor/programs/luxhub-marketplace/src/lib.rs:21-58`
 
 ## UI/UX Design System
@@ -286,6 +293,7 @@ Detailed documentation is organized in `.claude/docs/`:
 |----------|-------------|
 | **`luxhub_workflow.md`** | **PRIMARY: Complete marketplace workflow with visual diagrams. KEEP UPDATED as features are developed.** |
 | **`bags_tokenomics_flow.md`** | **Bags API integration: tokenomics, pool lifecycle, secondary trading, rug pull prevention** |
+| **`security.md`** | **Security implementation: wallet auth, PII encryption, admin authorization, API protection** |
 | `architectural_patterns.md` | Recurring code patterns (Mongoose hooks, API routes, wallet integration, CSS modules) |
 | `escrow_flow.md` | (Planned) On-chain escrow lifecycle: initialize → exchange → confirm_delivery |
 | `fractional_pools.md` | (Planned) Pool creation, share calculations, distribution mechanics |
