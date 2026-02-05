@@ -33,12 +33,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       for (const wallet of vendorWallets) {
         const vendorEscrows = allEscrows.filter((e: any) => e.sellerWallet === wallet);
+        // Only count listed/initiated items for inventory value (active inventory)
+        const listedEscrows = vendorEscrows.filter(
+          (e: any) => e.status === 'listed' || e.status === 'initiated'
+        );
         statsMap[wallet] = {
           totalItems: vendorEscrows.length,
-          itemsListed: vendorEscrows.filter(
-            (e: any) => e.status === 'listed' || e.status === 'initiated'
-          ).length,
-          inventoryValue: vendorEscrows.reduce(
+          itemsListed: listedEscrows.length,
+          // Inventory value = sum of currently listed item prices
+          inventoryValue: listedEscrows.reduce(
             (sum: number, e: any) => sum + (e.listingPriceUSD || 0),
             0
           ),

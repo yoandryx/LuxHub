@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { FaStore } from 'react-icons/fa6';
 import { HiMiniCheckBadge } from 'react-icons/hi2';
 import { TierBadge } from './TierBadge';
+import { resolveImageUrl } from '../../utils/imageUtils';
 import styles from '../../styles/VendorCard.module.css';
 
 export interface VendorStats {
@@ -29,16 +30,18 @@ interface VendorCardProps {
   className?: string;
 }
 
-const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
-
 export const VendorCard: React.FC<VendorCardProps> = ({
   vendor,
   variant = 'grid',
   showStats = true,
   className = '',
 }) => {
+  const [imgError, setImgError] = useState(false);
   const inventoryValue = vendor.stats?.inventoryValue || 0;
-  const avatarSrc = vendor.avatarUrl || (vendor.avatarCid ? `${GATEWAY}${vendor.avatarCid}` : null);
+  const avatarSrc =
+    !imgError && (vendor.avatarUrl || vendor.avatarCid)
+      ? resolveImageUrl(vendor.avatarUrl || vendor.avatarCid)
+      : null;
 
   const variantClass = {
     grid: styles.gridVariant,
@@ -54,7 +57,12 @@ export const VendorCard: React.FC<VendorCardProps> = ({
       {/* Avatar */}
       <div className={styles.avatarWrapper}>
         {avatarSrc ? (
-          <img src={avatarSrc} alt={vendor.name} className={styles.avatar} />
+          <img
+            src={avatarSrc}
+            alt={vendor.name}
+            className={styles.avatar}
+            onError={() => setImgError(true)}
+          />
         ) : (
           <div className={styles.avatarPlaceholder}>
             <FaStore />
