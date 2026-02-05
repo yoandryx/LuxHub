@@ -4,6 +4,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { User } from '../../../lib/models/User';
+import { Asset } from '../../../lib/models/Assets';
+import {
+  notifyShipmentVerified,
+  notifyShipmentRejected,
+  notifyUser,
+} from '../../../lib/services/notificationService';
 
 interface VerifyShipmentRequest {
   escrowPda: string;
@@ -88,6 +94,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       await Escrow.findByIdAndUpdate(escrow._id, { $set: updateData });
 
+      // Send notification to vendor
+      try {
+        const asset = await Asset.findById(escrow.asset);
+        const assetTitle = asset?.title || 'Your item';
+
+        await notifyShipmentVerified({
+          vendorWallet: escrow.sellerWallet,
+          escrowId: escrow._id.toString(),
+          escrowPda: escrow.escrowPda,
+          assetTitle,
+        });
+
+        // Also notify buyer that shipment is verified
+        if (escrow.buyerWallet) {
+          await notifyUser({
+            userWallet: escrow.buyerWallet,
+            type: 'shipment_verified',
+            title: 'Shipment Verified',
+            message: `The shipment for "${assetTitle}" has been verified. You should receive your item soon!`,
+            metadata: {
+              escrowId: escrow._id.toString(),
+              escrowPda: escrow.escrowPda,
+              actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io'}/orders`,
+            },
+          });
+        }
+      } catch (notifyError) {
+        console.error('[verify-shipment] Notification error:', notifyError);
+      }
+
       // Optionally create confirm_delivery Squads proposal
       let squadsResult = null;
       if (createConfirmDeliveryProposal) {
@@ -133,16 +169,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           shipmentStatus: 'pending',
         },
         $push: {
-          // Store rejection in a notes array (add to schema if needed)
           shipmentRejectionHistory: {
             rejectedAt: new Date(),
             rejectedBy: adminWallet,
             reason: rejectionReason,
             previousTrackingNumber: escrow.trackingNumber,
+            previousTrackingCarrier: escrow.trackingCarrier,
             previousProofUrls: escrow.shipmentProofUrls,
           },
         },
       });
+
+      // Send rejection notification to vendor
+      try {
+        const asset = await Asset.findById(escrow.asset);
+        const assetTitle = asset?.title || 'Your item';
+
+        await notifyShipmentRejected({
+          vendorWallet: escrow.sellerWallet,
+          escrowId: escrow._id.toString(),
+          escrowPda: escrow.escrowPda,
+          assetTitle,
+          reason: rejectionReason,
+        });
+      } catch (notifyError) {
+        console.error('[verify-shipment] Rejection notification error:', notifyError);
+      }
 
       return res.status(200).json({
         success: true,

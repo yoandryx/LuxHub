@@ -1,24 +1,36 @@
 // src/pages/api/buyer/orders.ts
-// Returns buyer's orders with shipping and tracking info
+// Returns buyer's orders with shipping and tracking info - SECURED with wallet auth
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
+import { withWalletAuth, AuthenticatedRequest } from '../../../lib/middleware/walletAuth';
+import { decrypt, PII_FIELDS } from '../../../lib/security/encryption';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+// Decrypt PII fields in shipping address
+function decryptShippingAddress(address: any): any {
+  if (!address) return address;
+  const decrypted = { ...address };
+  for (const field of PII_FIELDS) {
+    if (decrypted[field]) {
+      decrypted[field] = decrypt(decrypted[field]);
+    }
+  }
+  return decrypted;
+}
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { wallet, status: statusFilter } = req.query;
-
-  if (!wallet || typeof wallet !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid wallet address' });
-  }
+  // Get verified wallet from middleware
+  const wallet = (req as AuthenticatedRequest).wallet;
+  const { status: statusFilter } = req.query;
 
   try {
     await dbConnect();
 
-    // Build filter for buyer's orders
+    // Build filter for buyer's orders (using verified wallet)
     const filter: Record<string, any> = {
       buyerWallet: wallet,
       deleted: { $ne: true },
@@ -45,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .sort({ createdAt: -1 })
       .lean();
 
-    // Transform to frontend format
+    // Transform to frontend format (decrypt shipping addresses)
     const orders = escrows.map((escrow: any) => ({
       _id: escrow._id,
       // Asset info
@@ -68,8 +80,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       vendorName: escrow.seller?.businessName || escrow.seller?.username || 'Vendor',
       vendorVerified: escrow.seller?.verified,
       vendorWallet: escrow.sellerWallet,
-      // Buyer's shipping address (what they provided)
-      shippingAddress: escrow.buyerShippingAddress || null,
+      // Buyer's shipping address (decrypted)
+      shippingAddress: decryptShippingAddress(escrow.buyerShippingAddress),
       // Tracking info
       trackingCarrier: escrow.trackingCarrier,
       trackingNumber: escrow.trackingNumber,
@@ -111,3 +123,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
+
+// Wrap with wallet authentication middleware
+export default withWalletAuth(handler);

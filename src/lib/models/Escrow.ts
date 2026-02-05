@@ -66,6 +66,18 @@ const EscrowSchema = new Schema(
       country: { type: String },
     },
 
+    // ========== SHIPMENT REJECTION HISTORY ==========
+    shipmentRejectionHistory: [
+      {
+        rejectedAt: { type: Date, default: Date.now },
+        rejectedBy: { type: String }, // Admin wallet that rejected
+        reason: { type: String },
+        previousTrackingNumber: { type: String },
+        previousTrackingCarrier: { type: String },
+        previousProofUrls: [{ type: String }],
+      },
+    ],
+
     // ========== EASYPOST INTEGRATION (NEW) ==========
     easypostShipmentId: { type: String }, // EasyPost shipment ID
     pendingShipmentId: { type: String }, // Shipment ID before label purchase
