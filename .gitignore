@@ -130,3 +130,49 @@ dist
 .pnp.*
 .vercel
 .env*.local
+.env.development
+.env.production
+.env.staging
+
+# Solana keypair files
+*-keypair.json
+*keypair*.json
+id.json
+*.keypair
+luxhub-squads-member.json
+TestjEC7K2sveRCUUCf9asbGjKXGcw9s3kUekHZXQwf.json
+
+# Solana Anchor build artifacts
+Solana-Anchor/keys/
+Solana-Anchor/target/
+Solana-Anchor/test-ledger/
+Solana-Anchor/.anchor/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS metadata files
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+Desktop.ini
+
+# Replit files (partner uses Replit)
+.replit
+replit.nix
+.upm/
+.config/
+
+# Accidental screenshots and dev artifacts
+Screenshot*.png
+playground-*.mongodb.js
+
+# Private key files
+*.pem
+*.key
+*.p12
+*.pfx

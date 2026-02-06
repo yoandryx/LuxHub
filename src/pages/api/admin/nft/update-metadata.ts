@@ -10,8 +10,9 @@ import AdminRole from '../../../../lib/models/AdminRole';
 
 // Helper to upload metadata to Pinata
 async function uploadMetadataToPinata(metadata: object, title: string): Promise<string> {
-  const pinataApiKey = process.env.NEXT_PUBLIC_PINATA_API_KEY;
-  const pinataSecretKey = process.env.NEXT_PUBLIC_PINATA_SECRET_KEY;
+  const pinataApiKey = process.env.NEXT_PUBLIC_PINATA_API_KEY || process.env.PINATA_API_KEY;
+  const pinataSecretKey =
+    process.env.PINATA_API_SECRET_KEY || process.env.NEXT_PUBLIC_PINATA_SECRET_KEY;
 
   if (!pinataApiKey || !pinataSecretKey) {
     throw new Error('Pinata API keys not configured');
