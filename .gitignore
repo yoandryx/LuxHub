@@ -176,3 +176,7 @@ playground-*.mongodb.js
 *.key
 *.p12
 *.pfx
+
+# Large 3D model files (use optimized versions only)
+# RolexSub.glb is 19MB - only the 2MB optimized version should be committed
+public/3Dmodels/RolexSub.glb
