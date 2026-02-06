@@ -133,6 +133,7 @@ dist
 .env.development
 .env.production
 .env.staging
+.env.vercel
 
 # Solana keypair files
 *-keypair.json

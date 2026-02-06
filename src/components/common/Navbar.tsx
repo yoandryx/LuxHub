@@ -1,127 +1,38 @@
-import { useEffect, useState } from 'react';
+// src/components/common/Navbar.tsx - Main navigation component
+import { useEffect, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import styles from '../../styles/Navbar.module.css';
 import Link from 'next/link';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { CiSearch } from 'react-icons/ci';
-import { useRouter } from 'next/router';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
-import { FaWallet } from 'react-icons/fa6';
-import { usePrivy } from '@privy-io/react-auth';
-import { useWallets } from '@privy-io/react-auth/solana';
 import NotificationBell from './NotificationBell';
+import { useUserRole } from '@/hooks/useUserRole';
+
+// Lazy load dropdown components for better performance
+const UserMenuDropdown = dynamic(() => import('./UserMenuDropdown'), {
+  ssr: false,
+  loading: () => <div style={{ width: 100, height: 36 }} />,
+});
+
+const MobileDrawer = dynamic(() => import('./MobileDrawer'), {
+  ssr: false,
+});
 
 export default function Navbar() {
-  const router = useRouter();
-  const wallet = useWallet();
-
-  // Privy hooks for authentication and wallets
-  const { login, authenticated } = usePrivy();
-  const { wallets: privyWallets } = useWallets();
-  const privyWalletAddress = privyWallets?.[0]?.address;
-
   const [isClient, setIsClient] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isVendor, setIsVendor] = useState(false);
+
+  // Use unified role detection hook
+  const { isAdmin, isVendor, isConnected, walletAddress } = useUserRole();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Get active public key (wallet adapter or Privy)
-  const activePublicKey =
-    wallet.publicKey || (privyWalletAddress ? new PublicKey(privyWalletAddress) : null);
-
-  // Check if connected via any method
-  const isConnected = wallet.connected || (authenticated && !!privyWalletAddress);
-
-  // Get display address
-  const displayAddress = activePublicKey
-    ? `${activePublicKey.toBase58().slice(0, 4)}...${activePublicKey.toBase58().slice(-4)}`
-    : null;
-
-  // Handle wallet button click - opens Privy login modal
-  const handleWalletClick = () => {
-    if (!isConnected) {
-      login();
-    }
-  };
-
-  // Check admin status via off-chain VaultConfig (MongoDB)
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!activePublicKey) {
-        setIsAdmin(false);
-        return;
-      }
-
-      try {
-        // Check against VaultConfig authorizedAdmins (off-chain)
-        const res = await fetch('/api/vault/config');
-        if (res.ok) {
-          const data = await res.json();
-          const authorizedAdmins = data.config?.authorizedAdmins || [];
-          const walletAddress = activePublicKey.toBase58();
-
-          // Check if wallet is in authorizedAdmins list
-          const isAuthorized = authorizedAdmins.some(
-            (admin: { walletAddress: string }) => admin.walletAddress === walletAddress
-          );
-
-          // Also check SUPER_ADMIN_WALLETS env var
-          const superAdmins = (process.env.NEXT_PUBLIC_SUPER_ADMIN_WALLETS || '')
-            .split(',')
-            .map((w) => w.trim());
-
-          setIsAdmin(isAuthorized || superAdmins.includes(walletAddress));
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (err) {
-        console.error('Navbar admin check error:', err);
-        setIsAdmin(false);
-      }
-    };
-
-    checkAdmin();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePublicKey?.toBase58()]);
-
-  // Check vendor status
-  useEffect(() => {
-    const checkVendor = async () => {
-      if (!activePublicKey) {
-        setIsVendor(false);
-        return;
-      }
-
-      try {
-        const res = await fetch(`/api/vendor/profile?wallet=${activePublicKey.toBase58()}`);
-        if (res.ok) {
-          const data = await res.json();
-          setIsVendor(!!data.wallet);
-        } else {
-          setIsVendor(false);
-        }
-      } catch (err) {
-        console.error('Navbar vendor check error:', err);
-        setIsVendor(false);
-      }
-    };
-
-    checkVendor();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePublicKey?.toBase58()]);
-
-  const toggleMenu = () => setMenuOpen(!menuOpen);
-  const toggleSearch = () => setSearchOpen(!searchOpen);
-  const closeMenu = () => setMenuOpen(false);
-  const handleLogin = () => {
-    router.push('/login');
-    closeMenu();
-  };
+  const toggleMenu = useCallback(() => setMenuOpen((prev) => !prev), []);
+  const toggleSearch = useCallback(() => setSearchOpen((prev) => !prev), []);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
     <>
@@ -147,9 +58,6 @@ export default function Navbar() {
             <Link href="/vendors" onClick={closeMenu}>
               Vendors
             </Link>
-            {/* <Link href="/luxhubHolders" onClick={closeMenu}>
-              Holders
-            </Link> */}
             {isAdmin && (
               <Link href="/createNFT" onClick={closeMenu}>
                 Mint NFT
@@ -160,8 +68,8 @@ export default function Navbar() {
                 Admins
               </Link>
             )}
-            {isVendor && activePublicKey && (
-              <Link href={`/vendor/${activePublicKey.toBase58()}`} onClick={closeMenu}>
+            {isVendor && walletAddress && (
+              <Link href={`/vendor/${walletAddress}`} onClick={closeMenu}>
                 Profile
               </Link>
             )}
@@ -179,21 +87,10 @@ export default function Navbar() {
             </div>
 
             {/* Notification Bell */}
-            {isConnected && (
-              <NotificationBell walletAddress={activePublicKey?.toBase58() || null} />
-            )}
+            {isConnected && <NotificationBell walletAddress={walletAddress} />}
 
-            <div className={styles.walletContainer}>
-              <FaWallet className={styles.icon} />
-              {isClient && (
-                <button
-                  className="wallet-adapter-button wallet-adapter-button-trigger"
-                  onClick={handleWalletClick}
-                >
-                  <span>{isConnected ? displayAddress : 'Select Wallet'}</span>
-                </button>
-              )}
-            </div>
+            {/* User Menu Dropdown - replaces old wallet button */}
+            {isClient && <UserMenuDropdown />}
           </div>
         </nav>
       </div>
@@ -223,22 +120,9 @@ export default function Navbar() {
               </div>
 
               {/* Mobile Notification Bell */}
-              {isConnected && (
-                <NotificationBell walletAddress={activePublicKey?.toBase58() || null} />
-              )}
+              {isConnected && <NotificationBell walletAddress={walletAddress} />}
 
-              <div className={styles.mobileWalletContainer}>
-                <FaWallet className={styles.icon} />
-                {isClient && (
-                  <button
-                    className="wallet-adapter-button wallet-adapter-button-trigger"
-                    onClick={handleWalletClick}
-                  >
-                    <span>{isConnected ? displayAddress : 'Select Wallet'}</span>
-                  </button>
-                )}
-              </div>
-
+              {/* Mobile Menu Toggle */}
               <div className={styles.menuIcon} onClick={toggleMenu}>
                 {menuOpen ? (
                   <FaTimes className={styles.icon} />
@@ -264,57 +148,8 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      <div className={`${styles.menuContainer} ${menuOpen ? styles.open : ''}`}>
-        <div className={styles.mobileMenuContent}>
-          <div className={styles.mobileNavSection}>
-            <div className={styles.headerTab}>MARKETPLACE</div>
-            <Link href="/marketplace" onClick={closeMenu}>
-              Marketplace
-            </Link>
-            <Link href="/pools" onClick={closeMenu}>
-              Investment Pools
-            </Link>
-            {!isAdmin && (
-              <Link href="/learnMore" onClick={closeMenu}>
-                Learn More
-              </Link>
-            )}
-          </div>
-
-          <div className={styles.mobileNavSection}>
-            <div className={styles.headerTab}>LUXHUB</div>
-            <Link href="/vendors" onClick={closeMenu}>
-              Vendors
-            </Link>
-            {/* <Link href="/luxhubHolders" onClick={closeMenu}>
-              Holders
-            </Link> */}
-            {isAdmin && (
-              <Link href="/adminDashboard" onClick={closeMenu}>
-                Admins
-              </Link>
-            )}
-            {isAdmin && (
-              <Link href="/createNFT" onClick={closeMenu}>
-                Mint
-              </Link>
-            )}
-          </div>
-
-          <div className={styles.mobileNavSection}>
-            <div className={styles.headerTab}>ACCOUNT</div>
-            {isVendor && activePublicKey && (
-              <Link href={`/vendor/${activePublicKey.toBase58()}`} onClick={closeMenu}>
-                Profile
-              </Link>
-            )}
-            <Link href="/" onClick={closeMenu}>
-              Home
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* Mobile Drawer - replaces old mobile menu */}
+      {isClient && <MobileDrawer isOpen={menuOpen} onClose={closeMenu} />}
     </>
   );
 }
