@@ -6,15 +6,15 @@ const require = createRequire(import.meta.url);
 const nextConfig = {
   reactStrictMode: true,
   env: {
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    // PUBLIC variables (safe for client-side)
     NEXT_PUBLIC_SOLANA_ENDPOINT: process.env.NEXT_PUBLIC_SOLANA_ENDPOINT,
-    DEVNET_KEYPAIR: process.env.DEVNET_KEYPAIR,
     PROGRAM_ID: process.env.PROGRAM_ID,
     NEXT_PUBLIC_PINATA_API_KEY: process.env.PINATA_API_KEY,
-    NEXT_PUBLIC_PINATA_SECRET_KEY: process.env.PINATA_API_SECRET_KEY,
-    // NEXT_PUBLIC_GATEWAY_URL: "https://orange-petite-wolf-341.mypinata.cloud/ipfs/",
-    NEXT_PUBLIC_GATEWAY_URL: "https://teal-working-frog-718.mypinata.cloud/ipfs/",
+    NEXT_PUBLIC_GATEWAY_URL: process.env.NEXT_PUBLIC_GATEWAY_URL || "https://teal-working-frog-718.mypinata.cloud/ipfs/",
     NEXT_PUBLIC_LUXHUB_WALLET: process.env.NEXT_PUBLIC_LUXHUB_WALLET,
+    // NOTE: STRIPE_SECRET_KEY, DEVNET_KEYPAIR, and PINATA_SECRET_KEY
+    // are accessed server-side only via process.env in API routes.
+    // Do NOT add them here — the env block exposes values to the client bundle.
   },
   // Image optimization configuration for Irys/IPFS gateways
   images: {

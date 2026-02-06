@@ -28,8 +28,9 @@ function getStorageProvider(): StorageProvider {
 }
 
 // Pinata configuration
-const PINATA_API_KEY = process.env.NEXT_PUBLIC_PINATA_API_KEY;
-const PINATA_SECRET_KEY = process.env.NEXT_PUBLIC_PINATA_SECRET_KEY;
+const PINATA_API_KEY = process.env.NEXT_PUBLIC_PINATA_API_KEY || process.env.PINATA_API_KEY;
+const PINATA_SECRET_KEY =
+  process.env.PINATA_API_SECRET_KEY || process.env.NEXT_PUBLIC_PINATA_SECRET_KEY;
 const PINATA_JWT = process.env.PINATA_JWT;
 const PINATA_GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
 
