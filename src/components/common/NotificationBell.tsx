@@ -1,20 +1,9 @@
 // src/components/common/NotificationBell.tsx
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { FaBell } from 'react-icons/fa';
 import { useRouter } from 'next/router';
+import { useNotifications, Notification } from '@/hooks/useNotifications';
 import styles from '../../styles/NotificationBell.module.css';
-
-interface Notification {
-  _id: string;
-  type: string;
-  title: string;
-  message: string;
-  read: boolean;
-  createdAt: string;
-  metadata?: {
-    actionUrl?: string;
-  };
-}
 
 interface NotificationBellProps {
   walletAddress: string | null;
@@ -22,68 +11,57 @@ interface NotificationBellProps {
 
 export default function NotificationBell({ walletAddress }: NotificationBellProps) {
   const router = useRouter();
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [localNotifications, setLocalNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Use SWR-based hook for unread count (auto-polls every 30s)
+  const {
+    unreadCount,
+    notifications: swrNotifications,
+    refresh,
+    fetchNotifications,
+  } = useNotifications(walletAddress);
+
+  // Local unread count for optimistic updates
+  const [localUnreadCount, setLocalUnreadCount] = useState(unreadCount);
+
+  // Sync local state with SWR data
+  useEffect(() => {
+    setLocalUnreadCount(unreadCount);
+  }, [unreadCount]);
+
+  useEffect(() => {
+    if (swrNotifications.length > 0) {
+      setLocalNotifications(swrNotifications);
+    }
+  }, [swrNotifications]);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Fetch unread count
-  useEffect(() => {
-    const fetchUnreadCount = async () => {
-      if (!walletAddress) {
-        setUnreadCount(0);
-        return;
-      }
-
-      try {
-        const res = await fetch(`/api/notifications/unread-count?wallet=${walletAddress}`);
-        if (res.ok) {
-          const data = await res.json();
-          setUnreadCount(data.count || 0);
-        }
-      } catch (error) {
-        console.error('Failed to fetch unread count:', error);
-      }
-    };
-
-    fetchUnreadCount();
-
-    // Poll every 30 seconds for updates
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [walletAddress]);
-
-  // Fetch notifications for dropdown
-  const fetchNotifications = async () => {
+  // Fetch notifications when dropdown opens
+  const handleFetchNotifications = useCallback(async () => {
     if (!walletAddress) return;
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/notifications/list?wallet=${walletAddress}&limit=5`);
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      await fetchNotifications();
     } finally {
       setLoading(false);
     }
-  };
+  }, [walletAddress, fetchNotifications]);
 
   // Toggle dropdown
-  const handleBellClick = () => {
+  const handleBellClick = useCallback(() => {
     if (!showDropdown) {
-      fetchNotifications();
+      handleFetchNotifications();
     }
     setShowDropdown(!showDropdown);
-  };
+  }, [showDropdown, handleFetchNotifications]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -98,42 +76,48 @@ export default function NotificationBell({ walletAddress }: NotificationBellProp
   }, []);
 
   // Mark notification as read and navigate
-  const handleNotificationClick = async (notification: Notification) => {
-    if (!notification.read) {
-      try {
-        await fetch('/api/notifications/mark-read', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notificationId: notification._id }),
-        });
+  const handleNotificationClick = useCallback(
+    async (notification: Notification) => {
+      if (!notification.read) {
+        try {
+          await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notificationId: notification._id }),
+          });
 
-        // Update local state
-        setNotifications((prev) =>
-          prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch (error) {
-        console.error('Failed to mark notification as read:', error);
+          // Update local state optimistically
+          setLocalNotifications((prev) =>
+            prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
+          );
+          setLocalUnreadCount((prev) => Math.max(0, prev - 1));
+
+          // Refresh SWR cache in background
+          refresh();
+        } catch (error) {
+          console.error('Failed to mark notification as read:', error);
+        }
       }
-    }
 
-    // Navigate to action URL or notifications page
-    setShowDropdown(false);
-    if (notification.metadata?.actionUrl) {
-      router.push(notification.metadata.actionUrl);
-    } else {
-      router.push('/notifications');
-    }
-  };
+      // Navigate to action URL or notifications page
+      setShowDropdown(false);
+      if (notification.metadata?.actionUrl) {
+        router.push(notification.metadata.actionUrl);
+      } else {
+        router.push('/notifications');
+      }
+    },
+    [router, refresh]
+  );
 
   // View all notifications
-  const handleViewAll = () => {
+  const handleViewAll = useCallback(() => {
     setShowDropdown(false);
     router.push('/notifications');
-  };
+  }, [router]);
 
   // Mark all as read
-  const handleMarkAllRead = async () => {
+  const handleMarkAllRead = useCallback(async () => {
     if (!walletAddress) return;
 
     try {
@@ -143,12 +127,16 @@ export default function NotificationBell({ walletAddress }: NotificationBellProp
         body: JSON.stringify({ wallet: walletAddress, markAll: true }),
       });
 
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnreadCount(0);
+      // Update local state optimistically
+      setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setLocalUnreadCount(0);
+
+      // Refresh SWR cache in background
+      refresh();
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
-  };
+  }, [walletAddress, refresh]);
 
   // Format time ago
   const formatTimeAgo = (dateString: string) => {
@@ -174,8 +162,8 @@ export default function NotificationBell({ walletAddress }: NotificationBellProp
     <div className={styles.bellContainer} ref={dropdownRef}>
       <div className={styles.bellButton} onClick={handleBellClick}>
         <FaBell className={styles.bellIcon} />
-        {unreadCount > 0 && (
-          <div className={styles.badge}>{unreadCount > 99 ? '99+' : unreadCount}</div>
+        {localUnreadCount > 0 && (
+          <div className={styles.badge}>{localUnreadCount > 99 ? '99+' : localUnreadCount}</div>
         )}
       </div>
 
@@ -183,7 +171,7 @@ export default function NotificationBell({ walletAddress }: NotificationBellProp
         <div className={styles.dropdown}>
           <div className={styles.dropdownHeader}>
             <span className={styles.dropdownTitle}>Notifications</span>
-            {unreadCount > 0 && (
+            {localUnreadCount > 0 && (
               <button className={styles.markAllBtn} onClick={handleMarkAllRead}>
                 Mark all read
               </button>
@@ -193,10 +181,10 @@ export default function NotificationBell({ walletAddress }: NotificationBellProp
           <div className={styles.dropdownContent}>
             {loading ? (
               <div className={styles.loadingState}>Loading...</div>
-            ) : notifications.length === 0 ? (
+            ) : localNotifications.length === 0 ? (
               <div className={styles.emptyState}>No notifications yet</div>
             ) : (
-              notifications.map((notification) => (
+              localNotifications.map((notification) => (
                 <div
                   key={notification._id}
                   className={`${styles.notificationItem} ${notification.read ? styles.read : styles.unread}`}
