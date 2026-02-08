@@ -1,6 +1,15 @@
-// src/components/common/UserMenuDropdown.tsx - User profile dropdown menu
+// src/components/common/UserMenuDropdown.tsx - Refined user profile dropdown
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
-import { FaWallet, FaCopy, FaCheck, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
+import {
+  FaWallet,
+  FaCopy,
+  FaCheck,
+  FaSignOutAlt,
+  FaChevronDown,
+  FaExternalLinkAlt,
+  FaCreditCard,
+} from 'react-icons/fa';
+import { SiSolana } from 'react-icons/si';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
@@ -8,6 +17,11 @@ import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { useUserRole, UserRole } from '@/hooks/useUserRole';
 import RoleNavItems from './RoleNavItems';
 import styles from '@/styles/UserMenuDropdown.module.css';
+
+const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? 'https://api.devnet.solana.com';
+const explorerUrl = endpoint.includes('devnet')
+  ? 'https://explorer.solana.com/address/'
+  : 'https://solscan.io/account/';
 
 interface UserMenuDropdownProps {
   className?: string;
@@ -111,6 +125,17 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
     }
   }, [walletAddress]);
 
+  // Open explorer
+  const handleExplorer = useCallback(() => {
+    if (!walletAddress) return;
+    window.open(`${explorerUrl}${walletAddress}?cluster=devnet`, '_blank', 'noopener,noreferrer');
+  }, [walletAddress]);
+
+  // Open fund page
+  const handleFund = useCallback(() => {
+    window.open('https://buy.moonpay.com/?defaultCurrencyCode=sol', '_blank');
+  }, []);
+
   // Disconnect wallet
   const handleDisconnect = useCallback(async () => {
     try {
@@ -137,7 +162,9 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
     return null;
   }
 
-  const displayName = vendorProfile?.username || vendorProfile?.name || displayAddress;
+  const displayName = vendorProfile?.username
+    ? `@${vendorProfile.username}`
+    : vendorProfile?.name || displayAddress;
 
   return (
     <div ref={dropdownRef} className={`${styles.container} ${className}`}>
@@ -167,37 +194,54 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
         <div className={styles.dropdown} role="menu">
           {isConnected ? (
             <>
-              {/* Profile Section */}
-              <div className={styles.profileSection}>
-                <Avatar src={vendorProfile?.avatarUrl} large />
-                <div className={styles.profileInfo}>
-                  <span className={styles.username}>{displayName}</span>
-                  <RoleBadge role={role} />
+              {/* Identity Header */}
+              <div className={styles.identityHeader}>
+                <div className={styles.identityRow}>
+                  <Avatar src={vendorProfile?.avatarUrl} large />
+                  <div className={styles.identityInfo}>
+                    <span className={styles.username}>{displayName}</span>
+                    <RoleBadge role={role} />
+                  </div>
                 </div>
               </div>
 
-              {/* Wallet Info Section */}
-              <div className={styles.walletSection}>
-                <div className={styles.walletInfo}>
-                  <span className={styles.walletLabel}>Wallet</span>
-                  <span className={styles.walletAddress}>{displayAddress}</span>
+              {/* Wallet + Balance Section */}
+              <div className={styles.walletPanel}>
+                <div className={styles.balanceRow}>
+                  <div className={styles.balanceDisplay}>
+                    <SiSolana className={styles.solIcon} />
+                    <span className={styles.balance}>
+                      {balance !== null ? balance.toFixed(4) : '—'}
+                    </span>
+                    <span className={styles.balanceLabel}>SOL</span>
+                  </div>
                 </div>
-                <button
-                  className={`${styles.copyButton} ${copied ? styles.copied : ''}`}
-                  onClick={handleCopyAddress}
-                  title="Copy address"
-                >
-                  {copied ? <FaCheck /> : <FaCopy />}
-                </button>
+                <div className={styles.walletAddressRow}>
+                  <span className={styles.walletAddress}>{walletAddress}</span>
+                </div>
+                <div className={styles.walletTools}>
+                  <button
+                    className={`${styles.toolButton} ${copied ? styles.copied : ''}`}
+                    onClick={handleCopyAddress}
+                    title="Copy address"
+                  >
+                    {copied ? <FaCheck /> : <FaCopy />}
+                    <span>{copied ? 'Copied' : 'Copy'}</span>
+                  </button>
+                  <button
+                    className={styles.toolButton}
+                    onClick={handleExplorer}
+                    title="View on Explorer"
+                  >
+                    <FaExternalLinkAlt />
+                    <span>Explorer</span>
+                  </button>
+                  <button className={styles.toolButton} onClick={handleFund} title="Buy SOL">
+                    <FaCreditCard />
+                    <span>Fund</span>
+                  </button>
+                </div>
               </div>
-
-              {/* Balance Section */}
-              {balance !== null && (
-                <div className={styles.balanceSection}>
-                  <span className={styles.balance}>{balance.toFixed(4)}</span>
-                  <span className={styles.balanceLabel}>SOL</span>
-                </div>
-              )}
 
               {/* Navigation Section */}
               {isLoading ? (
@@ -216,17 +260,18 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
               <div className={styles.disconnectSection}>
                 <button className={styles.disconnectButton} onClick={handleDisconnect}>
                   <FaSignOutAlt />
-                  <span>Disconnect</span>
+                  <span>Sign Out</span>
                 </button>
               </div>
             </>
           ) : (
             /* Connect CTA */
             <div className={styles.connectCta}>
-              <FaWallet style={{ fontSize: 32, color: '#c8a1ff' }} />
-              <p className={styles.connectText}>
-                Connect your wallet to access your orders, offers, and manage your profile.
-              </p>
+              <div className={styles.connectIcon}>
+                <FaWallet />
+              </div>
+              <p className={styles.connectTitle}>Connect Wallet</p>
+              <p className={styles.connectText}>Access orders, investments, and your collection.</p>
               <button className={styles.connectButton} onClick={handleConnect}>
                 <FaWallet />
                 <span>Connect Wallet</span>

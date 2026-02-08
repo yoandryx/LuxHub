@@ -1,233 +1,324 @@
 /* ========================================
-   LUXHUB TRADING TERMINAL
-   Pool Card - Asset Tile
+   LUXHUB POOL CARD - Glassmorphic
+   Animated • Premium • Pump.fun-inspired
    ======================================== */
 
-.poolCard {
-  /* LuxHub Primary - Purple */
+.card {
   --accent: #c8a1ff;
-  --accent-dim: rgba(200, 161, 255, 0.15);
-  --accent-glow: rgba(200, 161, 255, 0.4);
-  --accent-bright: #d8bcff;
-
-  /* Secondary - Green for positive indicators */
-  --positive: #00ff88;
-  --positive-dim: rgba(0, 255, 136, 0.15);
-  --positive-glow: rgba(0, 255, 136, 0.4);
-
-  /* Status Colors */
-  --negative: #ff4757;
-  --warning: #ffa502;
-  --info: #00d4ff;
-
-  /* Background Layers */
-  --bg-deep: #08080c;
-  --bg-base: #0c0c12;
-  --bg-surface: #101018;
-  --bg-elevated: #16161f;
-  --bg-card: #1c1c28;
-  --bg-hover: #222230;
-
-  /* Borders */
-  --border-dim: rgba(200, 161, 255, 0.08);
-  --border-default: rgba(200, 161, 255, 0.15);
-  --border-accent: rgba(200, 161, 255, 0.4);
-
-  /* Text */
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
+  --accent-dim: rgba(200, 161, 255, 0.12);
+  --accent-glow: rgba(200, 161, 255, 0.25);
+  --positive: #4ade80;
+  --positive-dim: rgba(74, 222, 128, 0.12);
+  --bg-card: rgba(24, 24, 38, 0.65);
+  --bg-elevated: rgba(32, 32, 48, 0.5);
+  --border: rgba(200, 161, 255, 0.08);
+  --border-hover: rgba(200, 161, 255, 0.25);
+  --text-primary: #f5f5f7;
+  --text-secondary: rgba(255, 255, 255, 0.65);
   --text-muted: rgba(255, 255, 255, 0.4);
-
-  /* Typography */
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  --font-display: 'Space Grotesk', 'Inter', -apple-system, sans-serif;
+  --font-display: 'Outfit', -apple-system, sans-serif;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --radius: 16px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   position: relative;
   width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-dim);
-  border-radius: 12px;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: var(--font-mono);
+  transition: all var(--transition);
+  font-family: var(--font-body);
 }
 
-/* Top glow line */
-.poolCard::before {
+/* Top accent glow line */
+.card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 1px;
   background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.4s ease;
+  z-index: 2;
 }
 
-.poolCard:hover {
-  transform: translateY(-4px);
-  border-color: var(--border-accent);
+.card:hover {
+  transform: translateY(-6px);
+  border-color: var(--border-hover);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    0 0 40px rgba(200, 161, 255, 0.1);
+    0 16px 48px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(200, 161, 255, 0.06);
 }
 
-.poolCard:hover::before {
+.card:hover::before {
   opacity: 1;
 }
 
-/* ========== IMAGE SECTION ========== */
-.imageContainer {
-  position: relative;
+/* Shine sweep on hover */
+.shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
   width: 100%;
-  aspect-ratio: 16/10;
-  overflow: hidden;
-  background: var(--bg-deep);
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(200, 161, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.04) 50%,
+    rgba(200, 161, 255, 0.03) 55%,
+    transparent 60%
+  );
+  z-index: 3;
+  pointer-events: none;
+  transition: none;
 }
 
-.poolImage {
+.card:hover .shine {
+  animation: shineSweep 0.6s ease-out forwards;
+}
+
+@keyframes shineSweep {
+  to {
+    left: 100%;
+  }
+}
+
+/* ===== IMAGE SECTION ===== */
+.imageWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: rgba(10, 10, 15, 0.8);
+}
+
+.image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition:
-    transform 0.4s ease,
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
     filter 0.3s ease;
-  filter: brightness(0.9) saturate(0.95);
+  filter: brightness(0.92) saturate(0.95);
 }
 
-.poolCard:hover .poolImage {
-  transform: scale(1.05);
+.card:hover .image {
+  transform: scale(1.06);
   filter: brightness(1) saturate(1);
+}
+
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(10, 10, 15, 0.7) 100%);
+  pointer-events: none;
 }
 
 /* Status Badge */
 .statusBadge {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 0.55rem;
+  top: 12px;
+  left: 12px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--bg-deep);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  letter-spacing: 0.06em;
+  color: #0a0a0f;
+  z-index: 1;
 }
 
 /* Pool Number */
-.poolNumber {
+.poolNum {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid var(--accent);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.55rem;
-  font-weight: 700;
-  color: var(--accent);
+  top: 12px;
+  right: 12px;
+  background: rgba(10, 10, 15, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-hover);
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
+  z-index: 1;
 }
 
-/* Bags Token Badge */
-.bagsBadge {
+/* Hot Badge - Animated */
+.hotBadge {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
+  bottom: 12px;
+  right: 12px;
   display: flex;
   align-items: center;
-  gap: 5px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 100%);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.5rem;
+  gap: 4px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  border-radius: 100px;
+  font-size: 0.6rem;
   font-weight: 700;
-  color: var(--bg-deep);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.06em;
+  color: #fff;
+  z-index: 1;
+  animation: hotPulse 2s ease-in-out infinite;
+}
+
+@keyframes hotPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.hotBadge svg {
+  font-size: 0.7rem;
+}
+
+/* Tradeable Badge */
+.tradeableBadge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
+  border-radius: 100px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0a0a0f;
+  z-index: 1;
   box-shadow: 0 0 12px var(--accent-glow);
 }
 
-.bagsIconSmall {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
+/* ===== CONTENT SECTION ===== */
+.content {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-/* ========== CONTENT SECTION ========== */
-.poolContent {
-  padding: 14px;
+/* Title Row */
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.assetTitle {
+.titleInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.brand {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.title {
   font-family: var(--font-display);
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 12px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
-/* ========== PROGRESS SECTION ========== */
-.progressSection {
-  margin-bottom: 12px;
+.roiBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--positive-dim);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--positive);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.progressHeader {
+.roiBadge svg {
+  font-size: 0.7rem;
+}
+
+/* ===== PROGRESS BAR ===== */
+.progressWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressTop {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
-  font-size: 0.55rem;
+}
+
+.progressLabel {
+  font-size: 0.68rem;
+  font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.06em;
 }
 
 .progressPercent {
-  color: var(--positive);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
   font-weight: 700;
-  font-size: 0.7rem;
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 8px var(--positive-glow);
 }
 
-.progressBar {
+.progressTrack {
   width: 100%;
-  height: 4px;
-  background: var(--bg-elevated);
-  border-radius: 2px;
+  height: 6px;
+  background: rgba(200, 161, 255, 0.08);
+  border-radius: 100px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #00cc6a 0%, var(--positive) 100%);
-  border-radius: 2px;
-  transition: width 0.4s ease;
+  background: linear-gradient(90deg, #a855f7 0%, var(--accent) 100%);
+  border-radius: 100px;
+  transition: width 0.5s ease;
   position: relative;
-  box-shadow: 0 0 8px var(--positive-glow);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .progressFill::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer 2s infinite;
+  animation: shimmer 2.5s ease-in-out infinite;
 }
 
 @keyframes shimmer {
@@ -239,161 +330,170 @@
   }
 }
 
-.progressStats {
+.progressBottom {
   display: flex;
   justify-content: space-between;
-  margin-top: 6px;
-  font-size: 0.5rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   font-variant-numeric: tabular-nums;
 }
 
-/* ========== STATS GRID ========== */
-.statsGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  margin-bottom: 12px;
-  background: var(--border-dim);
-  border: 1px solid var(--border-dim);
-  border-radius: 8px;
-  overflow: hidden;
+.inlineIcon {
+  vertical-align: -2px;
+  font-size: 0.7rem;
+  margin-right: 2px;
+}
+
+/* ===== STATS ROW ===== */
+.statsRow {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background: rgba(200, 161, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 
 .stat {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
-  padding: 10px;
-  background: var(--bg-elevated);
+  text-align: center;
 }
 
 .statLabel {
-  font-size: 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.06em;
 }
 
 .statValue {
-  font-size: 0.8rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
-/* ========== BUTTONS ========== */
-.investButton {
+.statDivider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* ===== CTA BUTTONS ===== */
+.ctaButton {
   width: 100%;
-  padding: 10px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
+  background-size: 200% auto;
   border: none;
-  border-radius: 8px;
-  color: var(--bg-deep);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
+  border-radius: 12px;
+  color: #0a0a0f;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
   box-shadow: 0 4px 16px var(--accent-glow);
 }
 
-.investButton:hover {
+.ctaButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(200, 161, 255, 0.35);
+  box-shadow: 0 8px 28px rgba(200, 161, 255, 0.35);
+  background-position: right center;
 }
 
-.viewButton {
-  width: 100%;
-  padding: 10px;
-  background: var(--accent-dim);
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
+.ctaShares {
+  font-size: 0.68rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  opacity: 0.8;
+}
+
+.ctaButtonSecondary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 12px;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
 }
 
-.viewButton:hover {
-  background: rgba(200, 161, 255, 0.25);
+.ctaButtonSecondary:hover {
+  background: rgba(200, 161, 255, 0.2);
+  border-color: var(--accent);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--accent-glow);
 }
 
-/* ========== RESPONSIVE - MOBILE ========== */
+.ctaTime {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.ctaTime svg {
+  font-size: 0.7rem;
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 480px) {
-  .poolCard {
-    border-radius: 10px;
+  .card {
+    border-radius: 14px;
   }
 
-  .imageContainer {
-    aspect-ratio: 16/9;
+  .imageWrap {
+    aspect-ratio: 16 / 9;
   }
 
-  .poolContent {
-    padding: 12px;
+  .content {
+    padding: 14px;
+    gap: 12px;
   }
 
-  .assetTitle {
-    font-size: 0.85rem;
-    margin-bottom: 10px;
+  .title {
+    font-size: 0.92rem;
   }
 
-  .progressSection {
-    margin-bottom: 10px;
-  }
-
-  .progressHeader {
-    font-size: 0.5rem;
-  }
-
-  .progressPercent {
-    font-size: 0.65rem;
-  }
-
-  .statsGrid {
-    margin-bottom: 10px;
-  }
-
-  .stat {
-    padding: 8px;
+  .statsRow {
+    padding: 10px 12px;
   }
 
   .statLabel {
-    font-size: 0.4rem;
+    font-size: 0.52rem;
   }
 
   .statValue {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
   }
 
-  .investButton,
-  .viewButton {
-    padding: 9px;
-    font-size: 0.6rem;
-    border-radius: 6px;
+  .ctaButton,
+  .ctaButtonSecondary {
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    border-radius: 10px;
   }
 
   .statusBadge {
-    font-size: 0.5rem;
-    padding: 3px 7px;
-  }
-
-  .poolNumber {
-    font-size: 0.5rem;
-    padding: 3px 6px;
-  }
-
-  .bagsBadge {
-    font-size: 0.45rem;
-    padding: 3px 6px;
+    font-size: 0.6rem;
+    padding: 3px 10px;
   }
 }

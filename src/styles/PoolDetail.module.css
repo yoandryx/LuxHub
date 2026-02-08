@@ -1,44 +1,110 @@
+/* ========================================
+   LUXHUB POOL DETAIL - Glassmorphic Modal
+   Premium Investment Experience
+   ======================================== */
+
+/* ===== OVERLAY ===== */
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  inset: 0;
+  background: rgba(5, 5, 10, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  animation: fadeIn 0.25s ease-out;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===== MODAL ===== */
 .modal {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.12);
+  --accent-glow: rgba(200, 161, 255, 0.25);
+  --positive: #4ade80;
+  --positive-dim: rgba(74, 222, 128, 0.12);
+  --bg-card: rgba(20, 18, 30, 0.95);
+  --bg-elevated: rgba(32, 32, 48, 0.5);
+  --border: rgba(200, 161, 255, 0.1);
+  --border-hover: rgba(200, 161, 255, 0.25);
+  --text-primary: #f5f5f7;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --font-display: 'Outfit', -apple-system, sans-serif;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --radius: 20px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
   position: relative;
   width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  background: rgba(20, 15, 30, 0.95);
-  border: 1px solid rgba(200, 161, 255, 0.2);
-  border-radius: 20px;
+  max-width: 920px;
+  max-height: 92vh;
+  background: var(--bg-card);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius);
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-body);
+  box-shadow:
+    0 0 80px rgba(200, 161, 255, 0.08),
+    0 32px 80px rgba(0, 0, 0, 0.5);
+  animation: modalSlideUp 0.35s ease-out;
 }
 
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Custom scrollbar */
+.modal::-webkit-scrollbar {
+  width: 5px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background: rgba(200, 161, 255, 0.2);
+  border-radius: 10px;
+}
+
+/* Close Button */
 .closeButton {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(200, 161, 255, 0.2);
-  border-radius: 50%;
-  color: #fff;
-  font-size: 24px;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 1.5rem;
   cursor: pointer;
   z-index: 10;
-  transition: all 0.3s ease;
+  transition: all var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -46,20 +112,23 @@
 }
 
 .closeButton:hover {
-  background: rgba(200, 161, 255, 0.2);
-  border-color: #c8a1ff;
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
+/* ===== CONTENT GRID ===== */
 .content {
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 500px;
 }
 
-/* Image Section */
+/* ===== IMAGE SECTION ===== */
 .imageSection {
   position: relative;
-  background: #000;
+  background: rgba(0, 0, 0, 0.4);
+  overflow: hidden;
 }
 
 .assetImage {
@@ -72,138 +141,175 @@
   position: absolute;
   top: 20px;
   left: 20px;
-  padding: 8px 16px;
-  border-radius: 25px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
-  color: #000;
+  letter-spacing: 0.06em;
+  color: #0a0a0f;
 }
 
-/* Details Section */
+/* ===== DETAILS SECTION ===== */
 .detailsSection {
-  padding: 30px;
+  padding: 32px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto;
 }
 
 .header {
-  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
-  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
 }
 
 .poolId {
-  font-size: 12px;
-  color: #c8a1ff;
+  font-size: 0.72rem;
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .assetTitle {
-  font-size: 24px;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 8px 0 4px 0;
+  letter-spacing: -0.02em;
 }
 
 .brand {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
+/* Status Description */
 .statusDescription {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
   margin: 0;
-  padding: 10px 15px;
-  background: rgba(200, 161, 255, 0.05);
-  border-left: 3px solid #c8a1ff;
-  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+  background: var(--accent-dim);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  line-height: 1.5;
 }
 
-/* Progress Section */
+/* ===== PROGRESS SECTION ===== */
 .progressSection {
-  background: rgba(255, 255, 255, 0.03);
-  padding: 15px;
-  border-radius: 12px;
-  border: 1px solid rgba(200, 161, 255, 0.1);
+  background: rgba(200, 161, 255, 0.04);
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
 }
 
 .progressHeader {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
   margin-bottom: 10px;
+  font-weight: 500;
 }
 
 .progressBar {
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: rgba(200, 161, 255, 0.08);
+  border-radius: 100px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #c8a1ff 0%, #9366d2 100%);
-  border-radius: 4px;
-  transition: width 0.5s ease;
+  background: linear-gradient(90deg, #a855f7 0%, var(--accent) 100%);
+  border-radius: 100px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px var(--accent-glow);
+  position: relative;
+}
+
+.progressFill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .progressMeta {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
-/* Metrics Grid */
+/* ===== METRICS GRID ===== */
 .metricsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .metric {
-  background: rgba(255, 255, 255, 0.03);
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(200, 161, 255, 0.08);
+  background: rgba(200, 161, 255, 0.04);
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+
+.metric:hover {
+  border-color: var(--border-hover);
+  background: rgba(200, 161, 255, 0.06);
 }
 
 .metricLabel {
   display: block;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.65rem;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.06em;
   margin-bottom: 4px;
+  font-weight: 500;
 }
 
 .metricValue {
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-/* User Investment */
+/* ===== USER INVESTMENT ===== */
 .userInvestment {
-  background: rgba(200, 161, 255, 0.1);
-  padding: 15px;
-  border-radius: 12px;
-  border: 1px solid rgba(200, 161, 255, 0.2);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.08) 0%, rgba(139, 92, 246, 0.06) 100%);
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(200, 161, 255, 0.15);
 }
 
 .userInvestment h4 {
-  font-size: 12px;
-  color: #c8a1ff;
-  margin: 0 0 12px 0;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  color: var(--accent);
+  margin: 0 0 14px 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .userStats {
@@ -217,236 +323,247 @@
 
 .userStats span {
   display: block;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.65rem;
+  color: var(--text-muted);
   margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .userStats strong {
-  font-size: 14px;
-  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-/* Action Tabs - Invest/Trade */
+/* ===== ACTION TABS ===== */
 .actionTabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
 }
 
 .actionTab {
   flex: 1;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(200, 161, 255, 0.15);
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
 }
 
 .actionTab:hover:not(:disabled) {
-  background: rgba(200, 161, 255, 0.1);
-  color: #fff;
+  background: var(--accent-dim);
+  color: var(--text-primary);
+  border-color: rgba(200, 161, 255, 0.2);
 }
 
 .actionTab.activeTab {
-  background: rgba(200, 161, 255, 0.15);
-  border-color: #c8a1ff;
-  color: #fff;
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.12);
 }
 
 .actionTab:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-/* Trading Section */
+/* ===== TRADING SECTION ===== */
 .tradingSection {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 14px;
   overflow: hidden;
 }
 
-/* Investment Form */
+/* ===== INVESTMENT FORM ===== */
 .investmentForm {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid rgba(200, 161, 255, 0.15);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 22px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
 }
 
 .investmentForm h4 {
-  font-size: 14px;
-  color: #fff;
-  margin: 0 0 15px 0;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 18px 0;
 }
 
 .sharesInput {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 16px;
   margin-bottom: 20px;
 }
 
 .shareBtn {
-  width: 40px;
-  height: 40px;
-  background: rgba(200, 161, 255, 0.15);
-  border: 1px solid rgba(200, 161, 255, 0.3);
-  border-radius: 10px;
-  color: #c8a1ff;
-  font-size: 20px;
+  width: 44px;
+  height: 44px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 12px;
+  color: var(--accent);
+  font-size: 1.3rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .shareBtn:hover:not(:disabled) {
-  background: rgba(200, 161, 255, 0.25);
+  background: rgba(200, 161, 255, 0.2);
+  border-color: var(--accent);
+  transform: scale(1.05);
 }
 
 .shareBtn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .shareInput {
-  width: 80px;
-  padding: 10px;
+  width: 90px;
+  padding: 12px;
   text-align: center;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(200, 161, 255, 0.2);
-  border-radius: 8px;
-  color: #fff;
-  font-size: 18px;
-  font-weight: 600;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .shareInput:focus {
   outline: none;
-  border-color: #c8a1ff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.1);
 }
 
 .investmentSummary {
-  background: rgba(255, 255, 255, 0.03);
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 15px;
+  background: rgba(200, 161, 255, 0.04);
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 16px;
 }
 
 .summaryRow {
   display: flex;
   justify-content: space-between;
-  padding: 6px 0;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  padding: 7px 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
 }
 
 .summaryRow span:last-child {
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .error {
-  color: #ff6b6b;
-  font-size: 12px;
+  color: #f87171;
+  font-size: 0.78rem;
   text-align: center;
   margin: 10px 0;
+  padding: 10px 14px;
+  background: rgba(248, 113, 113, 0.08);
+  border-radius: 10px;
 }
 
 .success {
-  color: #00ff88;
-  font-size: 12px;
+  color: var(--positive);
+  font-size: 0.78rem;
   text-align: center;
   margin: 10px 0;
-  padding: 10px;
-  background: rgba(0, 255, 136, 0.1);
-  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--positive-dim);
+  border-radius: 10px;
+  animation: successPop 0.4s ease-out;
+}
+
+@keyframes successPop {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .investButton {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #c8a1ff 0%, #9366d2 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
+  background-size: 200% auto;
   border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 12px;
+  color: #0a0a0f;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition);
+  box-shadow: 0 4px 20px var(--accent-glow);
 }
 
 .investButton:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(200, 161, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(200, 161, 255, 0.4);
+  background-position: right center;
 }
 
 .investButton:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Closed Message */
+/* ===== CLOSED MESSAGE ===== */
 .closedMessage {
   text-align: center;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  border: 1px dashed rgba(200, 161, 255, 0.2);
-  color: rgba(255, 255, 255, 0.6);
+  padding: 24px;
+  background: rgba(200, 161, 255, 0.04);
+  border-radius: 14px;
+  border: 1px dashed rgba(200, 161, 255, 0.15);
+  color: var(--text-muted);
 }
 
 .closedMessage p {
-  margin: 5px 0;
+  margin: 6px 0;
+  font-size: 0.85rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .content {
-    grid-template-columns: 1fr;
-  }
-
-  .imageSection {
-    height: 250px;
-  }
-
-  .detailsSection {
-    padding: 20px;
-  }
-
-  .metricsGrid {
-    gap: 8px;
-  }
-
-  .metric {
-    padding: 10px;
-  }
-}
-
-/* ============================================
-   Pool Detail Page Styles (Full Page View)
-   ============================================ */
-
+/* ===== PAGE CONTAINER (Full Page) ===== */
 .pageContainer {
   min-height: 100vh;
   background: linear-gradient(180deg, #0a0612 0%, #140f1a 50%, #0a0612 100%);
   padding: 100px 20px 60px;
-  color: #fff;
+  color: var(--text-primary);
+  font-family: var(--font-body);
 }
 
 .backLink {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #c8a1ff;
+  color: var(--accent);
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   margin-bottom: 24px;
   transition: opacity 0.2s ease;
+  font-weight: 500;
 }
 
 .backLink:hover {
@@ -456,7 +573,7 @@
 .contentGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  gap: 28px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -465,7 +582,7 @@
 .rightColumn {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .imageCard,
@@ -474,38 +591,34 @@
 .progressCard,
 .investCard,
 .distributionCard {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(200, 161, 255, 0.1);
+  background: rgba(24, 24, 38, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;
+  transition: all var(--transition);
 }
 
 .imageCard {
   padding: 16px;
 }
 
-.assetImage {
-  width: 100%;
-  height: auto;
-  max-height: 500px;
-  object-fit: contain;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
-}
-
 /* Header Card */
 .headerCard h1 {
+  font-family: var(--font-display);
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 800;
   margin: 0 0 8px 0;
-  background: linear-gradient(135deg, #fff 0%, #c8a1ff 100%);
+  background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: -0.03em;
 }
 
 .vendorName {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
   font-size: 1rem;
   margin: 0 0 16px 0;
   display: flex;
@@ -514,17 +627,17 @@
 }
 
 .verifiedBadge {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  background: var(--positive-dim);
+  color: var(--positive);
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .statusRow {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -532,17 +645,17 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: var(--positive-dim);
+  color: var(--positive);
   padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 /* Progress Card */
 .progressCard {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.08) 0%, rgba(147, 102, 210, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);
 }
 
 .progressStats {
@@ -558,28 +671,32 @@
 
 .statValue {
   display: block;
-  font-size: 1.25rem;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .statLabel {
   display: block;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.68rem;
+  color: var(--text-muted);
   margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 /* Invest Card */
 .investCard {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.1) 0%, rgba(147, 102, 210, 0.1) 100%);
-  border-color: rgba(200, 161, 255, 0.2);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.08) 0%, rgba(139, 92, 246, 0.06) 100%);
+  border-color: rgba(200, 161, 255, 0.15);
 }
 
 .investCard h3 {
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0 0 20px 0;
 }
 
@@ -592,7 +709,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(200, 161, 255, 0.1);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
 }
 
 .infoRow:last-child {
@@ -600,38 +718,41 @@
 }
 
 .infoRow span:first-child {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
 }
 
 .sharePrice {
-  font-size: 1.25rem;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
   font-weight: 700;
-  color: #c8a1ff;
+  color: var(--accent);
 }
 
 .existingInvestment {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 12px;
-  padding: 20px;
+  background: var(--positive-dim);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 14px;
+  padding: 22px;
   text-align: center;
 }
 
 .checkIcon {
   font-size: 2rem;
-  color: #22c55e;
+  color: var(--positive);
   margin-bottom: 12px;
 }
 
 .existingInvestment p {
-  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .existingInvestment span {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 .inputWrapper {
@@ -644,21 +765,21 @@
 .inputWrapper button {
   width: 44px;
   height: 44px;
-  background: rgba(200, 161, 255, 0.15);
-  border: 1px solid rgba(200, 161, 255, 0.3);
-  border-radius: 10px;
-  color: #c8a1ff;
-  font-size: 1.5rem;
+  background: var(--accent-dim);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 12px;
+  color: var(--accent);
+  font-size: 1.3rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
 }
 
 .inputWrapper button:hover:not(:disabled) {
-  background: rgba(200, 161, 255, 0.25);
+  background: rgba(200, 161, 255, 0.2);
 }
 
 .inputWrapper button:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
@@ -666,33 +787,37 @@
   width: 100px;
   padding: 12px;
   text-align: center;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(200, 161, 255, 0.2);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 1.25rem;
-  font-weight: 600;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
 .inputWrapper input:focus {
   outline: none;
-  border-color: #c8a1ff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.1);
 }
 
 .investSummary {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(200, 161, 255, 0.04);
   border-radius: 12px;
   padding: 16px;
   margin: 20px 0;
 }
 
 .amount {
-  font-size: 1.25rem;
-  color: #c8a1ff !important;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--accent) !important;
+  font-weight: 700;
 }
 
 .projected {
-  color: #22c55e !important;
+  color: var(--positive) !important;
 }
 
 /* Detail Card */
@@ -700,16 +825,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
 }
 
 .detailGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 14px;
 }
 
 .detailItem {
@@ -719,20 +845,21 @@
 }
 
 .detailLabel {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
 }
 
 .detailValue {
-  font-size: 0.95rem;
-  color: #fff;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .description {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
   line-height: 1.6;
   margin: 16px 0 0 0;
 }
@@ -748,7 +875,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(200, 161, 255, 0.08);
+  border-bottom: 1px solid var(--border);
 }
 
 .participantRow:last-child {
@@ -759,32 +886,33 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: monospace;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.8);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
 
 .youBadge {
-  background: #c8a1ff;
-  color: #000;
+  background: var(--accent);
+  color: #0a0a0f;
   padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 600;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 700;
 }
 
 .participantShares {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
 }
 
 .noParticipants {
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted);
   padding: 20px;
+  font-size: 0.85rem;
 }
 
-/* Info List */
+/* Info */
 .infoList {
   display: flex;
   flex-direction: column;
@@ -794,10 +922,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #c8a1ff;
+  color: var(--accent);
   text-decoration: none;
-  font-family: monospace;
-  font-size: 0.85rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.82rem;
 }
 
 .addressLink:hover {
@@ -807,41 +935,44 @@
 .custodyStatus {
   text-transform: capitalize;
   color: #fbbf24;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* Distribution Card */
 .distributionCard {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
-  border-color: rgba(34, 197, 94, 0.2);
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.06) 0%, rgba(16, 185, 129, 0.04) 100%);
+  border-color: rgba(74, 222, 128, 0.15);
 }
 
 .distributionCard h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #22c55e;
+  color: var(--positive);
   margin: 0 0 16px 0;
 }
 
 .soldPrice {
+  font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 700;
-  color: #fff;
+  font-weight: 800;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .distributionAmount {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   margin: 0 0 12px 0;
 }
 
 .distributionStatus {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px 16px;
+  border-radius: 100px;
+  font-size: 0.82rem;
   text-transform: capitalize;
+  font-weight: 500;
 }
 
 /* Loading & Error */
@@ -853,18 +984,20 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(180deg, #0a0612 0%, #140f1a 50%, #0a0612 100%);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   padding: 20px;
+  font-family: var(--font-body);
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid rgba(200, 161, 255, 0.2);
-  border-top-color: #c8a1ff;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
   margin-bottom: 16px;
+  box-shadow: 0 0 16px rgba(200, 161, 255, 0.2);
 }
 
 @keyframes spin {
@@ -874,25 +1007,24 @@
 }
 
 .errorContainer h2 {
+  font-family: var(--font-display);
   font-size: 1.5rem;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .errorContainer p {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
   margin: 0 0 24px 0;
 }
 
 /* Modal */
 .modalOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -902,8 +1034,8 @@
 
 .modalContent {
   position: relative;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
-  border: 1px solid rgba(200, 161, 255, 0.2);
+  background: linear-gradient(135deg, rgba(24, 24, 38, 0.95) 0%, rgba(18, 18, 28, 0.98) 100%);
+  border: 1px solid var(--border-hover);
   border-radius: 20px;
   padding: 32px;
   max-width: 500px;
@@ -914,27 +1046,114 @@
   position: absolute;
   top: 16px;
   right: 16px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
   border: none;
-  color: #fff;
+  color: var(--text-muted);
   font-size: 1.5rem;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all var(--transition);
+}
+
+.modalClose:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
 .modalMessage {
   text-align: center;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1.1rem;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
   margin-bottom: 20px;
 }
 
-/* Page Responsive */
+/* Token & Liquidity Badges */
+.tokenStatusBadge {
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.tokenStatus_pending {
+  background: rgba(107, 114, 128, 0.15);
+  color: #9ca3af;
+}
+
+.tokenStatus_minted {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.tokenStatus_unlocked {
+  background: var(--positive-dim);
+  color: var(--positive);
+}
+
+.tokenStatus_frozen {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.tokenStatus_burned {
+  background: rgba(107, 114, 128, 0.2);
+  color: #6b7280;
+}
+
+.liquidityBadge {
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+}
+
+.escrowAmount {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.infoRow span:first-child svg {
+  margin-right: 6px;
+  color: rgba(200, 161, 255, 0.6);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .imageSection {
+    height: 280px;
+  }
+
+  .detailsSection {
+    padding: 24px 20px;
+    gap: 16px;
+  }
+
+  .assetTitle {
+    font-size: 1.25rem;
+  }
+
+  .metricsGrid {
+    gap: 8px;
+  }
+
+  .metric {
+    padding: 12px;
+  }
+}
+
 @media (max-width: 1024px) {
   .contentGrid {
     grid-template-columns: 1fr;
@@ -962,61 +1181,4 @@
   .progressStats > div {
     flex: 1 1 30%;
   }
-}
-
-/* ============================================
-   Token Status & Liquidity Model Badges
-   ============================================ */
-
-.tokenStatusBadge {
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.tokenStatus_pending {
-  background: rgba(107, 114, 128, 0.2);
-  color: #9ca3af;
-}
-
-.tokenStatus_minted {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-}
-
-.tokenStatus_unlocked {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-}
-
-.tokenStatus_frozen {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.tokenStatus_burned {
-  background: rgba(107, 114, 128, 0.3);
-  color: #6b7280;
-}
-
-.liquidityBadge {
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-}
-
-.escrowAmount {
-  font-weight: 700;
-  color: #c8a1ff;
-}
-
-/* Icon styling in info rows */
-.infoRow span:first-child svg {
-  margin-right: 6px;
-  color: rgba(200, 161, 255, 0.7);
 }

@@ -1,27 +1,22 @@
 // src/pages/pools.tsx
-// Investment Pools - Trading Terminal for Watch Pools
-// LuxHub x Bags Collaboration - Blockchain Native Trading View
+// Investment Pools - Fractional Luxury Watch Trading
+// LuxHub x Bags - Own a piece of the world's finest timepieces
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
-  FiSearch,
   FiTrendingUp,
-  FiTrendingDown,
   FiActivity,
-  FiLock,
-  FiZap,
-  FiTarget,
   FiUsers,
   FiDollarSign,
-  FiClock,
-  FiGrid,
-  FiList,
-  FiFilter,
+  FiZap,
+  FiLock,
   FiRefreshCw,
-  FiExternalLink,
-  FiChevronDown,
+  FiClock,
+  FiArrowRight,
+  FiShield,
+  FiPieChart,
 } from 'react-icons/fi';
 import PoolList from '../components/marketplace/PoolList';
 import PoolDetail from '../components/marketplace/PoolDetail';
@@ -65,19 +60,46 @@ interface Pool {
   createdAt?: string;
 }
 
+const STEPS = [
+  {
+    icon: FiPieChart,
+    title: 'Browse Pools',
+    desc: 'Find luxury watches at fractional prices',
+  },
+  {
+    icon: FiDollarSign,
+    title: 'Buy Shares',
+    desc: 'Invest with as little as $50',
+  },
+  {
+    icon: FiShield,
+    title: 'Secured Custody',
+    desc: 'Assets verified & vaulted by LuxHub',
+  },
+  {
+    icon: FiTrendingUp,
+    title: 'Earn Returns',
+    desc: 'Trade shares or earn on resale',
+  },
+];
+
 const PoolsPage: React.FC = () => {
   const wallet = useWallet();
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Real-time platform stats via SWR
   const { stats, isLoading: statsLoading, mutate: refreshStats } = usePlatformStats();
   const { mutate: refreshPools } = usePools();
 
-  // Purple floating particles animation
+  // Ambient particle animation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -85,8 +107,11 @@ const PoolsPage: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const setSize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    setSize();
 
     const particles: Array<{
       x: number;
@@ -95,17 +120,18 @@ const PoolsPage: React.FC = () => {
       speedX: number;
       speedY: number;
       opacity: number;
+      hue: number;
     }> = [];
 
-    // Create 60 particles
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 40; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        size: Math.random() * 1.5 + 0.3,
-        speedX: (Math.random() - 0.5) * 0.4,
-        speedY: (Math.random() - 0.5) * 0.4,
-        opacity: Math.random() * 0.5 + 0.1,
+        size: Math.random() * 2 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: (Math.random() - 0.5) * 0.3,
+        opacity: Math.random() * 0.4 + 0.1,
+        hue: Math.random() * 30 + 260, // purple range
       });
     }
 
@@ -116,38 +142,34 @@ const PoolsPage: React.FC = () => {
       particles.forEach((p) => {
         p.x += p.speedX;
         p.y += p.speedY;
-
-        // Wrap around edges
         if (p.x < 0) p.x = canvas.width;
         if (p.x > canvas.width) p.x = 0;
         if (p.y < 0) p.y = canvas.height;
         if (p.y > canvas.height) p.y = 0;
 
-        // Draw particle with purple color
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200, 161, 255, ${p.opacity})`;
+        ctx.fillStyle = `hsla(${p.hue}, 70%, 75%, ${p.opacity})`;
         ctx.fill();
 
-        // Draw glow effect
+        // Soft glow
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200, 161, 255, ${p.opacity * 0.2})`;
+        ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 70%, 75%, ${p.opacity * 0.15})`;
         ctx.fill();
       });
 
-      // Draw connecting lines between nearby particles
+      // Faint connection lines
       particles.forEach((p1, i) => {
         particles.slice(i + 1).forEach((p2) => {
           const dx = p1.x - p2.x;
           const dy = p1.y - p2.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < 120) {
+          if (distance < 150) {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(200, 161, 255, ${0.1 * (1 - distance / 120)})`;
+            ctx.strokeStyle = `rgba(200, 161, 255, ${0.06 * (1 - distance / 150)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -158,16 +180,10 @@ const PoolsPage: React.FC = () => {
     };
 
     animate();
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', setSize);
     return () => {
       cancelAnimationFrame(animationId);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', setSize);
     };
   }, []);
 
@@ -191,249 +207,236 @@ const PoolsPage: React.FC = () => {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await Promise.all([refreshStats(), refreshPools()]);
-    setTimeout(() => setIsRefreshing(false), 500);
+    setTimeout(() => setIsRefreshing(false), 600);
   }, [refreshStats, refreshPools]);
 
-  // Format large numbers
   const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toLocaleString();
+    if (num >= 1000000) return `$${(num / 1000000).toFixed(2)}M`;
+    if (num >= 1000) return `$${(num / 1000).toFixed(1)}K`;
+    return `$${num.toLocaleString()}`;
   };
 
   return (
     <>
       <Head>
-        <title>LUXHUB TERMINAL | Watch Pool Trading</title>
+        <title>LuxHub Pools | Fractional Luxury Watch Trading</title>
         <meta
           name="description"
-          content="Blockchain-native trading terminal for luxury watch pools. Fractional ownership, on-chain escrow, and transparent returns."
+          content="Own a piece of the world's finest timepieces. Fractional ownership, on-chain escrow, and transparent returns on Solana."
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
           rel="stylesheet"
         />
       </Head>
 
-      <div className={styles.terminal}>
-        {/* Purple Particles Background */}
+      <div className={`${styles.page} ${mounted ? styles.mounted : ''}`}>
+        {/* Ambient Particles */}
         <canvas ref={canvasRef} className={styles.particlesCanvas} />
 
-        {/* Terminal Top Bar */}
-        <header className={styles.topBar}>
-          <div className={styles.topBarLeft}>
-            <div className={styles.terminalLogo}>
-              <Image src="/images/purpleLGG.png" alt="LuxHub" width={28} height={28} />
-              <span className={styles.logoText}>LUXHUB</span>
-              <span className={styles.logoDivider}>//</span>
-              <span className={styles.logoSubtext}>TERMINAL</span>
-            </div>
-            <div className={styles.networkBadge}>
-              <span className={styles.networkDot} />
-              <span>SOLANA</span>
-              <span className={styles.networkType}>DEVNET</span>
-            </div>
-          </div>
+        {/* Gradient Orbs Background */}
+        <div className={styles.bgOrbs}>
+          <div className={styles.orb1} />
+          <div className={styles.orb2} />
+          <div className={styles.orb3} />
+        </div>
 
-          <div className={styles.topBarCenter}>
-            <div className={styles.tickerStrip}>
-              <div className={styles.tickerItem}>
-                <span className={styles.tickerLabel}>TVL</span>
-                <span className={styles.tickerValue}>
-                  {statsLoading ? '---' : stats?.tvlFormatted || '$0'}
-                </span>
+        {/* ===== HEADER BAR ===== */}
+        <header className={styles.header}>
+          <div className={styles.headerInner}>
+            <div className={styles.headerLeft}>
+              <div className={styles.brand}>
+                <Image src="/images/purpleLGG.png" alt="LuxHub" width={32} height={32} />
+                <div className={styles.brandText}>
+                  <span className={styles.brandName}>LuxHub</span>
+                  <span className={styles.brandLabel}>Pools</span>
+                </div>
               </div>
-              <div className={styles.tickerDivider} />
-              <div className={styles.tickerItem}>
-                <span className={styles.tickerLabel}>POOLS</span>
-                <span className={styles.tickerValue}>
-                  {statsLoading ? '--' : stats?.activePools || 0}
-                </span>
-              </div>
-              <div className={styles.tickerDivider} />
-              <div className={styles.tickerItem}>
-                <span className={styles.tickerLabel}>AVG ROI</span>
-                <span className={`${styles.tickerValue} ${styles.positive}`}>
-                  {statsLoading ? '---' : stats?.avgROIFormatted || '+0%'}
-                </span>
-              </div>
-              <div className={styles.tickerDivider} />
-              <div className={styles.tickerItem}>
-                <span className={styles.tickerLabel}>24H VOL</span>
-                <span className={styles.tickerValue}>
-                  {statsLoading ? '---' : stats?.totalVolumeFormatted || '$0'}
-                </span>
+              <div className={styles.networkPill}>
+                <span className={styles.networkDot} />
+                Solana
+                <span className={styles.networkTag}>Devnet</span>
               </div>
             </div>
-          </div>
 
-          <div className={styles.topBarRight}>
-            <button
-              className={`${styles.refreshBtn} ${isRefreshing ? styles.spinning : ''}`}
-              onClick={handleRefresh}
-              title="Refresh data"
-            >
-              <FiRefreshCw />
-            </button>
-            {wallet.connected ? (
-              <div className={styles.walletConnected}>
-                <span className={styles.walletDot} />
-                <span className={styles.walletAddress}>
-                  {wallet.publicKey?.toBase58().slice(0, 4)}...
-                  {wallet.publicKey?.toBase58().slice(-4)}
-                </span>
+            <div className={styles.headerCenter}>
+              <div className={styles.ticker}>
+                <div className={styles.tickerItem}>
+                  <span className={styles.tickerLabel}>TVL</span>
+                  <span className={styles.tickerValue}>
+                    {statsLoading ? '---' : stats?.tvlFormatted || '$0'}
+                  </span>
+                </div>
+                <div className={styles.tickerSep} />
+                <div className={styles.tickerItem}>
+                  <span className={styles.tickerLabel}>Pools</span>
+                  <span className={styles.tickerValue}>
+                    {statsLoading ? '--' : stats?.activePools || 0}
+                  </span>
+                </div>
+                <div className={styles.tickerSep} />
+                <div className={styles.tickerItem}>
+                  <span className={styles.tickerLabel}>Avg ROI</span>
+                  <span className={`${styles.tickerValue} ${styles.tickerPositive}`}>
+                    {statsLoading ? '---' : stats?.avgROIFormatted || '+0%'}
+                  </span>
+                </div>
+                <div className={styles.tickerSep} />
+                <div className={styles.tickerItem}>
+                  <span className={styles.tickerLabel}>Volume</span>
+                  <span className={styles.tickerValue}>
+                    {statsLoading ? '---' : stats?.totalVolumeFormatted || '$0'}
+                  </span>
+                </div>
               </div>
-            ) : (
-              <div className={styles.connectBtn}>
-                <WalletGuide compact />
-              </div>
-            )}
+            </div>
+
+            <div className={styles.headerRight}>
+              <button
+                className={`${styles.refreshBtn} ${isRefreshing ? styles.spinning : ''}`}
+                onClick={handleRefresh}
+                title="Refresh data"
+              >
+                <FiRefreshCw />
+              </button>
+              {wallet.connected ? (
+                <div className={styles.walletPill}>
+                  <span className={styles.walletDot} />
+                  <span className={styles.walletAddr}>
+                    {wallet.publicKey?.toBase58().slice(0, 4)}...
+                    {wallet.publicKey?.toBase58().slice(-4)}
+                  </span>
+                </div>
+              ) : (
+                <div className={styles.connectWallet}>
+                  <WalletGuide compact />
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
-        {/* Quick Stats Row */}
-        <div className={styles.statsRow}>
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FiTarget />
-            </div>
-            <div className={styles.statContent}>
-              <span className={styles.statValue}>
-                {statsLoading ? '...' : formatNumber(parseFloat(String(stats?.tvl || '0')))}
-              </span>
-              <span className={styles.statLabel}>TOTAL VALUE LOCKED</span>
-            </div>
-            <div className={`${styles.statChange} ${styles.positive}`}>
-              <FiTrendingUp />
-              +12.4%
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FiActivity />
-            </div>
-            <div className={styles.statContent}>
-              <span className={styles.statValue}>
-                {statsLoading ? '...' : stats?.activePools || 0}
-              </span>
-              <span className={styles.statLabel}>ACTIVE POOLS</span>
-            </div>
-            <div className={`${styles.statChange} ${styles.positive}`}>
-              <FiTrendingUp />
-              +3
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FiUsers />
-            </div>
-            <div className={styles.statContent}>
-              <span className={styles.statValue}>
-                {statsLoading ? '...' : stats?.totalInvestors || 0}
-              </span>
-              <span className={styles.statLabel}>INVESTORS</span>
-            </div>
-            <div className={`${styles.statChange} ${styles.positive}`}>
-              <FiTrendingUp />
-              +8.2%
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FiDollarSign />
-            </div>
-            <div className={styles.statContent}>
-              <span className={styles.statValue}>
-                {statsLoading ? '...' : stats?.totalVolumeFormatted || '$0'}
-              </span>
-              <span className={styles.statLabel}>TRADING VOLUME</span>
-            </div>
-            <div className={`${styles.statChange} ${styles.positive}`}>
-              <FiTrendingUp />
-              +24.1%
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
+        {/* ===== HERO SECTION ===== */}
+        <section className={styles.hero}>
+          <div className={styles.heroContent}>
+            <div className={styles.heroBadge}>
               <FiZap />
+              <span>Powered by Solana</span>
             </div>
-            <div className={styles.statContent}>
-              <span className={`${styles.statValue} ${styles.highlight}`}>
-                {statsLoading ? '...' : stats?.avgROIFormatted || '+0%'}
-              </span>
-              <span className={styles.statLabel}>AVG RETURNS</span>
+            <h1 className={styles.heroTitle}>
+              Own a Piece of
+              <br />
+              <span className={styles.heroAccent}>Luxury Timepieces</span>
+            </h1>
+            <p className={styles.heroSub}>
+              Fractional ownership of authenticated luxury watches. Invest from $50, trade anytime,
+              earn on resale.
+            </p>
+          </div>
+
+          {/* Stats Cards */}
+          <div className={styles.statsGrid}>
+            <div className={`${styles.statCard} ${styles.statCardDelay1}`}>
+              <div className={styles.statIcon}>
+                <FiDollarSign />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>
+                  {statsLoading ? '...' : formatNumber(parseFloat(String(stats?.tvl || '0')))}
+                </span>
+                <span className={styles.statLabel}>Total Value Locked</span>
+              </div>
+              <div className={`${styles.statDelta} ${styles.positive}`}>
+                <FiTrendingUp /> +12.4%
+              </div>
             </div>
-            <div className={styles.statBadge}>TOP</div>
-          </div>
-        </div>
 
-        {/* How It Works - Compact Terminal Style */}
-        <div className={styles.processBar}>
-          <div className={styles.processStep}>
-            <span className={styles.processNum}>01</span>
-            <FiSearch className={styles.processIcon} />
-            <span className={styles.processLabel}>BROWSE</span>
-          </div>
-          <div className={styles.processArrow}>→</div>
-          <div className={styles.processStep}>
-            <span className={styles.processNum}>02</span>
-            <FiDollarSign className={styles.processIcon} />
-            <span className={styles.processLabel}>INVEST</span>
-          </div>
-          <div className={styles.processArrow}>→</div>
-          <div className={styles.processStep}>
-            <span className={styles.processNum}>03</span>
-            <FiLock className={styles.processIcon} />
-            <span className={styles.processLabel}>CUSTODY</span>
-          </div>
-          <div className={styles.processArrow}>→</div>
-          <div className={styles.processStep}>
-            <span className={styles.processNum}>04</span>
-            <FiZap className={styles.processIcon} />
-            <span className={styles.processLabel}>RETURNS</span>
-          </div>
-        </div>
+            <div className={`${styles.statCard} ${styles.statCardDelay2}`}>
+              <div className={styles.statIcon}>
+                <FiActivity />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>
+                  {statsLoading ? '...' : stats?.activePools || 0}
+                </span>
+                <span className={styles.statLabel}>Active Pools</span>
+              </div>
+              <div className={`${styles.statDelta} ${styles.positive}`}>
+                <FiTrendingUp /> +3
+              </div>
+            </div>
 
-        {/* Main Trading Area */}
-        <main className={styles.mainContent}>
-          <div className={styles.contentHeader}>
-            <div className={styles.headerLeft}>
-              <h1 className={styles.sectionTitle}>
-                <span className={styles.titleAccent}>//</span> WATCH POOLS
-              </h1>
-              <span className={styles.liveIndicator}>
+            <div className={`${styles.statCard} ${styles.statCardDelay3}`}>
+              <div className={styles.statIcon}>
+                <FiUsers />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>
+                  {statsLoading ? '...' : stats?.totalInvestors || 0}
+                </span>
+                <span className={styles.statLabel}>Investors</span>
+              </div>
+              <div className={`${styles.statDelta} ${styles.positive}`}>
+                <FiTrendingUp /> +8.2%
+              </div>
+            </div>
+
+            <div className={`${styles.statCard} ${styles.statCardDelay4}`}>
+              <div className={styles.statIcon}>
+                <FiZap />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={`${styles.statValue} ${styles.statValueAccent}`}>
+                  {statsLoading ? '...' : stats?.avgROIFormatted || '+0%'}
+                </span>
+                <span className={styles.statLabel}>Avg Returns</span>
+              </div>
+              <div className={styles.statTopBadge}>TOP</div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== HOW IT WORKS ===== */}
+        <section className={styles.howItWorks}>
+          <div className={styles.stepsRow}>
+            {STEPS.map((step, i) => (
+              <React.Fragment key={i}>
+                <div className={styles.step} style={{ animationDelay: `${i * 0.1 + 0.3}s` }}>
+                  <div className={styles.stepIcon}>
+                    <step.icon />
+                  </div>
+                  <div className={styles.stepText}>
+                    <span className={styles.stepNum}>0{i + 1}</span>
+                    <strong>{step.title}</strong>
+                    <span className={styles.stepDesc}>{step.desc}</span>
+                  </div>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={styles.stepArrow}>
+                    <FiArrowRight />
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </section>
+
+        {/* ===== MAIN POOL TRADING AREA ===== */}
+        <main className={styles.main}>
+          <div className={styles.mainHeader}>
+            <div className={styles.mainHeaderLeft}>
+              <h2 className={styles.sectionTitle}>Watch Pools</h2>
+              <div className={styles.liveBadge}>
                 <span className={styles.liveDot} />
-                LIVE
-              </span>
-            </div>
-
-            <div className={styles.headerControls}>
-              <div className={styles.viewToggle}>
-                <button
-                  className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.active : ''}`}
-                  onClick={() => setViewMode('grid')}
-                >
-                  <FiGrid />
-                </button>
-                <button
-                  className={`${styles.viewBtn} ${viewMode === 'list' ? styles.active : ''}`}
-                  onClick={() => setViewMode('list')}
-                >
-                  <FiList />
-                </button>
+                Live
               </div>
             </div>
           </div>
 
-          {/* Pool List Component */}
           <PoolList onPoolSelect={handlePoolSelect} />
         </main>
 
-        {/* Pool Detail Modal */}
+        {/* ===== POOL DETAIL MODAL ===== */}
         {selectedPool && (
           <PoolDetail
             pool={selectedPool}
@@ -442,47 +445,49 @@ const PoolsPage: React.FC = () => {
           />
         )}
 
-        {/* Wallet Connection Modal */}
+        {/* ===== WALLET MODAL ===== */}
         {showWalletModal && (
           <div className={styles.modalOverlay} onClick={() => setShowWalletModal(false)}>
-            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
               <button className={styles.modalClose} onClick={() => setShowWalletModal(false)}>
-                ×
+                &times;
               </button>
-              <div className={styles.modalHeader}>
-                <FiLock className={styles.modalIcon} />
-                <h3>CONNECT WALLET</h3>
+              <div className={styles.modalIconWrap}>
+                <FiLock />
               </div>
-              <p className={styles.modalText}>
-                Connect your Solana wallet to access pool details and invest
+              <h3 className={styles.modalTitle}>Connect Wallet</h3>
+              <p className={styles.modalDesc}>
+                Connect your Solana wallet to browse pool details and start investing.
               </p>
               <WalletGuide onConnected={() => setShowWalletModal(false)} showSteps={false} />
             </div>
           </div>
         )}
 
-        {/* Terminal Footer */}
-        <footer className={styles.terminalFooter}>
-          <div className={styles.footerLeft}>
-            <span className={styles.footerLogo}>LUXHUB × BAGS</span>
-            <span className={styles.footerVersion}>v2.0.0</span>
-          </div>
-          <div className={styles.footerCenter}>
-            <span className={styles.footerLink}>
-              <FiLock /> ON-CHAIN ESCROW
-            </span>
-            <span className={styles.footerDivider}>|</span>
-            <span className={styles.footerLink}>
-              <FiUsers /> MULTISIG SECURED
-            </span>
-            <span className={styles.footerDivider}>|</span>
-            <span className={styles.footerLink}>97% TO INVESTORS</span>
-          </div>
-          <div className={styles.footerRight}>
-            <span className={styles.footerTime}>
+        {/* ===== FOOTER ===== */}
+        <footer className={styles.footer}>
+          <div className={styles.footerInner}>
+            <div className={styles.footerLeft}>
+              <span className={styles.footerBrand}>LuxHub &times; Bags</span>
+              <span className={styles.footerVer}>v2.0</span>
+            </div>
+            <div className={styles.footerCenter}>
+              <span className={styles.footerItem}>
+                <FiLock /> On-Chain Escrow
+              </span>
+              <span className={styles.footerSep} />
+              <span className={styles.footerItem}>
+                <FiShield /> Multisig Secured
+              </span>
+              <span className={styles.footerSep} />
+              <span className={styles.footerItem}>97% to Investors</span>
+            </div>
+            <div className={styles.footerRight}>
               <FiClock />
-              {new Date().toLocaleTimeString('en-US', { hour12: false })}
-            </span>
+              <span className={styles.footerTime}>
+                {new Date().toLocaleTimeString('en-US', { hour12: false })}
+              </span>
+            </div>
           </div>
         </footer>
       </div>

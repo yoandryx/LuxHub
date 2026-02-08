@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { FiBarChart2 } from 'react-icons/fi';
 import PoolCard from './PoolCard';
 import { usePools, Pool } from '../../hooks/usePools';
 import styles from '../../styles/PoolList.module.css';
@@ -7,12 +8,21 @@ interface PoolListProps {
   onPoolSelect: (pool: Pool) => void;
 }
 
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'open', label: 'Open' },
+  { key: 'funded', label: 'Funded' },
+  { key: 'active', label: 'Active' },
+  { key: 'tradeable', label: 'Tradeable' },
+] as const;
+
+type FilterKey = (typeof FILTERS)[number]['key'];
+
 const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
   const { pools, isLoading, isError, error, mutate } = usePools();
-  const [filter, setFilter] = useState<'all' | 'open' | 'funded' | 'active' | 'tradeable'>('all');
+  const [filter, setFilter] = useState<FilterKey>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'progress' | 'roi' | 'volume'>('newest');
 
-  // Filter pools based on selected filter
   const filteredPools = useMemo(() => {
     return pools.filter((pool) => {
       if (filter === 'all') return true;
@@ -24,13 +34,10 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
     });
   }, [pools, filter]);
 
-  // Sort pools based on selected sort option
   const sortedPools = useMemo(() => {
     return [...filteredPools].sort((a, b) => {
       if (sortBy === 'progress') {
-        const progressA = a.sharesSold / a.totalShares;
-        const progressB = b.sharesSold / b.totalShares;
-        return progressB - progressA;
+        return b.sharesSold / b.totalShares - a.sharesSold / a.totalShares;
       }
       if (sortBy === 'roi') {
         return (b.projectedROI || 1) - (a.projectedROI || 1);
@@ -38,14 +45,12 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
       if (sortBy === 'volume') {
         return (b.totalVolumeUSD || 0) - (a.totalVolumeUSD || 0);
       }
-      // Default: newest (by createdAt)
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return dateB - dateA;
     });
   }, [filteredPools, sortBy]);
 
-  // Calculate summary stats
   const summaryStats = useMemo(() => {
     const totalPools = pools.length;
     const openPools = pools.filter((p) => p.status === 'open').length;
@@ -60,7 +65,7 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loading}>
+        <div className={styles.loadingState}>
           <div className={styles.spinner} />
           <p>Loading pools...</p>
         </div>
@@ -71,10 +76,11 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
   if (isError) {
     return (
       <div className={styles.container}>
-        <div className={styles.error}>
-          <p>Error: {(error as any)?.message || 'Failed to load pools'}</p>
-          <button onClick={() => mutate()} className={styles.retryButton}>
-            Retry
+        <div className={styles.errorState}>
+          <p>Failed to load pools</p>
+          <span>{(error as any)?.message || 'Something went wrong'}</span>
+          <button onClick={() => mutate()} className={styles.retryBtn}>
+            Try Again
           </button>
         </div>
       </div>
@@ -83,39 +89,37 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>Investment Pools</h2>
-        <p className={styles.subtitle}>Fractional ownership of authenticated luxury watches</p>
-      </div>
-
-      {/* Filters & Sort */}
-      <div className={styles.controls}>
+      {/* Filter & Sort Bar */}
+      <div className={styles.toolbar}>
         <div className={styles.filters}>
-          {(['all', 'open', 'funded', 'active', 'tradeable'] as const).map((f) => (
+          {FILTERS.map((f) => (
             <button
-              key={f}
-              className={`${styles.filterButton} ${filter === f ? styles.active : ''}`}
-              onClick={() => setFilter(f)}
+              key={f.key}
+              className={`${styles.filterPill} ${filter === f.key ? styles.filterActive : ''}`}
+              onClick={() => setFilter(f.key)}
             >
-              {f === 'tradeable' ? 'Tradeable' : f.charAt(0).toUpperCase() + f.slice(1)}
-              {f === 'tradeable' && summaryStats.tradeablePools > 0 && (
+              {f.label}
+              {f.key === 'tradeable' && summaryStats.tradeablePools > 0 && (
                 <span className={styles.filterCount}>{summaryStats.tradeablePools}</span>
+              )}
+              {f.key === 'open' && summaryStats.openPools > 0 && (
+                <span className={styles.filterCount}>{summaryStats.openPools}</span>
               )}
             </button>
           ))}
         </div>
 
-        <div className={styles.sortDropdown}>
-          <label>Sort by:</label>
+        <div className={styles.sortWrap}>
+          <FiBarChart2 className={styles.sortIcon} />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className={styles.select}
+            className={styles.sortSelect}
           >
             <option value="newest">Newest</option>
             <option value="progress">Progress</option>
             <option value="roi">Projected ROI</option>
-            <option value="volume">Trading Volume</option>
+            <option value="volume">Volume</option>
           </select>
         </div>
       </div>
@@ -123,44 +127,54 @@ const PoolList: React.FC<PoolListProps> = ({ onPoolSelect }) => {
       {/* Pool Grid */}
       {sortedPools.length === 0 ? (
         <div className={styles.emptyState}>
-          <p>No pools available with the selected filter.</p>
+          <p>No pools match this filter.</p>
           {filter !== 'all' && (
-            <button className={styles.clearFilter} onClick={() => setFilter('all')}>
-              Clear filter
+            <button className={styles.clearBtn} onClick={() => setFilter('all')}>
+              Show All Pools
             </button>
           )}
         </div>
       ) : (
         <div className={styles.grid}>
-          {sortedPools.map((pool) => (
-            <PoolCard key={pool._id} pool={pool} onClick={() => onPoolSelect(pool)} />
+          {sortedPools.map((pool, index) => (
+            <div
+              key={pool._id}
+              className={styles.gridItem}
+              style={{ animationDelay: `${index * 0.06}s` }}
+            >
+              <PoolCard pool={pool} onClick={() => onPoolSelect(pool)} />
+            </div>
           ))}
         </div>
       )}
 
-      {/* Stats Summary */}
+      {/* Bottom Stats Summary */}
       <div className={styles.summary}>
         <div className={styles.summaryItem}>
           <span className={styles.summaryLabel}>Total Pools</span>
           <span className={styles.summaryValue}>{summaryStats.totalPools}</span>
         </div>
+        <div className={styles.summarySep} />
         <div className={styles.summaryItem}>
-          <span className={styles.summaryLabel}>Open for Investment</span>
+          <span className={styles.summaryLabel}>Open</span>
           <span className={styles.summaryValue}>{summaryStats.openPools}</span>
         </div>
+        <div className={styles.summarySep} />
         <div className={styles.summaryItem}>
-          <span className={styles.summaryLabel}>Tradeable Pools</span>
+          <span className={styles.summaryLabel}>Tradeable</span>
           <span className={styles.summaryValue}>{summaryStats.tradeablePools}</span>
         </div>
+        <div className={styles.summarySep} />
         <div className={styles.summaryItem}>
-          <span className={styles.summaryLabel}>Total Value Locked</span>
-          <span className={styles.summaryValue}>
+          <span className={styles.summaryLabel}>TVL</span>
+          <span className={`${styles.summaryValue} ${styles.summaryAccent}`}>
             ${summaryStats.tvl.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </span>
         </div>
+        <div className={styles.summarySep} />
         <div className={styles.summaryItem}>
-          <span className={styles.summaryLabel}>Trading Volume</span>
-          <span className={styles.summaryValue}>
+          <span className={styles.summaryLabel}>Volume</span>
+          <span className={`${styles.summaryValue} ${styles.summaryAccent}`}>
             ${summaryStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </span>
         </div>
