@@ -221,25 +221,6 @@
   }
 }
 
-/* Verified shield badge */
-.verifiedBadge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.3) 0%, rgba(138, 43, 226, 0.25) 100%);
-  border: 1px solid var(--accent-dim);
-  border-radius: 50%;
-  color: var(--accent);
-  font-size: 0.85rem;
-  z-index: 10;
-  box-shadow: 0 2px 10px rgba(200, 161, 255, 0.3);
-}
-
 /* Pool eligible badge */
 .poolBadge {
   position: absolute;
@@ -259,124 +240,185 @@
   z-index: 10;
 }
 
-/* ========== HOVER OVERLAY ========== */
+/* ========== HOVER OVERLAY - PREMIUM SPOTLIGHT ========== */
 .overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.95) 0%,
-    rgba(0, 0, 0, 0.8) 40%,
-    rgba(0, 0, 0, 0.4) 70%,
+    rgba(8, 6, 14, 0.97) 0%,
+    rgba(8, 6, 14, 0.85) 35%,
+    rgba(8, 6, 14, 0.3) 65%,
     transparent 100%
   );
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 20px 16px;
+  padding: 18px 16px;
   opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 5;
 }
 
 .overlayVisible {
   opacity: 1;
-  transform: translateY(0);
+}
+
+/* Animated sweep line across top of overlay */
+.overlaySweep {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-dim) 30%,
+    var(--accent) 50%,
+    var(--accent-dim) 70%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition:
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
+    opacity 0.3s ease 0.1s;
+}
+
+.overlayVisible .overlaySweep {
+  opacity: 0.6;
+  transform: scaleX(1);
 }
 
 .overlayContent {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  transform: translateY(8px);
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.12s;
 }
 
-.overlayTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 4px 0;
+.overlayVisible .overlayContent {
+  transform: translateY(0);
+  opacity: 1;
 }
 
-.overlayRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-}
-
-.overlayRow span:first-child {
-  color: var(--text-muted);
-}
-
-.overlayRow span:last-child {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.overlayPriceContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.overlayPrice {
+/* Brand identity bar */
+.overlayBrand {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 1.1rem;
+  gap: 10px;
+}
+
+.overlayBrandText {
+  font-size: 0.65rem;
   font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
   color: var(--accent);
 }
 
-.overlayPriceUSD {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-secondary);
+.overlayAccentLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-dim) 0%, transparent 100%);
 }
 
-.priceIcon {
-  font-size: 0.9rem;
+/* Spec chips */
+.overlayChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.overlayChip {
+  padding: 4px 10px;
+  background: rgba(200, 161, 255, 0.06);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Mint address */
+.overlayMint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overlayMintLabel {
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.overlayMintAddr {
+  font-size: 0.7rem;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  color: var(--text-secondary);
+  opacity: 0.8;
 }
 
 .overlayActions {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .viewButton,
 .buyButton {
   flex: 1;
-  padding: 10px 16px;
+  padding: 9px 14px;
   border: none;
-  border-radius: 10px;
-  font-size: 0.8rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .viewButton {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--border-light);
-  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid rgba(200, 161, 255, 0.25);
+  color: var(--accent);
+}
+
+.viewButton svg {
+  font-size: 0.8rem;
+  transition: transform 0.25s ease;
 }
 
 .viewButton:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: var(--accent-dim);
+  background: rgba(200, 161, 255, 0.08);
+  border-color: rgba(200, 161, 255, 0.45);
+}
+
+.viewButton:hover svg {
+  transform: translate(2px, -2px);
 }
 
 .buyButton {
   background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 50%, #9333ea 100%);
   background-size: 200% auto;
   color: #0d0d0d;
-  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.4);
+  box-shadow: 0 2px 12px rgba(200, 161, 255, 0.3);
   font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
   position: relative;
   overflow: hidden;
 }
@@ -393,8 +435,8 @@
 }
 
 .buyButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(200, 161, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(200, 161, 255, 0.45);
   background-position: right center;
 }
 
@@ -404,50 +446,29 @@
 
 .buyButton:active {
   transform: translateY(0);
-  box-shadow: 0 4px 15px rgba(200, 161, 255, 0.3);
+  box-shadow: 0 2px 10px rgba(200, 161, 255, 0.25);
 }
 
 /* Offer button in overlay */
 .offerButton {
   flex: 1;
-  padding: 10px 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(200, 161, 255, 0.2) 0%,
-    rgba(155, 93, 229, 0.3) 50%,
-    rgba(200, 161, 255, 0.2) 100%
-  );
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(200, 161, 255, 0.4);
-  border-radius: 10px;
-  color: var(--accent);
-  font-size: 0.8rem;
+  padding: 9px 14px;
+  background: rgba(200, 161, 255, 0.08);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
   font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.offerButton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
-  transition: left 0.5s ease;
-}
-
-.offerButton:hover::before {
-  left: 100%;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .offerButton:hover {
-  transform: translateY(-2px);
-  border-color: rgba(200, 161, 255, 0.7);
-  box-shadow: 0 8px 25px rgba(155, 93, 229, 0.25);
+  background: rgba(200, 161, 255, 0.12);
+  border-color: rgba(200, 161, 255, 0.35);
+  color: var(--accent);
 }
 
 /* ========== CARD FOOTER ========== */
@@ -474,39 +495,16 @@
   gap: 10px;
 }
 
-.footerBuyButton {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 50%, #9333ea 100%);
-  background-size: 200% auto;
-  border: none;
-  border-radius: 8px;
-  color: #0d0d0d;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.footerBuyButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(200, 161, 255, 0.4);
-  background-position: right center;
-}
-
-.footerBuyButton:active {
-  transform: translateY(0);
-}
-
 /* ========== MARKETPLACE ACTION BUTTONS ========== */
 .actionButtons {
   display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 12px 16px;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border);
+  padding: 8px;
+  background: linear-gradient(135deg, rgba(15, 15, 20, 0.95) 0%, rgba(20, 20, 28, 0.9) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
 }
 
 .luxuryBuyBtn,
@@ -516,31 +514,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: 6px;
+  padding: 11px 16px;
   border-radius: 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-/* Luxurious Green Buy Button */
+/* Buy Button - Glass Green */
 .luxuryBuyBtn {
   background: linear-gradient(
     135deg,
-    rgba(34, 197, 94, 0.25) 0%,
-    rgba(22, 163, 74, 0.35) 50%,
-    rgba(34, 197, 94, 0.25) 100%
+    rgba(34, 197, 94, 0.2) 0%,
+    rgba(22, 163, 74, 0.3) 50%,
+    rgba(34, 197, 94, 0.2) 100%
   );
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(74, 222, 128, 0.5);
+  border: 1px solid rgba(34, 197, 94, 0.4);
   color: #4ade80;
-  text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
-  box-shadow:
-    0 4px 15px rgba(34, 197, 94, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .luxuryBuyBtn::before {
@@ -550,43 +547,38 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.15) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent, rgba(74, 222, 128, 0.15), transparent);
   transition: left 0.5s ease;
+}
+
+.luxuryBuyBtn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.3) 0%,
+    rgba(22, 163, 74, 0.4) 50%,
+    rgba(34, 197, 94, 0.3) 100%
+  );
+  border-color: rgba(74, 222, 128, 0.6);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 20px rgba(34, 197, 94, 0.2),
+    0 0 20px rgba(34, 197, 94, 0.1);
 }
 
 .luxuryBuyBtn:hover::before {
   left: 100%;
 }
 
-.luxuryBuyBtn:hover {
-  transform: translateY(-3px);
-  border-color: rgba(74, 222, 128, 0.8);
-  box-shadow:
-    0 8px 25px rgba(34, 197, 94, 0.35),
-    0 0 40px rgba(74, 222, 128, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-/* Luxurious Purple Offer Button */
+/* Offer Button - Glass Purple */
 .luxuryOfferBtn {
   background: linear-gradient(
     135deg,
-    rgba(200, 161, 255, 0.2) 0%,
-    rgba(155, 93, 229, 0.3) 50%,
-    rgba(200, 161, 255, 0.2) 100%
+    rgba(200, 161, 255, 0.12) 0%,
+    rgba(155, 93, 229, 0.2) 50%,
+    rgba(200, 161, 255, 0.12) 100%
   );
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(200, 161, 255, 0.4);
+  border: 1px solid rgba(200, 161, 255, 0.35);
   color: var(--accent);
-  text-shadow: 0 0 20px rgba(200, 161, 255, 0.4);
-  box-shadow:
-    0 4px 15px rgba(155, 93, 229, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .luxuryOfferBtn::before {
@@ -596,26 +588,31 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.12) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent, rgba(200, 161, 255, 0.15), transparent);
   transition: left 0.5s ease;
+}
+
+.luxuryOfferBtn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.2) 0%,
+    rgba(155, 93, 229, 0.3) 50%,
+    rgba(200, 161, 255, 0.2) 100%
+  );
+  border-color: rgba(200, 161, 255, 0.55);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 20px rgba(200, 161, 255, 0.15),
+    0 0 20px rgba(200, 161, 255, 0.08);
 }
 
 .luxuryOfferBtn:hover::before {
   left: 100%;
 }
 
-.luxuryOfferBtn:hover {
-  transform: translateY(-3px);
-  border-color: rgba(200, 161, 255, 0.7);
-  box-shadow:
-    0 8px 25px rgba(155, 93, 229, 0.25),
-    0 0 40px rgba(200, 161, 255, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+/* Full-width buy when no offer button */
+.actionBuyFull {
+  flex: 1;
 }
 
 .title {
@@ -649,7 +646,11 @@
 .priceValue {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--accent);
+  background: linear-gradient(135deg, #e0c3ff 0%, #c8a1ff 40%, #a78bfa 70%, #d4b4ff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .priceLabel {
@@ -844,7 +845,10 @@
 .gridPrice {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--accent);
+  background: linear-gradient(135deg, #e0c3ff 0%, #c8a1ff 40%, #a78bfa 70%, #d4b4ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .gridPriceUSD {
@@ -881,6 +885,20 @@
     font-size: 0.7rem;
   }
 
+  .overlayChips {
+    gap: 4px;
+  }
+
+  .overlayChip {
+    padding: 3px 7px;
+    font-size: 0.58rem;
+  }
+
+  .overlayBrandText {
+    font-size: 0.58rem;
+    letter-spacing: 2px;
+  }
+
   .overlayActions {
     flex-direction: column;
   }
@@ -909,14 +927,14 @@
   }
 
   .actionButtons {
-    padding: 10px 12px;
+    padding: 6px;
     gap: 6px;
   }
 
   .luxuryBuyBtn,
   .luxuryOfferBtn {
-    padding: 10px 14px;
-    font-size: 0.75rem;
+    padding: 10px 12px;
+    font-size: 0.72rem;
   }
 }
 
@@ -931,13 +949,6 @@
     font-size: 0.55rem;
     top: 6px;
     left: 6px;
-  }
-
-  .verifiedBadge {
-    width: 22px;
-    height: 22px;
-    top: 6px;
-    right: 6px;
   }
 
   .footer {
@@ -965,16 +976,14 @@
   }
 
   .actionButtons {
-    flex-direction: column;
-    padding: 6px 8px;
-    gap: 4px;
+    padding: 6px;
+    gap: 6px;
   }
 
   .luxuryBuyBtn,
   .luxuryOfferBtn {
-    padding: 8px 10px;
+    padding: 9px 10px;
     font-size: 0.65rem;
-    gap: 4px;
   }
 }
 
@@ -992,12 +1001,6 @@
 
   .statusBadge svg {
     font-size: 0.55rem;
-  }
-
-  .verifiedBadge {
-    width: 18px;
-    height: 18px;
-    font-size: 0.7rem;
   }
 
   .footer {
@@ -1025,12 +1028,14 @@
   }
 
   .actionButtons {
-    padding: 5px 6px;
+    padding: 5px;
+    gap: 5px;
   }
 
   .luxuryBuyBtn,
   .luxuryOfferBtn {
-    padding: 6px 8px;
-    font-size: 0.6rem;
+    padding: 8px;
+    font-size: 0.58rem;
+    letter-spacing: 0.3px;
   }
 }

@@ -78,6 +78,11 @@ const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
   // Get brand from attributes
   const brand = nft.attributes?.find((attr) => attr.trait_type === 'Brand')?.value;
 
+  // Get watch attributes for overlay display
+  const material = nft.attributes?.find((attr) => attr.trait_type === 'Material')?.value;
+  const caseSize = nft.attributes?.find((attr) => attr.trait_type === 'Case Size')?.value;
+  const condition = nft.attributes?.find((attr) => attr.trait_type === 'Condition')?.value;
+
   // Get USD price from attributes (fixed watch price)
   const priceUSD = useMemo(() => {
     const usdAttr = nft.attributes?.find(
@@ -95,6 +100,10 @@ const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
       priceUSD={priceUSD}
       owner={owner}
       brand={brand}
+      material={material}
+      caseSize={caseSize}
+      condition={condition}
+      mintAddress={nft.nftId}
       status={mapStatus(nft.marketStatus)}
       isVerified={nft.marketStatus !== 'invalid'}
       onViewDetails={onClick}
