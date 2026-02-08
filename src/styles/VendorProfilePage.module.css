@@ -494,193 +494,6 @@
   border-color: var(--accent-dim);
 }
 
-/* ============================================
-   TIERED INVENTORY BADGE - Animated Prestige
-   ============================================ */
-.inventoryBadge {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.tierGlow {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  border-radius: inherit;
-}
-
-.tierShine {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  pointer-events: none;
-}
-
-.inventoryBadge:hover .tierGlow {
-  opacity: 1;
-}
-
-.tierValue {
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  position: relative;
-  z-index: 1;
-}
-
-.tierLabel {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.9;
-  position: relative;
-  z-index: 1;
-}
-
-/* Starter Tier - Subtle gray */
-.tierStarter {
-  background: linear-gradient(135deg, rgba(100, 100, 100, 0.15) 0%, rgba(80, 80, 80, 0.1) 100%);
-  border: 1px solid rgba(136, 136, 136, 0.3);
-}
-.tierStarter .tierValue,
-.tierStarter .tierLabel {
-  color: #999;
-}
-
-/* Bronze Tier - Warm copper */
-.tierBronze {
-  background: linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(180, 100, 40, 0.15) 100%);
-  border: 1px solid rgba(205, 127, 50, 0.4);
-}
-.tierBronze .tierValue {
-  color: #e8a860;
-}
-.tierBronze .tierLabel {
-  color: #cd7f32;
-}
-.tierBronze .tierGlow {
-  box-shadow: inset 0 0 20px rgba(205, 127, 50, 0.3);
-}
-.tierBronze .tierShine {
-  animation: tierShine 3s ease-in-out infinite;
-}
-
-/* Silver Tier - Cool metallic */
-.tierSilver {
-  background: linear-gradient(135deg, rgba(192, 192, 192, 0.2) 0%, rgba(169, 169, 169, 0.15) 100%);
-  border: 1px solid rgba(192, 192, 192, 0.5);
-}
-.tierSilver .tierValue {
-  color: #e0e0e0;
-}
-.tierSilver .tierLabel {
-  color: #c0c0c0;
-}
-.tierSilver .tierGlow {
-  box-shadow: inset 0 0 20px rgba(192, 192, 192, 0.3);
-}
-.tierSilver .tierShine {
-  animation: tierShine 2.5s ease-in-out infinite;
-}
-
-/* Gold Tier - Luxurious warm */
-.tierGold {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(218, 165, 32, 0.15) 100%);
-  border: 1px solid rgba(255, 215, 0, 0.5);
-}
-.tierGold .tierValue {
-  color: #ffd700;
-}
-.tierGold .tierLabel {
-  color: #daa520;
-}
-.tierGold .tierGlow {
-  box-shadow: inset 0 0 25px rgba(255, 215, 0, 0.35);
-}
-.tierGold .tierShine {
-  animation: tierShine 2s ease-in-out infinite;
-}
-
-/* Platinum Tier - Premium white */
-.tierPlatinum {
-  background: linear-gradient(135deg, rgba(229, 228, 226, 0.25) 0%, rgba(200, 200, 200, 0.15) 100%);
-  border: 1px solid rgba(229, 228, 226, 0.6);
-}
-.tierPlatinum .tierValue {
-  color: #f5f5f5;
-}
-.tierPlatinum .tierLabel {
-  color: #e5e4e2;
-}
-.tierPlatinum .tierGlow {
-  box-shadow:
-    inset 0 0 25px rgba(229, 228, 226, 0.4),
-    0 0 15px rgba(229, 228, 226, 0.2);
-}
-.tierPlatinum .tierShine {
-  animation: tierShine 1.8s ease-in-out infinite;
-}
-
-/* Diamond Tier - Ultimate prestige with rainbow shimmer */
-.tierDiamond {
-  background: linear-gradient(
-    135deg,
-    rgba(185, 242, 255, 0.25) 0%,
-    rgba(200, 230, 255, 0.2) 50%,
-    rgba(220, 200, 255, 0.2) 100%
-  );
-  border: 1px solid rgba(185, 242, 255, 0.6);
-  animation: diamondPulse 2s ease-in-out infinite;
-}
-.tierDiamond .tierValue {
-  color: #b9f2ff;
-  text-shadow: 0 0 8px rgba(185, 242, 255, 0.5);
-}
-.tierDiamond .tierLabel {
-  color: #a0e8ff;
-}
-.tierDiamond .tierGlow {
-  box-shadow:
-    inset 0 0 30px rgba(185, 242, 255, 0.4),
-    0 0 20px rgba(185, 242, 255, 0.25);
-}
-.tierDiamond .tierShine {
-  animation: tierShine 1.5s ease-in-out infinite;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-}
-
-@keyframes tierShine {
-  0% {
-    left: -100%;
-  }
-  50%,
-  100% {
-    left: 100%;
-  }
-}
-
-@keyframes diamondPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(185, 242, 255, 0.2);
-  }
-  50% {
-    box-shadow:
-      0 0 20px rgba(185, 242, 255, 0.35),
-      0 0 30px rgba(200, 161, 255, 0.15);
-  }
-}
-
 .statValue {
   font-size: 0.8rem;
   font-weight: 700;
@@ -983,6 +796,129 @@
 .delistBtn:hover {
   background: rgba(245, 158, 11, 0.2);
   border-color: #f59e0b;
+}
+
+/* Convert to Pool Button */
+.convertToPoolBtn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 16px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.convertToPoolBtn:hover {
+  background: rgba(200, 161, 255, 0.2);
+  border-color: var(--accent);
+}
+
+/* ============================================
+   POOL CARDS - Fractional Ownership Grid
+   ============================================ */
+.poolCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.poolCard:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(200, 161, 255, 0.1);
+}
+
+.poolCardImage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+
+.poolCardImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.poolStatus {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.poolStatusOpen {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.poolStatusFilled {
+  color: var(--accent);
+  border-color: rgba(200, 161, 255, 0.4);
+}
+
+.poolStatusClosed {
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.poolCardInfo {
+  padding: 12px;
+}
+
+.poolCardInfo h4 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poolProgress {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.poolProgressBar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #9b5de5);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.poolShareInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
 }
 
 /* ============================================
