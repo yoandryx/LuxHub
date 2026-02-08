@@ -2,8 +2,8 @@
 // Unified NFT Card component for consistent styling across LuxHub
 import React, { useState, memo, useMemo, useCallback } from 'react';
 import styles from '../../styles/UnifiedNFTCard.module.css';
-import { FaCheck, FaClock, FaLock, FaShoppingCart, FaFire, FaEye, FaGavel } from 'react-icons/fa';
-import { LuShield, LuBadgeCheck, LuSparkles } from 'react-icons/lu';
+import { FaCheck, FaClock, FaLock, FaShoppingCart, FaFire, FaEye } from 'react-icons/fa';
+import { LuBadgeCheck, LuSparkles, LuArrowUpRight } from 'react-icons/lu';
 import { resolveImageUrl, resolveAssetImage, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 
 // Status types for NFT badges
@@ -111,7 +111,6 @@ const UnifiedNFTCard = memo(
     caseSize,
     condition,
     status = 'verified',
-    isVerified = true,
     poolEligible,
     acceptingOffers,
     variant = 'default',
@@ -196,13 +195,6 @@ const UnifiedNFTCard = memo(
             </div>
           )}
 
-          {/* Verified Shield - Top Right */}
-          {isVerified && (
-            <div className={styles.verifiedBadge}>
-              <LuShield />
-            </div>
-          )}
-
           {/* Pool Eligible Badge */}
           {poolEligible && (
             <div className={styles.poolBadge}>
@@ -210,68 +202,37 @@ const UnifiedNFTCard = memo(
             </div>
           )}
 
-          {/* Hover Overlay */}
+          {/* Hover Overlay - Premium Spotlight */}
           {showOverlay && (
             <div className={`${styles.overlay} ${isHovered ? styles.overlayVisible : ''}`}>
+              <div className={styles.overlaySweep} />
               <div className={styles.overlayContent}>
-                <h3 className={styles.overlayTitle}>{title}</h3>
-
+                {/* Brand identity */}
                 {brand && (
-                  <div className={styles.overlayRow}>
-                    <span>Brand</span>
-                    <span>{brand}</span>
+                  <div className={styles.overlayBrand}>
+                    <span className={styles.overlayBrandText}>{brand}</span>
+                    <span className={styles.overlayAccentLine} />
                   </div>
                 )}
 
-                {model && (
-                  <div className={styles.overlayRow}>
-                    <span>Model</span>
-                    <span>{model}</span>
+                {/* Spec chips - only the essentials */}
+                {(material || caseSize || condition) && (
+                  <div className={styles.overlayChips}>
+                    {material && <span className={styles.overlayChip}>{material}</span>}
+                    {caseSize && <span className={styles.overlayChip}>{caseSize}</span>}
+                    {condition && <span className={styles.overlayChip}>{condition}</span>}
                   </div>
                 )}
 
-                {material && (
-                  <div className={styles.overlayRow}>
-                    <span>Material</span>
-                    <span>{material}</span>
+                {/* Mint address snippet */}
+                {mintAddress && (
+                  <div className={styles.overlayMint}>
+                    <span className={styles.overlayMintLabel}>Mint</span>
+                    <span className={styles.overlayMintAddr}>{truncateAddress(mintAddress)}</span>
                   </div>
                 )}
 
-                {caseSize && (
-                  <div className={styles.overlayRow}>
-                    <span>Size</span>
-                    <span>{caseSize}</span>
-                  </div>
-                )}
-
-                {condition && (
-                  <div className={styles.overlayRow}>
-                    <span>Condition</span>
-                    <span>{condition}</span>
-                  </div>
-                )}
-
-                {showOwner && owner && (
-                  <div className={styles.overlayRow}>
-                    <span>Owner</span>
-                    <span>{truncateAddress(owner)}</span>
-                  </div>
-                )}
-
-                {showPrice && price !== undefined && (
-                  <div className={styles.overlayPriceContainer}>
-                    <div className={styles.overlayPrice}>
-                      <LuSparkles className={styles.priceIcon} />
-                      <span>
-                        {price.toFixed(2)} {priceLabel}
-                      </span>
-                    </div>
-                    {priceUSD !== undefined && (
-                      <div className={styles.overlayPriceUSD}>${priceUSD.toLocaleString()}</div>
-                    )}
-                  </div>
-                )}
-
+                {/* Action row */}
                 <div className={styles.overlayActions}>
                   {onViewDetails && (
                     <button
@@ -281,7 +242,7 @@ const UnifiedNFTCard = memo(
                         onViewDetails();
                       }}
                     >
-                      View Details
+                      Explore <LuArrowUpRight />
                     </button>
                   )}
                   {onQuickBuy && status === 'listed' && (
@@ -292,7 +253,7 @@ const UnifiedNFTCard = memo(
                         onQuickBuy();
                       }}
                     >
-                      Quick Buy
+                      Buy Now
                     </button>
                   )}
                   {onOffer && acceptingOffers && (
@@ -303,7 +264,7 @@ const UnifiedNFTCard = memo(
                         onOffer();
                       }}
                     >
-                      Make Offer
+                      Offer
                     </button>
                   )}
                 </div>
@@ -331,35 +292,12 @@ const UnifiedNFTCard = memo(
                 )}
               </div>
             )}
-
-            {showBuyButton && onQuickBuy && status === 'listed' && (
-              <button
-                className={styles.footerBuyButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onQuickBuy();
-                }}
-              >
-                Buy
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Action Buttons - Below footer for marketplace */}
-        {showActionButtons && (
+        {/* Action Buttons - Integrated purchase bar */}
+        {showActionButtons && status === 'listed' && (onQuickBuy || onOffer) && (
           <div className={styles.actionButtons}>
-            {onQuickBuy && status === 'listed' && (
-              <button
-                className={styles.luxuryBuyBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onQuickBuy();
-                }}
-              >
-                <FaShoppingCart /> Buy Now
-              </button>
-            )}
             {onOffer && acceptingOffers && (
               <button
                 className={styles.luxuryOfferBtn}
@@ -368,7 +306,18 @@ const UnifiedNFTCard = memo(
                   onOffer();
                 }}
               >
-                <FaGavel /> Offer
+                Make Offer
+              </button>
+            )}
+            {onQuickBuy && (
+              <button
+                className={`${styles.luxuryBuyBtn} ${!acceptingOffers ? styles.actionBuyFull : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickBuy();
+                }}
+              >
+                Buy Now
               </button>
             )}
           </div>

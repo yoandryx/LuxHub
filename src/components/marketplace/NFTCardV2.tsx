@@ -4,7 +4,7 @@
 
 import React, { useState, memo, useMemo, useCallback } from 'react';
 import Image from 'next/image';
-import { LuShield, LuBadgeCheck, LuSparkles } from 'react-icons/lu';
+import { LuBadgeCheck, LuSparkles } from 'react-icons/lu';
 import { FaShoppingCart, FaGavel } from 'react-icons/fa';
 import {
   resolveAssetImage,
@@ -249,13 +249,6 @@ const NFTCardV2 = memo(function NFTCardV2({
           <div className={`${styles.statusBadge} ${badgeConfig.className}`}>
             <LuBadgeCheck aria-hidden="true" />
             <span>{badgeConfig.label}</span>
-          </div>
-        )}
-
-        {/* Verified Shield */}
-        {isVerified && (
-          <div className={styles.verifiedBadge} title="LuxHub Verified">
-            <LuShield aria-hidden="true" />
           </div>
         )}
       </div>

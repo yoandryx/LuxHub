@@ -879,49 +879,19 @@ export default function Marketplace() {
                               showBadge={true}
                               showPrice={true}
                               showOverlay={true}
-                              showActionButtons={false}
+                              showActionButtons={true}
+                              onQuickBuy={() =>
+                                isDemo ? handleDemoClick(listing) : handleBuy(listing)
+                              }
+                              onOffer={
+                                listing.escrowPda
+                                  ? () => (isDemo ? handleDemoClick(listing) : handleOffer(listing))
+                                  : undefined
+                              }
                               onViewDetails={() =>
                                 isDemo ? handleDemoClick(listing) : handleViewDetails(listing)
                               }
                             />
-                            <div className={styles.sellerActions}>
-                              {listing.acceptingOffers && listing.escrowPda ? (
-                                <>
-                                  <button
-                                    className={styles.actionOfferBtn}
-                                    onClick={() =>
-                                      isDemo ? handleDemoClick(listing) : handleOffer(listing)
-                                    }
-                                  >
-                                    Make Offer
-                                  </button>
-                                  <button
-                                    className={styles.actionBuyBtn}
-                                    onClick={() =>
-                                      isDemo ? handleDemoClick(listing) : handleBuy(listing)
-                                    }
-                                  >
-                                    Buy Now
-                                  </button>
-                                </>
-                              ) : (
-                                <button
-                                  className={`${styles.actionBuyBtn} ${styles.actionBuyFull}`}
-                                  onClick={() =>
-                                    isDemo ? handleDemoClick(listing) : handleBuy(listing)
-                                  }
-                                >
-                                  Buy Now
-                                </button>
-                              )}
-                              <span
-                                className={`${styles.statusPill} ${
-                                  listing.acceptingOffers ? styles.statusOffers : styles.statusLive
-                                }`}
-                              >
-                                {listing.acceptingOffers ? 'Offers' : 'Live'}
-                              </span>
-                            </div>
                           </motion.div>
                         );
                       })}
