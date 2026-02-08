@@ -1,0 +1,173 @@
+/* ============================================================
+   FilterSidebar – LuxHub Marketplace
+   Glass-morphic sidebar with collapsible filter sections
+   ============================================================ */
+
+/* ── Sidebar Container ────────────────────────────────── */
+.sidebar {
+  width: 260px;
+  height: fit-content;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  position: sticky;
+  top: 110px;
+  flex-shrink: 0;
+
+  padding: 20px;
+  background: linear-gradient(160deg, rgba(18, 18, 24, 0.95) 0%, rgba(10, 10, 14, 0.98) 100%);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Scrollbar */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(200, 161, 255, 0.2);
+  border-radius: 100px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 161, 255, 0.4);
+}
+
+/* ── Header ───────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(200, 161, 255, 0.12);
+}
+
+.title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.clearBtn {
+  padding: 6px 12px;
+  background: rgba(200, 161, 255, 0.08);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 8px;
+  color: #c8a1ff;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clearBtn:hover {
+  background: rgba(200, 161, 255, 0.18);
+  border-color: #c8a1ff;
+}
+
+/* ── Sections Container ───────────────────────────────── */
+.sections {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Individual Section ───────────────────────────────── */
+.section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 0;
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.sectionHeader:hover {
+  color: #c8a1ff;
+}
+
+.chevron {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* ── Section Body (animated) ──────────────────────────── */
+.sectionBody {
+  overflow: hidden;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 14px;
+}
+
+/* ── Chip Button ──────────────────────────────────────── */
+.chip {
+  padding: 7px 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  border-color: rgba(200, 161, 255, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chipActive {
+  background: rgba(200, 161, 255, 0.15);
+  border-color: #c8a1ff;
+  color: #c8a1ff;
+}
+
+.chipActive:hover {
+  background: rgba(200, 161, 255, 0.22);
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+@media screen and (max-width: 1024px) {
+  .sidebar {
+    display: none;
+  }
+}

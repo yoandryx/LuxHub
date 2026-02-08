@@ -22,6 +22,7 @@ import { SiSolana } from 'react-icons/si';
 import styles from '../styles/Marketplace.module.css';
 import MakeOfferModal from '../components/marketplace/MakeOfferModal';
 import BuyModal from '../components/marketplace/BuyModal';
+import FilterSidebar, { FilterGroup } from '../components/marketplace/FilterSidebar';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import UnifiedNFTCard from '../components/common/UnifiedNFTCard';
 import { VendorCard } from '../components/common/VendorCard';
@@ -127,6 +128,9 @@ const PRICE_RANGES = [
   { label: '$100K+', min: 100000, max: Infinity },
 ];
 
+const MATERIALS = ['Steel', 'Gold', 'Titanium', 'Platinum', 'Ceramic'];
+const CONDITIONS = ['New', 'Excellent', 'Very Good', 'Good'];
+
 const SORT_OPTIONS = [
   { value: 'latest', label: 'Newest First' },
   { value: 'price_low', label: 'Price: Low to High' },
@@ -145,6 +149,111 @@ import {
 function resolveImage(listing: EscrowListing): string {
   return resolveAssetImage(listing.asset);
 }
+
+// Mock listings for demo when no real NFTs are available
+const MOCK_LISTINGS: EscrowListing[] = [
+  {
+    _id: 'demo_001',
+    escrowPda: '',
+    nftMint: 'demo_rolex_daytona',
+    sellerWallet: 'LuxHub',
+    listingPrice: 450_000_000_000,
+    listingPriceUSD: 250000,
+    status: 'listed',
+    acceptingOffers: true,
+    minimumOfferUSD: 220000,
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    asset: {
+      _id: 'asset_001',
+      model: 'Daytona Rainbow',
+      brand: 'Rolex',
+      title: 'Rolex Daytona Rainbow',
+      description:
+        'Limited edition Daytona with factory-set rainbow sapphires. 40mm Everose gold case.',
+      imageUrl: '/images/rolex-daytona-rainbow.jpg',
+      material: 'Gold',
+      dialColor: 'Black',
+      caseSize: '40mm',
+      condition: 'Excellent',
+    },
+    vendor: { businessName: 'LuxHub Official', verified: true },
+  },
+  {
+    _id: 'demo_002',
+    escrowPda: '',
+    nftMint: 'demo_rm_027',
+    sellerWallet: 'LuxHub',
+    listingPrice: 1_250_000_000_000,
+    listingPriceUSD: 800000,
+    status: 'listed',
+    acceptingOffers: true,
+    minimumOfferUSD: 700000,
+    createdAt: new Date(Date.now() - 172800000).toISOString(),
+    asset: {
+      _id: 'asset_002',
+      model: 'RM 027',
+      brand: 'Richard Mille',
+      title: 'Richard Mille RM 027',
+      description: 'Ultra-lightweight tourbillon worn by Rafael Nadal. Extremely rare piece.',
+      imageUrl: '/images/rm-027.jpg',
+      material: 'Titanium',
+      dialColor: 'Skeleton',
+      caseSize: '47mm',
+      condition: 'Excellent',
+    },
+    vendor: { businessName: 'LuxHub Official', verified: true },
+  },
+  {
+    _id: 'demo_003',
+    escrowPda: '',
+    nftMint: 'demo_ap_offshore',
+    sellerWallet: 'LuxHub',
+    listingPrice: 280_000_000_000,
+    listingPriceUSD: 85000,
+    status: 'listed',
+    acceptingOffers: true,
+    minimumOfferUSD: 75000,
+    createdAt: new Date(Date.now() - 259200000).toISOString(),
+    asset: {
+      _id: 'asset_003',
+      model: 'Royal Oak Offshore',
+      brand: 'Audemars Piguet',
+      title: 'AP Royal Oak Offshore',
+      description: 'Limited edition collaboration piece. High demand expected on secondary market.',
+      imageUrl: '/images/ap-offshore.jpg',
+      material: 'Steel',
+      dialColor: 'Blue',
+      caseSize: '44mm',
+      condition: 'Excellent',
+    },
+    vendor: { businessName: 'LuxHub Official', verified: true },
+  },
+  {
+    _id: 'demo_004',
+    escrowPda: '',
+    nftMint: 'demo_cartier_crash',
+    sellerWallet: 'LuxHub',
+    listingPrice: 520_000_000_000,
+    listingPriceUSD: 280000,
+    status: 'listed',
+    acceptingOffers: true,
+    minimumOfferUSD: 250000,
+    createdAt: new Date(Date.now() - 345600000).toISOString(),
+    asset: {
+      _id: 'asset_004',
+      model: 'Crash London',
+      brand: 'Cartier',
+      title: 'Cartier Crash London',
+      description: 'Iconic asymmetric design. Museum-quality piece with exceptional provenance.',
+      imageUrl: '/images/cartier-crash.jpg',
+      material: 'Gold',
+      dialColor: 'White',
+      caseSize: '38mm',
+      condition: 'Excellent',
+    },
+    vendor: { businessName: 'LuxHub Official', verified: true },
+  },
+];
 
 // Marketplace Page Component
 export default function Marketplace() {
@@ -170,6 +279,8 @@ export default function Marketplace() {
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<{ min: number; max: number } | null>(
     null
   );
@@ -179,6 +290,8 @@ export default function Marketplace() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     brand: true,
     price: true,
+    material: false,
+    condition: false,
   });
 
   // Modal state
@@ -209,6 +322,8 @@ export default function Marketplace() {
   // Clear all filters
   const clearFilters = () => {
     setSelectedBrands([]);
+    setSelectedMaterials([]);
+    setSelectedConditions([]);
     setSelectedPriceRange(null);
     setSearchQuery('');
   };
@@ -217,15 +332,72 @@ export default function Marketplace() {
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (selectedBrands.length) count += selectedBrands.length;
+    if (selectedMaterials.length) count += selectedMaterials.length;
+    if (selectedConditions.length) count += selectedConditions.length;
     if (selectedPriceRange) count += 1;
     return count;
-  }, [selectedBrands, selectedPriceRange]);
+  }, [selectedBrands, selectedMaterials, selectedConditions, selectedPriceRange]);
+
+  // Build price range options as string labels for the filter sidebar
+  const togglePriceLabel = useCallback(
+    (label: string) => {
+      const range = PRICE_RANGES.find((r) => r.label === label);
+      if (!range) return;
+      setSelectedPriceRange(selectedPriceRange?.min === range.min ? null : range);
+    },
+    [selectedPriceRange]
+  );
+
+  // Filter groups for the sidebar component
+  const filterGroups: FilterGroup[] = useMemo(
+    () => [
+      {
+        key: 'brand',
+        label: 'Brand',
+        options: BRANDS,
+        selected: selectedBrands,
+        onToggle: (v: string) => toggleFilter(v, selectedBrands, setSelectedBrands),
+        defaultExpanded: true,
+      },
+      {
+        key: 'price',
+        label: 'Price Range',
+        options: PRICE_RANGES.map((r) => r.label),
+        selected: selectedPriceRange
+          ? [PRICE_RANGES.find((r) => r.min === selectedPriceRange.min)?.label || '']
+          : [],
+        onToggle: togglePriceLabel,
+        defaultExpanded: true,
+      },
+      {
+        key: 'material',
+        label: 'Material',
+        options: MATERIALS,
+        selected: selectedMaterials,
+        onToggle: (v: string) => toggleFilter(v, selectedMaterials, setSelectedMaterials),
+      },
+      {
+        key: 'condition',
+        label: 'Condition',
+        options: CONDITIONS,
+        selected: selectedConditions,
+        onToggle: (v: string) => toggleFilter(v, selectedConditions, setSelectedConditions),
+      },
+    ],
+    [selectedBrands, selectedPriceRange, selectedMaterials, selectedConditions, togglePriceLabel]
+  );
+
+  // Source listings: real data with mock fallback
+  const sourceListings = useMemo(() => {
+    const real = listings.filter(
+      (l: EscrowListing) => l.status === 'listed' || l.status === 'initiated'
+    );
+    return real.length > 0 ? real : MOCK_LISTINGS;
+  }, [listings]);
 
   // Filter and sort listings
   const filteredListings = useMemo(() => {
-    let result = listings.filter(
-      (l: EscrowListing) => l.status === 'listed' || l.status === 'initiated'
-    );
+    let result = [...sourceListings];
 
     // Search filter
     if (searchQuery) {
@@ -251,6 +423,20 @@ export default function Marketplace() {
       result = result.filter(
         (l: EscrowListing) =>
           l.listingPriceUSD >= selectedPriceRange.min && l.listingPriceUSD <= selectedPriceRange.max
+      );
+    }
+
+    // Material filter
+    if (selectedMaterials.length) {
+      result = result.filter(
+        (l: EscrowListing) => l.asset?.material && selectedMaterials.includes(l.asset.material)
+      );
+    }
+
+    // Condition filter
+    if (selectedConditions.length) {
+      result = result.filter(
+        (l: EscrowListing) => l.asset?.condition && selectedConditions.includes(l.asset.condition)
       );
     }
 
@@ -282,7 +468,15 @@ export default function Marketplace() {
     }
 
     return result;
-  }, [listings, searchQuery, selectedBrands, selectedPriceRange, sortBy]);
+  }, [
+    sourceListings,
+    searchQuery,
+    selectedBrands,
+    selectedMaterials,
+    selectedConditions,
+    selectedPriceRange,
+    sortBy,
+  ]);
 
   // Filter pools
   const filteredPools = useMemo(() => {
@@ -374,6 +568,14 @@ export default function Marketplace() {
   const handleViewDetails = useCallback((listing: EscrowListing) => {
     setSelectedListing(listing);
     setShowDetailModal(true);
+  }, []);
+
+  // Handle demo listing clicks
+  const handleDemoClick = useCallback((listing: EscrowListing) => {
+    const title = listing.asset?.title || listing.asset?.model || 'this item';
+    alert(
+      `This is a demo listing for "${title}". Real purchases will be available when live NFTs are minted.\n\nContact LuxHub to list your luxury items!`
+    );
   }, []);
 
   // Format price
@@ -575,101 +777,12 @@ export default function Marketplace() {
           {/* Content Area */}
           <div className={styles.contentArea}>
             {/* Sidebar Filters (Desktop) */}
-            {activeSection === 'direct_sales' && (
-              <AnimatePresence>
-                {showFilters && (
-                  <motion.aside
-                    className={styles.sidebar}
-                    initial={{ opacity: 0, x: -20, width: 0 }}
-                    animate={{ opacity: 1, x: 0, width: 280 }}
-                    exit={{ opacity: 0, x: -20, width: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className={styles.sidebarInner}>
-                      <div className={styles.sidebarHeader}>
-                        <h3>Filters</h3>
-                        {activeFilterCount > 0 && (
-                          <button className={styles.clearBtn} onClick={clearFilters}>
-                            Clear All
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Brand Filter */}
-                      <div className={styles.filterSection}>
-                        <button
-                          className={styles.filterHeader}
-                          onClick={() => toggleSection('brand')}
-                        >
-                          <span>Brand</span>
-                          <HiOutlineChevronDown
-                            className={`${styles.chevron} ${expandedSections.brand ? styles.expanded : ''}`}
-                          />
-                        </button>
-                        <AnimatePresence>
-                          {expandedSections.brand && (
-                            <motion.div
-                              className={styles.filterOptions}
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                            >
-                              {BRANDS.map((brand) => (
-                                <button
-                                  key={brand}
-                                  className={`${styles.filterChip} ${selectedBrands.includes(brand) ? styles.active : ''}`}
-                                  onClick={() =>
-                                    toggleFilter(brand, selectedBrands, setSelectedBrands)
-                                  }
-                                >
-                                  {brand}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* Price Filter */}
-                      <div className={styles.filterSection}>
-                        <button
-                          className={styles.filterHeader}
-                          onClick={() => toggleSection('price')}
-                        >
-                          <span>Price Range</span>
-                          <HiOutlineChevronDown
-                            className={`${styles.chevron} ${expandedSections.price ? styles.expanded : ''}`}
-                          />
-                        </button>
-                        <AnimatePresence>
-                          {expandedSections.price && (
-                            <motion.div
-                              className={styles.filterOptions}
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                            >
-                              {PRICE_RANGES.map((range) => (
-                                <button
-                                  key={range.label}
-                                  className={`${styles.filterChip} ${selectedPriceRange?.min === range.min ? styles.active : ''}`}
-                                  onClick={() =>
-                                    setSelectedPriceRange(
-                                      selectedPriceRange?.min === range.min ? null : range
-                                    )
-                                  }
-                                >
-                                  {range.label}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  </motion.aside>
-                )}
-              </AnimatePresence>
+            {activeSection === 'direct_sales' && showFilters && (
+              <FilterSidebar
+                groups={filterGroups}
+                activeCount={activeFilterCount}
+                onClearAll={clearFilters}
+              />
             )}
 
             {/* Main Grid */}
@@ -692,6 +805,24 @@ export default function Marketplace() {
                       <HiOutlineX />
                     </span>
                   )}
+                  {selectedMaterials.map((m) => (
+                    <span
+                      key={m}
+                      className={styles.activeChip}
+                      onClick={() => toggleFilter(m, selectedMaterials, setSelectedMaterials)}
+                    >
+                      {m} <HiOutlineX />
+                    </span>
+                  ))}
+                  {selectedConditions.map((c) => (
+                    <span
+                      key={c}
+                      className={styles.activeChip}
+                      onClick={() => toggleFilter(c, selectedConditions, setSelectedConditions)}
+                    >
+                      {c} <HiOutlineX />
+                    </span>
+                  ))}
                 </div>
               )}
 
@@ -712,42 +843,88 @@ export default function Marketplace() {
                     </div>
                   ) : filteredListings.length > 0 ? (
                     <motion.div
-                      className={`${styles.grid} ${viewMode === 'list' ? styles.listView : ''}`}
+                      className={styles.nftGrid}
                       variants={containerVariants}
                       initial="hidden"
                       animate="visible"
                       key={`${sortBy}-${activeFilterCount}`}
                     >
-                      {filteredListings.map((listing: EscrowListing) => (
-                        <motion.div key={listing._id} variants={cardVariants}>
-                          <UnifiedNFTCard
-                            title={listing.asset?.model || 'Unknown Watch'}
-                            image={resolveImage(listing)}
-                            price={parseFloat(formatSol(listing.listingPriceUSD || 0))}
-                            priceLabel="SOL"
-                            priceUSD={listing.listingPriceUSD}
-                            mintAddress={listing.nftMint}
-                            owner={listing.sellerWallet}
-                            brand={listing.asset?.brand}
-                            model={listing.asset?.model}
-                            material={listing.asset?.material}
-                            dialColor={listing.asset?.dialColor}
-                            caseSize={listing.asset?.caseSize}
-                            condition={listing.asset?.condition}
-                            status="listed"
-                            isVerified={listing.vendor?.verified}
-                            acceptingOffers={listing.acceptingOffers}
-                            variant={viewMode === 'list' ? 'list' : 'default'}
-                            showBadge={true}
-                            showPrice={true}
-                            showOverlay={true}
-                            showActionButtons={true}
-                            onViewDetails={() => handleViewDetails(listing)}
-                            onQuickBuy={() => handleBuy(listing)}
-                            onOffer={() => handleOffer(listing)}
-                          />
-                        </motion.div>
-                      ))}
+                      {filteredListings.map((listing: EscrowListing) => {
+                        const isDemo = listing._id.startsWith('demo_');
+                        const priceSol = parseFloat(formatSol(listing.listingPriceUSD || 0));
+                        return (
+                          <motion.div
+                            key={listing._id}
+                            className={styles.cardWrapper}
+                            variants={cardVariants}
+                          >
+                            {isDemo && <span className={styles.demoBadge}>Demo</span>}
+                            <UnifiedNFTCard
+                              title={listing.asset?.model || 'Unknown Watch'}
+                              image={resolveImage(listing)}
+                              price={priceSol}
+                              priceLabel="SOL"
+                              priceUSD={listing.listingPriceUSD}
+                              mintAddress={listing.nftMint}
+                              owner={listing.sellerWallet}
+                              brand={listing.asset?.brand}
+                              model={listing.asset?.model}
+                              material={listing.asset?.material}
+                              dialColor={listing.asset?.dialColor}
+                              caseSize={listing.asset?.caseSize}
+                              condition={listing.asset?.condition}
+                              status="listed"
+                              isVerified={listing.vendor?.verified}
+                              acceptingOffers={listing.acceptingOffers}
+                              showBadge={true}
+                              showPrice={true}
+                              showOverlay={true}
+                              showActionButtons={false}
+                              onViewDetails={() =>
+                                isDemo ? handleDemoClick(listing) : handleViewDetails(listing)
+                              }
+                            />
+                            <div className={styles.sellerActions}>
+                              {listing.acceptingOffers && listing.escrowPda ? (
+                                <>
+                                  <button
+                                    className={styles.actionOfferBtn}
+                                    onClick={() =>
+                                      isDemo ? handleDemoClick(listing) : handleOffer(listing)
+                                    }
+                                  >
+                                    Make Offer
+                                  </button>
+                                  <button
+                                    className={styles.actionBuyBtn}
+                                    onClick={() =>
+                                      isDemo ? handleDemoClick(listing) : handleBuy(listing)
+                                    }
+                                  >
+                                    Buy Now
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  className={`${styles.actionBuyBtn} ${styles.actionBuyFull}`}
+                                  onClick={() =>
+                                    isDemo ? handleDemoClick(listing) : handleBuy(listing)
+                                  }
+                                >
+                                  Buy Now
+                                </button>
+                              )}
+                              <span
+                                className={`${styles.statusPill} ${
+                                  listing.acceptingOffers ? styles.statusOffers : styles.statusLive
+                                }`}
+                              >
+                                {listing.acceptingOffers ? 'Offers' : 'Live'}
+                              </span>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
                     </motion.div>
                   ) : (
                     <div className={styles.emptyState}>
@@ -947,56 +1124,150 @@ export default function Marketplace() {
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* Drag Handle */}
+                <div className={styles.mobileFilterHandle} />
+
                 <div className={styles.mobileFilterHeader}>
-                  <h3>Filters</h3>
-                  <button onClick={() => setShowMobileFilters(false)}>
+                  <div className={styles.mobileFilterHeaderLeft}>
+                    <HiOutlineFilter className={styles.mobileFilterIcon} />
+                    <h3>Filters</h3>
+                    {activeFilterCount > 0 && (
+                      <span className={styles.mobileFilterCount}>{activeFilterCount}</span>
+                    )}
+                  </div>
+                  <button
+                    className={styles.mobileFilterClose}
+                    onClick={() => setShowMobileFilters(false)}
+                  >
                     <HiOutlineX />
                   </button>
                 </div>
 
                 <div className={styles.mobileFilterBody}>
+                  {/* Brand Section */}
                   <div className={styles.mobileFilterSection}>
-                    <h4>Brand</h4>
-                    <div className={styles.mobileFilterChips}>
-                      {BRANDS.map((brand) => (
-                        <button
-                          key={brand}
-                          className={`${styles.filterChip} ${selectedBrands.includes(brand) ? styles.active : ''}`}
-                          onClick={() => toggleFilter(brand, selectedBrands, setSelectedBrands)}
-                        >
-                          {brand}
-                        </button>
-                      ))}
-                    </div>
+                    <button
+                      className={styles.mobileFilterSectionHeader}
+                      onClick={() => toggleSection('brand')}
+                    >
+                      <span>Brand</span>
+                      <HiOutlineChevronDown
+                        className={`${styles.chevron} ${expandedSections.brand ? styles.expanded : ''}`}
+                      />
+                    </button>
+                    {expandedSections.brand && (
+                      <div className={styles.mobileFilterChips}>
+                        {BRANDS.map((brand) => (
+                          <button
+                            key={brand}
+                            className={`${styles.mobileChip} ${selectedBrands.includes(brand) ? styles.mobileChipActive : ''}`}
+                            onClick={() => toggleFilter(brand, selectedBrands, setSelectedBrands)}
+                          >
+                            {brand}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
+                  {/* Price Range Section */}
                   <div className={styles.mobileFilterSection}>
-                    <h4>Price Range</h4>
-                    <div className={styles.mobileFilterChips}>
-                      {PRICE_RANGES.map((range) => (
-                        <button
-                          key={range.label}
-                          className={`${styles.filterChip} ${selectedPriceRange?.min === range.min ? styles.active : ''}`}
-                          onClick={() =>
-                            setSelectedPriceRange(
-                              selectedPriceRange?.min === range.min ? null : range
-                            )
-                          }
-                        >
-                          {range.label}
-                        </button>
-                      ))}
-                    </div>
+                    <button
+                      className={styles.mobileFilterSectionHeader}
+                      onClick={() => toggleSection('price')}
+                    >
+                      <span>Price Range</span>
+                      <HiOutlineChevronDown
+                        className={`${styles.chevron} ${expandedSections.price ? styles.expanded : ''}`}
+                      />
+                    </button>
+                    {expandedSections.price && (
+                      <div className={styles.mobileFilterChips}>
+                        {PRICE_RANGES.map((range) => (
+                          <button
+                            key={range.label}
+                            className={`${styles.mobileChip} ${selectedPriceRange?.min === range.min ? styles.mobileChipActive : ''}`}
+                            onClick={() =>
+                              setSelectedPriceRange(
+                                selectedPriceRange?.min === range.min ? null : range
+                              )
+                            }
+                          >
+                            {range.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Material Section */}
+                  <div className={styles.mobileFilterSection}>
+                    <button
+                      className={styles.mobileFilterSectionHeader}
+                      onClick={() => toggleSection('material')}
+                    >
+                      <span>Material</span>
+                      <HiOutlineChevronDown
+                        className={`${styles.chevron} ${expandedSections.material ? styles.expanded : ''}`}
+                      />
+                    </button>
+                    {expandedSections.material && (
+                      <div className={styles.mobileFilterChips}>
+                        {MATERIALS.map((mat) => (
+                          <button
+                            key={mat}
+                            className={`${styles.mobileChip} ${selectedMaterials.includes(mat) ? styles.mobileChipActive : ''}`}
+                            onClick={() =>
+                              toggleFilter(mat, selectedMaterials, setSelectedMaterials)
+                            }
+                          >
+                            {mat}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Condition Section */}
+                  <div className={styles.mobileFilterSection}>
+                    <button
+                      className={styles.mobileFilterSectionHeader}
+                      onClick={() => toggleSection('condition')}
+                    >
+                      <span>Condition</span>
+                      <HiOutlineChevronDown
+                        className={`${styles.chevron} ${expandedSections.condition ? styles.expanded : ''}`}
+                      />
+                    </button>
+                    {expandedSections.condition && (
+                      <div className={styles.mobileFilterChips}>
+                        {CONDITIONS.map((cond) => (
+                          <button
+                            key={cond}
+                            className={`${styles.mobileChip} ${selectedConditions.includes(cond) ? styles.mobileChipActive : ''}`}
+                            onClick={() =>
+                              toggleFilter(cond, selectedConditions, setSelectedConditions)
+                            }
+                          >
+                            {cond}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className={styles.mobileFilterFooter}>
-                  <button className={styles.clearBtn} onClick={clearFilters}>
+                  <button className={styles.mobileClearBtn} onClick={clearFilters}>
                     Clear All
                   </button>
-                  <button className={styles.applyBtn} onClick={() => setShowMobileFilters(false)}>
+                  <button
+                    className={styles.mobileApplyBtn}
+                    onClick={() => setShowMobileFilters(false)}
+                  >
                     Show {filteredListings.length} Results
                   </button>
                 </div>

@@ -1,16 +1,7 @@
 // src/components/common/RoleNavItems.tsx - Role-based navigation items
 import React, { memo } from 'react';
 import Link from 'next/link';
-import {
-  FaShoppingBag,
-  FaHandshake,
-  FaMapMarkerAlt,
-  FaCog,
-  FaStore,
-  FaPlus,
-  FaUserShield,
-  FaClock,
-} from 'react-icons/fa';
+import { FaShoppingBag, FaStore, FaPlus, FaUserShield, FaClock, FaChartLine } from 'react-icons/fa';
 import { UserRole } from '@/hooks/useUserRole';
 import styles from '@/styles/UserMenuDropdown.module.css';
 
@@ -18,61 +9,56 @@ export interface NavItem {
   href: string;
   label: string;
   icon: React.ReactNode;
-  roles: UserRole[]; // Roles that can see this item
+  roles: UserRole[];
+  description?: string;
 }
 
-// Navigation items configuration
+// Navigation items configuration — only routes that actually exist
 const NAV_ITEMS: NavItem[] = [
   // User items (everyone who's connected)
   {
-    href: '/orders',
+    href: '/my-orders',
     label: 'My Orders',
     icon: <FaShoppingBag />,
     roles: ['user', 'vendor', 'admin'],
+    description: 'Track purchases & sales',
   },
   {
-    href: '/offers',
-    label: 'My Offers',
-    icon: <FaHandshake />,
+    href: '/pools',
+    label: 'My Pools',
+    icon: <FaChartLine />,
     roles: ['user', 'vendor', 'admin'],
+    description: 'Fractional investments',
   },
-  {
-    href: '/addresses',
-    label: 'Saved Addresses',
-    icon: <FaMapMarkerAlt />,
-    roles: ['user', 'vendor', 'admin'],
-  },
-  {
-    href: '/settings',
-    label: 'Settings',
-    icon: <FaCog />,
-    roles: ['user', 'vendor', 'admin'],
-  },
-  // Vendor-specific items
+  // Vendor-specific items — dashboard is the hub
   {
     href: '/sellerDashboard',
     label: 'Vendor Dashboard',
     icon: <FaStore />,
     roles: ['vendor', 'admin'],
+    description: 'Inventory, orders & payouts',
   },
   {
-    href: '/submitListing',
-    label: 'Submit Listing',
+    href: '/requestMint',
+    label: 'Request Listing',
     icon: <FaPlus />,
     roles: ['vendor', 'admin'],
+    description: 'Submit a new asset',
   },
-  // Admin-specific items
+  // Admin-specific items — dashboard is the hub
   {
     href: '/adminDashboard',
     label: 'Admin Dashboard',
     icon: <FaUserShield />,
     roles: ['admin'],
+    description: 'Approvals, escrow & users',
   },
   {
     href: '/createNFT',
     label: 'Mint NFT',
     icon: <FaClock />,
     roles: ['admin'],
+    description: 'Mint directly on-chain',
   },
 ];
 
@@ -88,11 +74,9 @@ function RoleNavItems({ role, walletAddress, onItemClick, className = '' }: Role
   const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
   // Group items by category
-  const userItems = visibleItems.filter((item) =>
-    ['My Orders', 'My Offers', 'Saved Addresses', 'Settings'].includes(item.label)
-  );
+  const userItems = visibleItems.filter((item) => ['My Orders', 'My Pools'].includes(item.label));
   const vendorItems = visibleItems.filter((item) =>
-    ['Vendor Dashboard', 'Submit Listing'].includes(item.label)
+    ['Vendor Dashboard', 'Request Listing'].includes(item.label)
   );
   const adminItems = visibleItems.filter((item) =>
     ['Admin Dashboard', 'Mint NFT'].includes(item.label)
@@ -113,7 +97,12 @@ function RoleNavItems({ role, walletAddress, onItemClick, className = '' }: Role
         return (
           <Link key={item.href} href={href} className={styles.navItem} onClick={onItemClick}>
             <span className={styles.navIcon}>{item.icon}</span>
-            <span className={styles.navLabel}>{item.label}</span>
+            <div className={styles.navItemContent}>
+              <span className={styles.navLabel}>{item.label}</span>
+              {item.description && (
+                <span className={styles.navDescription}>{item.description}</span>
+              )}
+            </div>
           </Link>
         );
       })}

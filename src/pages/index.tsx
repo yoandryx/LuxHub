@@ -26,14 +26,19 @@ const HeroScene = dynamic(() => import('../components/marketplace/HeroScene'), {
 // Interfaces
 interface NFT {
   nftId: string;
-  fileCid: string;
-  salePrice: number;
+  mintAddress?: string;
+  fileCid?: string;
+  salePrice?: number;
   timestamp: number;
   seller: string;
-  buyer: string;
+  buyer?: string;
   marketStatus: string;
   image?: string;
+  imageUrl?: string;
+  imageIpfsUrls?: string[];
+  images?: string[];
   title?: string;
+  priceUSD?: number;
   attributes?: { trait_type: string; value: string }[];
 }
 
@@ -228,32 +233,16 @@ export default function IndexTest() {
     return () => clearTimeout(sceneTimeout);
   }, []);
 
-  // Fetch NFTs on initial load
+  // Fetch featured vendor listings (daily-randomized for fair display)
   useEffect(() => {
     const fetchNFTs = async () => {
       setIsLoadingNFTs(true);
       try {
-        const res = await fetch('/api/nft/holders');
+        const res = await fetch('/api/nft/featured?limit=8');
         const data = await res.json();
-        const enriched = await Promise.all(
-          data.slice(0, 8).map(async (nft: NFT) => {
-            try {
-              const meta = await fetch(`https://ipfs.io/ipfs/${nft.fileCid}`);
-              const metaData = await meta.json();
-              return {
-                ...nft,
-                image: metaData.image,
-                title: metaData.name || 'Untitled Watch',
-                attributes: metaData.attributes,
-              };
-            } catch {
-              return { ...nft, image: '', title: 'Untitled Watch' };
-            }
-          })
-        );
-        setFeaturedNFTs(enriched);
+        setFeaturedNFTs(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error('Failed to load NFTs', err);
+        console.error('Failed to load featured NFTs', err);
       } finally {
         setIsLoadingNFTs(false);
       }
@@ -657,7 +646,7 @@ export default function IndexTest() {
         <div className={styles.detailOverlay} onClick={() => setSelectedNFT(null)}>
           <div className={styles.detailContainer} onClick={(e) => e.stopPropagation()}>
             <NftDetailCard
-              mintAddress={selectedNFT.nftId}
+              mintAddress={selectedNFT.mintAddress || selectedNFT.nftId}
               onClose={() => setSelectedNFT(null)}
               showContactButton
             />

@@ -1,72 +1,95 @@
-/* src/styles/UserMenuDropdown.module.css */
+/* ========================================
+   LUXHUB USER MENU DROPDOWN
+   Refined glass panel — luxury dark chrome
+   ======================================== */
+
 .container {
   --accent: #c8a1ff;
-  --accent-dim: #c8a1ff40;
-  --accent-glow: #c8a1ff20;
-  --bg-dark: #0d0d0d;
-  --bg-card: #111111;
-  --border: #222222;
-  --glass: rgba(13, 13, 13, 0.95);
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1a1;
+  --accent-dim: rgba(200, 161, 255, 0.25);
+  --accent-border: rgba(200, 161, 255, 0.15);
+  --accent-glow: rgba(200, 161, 255, 0.06);
+  --surface: rgba(8, 8, 10, 0.82);
+  --surface-elevated: rgba(18, 17, 22, 0.65);
+  --surface-hover: rgba(200, 161, 255, 0.07);
+  --divider: rgba(200, 161, 255, 0.08);
+  --text: #fff;
+  --text-dim: rgba(255, 255, 255, 0.48);
+  --text-secondary: rgba(255, 255, 255, 0.72);
+  --danger: #f87171;
+  --danger-dim: rgba(248, 113, 113, 0.1);
 
   position: relative;
   display: flex;
   align-items: center;
 }
 
-/* Trigger Button */
+/* ============================
+   TRIGGER — navbar glass pill
+   ============================ */
 .trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: #c8a1ff63;
-  border: none;
-  border-radius: 5px;
-  color: var(--text-primary);
+  gap: 10px;
+  padding: 9px 16px;
+  background: rgba(50, 50, 55, 0.45);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(232, 215, 255, 0.12);
+  border-radius: 14px;
+  color: var(--text);
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
+  transition: all 0.25s ease;
+  font-size: 13px;
   font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
 .trigger:hover {
-  background-color: rgba(200, 161, 255, 0.5);
+  background: rgba(30, 30, 35, 0.6);
+  border-color: rgba(200, 161, 255, 0.35);
+  box-shadow: 0 0 16px rgba(200, 161, 255, 0.08);
 }
 
 .trigger.open {
-  background-color: rgba(200, 161, 255, 0.5);
-  border-color: var(--accent);
+  background: rgba(20, 18, 28, 0.7);
+  border-color: rgba(200, 161, 255, 0.45);
+  box-shadow:
+    0 0 20px rgba(200, 161, 255, 0.1),
+    inset 0 0 0 1px rgba(200, 161, 255, 0.04);
 }
 
 .walletIcon {
-  font-size: 14px;
-  color: var(--text-primary);
+  font-size: 15px;
+  color: var(--accent);
 }
 
 .addressText {
-  font-family: monospace;
-  font-size: 13px;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 12px;
+  opacity: 0.85;
+  letter-spacing: 0.5px;
 }
 
 .chevron {
-  font-size: 10px;
-  color: var(--text-secondary);
-  transition: transform 0.2s ease;
+  font-size: 9px;
+  color: var(--text-dim);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: -2px;
 }
 
 .chevron.open {
   transform: rotate(180deg);
 }
 
-/* Avatar */
+/* ============================
+   AVATAR
+   ============================ */
 .avatar {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.3), rgba(139, 92, 246, 0.2));
-  border: 1px solid var(--accent-dim);
+  background: linear-gradient(145deg, rgba(200, 161, 255, 0.15), rgba(100, 70, 160, 0.08));
+  border: 1.5px solid rgba(200, 161, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,312 +104,90 @@
 }
 
 .avatarFallback {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--accent);
+  opacity: 0.7;
 }
 
 .avatarLarge {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
+  border-width: 2px;
 }
 
 .avatarLarge .avatarFallback {
-  font-size: 20px;
+  font-size: 17px;
 }
 
-/* Role Badge */
+/* ============================
+   ROLE BADGES
+   ============================ */
 .roleBadge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
 
 .roleBadge.admin {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(239, 68, 68, 0.15));
-  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.25);
   color: #f87171;
 }
 
 .roleBadge.vendor {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.2), rgba(139, 92, 246, 0.15));
-  border: 1px solid var(--accent-dim);
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid rgba(200, 161, 255, 0.25);
   color: var(--accent);
 }
 
 .roleBadge.user {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
 }
 
-/* Dropdown */
+/* ============================
+   DROPDOWN — frosted chrome panel
+   ============================ */
 .dropdown {
   position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  width: 280px;
-  background: var(--glass);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  top: calc(100% + 10px);
+  right: -4px;
+  width: 310px;
+  /* background: var(--surface); */
+  background-color: #0a0a0c;
+  backdrop-filter: blur(48px) !important;
+  --webkit-backdrop-filter: blur(48px) !important;
+  border: 1px solid rgba(200, 161, 255, 0.14);
+  border-radius: 20px;
   box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.5),
-    0 0 40px rgba(200, 161, 255, 0.1);
-  overflow: hidden;
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   z-index: 1000;
-  animation: slideIn 0.2s ease-out;
+  animation: dropIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top right;
+  overflow: hidden;
 }
 
-@keyframes slideIn {
+/* ============================
+   ANIMATION
+   ============================ */
+@keyframes dropIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: scale(0.96) translateY(-8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1) translateY(0);
   }
-}
-
-/* Profile Section */
-.profileSection {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(200, 161, 255, 0.05), transparent);
-}
-
-.profileInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.username {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* Wallet Section */
-.walletSection {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.walletInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.walletLabel {
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.walletAddress {
-  font-family: monospace;
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.copyButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.copyButton:hover {
-  border-color: var(--accent-dim);
-  color: var(--accent);
-  background: var(--accent-glow);
-}
-
-.copyButton.copied {
-  border-color: #4ade80;
-  color: #4ade80;
-}
-
-/* Balance Display */
-.balanceSection {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.balance {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.balanceLabel {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-/* Navigation Section */
-.navSection {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.sectionLabel {
-  padding: 8px 20px 4px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.navItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  color: var(--text-primary);
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.navItem:hover {
-  background: linear-gradient(90deg, rgba(200, 161, 255, 0.1), transparent);
-}
-
-.navIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  transition: color 0.2s ease;
-}
-
-.navItem:hover .navIcon {
-  color: var(--accent);
-}
-
-.navLabel {
-  font-size: 14px;
-  font-weight: 500;
-}
-
-/* Disconnect Section */
-.disconnectSection {
-  padding: 12px 20px;
-}
-
-.disconnectButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.1), rgba(239, 68, 68, 0.05));
-  border: 1px solid rgba(248, 113, 113, 0.3);
-  border-radius: 8px;
-  color: #f87171;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.disconnectButton:hover {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(239, 68, 68, 0.1));
-  border-color: #f87171;
-}
-
-/* Connect CTA */
-.connectCta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 24px 20px;
-  text-align: center;
-}
-
-.connectText {
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.connectButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 50%, #9333ea 100%);
-  background-size: 200% auto;
-  border: none;
-  border-radius: 8px;
-  color: #0d0d0d;
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.25);
-}
-
-.connectButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 40px rgba(200, 161, 255, 0.3);
-  background-position: right center;
-}
-
-/* Loading State */
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-}
-
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -395,22 +196,392 @@
   }
 }
 
-/* Mobile Styles */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================
+   IDENTITY HEADER
+   ============================ */
+.identityHeader {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--divider);
+  animation: fadeUp 0.3s ease 0.05s both;
+}
+
+.identityRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.identityInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================
+   WALLET PANEL
+   ============================ */
+.walletPanel {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--divider);
+  animation: fadeUp 0.3s ease 0.1s both;
+}
+
+.balanceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.balanceDisplay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.solIcon {
+  font-size: 14px;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.balance {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+.balanceLabel {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.walletAddressRow {
+  margin-bottom: 12px;
+}
+
+.walletAddress {
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  letter-spacing: 0.2px;
+  word-break: break-all;
+  line-height: 1.5;
+  display: block;
+}
+
+/* Wallet tool buttons row */
+.walletTools {
+  display: flex;
+  gap: 6px;
+}
+
+.toolButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0;
+  background: var(--surface-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toolButton svg {
+  font-size: 11px;
+  color: var(--accent);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.toolButton:hover {
+  background: var(--surface-hover);
+  border-color: rgba(200, 161, 255, 0.2);
+  color: var(--text);
+}
+
+.toolButton:hover svg {
+  opacity: 1;
+}
+
+.toolButton.copied {
+  border-color: rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+}
+
+.toolButton.copied svg {
+  color: #4ade80;
+  opacity: 1;
+}
+
+/* ============================
+   NAVIGATION
+   ============================ */
+.navSection {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--divider);
+  animation: fadeUp 0.3s ease 0.15s both;
+}
+
+.sectionLabel {
+  padding: 10px 14px 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  opacity: 0.6;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  margin: 1px 0;
+}
+
+.navItem:hover {
+  background: var(--surface-hover);
+  border-color: rgba(200, 161, 255, 0.12);
+  color: var(--text);
+}
+
+.navIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+  color: var(--accent);
+  background: rgba(200, 161, 255, 0.06);
+  border-radius: 8px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover .navIcon {
+  opacity: 1;
+  background: rgba(200, 161, 255, 0.1);
+}
+
+.navItemContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.navLabel {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+
+.navDescription {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  letter-spacing: 0.1px;
+}
+
+.navItem:hover .navDescription {
+  color: var(--text-secondary);
+}
+
+/* ============================
+   DISCONNECT
+   ============================ */
+.disconnectSection {
+  padding: 10px 12px 12px;
+  animation: fadeUp 0.3s ease 0.2s both;
+}
+
+.disconnectButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--danger-dim);
+  border: 1px solid rgba(248, 113, 113, 0.15);
+  border-radius: 12px;
+  color: rgba(248, 113, 113, 0.75);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+}
+
+.disconnectButton:hover {
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: var(--danger);
+}
+
+/* ============================
+   CONNECT CTA
+   ============================ */
+.connectCta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 28px;
+  text-align: center;
+}
+
+.connectIcon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(200, 161, 255, 0.12), rgba(200, 161, 255, 0.04));
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 16px;
+  color: var(--accent);
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.connectTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.1px;
+  margin: 0;
+}
+
+.connectText {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.connectButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 60%, #9333ea 100%);
+  background-size: 200% auto;
+  border: none;
+  border-radius: 14px;
+  color: #0a0a0c;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 4px 20px rgba(200, 161, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  margin-top: 6px;
+}
+
+.connectButton:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 32px rgba(200, 161, 255, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background-position: right center;
+}
+
+/* ============================
+   LOADING
+   ============================ */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.06);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ============================
+   MOBILE
+   ============================ */
 @media (max-width: 768px) {
   .dropdown {
     position: fixed;
+    backdrop-filter: blur(48px) !important;
+    --webkit-backdrop-filter: blur(48px) !important;
     top: 60px;
     right: 10px;
     left: 10px;
     width: auto;
     max-width: none;
+    border-radius: 18px;
   }
 
   .trigger {
-    padding: 8px 12px;
+    padding: 9px 12px;
   }
 
   .addressText {
     display: none;
+  }
+
+  .walletAddress {
+    font-size: 9.5px;
+  }
+
+  .balance {
+    font-size: 20px;
   }
 }
