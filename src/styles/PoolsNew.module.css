@@ -596,6 +596,11 @@
 .cardProgressPercent {
   font-weight: 650;
   color: var(--text);
+  transition: color 0.3s ease;
+}
+
+.cardProgress:hover .cardProgressPercent {
+  color: var(--accent);
 }
 
 .cardProgressTrack {
@@ -610,11 +615,60 @@
   height: 100%;
   background: var(--accent);
   border-radius: 100px;
-  transition: width 0.6s ease;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  animation: progressEnter 1s ease-out;
+}
+
+.cardProgressFill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 40%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.15) 60%,
+    transparent 100%
+  );
+  animation: progressShimmer 2.5s ease-in-out infinite;
 }
 
 .cardProgressFillHigh {
   background: var(--success);
+}
+
+.cardProgressFillHigh::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 40%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.12) 60%,
+    transparent 100%
+  );
+}
+
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes progressEnter {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
 }
 
 .cardProgressMeta {
