@@ -729,13 +729,28 @@
   transform: translateX(4px);
 }
 
-/* Scroller - Grid on desktop, horizontal scroll on mobile */
+/* Scroller - Responsive auto-fill grid matching vendor dashboard */
 .scroller {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 24px;
-  padding: 10px 0 20px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px 0;
   width: 100%;
+}
+
+@media screen and (min-width: 480px) {
+  .scroller {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .scroller {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+  }
 }
 
 /* NFT Cards - Wrapper for UnifiedNFTCard (no additional styling needed) */
@@ -1482,22 +1497,8 @@
     font-size: 1.5rem;
   }
 
-  .scroller {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding: 10px 0 20px;
-  }
-
-  .nftScrollCard {
-    width: 100%;
-  }
-
   .nftCardImage {
     height: 160px;
-  }
-
-  .poolCard {
-    width: 100%;
   }
 
   .poolImage {
@@ -1718,19 +1719,6 @@
   .tabIcon {
     font-size: 1.1rem;
   }
-
-  .scroller {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-
-  .nftScrollCard {
-    width: 100%;
-  }
-
-  .poolCard {
-    width: 100%;
-  }
 }
 
 @media screen and (max-width: 360px) {
@@ -1774,10 +1762,5 @@
 
   .ctaCard h2 {
     font-size: 1.2rem;
-  }
-
-  .scroller {
-    grid-template-columns: 1fr;
-    gap: 16px;
   }
 }

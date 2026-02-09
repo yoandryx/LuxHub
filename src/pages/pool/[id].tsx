@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
-import styles from '../../styles/PoolDetail.module.css';
+import styles from '../../styles/PoolDetailNew.module.css';
 import {
   FaArrowLeft,
   FaExternalLinkAlt,
