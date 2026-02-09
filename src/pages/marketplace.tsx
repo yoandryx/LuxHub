@@ -1305,6 +1305,7 @@ export default function Marketplace() {
                 ? { businessName: selectedListing.vendor.businessName }
                 : undefined,
             }}
+            solPrice={solPrice || 150}
             onClose={() => setShowOfferModal(false)}
             onSuccess={() => {
               setShowOfferModal(false);

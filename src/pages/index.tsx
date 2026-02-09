@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useWallet } from '@solana/wallet-adapter-react';
 import {
   FaShieldAlt,
   FaLock,
@@ -17,8 +18,15 @@ import { BiTargetLock } from 'react-icons/bi';
 import Footer from '../components/common/Footer';
 import NFTCard from '../components/marketplace/NFTCard';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
+import { useSolPrice } from '../hooks/useSWR';
 import { resolvePoolImage, handleImageError } from '../utils/imageUtils';
 import styles from '../styles/IndexTest.module.css';
+
+// Dynamic imports for modals (bundle optimization)
+const BuyModal = dynamic(() => import('../components/marketplace/BuyModal'), { ssr: false });
+const MakeOfferModal = dynamic(() => import('../components/marketplace/MakeOfferModal'), {
+  ssr: false,
+});
 
 // Dynamic imports for 3D/heavy components
 const HeroScene = dynamic(() => import('../components/marketplace/HeroScene'), { ssr: false });
@@ -27,8 +35,11 @@ const HeroScene = dynamic(() => import('../components/marketplace/HeroScene'), {
 interface NFT {
   nftId: string;
   mintAddress?: string;
+  escrowPda?: string;
   fileCid?: string;
   salePrice?: number;
+  listingPrice?: number;
+  listingPriceUSD?: number;
   timestamp: number;
   seller: string;
   buyer?: string;
@@ -39,6 +50,13 @@ interface NFT {
   images?: string[];
   title?: string;
   priceUSD?: number;
+  acceptingOffers?: boolean;
+  minimumOfferUSD?: number;
+  vendor?: {
+    businessName?: string;
+    username?: string;
+    verified?: boolean;
+  };
   attributes?: { trait_type: string; value: string }[];
 }
 
@@ -151,6 +169,8 @@ const MOCK_POOLS: Pool[] = [
 ];
 
 export default function IndexTest() {
+  const { connected } = useWallet();
+  const { price: solPrice } = useSolPrice();
   const [featuredNFTs, setFeaturedNFTs] = useState<NFT[]>([]);
   const [pools, setPools] = useState<Pool[]>([]);
   const [show3DScene, setShow3DScene] = useState(false);
@@ -158,6 +178,8 @@ export default function IndexTest() {
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
   const [isLoadingPools, setIsLoadingPools] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
+  const [selectedBuyNFT, setSelectedBuyNFT] = useState<NFT | null>(null);
+  const [selectedOfferNFT, setSelectedOfferNFT] = useState<NFT | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Floating particles animation
@@ -469,7 +491,19 @@ export default function IndexTest() {
                       transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
                       viewport={{ once: true, margin: '-50px' }}
                     >
-                      <NFTCard nft={nft} onClick={() => setSelectedNFT(nft)} />
+                      <NFTCard
+                        nft={nft}
+                        onClick={() => setSelectedNFT(nft)}
+                        onQuickBuy={
+                          connected && nft.escrowPda ? () => setSelectedBuyNFT(nft) : undefined
+                        }
+                        onOffer={
+                          connected && nft.acceptingOffers && nft.escrowPda
+                            ? () => setSelectedOfferNFT(nft)
+                            : undefined
+                        }
+                        acceptingOffers={nft.acceptingOffers}
+                      />
                     </motion.div>
                   ))
                 ) : (
@@ -652,6 +686,49 @@ export default function IndexTest() {
             />
           </div>
         </div>
+      )}
+
+      {/* ===== BUY MODAL ===== */}
+      {selectedBuyNFT && selectedBuyNFT.escrowPda && (
+        <BuyModal
+          escrow={{
+            escrowPda: selectedBuyNFT.escrowPda,
+            listingPrice: selectedBuyNFT.listingPrice || 0,
+            listingPriceUSD: selectedBuyNFT.listingPriceUSD || selectedBuyNFT.priceUSD || 0,
+            asset: {
+              model: selectedBuyNFT.title,
+              title: selectedBuyNFT.title,
+              imageUrl: selectedBuyNFT.imageUrl || selectedBuyNFT.image,
+            },
+            vendor: selectedBuyNFT.vendor
+              ? { businessName: selectedBuyNFT.vendor.businessName }
+              : undefined,
+          }}
+          solPrice={solPrice || 150}
+          onClose={() => setSelectedBuyNFT(null)}
+          onSuccess={() => setSelectedBuyNFT(null)}
+        />
+      )}
+
+      {/* ===== OFFER MODAL ===== */}
+      {selectedOfferNFT && selectedOfferNFT.escrowPda && (
+        <MakeOfferModal
+          escrow={{
+            escrowPda: selectedOfferNFT.escrowPda,
+            listingPriceUSD: selectedOfferNFT.listingPriceUSD || selectedOfferNFT.priceUSD || 0,
+            minimumOfferUSD: selectedOfferNFT.minimumOfferUSD,
+            asset: {
+              model: selectedOfferNFT.title,
+              imageUrl: selectedOfferNFT.imageUrl || selectedOfferNFT.image,
+            },
+            vendor: selectedOfferNFT.vendor
+              ? { businessName: selectedOfferNFT.vendor.businessName }
+              : undefined,
+          }}
+          solPrice={solPrice || 150}
+          onClose={() => setSelectedOfferNFT(null)}
+          onSuccess={() => setSelectedOfferNFT(null)}
+        />
       )}
     </div>
   );

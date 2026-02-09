@@ -23,6 +23,9 @@ interface NFT {
 interface NFTCardProps {
   nft: NFT;
   onClick: () => void;
+  onQuickBuy?: () => void;
+  onOffer?: () => void;
+  acceptingOffers?: boolean;
 }
 
 // Map legacy status to new status type
@@ -40,7 +43,7 @@ const mapStatus = (status: string): NFTStatus => {
   return statusMap[status] || 'verified';
 };
 
-const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
+const NFTCard = memo(({ nft, onClick, onQuickBuy, onOffer, acceptingOffers }: NFTCardProps) => {
   // Resolve image using the comprehensive asset image resolver
   const resolvedImage = useMemo(
     () =>
@@ -107,10 +110,14 @@ const NFTCard = memo(({ nft, onClick }: NFTCardProps) => {
       status={mapStatus(nft.marketStatus)}
       isVerified={nft.marketStatus !== 'invalid'}
       onViewDetails={onClick}
+      onQuickBuy={onQuickBuy}
+      onOffer={onOffer}
+      acceptingOffers={acceptingOffers}
       showOverlay={true}
       showBadge={true}
       showPrice={true}
       showOwner={true}
+      showActionButtons={!!(onQuickBuy || onOffer)}
     />
   );
 });

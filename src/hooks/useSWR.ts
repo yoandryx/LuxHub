@@ -170,6 +170,26 @@ export function useSolPrice() {
   };
 }
 
+// Buyer's offers hook (for My Orders page)
+export function useBuyerOffers(buyerWallet: string | undefined) {
+  const { data, error, isLoading, mutate } = useSWR(
+    buyerWallet ? `/api/offers/list?buyerWallet=${buyerWallet}` : null,
+    fetcher,
+    {
+      ...defaultSWRConfig,
+      refreshInterval: 20000, // Refresh every 20 seconds
+    }
+  );
+
+  return {
+    offers: data?.offers || [],
+    stats: data?.stats || null,
+    isLoading,
+    isError: error,
+    mutate,
+  };
+}
+
 // Generic hook for custom endpoints
 export function useAPI<T>(endpoint: string | null, config?: SWRConfiguration) {
   const { data, error, isLoading, mutate } = useSWR<T>(endpoint, fetcher, {

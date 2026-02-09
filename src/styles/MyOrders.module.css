@@ -141,6 +141,247 @@
   letter-spacing: 0.5px;
 }
 
+/* Top-Level Tab Switcher */
+.topTabSection {
+  max-width: 1200px;
+  margin: 0 auto 24px;
+}
+
+.topTabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.topTab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.topTab:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+}
+
+.topTabActive {
+  background: var(--accent-glow) !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--accent-dim);
+}
+
+.topTabBadge {
+  background: var(--accent);
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Offer Status Badges */
+.offerStatusPending {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--warning);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.offerStatusCountered {
+  background: rgba(200, 161, 255, 0.15);
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+}
+
+.offerStatusAccepted {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.offerStatusRejected {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.offerStatusWithdrawn {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+/* Counter History */
+.counterHistory {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.counterHistory h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.counterList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.counterItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.counterFrom {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: rgba(200, 161, 255, 0.15);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.counterAmount {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.counterDate {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.counterMsg {
+  width: 100%;
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Offer Action Buttons */
+.offerCounterBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(200, 161, 255, 0.15);
+  border: 1px solid var(--accent-dim);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.offerCounterBtn:hover:not(:disabled) {
+  background: rgba(200, 161, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.offerCounterBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.offerRejectBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: var(--error);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.offerRejectBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  transform: translateY(-1px);
+}
+
+.offerRejectBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Counter-Offer Modal Input */
+.counterInputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.counterCurrency {
+  position: absolute;
+  left: 16px;
+  font-size: 20px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.counterInput {
+  width: 100%;
+  padding: 14px 14px 14px 36px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.counterInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.counterInput::placeholder {
+  color: #666;
+}
+
+.counterInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Filter Section */
 .filterSection {
   max-width: 1200px;
