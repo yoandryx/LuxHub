@@ -714,6 +714,97 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ===== DEMO CARD ===== */
+.demoPill {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 650;
+  background: rgba(251, 191, 36, 0.9);
+  color: #1a1a00;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: demoPulse 2s ease-in-out infinite;
+}
+
+@keyframes demoPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.demoBuyFeed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  min-height: 52px;
+}
+
+.demoBuyRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--success-light);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  animation: buySlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes buySlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.demoBuyDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  animation: dotPing 1s ease-out;
+}
+
+@keyframes dotPing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(74, 222, 128, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
+}
+
+.demoBuyWallet {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.demoBuyShares {
+  margin-left: auto;
+  font-weight: 650;
+  color: var(--success);
+  font-variant-numeric: tabular-nums;
+}
+
 /* CTA */
 .cardCta {
   margin-top: 14px;
