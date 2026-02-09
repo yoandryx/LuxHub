@@ -1812,8 +1812,25 @@
 /* ==================== POOL CARDS ==================== */
 .poolGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px 0;
+  width: 100%;
+}
+
+@media screen and (min-width: 480px) {
+  .poolGrid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .poolGrid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+  }
 }
 
 .poolCard {
@@ -1959,22 +1976,28 @@
   box-shadow: var(--shadow-glow);
 }
 
-@media screen and (max-width: 640px) {
-  .poolGrid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .poolContent {
-    padding: 16px;
-  }
-}
-
 /* ==================== CUSTODY CARDS ==================== */
 .custodyGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px 0;
+  width: 100%;
+}
+
+@media screen and (min-width: 480px) {
+  .custodyGrid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .custodyGrid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+  }
 }
 
 .custodyCard {
@@ -2149,33 +2172,27 @@
   box-shadow: 0 8px 25px rgba(34, 197, 94, 0.25);
 }
 
-@media screen and (max-width: 640px) {
-  .custodyGrid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .custodyContent {
-    padding: 16px;
-  }
-
-  .priceHighlight {
-    font-size: 1.1rem;
-  }
-}
-
 /* ==================== NFT GRID (WatchMarket Style) ==================== */
 .nftGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px 0;
   width: 100%;
 }
 
-@media screen and (max-width: 640px) {
+@media screen and (min-width: 480px) {
   .nftGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .nftGrid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
   }
 }
 
@@ -2411,8 +2428,25 @@
 /* ==================== SKELETON LOADING ==================== */
 .skeletonGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px 0;
+  width: 100%;
+}
+
+@media screen and (min-width: 480px) {
+  .skeletonGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .skeletonGrid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+  }
 }
 
 .skeletonCard {
@@ -2473,19 +2507,6 @@
   }
   100% {
     background-position: 200% 0;
-  }
-}
-
-@media screen and (max-width: 640px) {
-  .skeletonGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-}
-
-@media screen and (max-width: 360px) {
-  .skeletonGrid {
-    gap: 8px;
   }
 }
 
