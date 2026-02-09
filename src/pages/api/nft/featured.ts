@@ -100,6 +100,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           value: escrow.listingPriceUSD ? `$${escrow.listingPriceUSD.toLocaleString()}` : '',
         },
       ].filter((a) => a.value),
+      // Offer/listing details
+      acceptingOffers: escrow.acceptingOffers || escrow.saleMode === 'accepting_offers' || false,
+      minimumOfferUSD: escrow.minimumOfferUSD || 0,
+      listingPrice: escrow.listingPrice || 0,
       // Vendor info
       vendor: escrow.seller
         ? {

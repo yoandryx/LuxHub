@@ -17,7 +17,7 @@
 .modal {
   position: relative;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   max-height: 90vh;
   background: rgba(20, 15, 30, 0.98);
   border: 1px solid rgba(200, 161, 255, 0.2);
@@ -54,7 +54,7 @@
 /* Header */
 .header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .title {
@@ -68,6 +68,73 @@
   font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
   margin: 0;
+}
+
+/* Step Indicator */
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 8px;
+}
+
+.stepDot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.stepActive {
+  background: rgba(200, 161, 255, 0.15);
+  border-color: #c8a1ff;
+  color: #c8a1ff;
+}
+
+.stepComplete {
+  background: #c8a1ff;
+  border-color: #c8a1ff;
+  color: #000;
+}
+
+.stepLine {
+  width: 60px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.3s ease;
+}
+
+.stepLineActive {
+  background: #c8a1ff;
+}
+
+.stepLabels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.stepLabels span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+}
+
+.stepLabelActive {
+  color: #c8a1ff !important;
 }
 
 /* Asset Preview */
@@ -176,6 +243,13 @@
   color: rgba(255, 255, 255, 0.3);
 }
 
+.solConversion {
+  display: block;
+  font-size: 12px;
+  color: #c8a1ff;
+  margin-top: 6px;
+}
+
 .minimumNote {
   display: block;
   font-size: 11px;
@@ -241,12 +315,77 @@
   border-color: #c8a1ff;
 }
 
+/* Address Form */
+.addressForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.formRow {
+  display: flex;
+  gap: 12px;
+}
+
+.formRow > .formGroup {
+  flex: 1;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formInput {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #c8a1ff;
+}
+
+.formInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Save Address Checkbox */
+.saveAddressRow {
+  padding-top: 8px;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.checkboxLabel input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #c8a1ff;
+  cursor: pointer;
+}
+
 /* Summary */
 .summary {
   background: rgba(255, 255, 255, 0.03);
   padding: 16px;
   border-radius: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .summaryRow {
@@ -276,6 +415,57 @@
   color: #00ff88;
 }
 
+/* Shipping Summary */
+.shippingSummary {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.shippingSummaryTitle {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #c8a1ff;
+  margin: 0 0 10px 0;
+}
+
+.shippingSummaryContent p {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.shippingSummaryName {
+  font-weight: 600;
+  color: #fff !important;
+}
+
+/* Message Summary */
+.messageSummary {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.messageSummaryLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.messageSummary p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
 /* Error */
 .error {
   color: #ff6b6b;
@@ -287,9 +477,38 @@
   border-radius: 8px;
 }
 
+/* Step Buttons */
+.stepButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.backButton {
+  flex: 0 0 auto;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.backButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.backButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Submit Button */
 .submitButton {
-  width: 100%;
+  flex: 1;
   padding: 16px;
   background: linear-gradient(135deg, #c8a1ff 0%, #9366d2 100%);
   border: none;
@@ -368,5 +587,22 @@
 
   .currencySymbol {
     font-size: 20px;
+  }
+
+  .formRow {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .stepButtons {
+    flex-direction: column-reverse;
+  }
+
+  .backButton {
+    text-align: center;
+  }
+
+  .stepLine {
+    width: 40px;
   }
 }

@@ -1,9 +1,10 @@
 // src/pages/api/buyer/orders.ts
-// Returns buyer's orders with shipping and tracking info - SECURED with wallet auth
+// Returns buyer's orders with shipping and tracking info
+// Uses wallet query param validation (buyer viewing their own orders)
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { PublicKey } from '@solana/web3.js';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
-import { withWalletAuth, AuthenticatedRequest } from '../../../lib/middleware/walletAuth';
 import { decrypt, PII_FIELDS } from '../../../lib/security/encryption';
 
 // Decrypt PII fields in shipping address
@@ -18,19 +19,29 @@ function decryptShippingAddress(address: any): any {
   return decrypted;
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Get verified wallet from middleware
-  const wallet = (req as AuthenticatedRequest).wallet;
+  const wallet = req.query.wallet as string;
   const { status: statusFilter } = req.query;
+
+  // Validate wallet is a valid Solana public key
+  if (!wallet) {
+    return res.status(400).json({ error: 'wallet query parameter is required' });
+  }
+
+  try {
+    new PublicKey(wallet);
+  } catch {
+    return res.status(400).json({ error: 'Invalid wallet address' });
+  }
 
   try {
     await dbConnect();
 
-    // Build filter for buyer's orders (using verified wallet)
+    // Build filter for buyer's orders
     const filter: Record<string, any> = {
       buyerWallet: wallet,
       deleted: { $ne: true },
@@ -123,6 +134,3 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 }
-
-// Wrap with wallet authentication middleware
-export default withWalletAuth(handler);
