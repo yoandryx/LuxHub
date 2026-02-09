@@ -1,7 +1,7 @@
 // src/pages/pools.tsx
 // Investment Pools – Clean Minimalist Design
 // LuxHub × Bags — Fractional Luxury Asset Ownership
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import Head from 'next/head';
 
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -163,6 +163,120 @@ const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) =
   );
 });
 PoolCard.displayName = 'PoolCard';
+
+// ─── Demo Pool Card (Animated) ──────────────────────────────────
+const DEMO_WALLETS = [
+  '7xKp...3mFv',
+  'Bq2R...9nTz',
+  '4vWs...kL8j',
+  'mN6d...2pYx',
+  'Ht5a...wQ7c',
+  '9gFr...sV4b',
+  'Zk3e...dM1n',
+  'Jw8u...hR6f',
+];
+
+const DemoPoolCard: React.FC = () => {
+  const [sharesSold, setSharesSold] = useState(420);
+  const [investors, setInvestors] = useState(14);
+  const [buys, setBuys] = useState<{ wallet: string; shares: number; id: number }[]>([]);
+  const nextId = useRef(0);
+  const totalShares = 1000;
+  const sharePriceUSD = 150;
+  const targetUSD = totalShares * sharePriceUSD;
+  const percentFilled = (sharesSold / totalShares) * 100;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSharesSold((prev) => {
+        if (prev >= totalShares) return 420; // reset loop
+        const buySize = Math.floor(Math.random() * 15) + 2;
+        return Math.min(prev + buySize, totalShares);
+      });
+      setInvestors((prev) => {
+        if (prev >= 45) return 14;
+        return prev + (Math.random() > 0.5 ? 1 : 0);
+      });
+      const wallet = DEMO_WALLETS[Math.floor(Math.random() * DEMO_WALLETS.length)];
+      const shares = Math.floor(Math.random() * 15) + 2;
+      const id = nextId.current++;
+      setBuys((prev) => [...prev.slice(-2), { wallet, shares, id }]);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className={styles.card} style={{ position: 'relative' }}>
+      <div className={styles.cardImage}>
+        <img src="/images/rolex-daytona-rainbow.jpg" alt="Rolex Daytona Rainbow" loading="lazy" />
+        <div className={styles.cardBadges}>
+          <span className={`${styles.statusPill} ${styles.statusOpen}`}>Open</span>
+          <span className={styles.demoPill}>Live Demo</span>
+        </div>
+      </div>
+
+      <div className={styles.cardBody}>
+        <div className={styles.cardBrand}>ROLEX</div>
+        <div className={styles.cardTitleRow}>
+          <span className={styles.cardTitle}>Daytona Rainbow</span>
+          <span className={styles.cardRoi}>
+            <FiTrendingUp size={11} />
+            24%
+          </span>
+        </div>
+
+        <div className={styles.cardProgress}>
+          <div className={styles.cardProgressHeader}>
+            <span>Funding</span>
+            <span className={styles.cardProgressPercent}>{percentFilled.toFixed(1)}%</span>
+          </div>
+          <div className={styles.cardProgressTrack}>
+            <div
+              className={`${styles.cardProgressFill} ${percentFilled >= 80 ? styles.cardProgressFillHigh : ''}`}
+              style={{ width: `${Math.min(percentFilled, 100)}%` }}
+            />
+          </div>
+          <div className={styles.cardProgressMeta}>
+            <span>
+              {sharesSold}/{totalShares} shares
+            </span>
+            <span>{investors} investors</span>
+          </div>
+        </div>
+
+        {/* Live buy feed */}
+        <div className={styles.demoBuyFeed}>
+          {buys.map((buy) => (
+            <div key={buy.id} className={styles.demoBuyRow}>
+              <span className={styles.demoBuyDot} />
+              <span className={styles.demoBuyWallet}>{buy.wallet}</span>
+              <span className={styles.demoBuyShares}>+{buy.shares} shares</span>
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.cardStats}>
+          <div className={styles.cardStat}>
+            <span className={styles.cardStatLabel}>Share</span>
+            <span className={styles.cardStatValue}>${sharePriceUSD}</span>
+          </div>
+          <div className={styles.cardStat}>
+            <span className={styles.cardStatLabel}>Target</span>
+            <span className={styles.cardStatValue}>${(targetUSD / 1000).toFixed(0)}K</span>
+          </div>
+          <div className={styles.cardStat}>
+            <span className={styles.cardStatLabel}>Min</span>
+            <span className={styles.cardStatValue}>$150</span>
+          </div>
+        </div>
+
+        <div className={styles.cardCta}>
+          <button className={styles.cardCtaBtn}>Invest Now</button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─── Bags Trade Panel (Sidebar) ─────────────────────────────────
 const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void }> = ({
@@ -764,21 +878,32 @@ const PoolsPage: React.FC = () => {
                   </button>
                 </div>
               ) : sortedPools.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <span className={styles.emptyText}>No pools match this filter</span>
-                  {filter !== 'all' && (
-                    <button className={styles.clearBtn} onClick={() => setFilter('all')}>
-                      Show All
-                    </button>
-                  )}
-                </div>
+                <>
+                  <div className={styles.poolGrid}>
+                    <div className={styles.poolGridItem}>
+                      <DemoPoolCard />
+                    </div>
+                  </div>
+                  <div className={styles.emptyState}>
+                    <span className={styles.emptyText}>No pools match this filter</span>
+                    {filter !== 'all' && (
+                      <button className={styles.clearBtn} onClick={() => setFilter('all')}>
+                        Show All
+                      </button>
+                    )}
+                  </div>
+                </>
               ) : (
                 <div className={styles.poolGrid}>
+                  {/* Animated demo card */}
+                  <div className={styles.poolGridItem}>
+                    <DemoPoolCard />
+                  </div>
                   {sortedPools.map((pool, i) => (
                     <div
                       key={pool._id}
                       className={styles.poolGridItem}
-                      style={{ animationDelay: `${i * 0.05}s` }}
+                      style={{ animationDelay: `${(i + 1) * 0.05}s` }}
                     >
                       <PoolCard pool={pool} onClick={() => handlePoolClick(pool)} />
                     </div>
