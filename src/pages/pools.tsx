@@ -6,7 +6,14 @@ import Head from 'next/head';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, VersionedTransaction } from '@solana/web3.js';
-import { FiTrendingUp, FiRefreshCw, FiLock, FiBarChart2, FiPieChart } from 'react-icons/fi';
+import {
+  FiTrendingUp,
+  FiRefreshCw,
+  FiLock,
+  FiBarChart2,
+  FiPieChart,
+  FiImage,
+} from 'react-icons/fi';
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
 import styles from '../styles/PoolsNew.module.css';
 
@@ -50,14 +57,142 @@ type FilterKey = (typeof FILTERS)[number]['key'];
 
 // ─── Steps ──────────────────────────────────────────────────────
 const LIFECYCLE = [
-  { num: '1', title: 'Browse & Invest', desc: 'Choose a pool and buy shares' },
+  { num: '1', title: 'Browse & Invest', desc: 'Choose a pool and take a position' },
   { num: '2', title: 'Pool Fills', desc: 'Asset funded by investors' },
   { num: '3', title: 'Custody Verified', desc: 'Asset shipped & secured' },
-  { num: '4', title: 'Trade or Earn', desc: 'Trade shares, earn on resale' },
+  { num: '4', title: 'Trade or Earn', desc: 'Trade positions, earn on resale' },
 ];
+
+// ─── TradingView Mini Chart ──────────────────────────────────────
+const TvChart = memo(({ data }: { data: number[] }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<any>(null);
+  const seriesRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || data.length < 2) return;
+    let cancelled = false;
+
+    import('lightweight-charts').then((lc) => {
+      if (cancelled || !containerRef.current) return;
+
+      // Clean up previous chart
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+        seriesRef.current = null;
+      }
+
+      const isUp = data[data.length - 1] >= data[0];
+      const lineColor = isUp ? '#4ade80' : '#f87171';
+      const topColor = isUp ? 'rgba(74, 222, 128, 0.3)' : 'rgba(248, 113, 113, 0.3)';
+      const bottomColor = isUp ? 'rgba(74, 222, 128, 0)' : 'rgba(248, 113, 113, 0)';
+
+      const chart = lc.createChart(containerRef.current, {
+        width: containerRef.current.clientWidth,
+        height: containerRef.current.clientHeight,
+        layout: {
+          background: { type: lc.ColorType.Solid, color: 'transparent' },
+          textColor: 'rgba(255,255,255,0.4)',
+          fontSize: 9,
+        },
+        grid: {
+          vertLines: { visible: false },
+          horzLines: { color: 'rgba(255,255,255,0.04)', style: 3 },
+        },
+        crosshair: {
+          vertLine: { color: 'rgba(200,161,255,0.3)', labelVisible: false },
+          horzLine: { color: 'rgba(200,161,255,0.3)', labelVisible: true },
+        },
+        rightPriceScale: {
+          borderVisible: false,
+          scaleMargins: { top: 0.1, bottom: 0.05 },
+        },
+        timeScale: {
+          borderVisible: false,
+          visible: false,
+        },
+        handleScale: false,
+        handleScroll: false,
+      });
+
+      const series = chart.addSeries(lc.AreaSeries, {
+        lineColor,
+        topColor,
+        bottomColor,
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true,
+        crosshairMarkerRadius: 4,
+        crosshairMarkerBorderColor: lineColor,
+        crosshairMarkerBackgroundColor: '#0a0a0f',
+      });
+
+      // Map data to time series — use synthetic timestamps
+      const now = Math.floor(Date.now() / 1000);
+      const chartData = data.map((value, i) => ({
+        time: (now - (data.length - 1 - i) * 60) as any,
+        value,
+      }));
+      series.setData(chartData);
+      chart.timeScale().fitContent();
+
+      chartRef.current = chart;
+      seriesRef.current = series;
+
+      // Resize observer
+      const ro = new ResizeObserver((entries) => {
+        const { width, height } = entries[0].contentRect;
+        chart.applyOptions({ width, height });
+      });
+      ro.observe(containerRef.current);
+
+      return () => ro.disconnect();
+    });
+
+    return () => {
+      cancelled = true;
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+        seriesRef.current = null;
+      }
+    };
+  }, [data]);
+
+  // Update data without recreating the chart
+  useEffect(() => {
+    if (!seriesRef.current || data.length < 2) return;
+    const now = Math.floor(Date.now() / 1000);
+    const chartData = data.map((value, i) => ({
+      time: (now - (data.length - 1 - i) * 60) as any,
+      value,
+    }));
+    seriesRef.current.setData(chartData);
+  }, [data]);
+
+  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
+});
+TvChart.displayName = 'TvChart';
+
+// Generate simulated price history from a starting price
+function generatePriceHistory(basePrice: number, points: number = 30): number[] {
+  const prices: number[] = [basePrice];
+  for (let i = 1; i < points; i++) {
+    const change = (Math.random() - 0.42) * basePrice * 0.04; // slight upward bias
+    prices.push(Math.max(basePrice * 0.7, prices[i - 1] + change));
+  }
+  return prices;
+}
 
 // ─── Pool Card ──────────────────────────────────────────────────
 const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) => {
+  const [showChart, setShowChart] = useState(false);
+  const priceHistory = useMemo(
+    () => generatePriceHistory(pool.sharePriceUSD),
+    [pool.sharePriceUSD]
+  );
+
   const percentFilled = useMemo(
     () => (pool.totalShares > 0 ? (pool.sharesSold / pool.totalShares) * 100 : 0),
     [pool.totalShares, pool.sharesSold]
@@ -72,7 +207,7 @@ const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) =
     pool.asset?.imageIpfsUrls?.[0] || pool.asset?.images?.[0] || '/images/placeholder-watch.png';
   const brand = pool.asset?.brand || '';
   const model = pool.asset?.model || 'Luxury Watch';
-  const sharesLeft = pool.totalShares - pool.sharesSold;
+  const tokensLeft = pool.totalShares - pool.sharesSold;
   const roiPercent = ((pool.projectedROI - 1) * 100).toFixed(0);
   const isHot = pool.status === 'open' && percentFilled > 60;
   const isTradeable = !!pool.bagsTokenMint && pool.tokenStatus === 'unlocked';
@@ -88,15 +223,29 @@ const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) =
   }, [pool.createdAt]);
 
   return (
-    <div className={styles.card} onClick={onClick}>
+    <div className={`${styles.card} ${isHot ? styles.cardHot : ''}`} onClick={onClick}>
       <div className={styles.cardImage}>
         <img src={image} alt={model} loading="lazy" />
+        {showChart && (
+          <div className={styles.cardChart}>
+            <TvChart data={priceHistory} />
+          </div>
+        )}
+        <button
+          className={`${styles.chartToggle} ${showChart ? styles.chartToggleActive : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowChart(!showChart);
+          }}
+          title={showChart ? 'Show image' : 'Show chart'}
+        >
+          {showChart ? <FiImage size={13} /> : <FiBarChart2 size={13} />}
+        </button>
         <div className={styles.cardBadges}>
           <span className={`${styles.statusPill} ${styles[statusClass]}`}>
             {STATUS_LABEL[pool.status] || pool.status}
           </span>
           {isTradeable && <span className={styles.tradeablePill}>Tradeable</span>}
-          {isHot && <span className={styles.hotPill}>Hot</span>}
         </div>
       </div>
 
@@ -112,6 +261,29 @@ const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) =
           )}
         </div>
 
+        <div className={styles.cardTrade} onClick={(e) => e.stopPropagation()}>
+          {pool.status === 'open' && tokensLeft > 0 ? (
+            <>
+              <div className={styles.cardTradeAmounts}>
+                {['0.1', '0.5', '1', '5'].map((sol) => (
+                  <button key={sol} className={styles.cardTradeChip}>
+                    {sol} SOL
+                  </button>
+                ))}
+              </div>
+              <div className={styles.cardTradeActions}>
+                <button className={styles.cardBuyBtn}>Buy</button>
+                <button className={styles.cardSellBtn}>Sell</button>
+              </div>
+            </>
+          ) : (
+            <button className={styles.cardCtaBtnSecondary} onClick={onClick}>
+              View Details
+              {timeAgo && <span className={styles.cardTime}>{timeAgo}</span>}
+            </button>
+          )}
+        </div>
+
         <div className={styles.cardProgress}>
           <div className={styles.cardProgressHeader}>
             <span>Funding</span>
@@ -125,17 +297,17 @@ const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) =
           </div>
           <div className={styles.cardProgressMeta}>
             <span>
-              {pool.sharesSold}/{pool.totalShares} shares
+              {pool.sharesSold}/{pool.totalShares} tokens
             </span>
             <span>
-              {investorCount} investor{investorCount !== 1 ? 's' : ''}
+              {investorCount} holder{investorCount !== 1 ? 's' : ''}
             </span>
           </div>
         </div>
 
         <div className={styles.cardStats}>
           <div className={styles.cardStat}>
-            <span className={styles.cardStatLabel}>Share</span>
+            <span className={styles.cardStatLabel}>Entry</span>
             <span className={styles.cardStatValue}>${pool.sharePriceUSD.toLocaleString()}</span>
           </div>
           <div className={styles.cardStat}>
@@ -147,24 +319,13 @@ const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) =
             <span className={styles.cardStatValue}>${pool.minBuyInUSD.toLocaleString()}</span>
           </div>
         </div>
-
-        <div className={styles.cardCta}>
-          {pool.status === 'open' && sharesLeft > 0 ? (
-            <button className={styles.cardCtaBtn}>Invest Now</button>
-          ) : (
-            <button className={styles.cardCtaBtnSecondary}>
-              View Details
-              {timeAgo && <span className={styles.cardTime}>{timeAgo}</span>}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
 });
 PoolCard.displayName = 'PoolCard';
 
-// ─── Demo Pool Card (Animated) ──────────────────────────────────
+// ─── Demo Pool Cards (Animated with on-chain NFTs) ──────────────
 const DEMO_WALLETS = [
   '7xKp...3mFv',
   'Bq2R...9nTz',
@@ -176,53 +337,172 @@ const DEMO_WALLETS = [
   'Jw8u...hR6f',
 ];
 
-const DemoPoolCard: React.FC = () => {
-  const [sharesSold, setSharesSold] = useState(420);
-  const [investors, setInvestors] = useState(14);
-  const [buys, setBuys] = useState<{ wallet: string; shares: number; id: number }[]>([]);
+interface DemoPoolData {
+  brand: string;
+  model: string;
+  image: string;
+  totalTokens: number;
+  startTokens: number;
+  tokenPriceUSD: number;
+  minBuyInUSD: number;
+  projectedROI: number;
+  status: string;
+}
+
+const DEMO_POOLS: DemoPoolData[] = [
+  {
+    brand: 'ROLEX',
+    model: 'Daytona Rainbow',
+    image: '/images/rolex-daytona-rainbow.jpg',
+    totalTokens: 1000,
+    startTokens: 420,
+    tokenPriceUSD: 485,
+    minBuyInUSD: 485,
+    projectedROI: 24,
+    status: 'open',
+  },
+  {
+    brand: 'RICHARD MILLE',
+    model: 'RM 027 Tourbillon',
+    image: '/images/rm-027.jpg',
+    totalTokens: 500,
+    startTokens: 310,
+    tokenPriceUSD: 2500,
+    minBuyInUSD: 2500,
+    projectedROI: 18,
+    status: 'open',
+  },
+  {
+    brand: 'AUDEMARS PIGUET',
+    model: 'Royal Oak Offshore',
+    image: '/images/ap-offshore.jpg',
+    totalTokens: 800,
+    startTokens: 650,
+    tokenPriceUSD: 72,
+    minBuyInUSD: 72,
+    projectedROI: 31,
+    status: 'open',
+  },
+  {
+    brand: 'CARTIER',
+    model: 'Roadster Rose Gold',
+    image: '/images/cartier-crash.jpg',
+    totalTokens: 400,
+    startTokens: 180,
+    tokenPriceUSD: 81,
+    minBuyInUSD: 81,
+    projectedROI: 15,
+    status: 'open',
+  },
+];
+
+const DemoPoolCard = memo(({ pool: demoPool }: { pool: DemoPoolData }) => {
+  const [tokensSold, setTokensSold] = useState(demoPool.startTokens);
+  const [holders, setHolders] = useState(Math.floor(demoPool.startTokens / 25) + 3);
+  const [feed, setFeed] = useState<
+    { wallet: string; amount: number; type: 'buy' | 'sell'; id: number }[]
+  >([]);
+  const [showChart, setShowChart] = useState(false);
+  const [priceHistory, setPriceHistory] = useState<number[]>(() =>
+    generatePriceHistory(demoPool.tokenPriceUSD, 20)
+  );
   const nextId = useRef(0);
-  const totalShares = 1000;
-  const sharePriceUSD = 150;
-  const targetUSD = totalShares * sharePriceUSD;
-  const percentFilled = (sharesSold / totalShares) * 100;
+  const percentFilled = (tokensSold / demoPool.totalTokens) * 100;
+  const targetUSD = demoPool.totalTokens * demoPool.tokenPriceUSD;
+  const isHot = percentFilled > 60;
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSharesSold((prev) => {
-        if (prev >= totalShares) return 420; // reset loop
-        const buySize = Math.floor(Math.random() * 15) + 2;
-        return Math.min(prev + buySize, totalShares);
-      });
-      setInvestors((prev) => {
-        if (prev >= 45) return 14;
-        return prev + (Math.random() > 0.5 ? 1 : 0);
-      });
-      const wallet = DEMO_WALLETS[Math.floor(Math.random() * DEMO_WALLETS.length)];
-      const shares = Math.floor(Math.random() * 15) + 2;
-      const id = nextId.current++;
-      setBuys((prev) => [...prev.slice(-2), { wallet, shares, id }]);
-    }, 2200);
+    const interval = setInterval(
+      () => {
+        const isSell = Math.random() < 0.25;
+        const wallet = DEMO_WALLETS[Math.floor(Math.random() * DEMO_WALLETS.length)];
+        const amount = Math.floor(Math.random() * 12) + 1;
+        const id = nextId.current++;
+
+        if (isSell && tokensSold > demoPool.startTokens * 0.3) {
+          setTokensSold((prev: number) => Math.max(prev - amount, demoPool.startTokens * 0.3));
+          setFeed((prev) => [...prev.slice(-2), { wallet, amount, type: 'sell', id }]);
+          // Price dips on sell
+          setPriceHistory((prev) => {
+            const last = prev[prev.length - 1];
+            const next = last * (1 - Math.random() * 0.015);
+            return [...prev.slice(-39), next];
+          });
+        } else {
+          setTokensSold((prev: number) => {
+            if (prev >= demoPool.totalTokens) return demoPool.startTokens;
+            return Math.min(prev + amount, demoPool.totalTokens);
+          });
+          setHolders((prev: number) => {
+            if (prev >= 60) return Math.floor(demoPool.startTokens / 25) + 3;
+            return prev + (Math.random() > 0.6 ? 1 : 0);
+          });
+          setFeed((prev) => [...prev.slice(-2), { wallet, amount, type: 'buy', id }]);
+          // Price bumps on buy
+          setPriceHistory((prev) => {
+            const last = prev[prev.length - 1];
+            const next = last * (1 + Math.random() * 0.02);
+            return [...prev.slice(-39), next];
+          });
+        }
+      },
+      1800 + Math.random() * 1200
+    );
     return () => clearInterval(interval);
-  }, []);
+  }, [demoPool, tokensSold]);
+
+  const formatTarget = (val: number) => {
+    if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+    if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
+    return `$${val}`;
+  };
 
   return (
-    <div className={styles.card} style={{ position: 'relative' }}>
+    <div className={`${styles.card} ${isHot ? styles.cardHot : ''}`}>
       <div className={styles.cardImage}>
-        <img src="/images/rolex-daytona-rainbow.jpg" alt="Rolex Daytona Rainbow" loading="lazy" />
+        <img src={demoPool.image} alt={demoPool.model} loading="lazy" />
+        {showChart && (
+          <div className={styles.cardChart}>
+            <TvChart data={priceHistory} />
+          </div>
+        )}
+        <button
+          className={`${styles.chartToggle} ${showChart ? styles.chartToggleActive : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowChart(!showChart);
+          }}
+          title={showChart ? 'Show image' : 'Show chart'}
+        >
+          {showChart ? <FiImage size={13} /> : <FiBarChart2 size={13} />}
+        </button>
         <div className={styles.cardBadges}>
           <span className={`${styles.statusPill} ${styles.statusOpen}`}>Open</span>
-          <span className={styles.demoPill}>Live Demo</span>
         </div>
       </div>
 
       <div className={styles.cardBody}>
-        <div className={styles.cardBrand}>ROLEX</div>
+        <div className={styles.cardBrand}>{demoPool.brand}</div>
         <div className={styles.cardTitleRow}>
-          <span className={styles.cardTitle}>Daytona Rainbow</span>
+          <span className={styles.cardTitle}>{demoPool.model}</span>
           <span className={styles.cardRoi}>
             <FiTrendingUp size={11} />
-            24%
+            {demoPool.projectedROI}%
           </span>
+        </div>
+
+        <div className={styles.cardTrade}>
+          <div className={styles.cardTradeAmounts}>
+            {['0.1', '0.5', '1', '5'].map((sol) => (
+              <button key={sol} className={styles.cardTradeChip}>
+                {sol} SOL
+              </button>
+            ))}
+          </div>
+          <div className={styles.cardTradeActions}>
+            <button className={styles.cardBuyBtn}>Buy</button>
+            <button className={styles.cardSellBtn}>Sell</button>
+          </div>
         </div>
 
         <div className={styles.cardProgress}>
@@ -238,45 +518,47 @@ const DemoPoolCard: React.FC = () => {
           </div>
           <div className={styles.cardProgressMeta}>
             <span>
-              {sharesSold}/{totalShares} shares
+              {Math.round(tokensSold)}/{demoPool.totalTokens} tokens
             </span>
-            <span>{investors} investors</span>
+            <span>{holders} holders</span>
           </div>
         </div>
 
-        {/* Live buy feed */}
         <div className={styles.demoBuyFeed}>
-          {buys.map((buy) => (
-            <div key={buy.id} className={styles.demoBuyRow}>
-              <span className={styles.demoBuyDot} />
-              <span className={styles.demoBuyWallet}>{buy.wallet}</span>
-              <span className={styles.demoBuyShares}>+{buy.shares} shares</span>
+          {feed.map((item) => (
+            <div
+              key={item.id}
+              className={item.type === 'sell' ? styles.demoSellRow : styles.demoBuyRow}
+            >
+              <span className={item.type === 'sell' ? styles.demoSellDot : styles.demoBuyDot} />
+              <span className={styles.demoBuyWallet}>{item.wallet}</span>
+              <span className={item.type === 'sell' ? styles.demoSellShares : styles.demoBuyShares}>
+                {item.type === 'sell' ? '-' : '+'}
+                {item.amount} tokens
+              </span>
             </div>
           ))}
         </div>
 
         <div className={styles.cardStats}>
           <div className={styles.cardStat}>
-            <span className={styles.cardStatLabel}>Share</span>
-            <span className={styles.cardStatValue}>${sharePriceUSD}</span>
+            <span className={styles.cardStatLabel}>Entry</span>
+            <span className={styles.cardStatValue}>${demoPool.tokenPriceUSD.toLocaleString()}</span>
           </div>
           <div className={styles.cardStat}>
             <span className={styles.cardStatLabel}>Target</span>
-            <span className={styles.cardStatValue}>${(targetUSD / 1000).toFixed(0)}K</span>
+            <span className={styles.cardStatValue}>{formatTarget(targetUSD)}</span>
           </div>
           <div className={styles.cardStat}>
             <span className={styles.cardStatLabel}>Min</span>
-            <span className={styles.cardStatValue}>$150</span>
+            <span className={styles.cardStatValue}>${demoPool.minBuyInUSD.toLocaleString()}</span>
           </div>
-        </div>
-
-        <div className={styles.cardCta}>
-          <button className={styles.cardCtaBtn}>Invest Now</button>
         </div>
       </div>
     </div>
   );
-};
+});
+DemoPoolCard.displayName = 'DemoPoolCard';
 
 // ─── Bags Trade Panel (Sidebar) ─────────────────────────────────
 const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void }> = ({
@@ -555,7 +837,7 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
       <div className={styles.tradeBody}>
         <div className={styles.tradeInputGroup}>
           <span className={styles.tradeInputLabel}>
-            {tradeType === 'buy' ? 'Amount to spend' : 'Shares to sell'}
+            {tradeType === 'buy' ? 'Amount to spend' : 'Tokens to sell'}
           </span>
           <div className={styles.tradeInputWrap}>
             <input
@@ -577,7 +859,7 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
                 <option value="SOL">SOL</option>
               </select>
             ) : (
-              <span className={styles.tradeShareLabel}>Shares</span>
+              <span className={styles.tradeShareLabel}>Tokens</span>
             )}
           </div>
         </div>
@@ -599,14 +881,14 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
               <span>You {tradeType === 'buy' ? 'pay' : 'sell'}</span>
               <strong>
                 {parseFloat(amount).toLocaleString()}{' '}
-                {tradeType === 'sell' ? 'Shares' : outputToken}
+                {tradeType === 'sell' ? 'Tokens' : outputToken}
               </strong>
             </div>
             <div className={styles.tradeQuoteRow}>
               <span>You receive</span>
               <strong className={styles.tradeQuoteReceive}>
                 {parseFloat(quote.outputAmount).toLocaleString()}{' '}
-                {tradeType === 'buy' ? 'Shares' : outputToken}
+                {tradeType === 'buy' ? 'Tokens' : outputToken}
               </strong>
             </div>
             <div className={styles.tradeQuoteDetails}>
@@ -663,7 +945,7 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
           ) : !connected ? (
             'Connect Wallet'
           ) : (
-            `${tradeType === 'buy' ? 'Buy' : 'Sell'} Shares`
+            `${tradeType === 'buy' ? 'Buy' : 'Sell'} Tokens`
           )}
         </button>
       </div>
@@ -686,7 +968,7 @@ const PoolsPage: React.FC = () => {
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { stats, isLoading: statsLoading, mutate: refreshStats } = usePlatformStats();
+  const { mutate: refreshStats } = usePlatformStats();
   const { pools, isLoading: poolsLoading, isError, error, mutate: refreshPools } = usePools();
   const { positions } = useUserPortfolio(wallet.publicKey?.toBase58() || null);
 
@@ -739,19 +1021,13 @@ const PoolsPage: React.FC = () => {
     refreshPools();
   }, [refreshStats, refreshPools]);
 
-  const formatNum = (num: number) => {
-    if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(2)}M`;
-    if (num >= 1_000) return `$${(num / 1_000).toFixed(1)}K`;
-    return `$${num.toLocaleString()}`;
-  };
-
   return (
     <>
       <Head>
         <title>Pools | LuxHub — Fractional Luxury Ownership</title>
         <meta
           name="description"
-          content="Invest in fractional ownership of authenticated luxury watches on Solana. Trade shares anytime via Bags."
+          content="Invest in fractional ownership of authenticated luxury watches on Solana. Trade positions anytime via Bags."
         />
       </Head>
 
@@ -766,36 +1042,11 @@ const PoolsPage: React.FC = () => {
               </div>
               <h1 className={styles.heroTitle}>Fractional Luxury Ownership</h1>
               <p className={styles.heroSub}>
-                Own a share of authenticated luxury timepieces. Invest from $50, trade on secondary
-                markets via Bags, and earn when assets are resold.
+                Each pool tokenizes a verified luxury watch into tradeable tokens via Bags. Buy
+                tokens to own a fraction, trade anytime on secondary markets, and when the watch
+                sells — holders split the proceeds proportionally. All secured by on-chain escrow
+                and multisig custody.
               </p>
-            </div>
-
-            <div className={styles.statsRow}>
-              <div className={styles.statBox}>
-                <span className={styles.statBoxLabel}>TVL</span>
-                <span className={styles.statBoxValue}>
-                  {statsLoading ? '—' : formatNum(parseFloat(String(stats?.tvl || '0')))}
-                </span>
-              </div>
-              <div className={styles.statBox}>
-                <span className={styles.statBoxLabel}>Active Pools</span>
-                <span className={styles.statBoxValue}>
-                  {statsLoading ? '—' : stats?.activePools || 0}
-                </span>
-              </div>
-              <div className={styles.statBox}>
-                <span className={styles.statBoxLabel}>Avg ROI</span>
-                <span className={styles.statBoxValue}>
-                  {statsLoading ? '—' : stats?.avgROIFormatted || '+0%'}
-                </span>
-              </div>
-              <div className={styles.statBox}>
-                <span className={styles.statBoxLabel}>Volume</span>
-                <span className={styles.statBoxValue}>
-                  {statsLoading ? '—' : stats?.totalVolumeFormatted || '$0'}
-                </span>
-              </div>
             </div>
           </div>
         </section>
@@ -880,9 +1131,15 @@ const PoolsPage: React.FC = () => {
               ) : sortedPools.length === 0 ? (
                 <>
                   <div className={styles.poolGrid}>
-                    <div className={styles.poolGridItem}>
-                      <DemoPoolCard />
-                    </div>
+                    {DEMO_POOLS.map((dp, i) => (
+                      <div
+                        key={i}
+                        className={styles.poolGridItem}
+                        style={{ animationDelay: `${i * 0.05}s` }}
+                      >
+                        <DemoPoolCard pool={dp} />
+                      </div>
+                    ))}
                   </div>
                   <div className={styles.emptyState}>
                     <span className={styles.emptyText}>No pools match this filter</span>
@@ -895,49 +1152,26 @@ const PoolsPage: React.FC = () => {
                 </>
               ) : (
                 <div className={styles.poolGrid}>
-                  {/* Animated demo card */}
-                  <div className={styles.poolGridItem}>
-                    <DemoPoolCard />
-                  </div>
+                  {DEMO_POOLS.map((dp, i) => (
+                    <div
+                      key={`demo-${i}`}
+                      className={styles.poolGridItem}
+                      style={{ animationDelay: `${i * 0.05}s` }}
+                    >
+                      <DemoPoolCard pool={dp} />
+                    </div>
+                  ))}
                   {sortedPools.map((pool, i) => (
                     <div
                       key={pool._id}
                       className={styles.poolGridItem}
-                      style={{ animationDelay: `${(i + 1) * 0.05}s` }}
+                      style={{ animationDelay: `${(i + DEMO_POOLS.length) * 0.05}s` }}
                     >
                       <PoolCard pool={pool} onClick={() => handlePoolClick(pool)} />
                     </div>
                   ))}
                 </div>
               )}
-
-              {/* Summary */}
-              <div className={styles.summaryBar}>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Total</span>
-                  <span className={styles.summaryValue}>{summaryStats.totalPools}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Open</span>
-                  <span className={styles.summaryValue}>{summaryStats.openPools}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Tradeable</span>
-                  <span className={styles.summaryValue}>{summaryStats.tradeablePools}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>TVL</span>
-                  <span className={`${styles.summaryValue} ${styles.summaryAccent}`}>
-                    {formatNum(summaryStats.tvl)}
-                  </span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Volume</span>
-                  <span className={`${styles.summaryValue} ${styles.summaryAccent}`}>
-                    {formatNum(summaryStats.totalVolume)}
-                  </span>
-                </div>
-              </div>
             </div>
 
             {/* ─── Sidebar ─── */}
@@ -963,7 +1197,7 @@ const PoolsPage: React.FC = () => {
                         <div className={styles.positionInfo}>
                           <span className={styles.positionName}>{pos.assetModel}</span>
                           <span className={styles.positionShares}>
-                            {pos.shares} shares · {pos.ownershipPercent.toFixed(1)}%
+                            {pos.shares} tokens · {pos.ownershipPercent.toFixed(1)}%
                           </span>
                         </div>
                         <div className={styles.positionValue}>
