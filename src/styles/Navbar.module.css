@@ -181,6 +181,33 @@
   border-radius: 5px;
 }
 
+.marketplaceLink {
+  background: linear-gradient(135deg, #b991ff 0%, #d4b8ff 50%, #b991ff 100%) !important;
+  background-size: 200% 200%;
+  color: #0d0d0d !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 0 12px rgba(185, 145, 255, 0.25) !important;
+  animation: gradientShift 3s ease infinite;
+}
+
+.marketplaceLink:hover {
+  background: linear-gradient(135deg, #c9a8ff 0%, #e0c8ff 50%, #c9a8ff 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(185, 145, 255, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+@keyframes gradientShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 .hamburger {
   display: none;
 }

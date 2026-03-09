@@ -24,38 +24,95 @@
 }
 
 /* ============================
-   TRIGGER — navbar glass pill
+   TRIGGER — gradient border pill
    ============================ */
 .trigger {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 16px;
-  background: rgba(50, 50, 55, 0.45);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid rgba(232, 215, 255, 0.12);
-  border-radius: 14px;
+  padding: 6px 7px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
   color: var(--text);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Gradient border via mask */
+.trigger::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.5),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Inner glow */
+.trigger::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.08) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
+  pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .trigger:hover {
-  background: rgba(30, 30, 35, 0.6);
-  border-color: rgba(200, 161, 255, 0.35);
-  box-shadow: 0 0 16px rgba(200, 161, 255, 0.08);
+  color: #d4b8ff;
+  transform: translateY(-2px);
+}
+
+.trigger:hover::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.15) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
 }
 
 .trigger.open {
-  background: rgba(20, 18, 28, 0.7);
-  border-color: rgba(200, 161, 255, 0.45);
-  box-shadow:
-    0 0 20px rgba(200, 161, 255, 0.1),
-    inset 0 0 0 1px rgba(200, 161, 255, 0.04);
+  color: #d4b8ff;
+}
+
+.trigger.open::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.7),
+    rgba(185, 145, 255, 0.2),
+    rgba(185, 145, 255, 0.7)
+  );
+}
+
+.trigger.open::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.12) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
 }
 
 .walletIcon {
@@ -152,28 +209,62 @@
 }
 
 /* ============================
-   DROPDOWN — frosted chrome panel
+   DROPDOWN — gradient border panel
    ============================ */
 .dropdown {
   position: absolute;
   top: calc(100% + 10px);
   right: -4px;
   width: 310px;
-  /* background: var(--surface); */
   background-color: #0a0a0c;
   backdrop-filter: blur(48px) !important;
-  --webkit-backdrop-filter: blur(48px) !important;
-  border: 1px solid rgba(200, 161, 255, 0.14);
-  border-radius: 20px;
+  -webkit-backdrop-filter: blur(48px) !important;
+  border: none;
+  border-radius: 16px;
   box-shadow:
     0 32px 80px rgba(0, 0, 0, 0.6),
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.02),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    0 8px 32px rgba(0, 0, 0, 0.35);
   z-index: 1000;
   animation: dropIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top right;
-  overflow: hidden;
+  overflow: visible;
+}
+
+/* Gradient border via mask */
+.dropdown::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.55),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.55)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ambient glow behind dropdown */
+.dropdown::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 16px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(185, 145, 255, 0.1) 0%,
+    rgba(185, 145, 255, 0) 60%
+  );
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ============================
@@ -212,7 +303,11 @@
    ============================ */
 .identityHeader {
   padding: 20px 20px 16px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: none;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.12), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: bottom;
   animation: fadeUp 0.3s ease 0.05s both;
 }
 
@@ -244,7 +339,11 @@
    ============================ */
 .walletPanel {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: none;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.12), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: bottom;
   animation: fadeUp 0.3s ease 0.1s both;
 }
 
@@ -305,33 +404,95 @@
 }
 
 .toolButton {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 8px 0;
-  background: var(--surface-elevated);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+  border: none;
   border-radius: 10px;
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* Gradient border */
+.toolButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.35),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.35)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+/* Inner glow */
+.toolButton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.04) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
+  pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .toolButton svg {
   font-size: 11px;
   color: var(--accent);
   opacity: 0.7;
-  transition: opacity 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.toolButton span {
+  position: relative;
+  z-index: 1;
 }
 
 .toolButton:hover {
-  background: var(--surface-hover);
-  border-color: rgba(200, 161, 255, 0.2);
-  color: var(--text);
+  color: #d4b8ff;
+  transform: translateY(-1px);
+}
+
+.toolButton:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.6),
+    rgba(185, 145, 255, 0.15),
+    rgba(185, 145, 255, 0.6)
+  );
+}
+
+.toolButton:hover::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.12) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
 }
 
 .toolButton:hover svg {
@@ -339,8 +500,16 @@
 }
 
 .toolButton.copied {
-  border-color: rgba(74, 222, 128, 0.3);
   color: #4ade80;
+}
+
+.toolButton.copied::before {
+  background: linear-gradient(
+    135deg,
+    rgba(74, 222, 128, 0.4),
+    rgba(74, 222, 128, 0.1),
+    rgba(74, 222, 128, 0.4)
+  );
 }
 
 .toolButton.copied svg {
@@ -353,7 +522,11 @@
    ============================ */
 .navSection {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: none;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.12), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: bottom;
   animation: fadeUp 0.3s ease 0.15s both;
 }
 
@@ -368,6 +541,7 @@
 }
 
 .navItem {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -375,15 +549,61 @@
   color: var(--text-secondary);
   text-decoration: none;
   border-radius: 12px;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
+  border: none;
+  transition: all 0.3s ease;
   margin: 1px 0;
+  overflow: hidden;
+}
+
+/* Gradient border (hidden by default, shown on hover) */
+.navItem::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.5),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Inner glow */
+.navItem::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.08) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .navItem:hover {
-  background: var(--surface-hover);
-  border-color: rgba(200, 161, 255, 0.12);
-  color: var(--text);
+  color: #d4b8ff;
+}
+
+.navItem:hover::before {
+  opacity: 1;
+}
+
+.navItem:hover::after {
+  opacity: 1;
 }
 
 .navIcon {
@@ -398,7 +618,9 @@
   border-radius: 8px;
   flex-shrink: 0;
   opacity: 0.75;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .navItem:hover .navIcon {
@@ -411,6 +633,8 @@
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .navLabel {
@@ -423,6 +647,7 @@
   font-size: 10.5px;
   color: var(--text-dim);
   letter-spacing: 0.1px;
+  transition: color 0.3s ease;
 }
 
 .navItem:hover .navDescription {
@@ -438,27 +663,87 @@
 }
 
 .disconnectButton {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
   padding: 10px 16px;
-  background: var(--danger-dim);
-  border: 1px solid rgba(248, 113, 113, 0.15);
+  background: transparent;
+  border: none;
   border-radius: 12px;
   color: rgba(248, 113, 113, 0.75);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   letter-spacing: 0.2px;
+  overflow: hidden;
+}
+
+/* Gradient border — danger tone */
+.disconnectButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 113, 113, 0.4),
+    rgba(248, 113, 113, 0.08),
+    rgba(248, 113, 113, 0.4)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.disconnectButton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(248, 113, 113, 0.05) 0%,
+    rgba(248, 113, 113, 0) 70%
+  );
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.disconnectButton svg,
+.disconnectButton span {
+  position: relative;
+  z-index: 1;
 }
 
 .disconnectButton:hover {
-  background: rgba(248, 113, 113, 0.15);
-  border-color: rgba(248, 113, 113, 0.35);
   color: var(--danger);
+  transform: translateY(-1px);
+}
+
+.disconnectButton:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(248, 113, 113, 0.6),
+    rgba(248, 113, 113, 0.15),
+    rgba(248, 113, 113, 0.6)
+  );
+}
+
+.disconnectButton:hover::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(248, 113, 113, 0.12) 0%,
+    rgba(248, 113, 113, 0) 70%
+  );
 }
 
 /* ============================
@@ -474,17 +759,53 @@
 }
 
 .connectIcon {
+  position: relative;
   width: 52px;
   height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, rgba(200, 161, 255, 0.12), rgba(200, 161, 255, 0.04));
-  border: 1px solid rgba(200, 161, 255, 0.15);
+  background: transparent;
+  border: none;
   border-radius: 16px;
   color: var(--accent);
   font-size: 22px;
   margin-bottom: 4px;
+  overflow: hidden;
+}
+
+/* Gradient border on icon */
+.connectIcon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.5),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.connectIcon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.08) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
+  pointer-events: none;
 }
 
 .connectTitle {
@@ -503,35 +824,89 @@
 }
 
 .connectButton {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
   padding: 13px 20px;
-  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 60%, #9333ea 100%);
-  background-size: 200% auto;
+  background: transparent;
   border: none;
-  border-radius: 14px;
-  color: #0a0a0c;
+  border-radius: 12px;
+  color: var(--text);
   font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow:
-    0 4px 20px rgba(200, 161, 255, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  overflow: hidden;
   margin-top: 6px;
 }
 
+/* Gradient border */
+.connectButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.6),
+    rgba(185, 145, 255, 0.15),
+    rgba(185, 145, 255, 0.6)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+/* Inner glow */
+.connectButton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.1) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.connectButton svg,
+.connectButton span {
+  position: relative;
+  z-index: 1;
+}
+
 .connectButton:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 8px 32px rgba(200, 161, 255, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  background-position: right center;
+  color: #d4b8ff;
+  transform: translateY(-2px);
+}
+
+.connectButton:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.8),
+    rgba(185, 145, 255, 0.2),
+    rgba(185, 145, 255, 0.8)
+  );
+}
+
+.connectButton:hover::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.18) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
 }
 
 /* ============================
@@ -560,13 +935,21 @@
   .dropdown {
     position: fixed;
     backdrop-filter: blur(48px) !important;
-    --webkit-backdrop-filter: blur(48px) !important;
+    -webkit-backdrop-filter: blur(48px) !important;
     top: 60px;
     right: 10px;
     left: 10px;
     width: auto;
     max-width: none;
-    border-radius: 18px;
+    border-radius: 16px;
+  }
+
+  .dropdown::before {
+    border-radius: 16px;
+  }
+
+  .dropdown::after {
+    border-radius: 16px;
   }
 
   .trigger {

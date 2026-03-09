@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import styles from '../../styles/Navbar.module.css';
 import Link from 'next/link';
-import { FaBars, FaTimes } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
 import { CiSearch } from 'react-icons/ci';
 import NotificationBell from './NotificationBell';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -14,13 +14,8 @@ const UserMenuDropdown = dynamic(() => import('./UserMenuDropdown'), {
   loading: () => <div style={{ width: 100, height: 36 }} />,
 });
 
-const MobileDrawer = dynamic(() => import('./MobileDrawer'), {
-  ssr: false,
-});
-
 export default function Navbar() {
   const [isClient, setIsClient] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Use unified role detection hook
@@ -30,15 +25,13 @@ export default function Navbar() {
     setIsClient(true);
   }, []);
 
-  const toggleMenu = useCallback(() => setMenuOpen((prev) => !prev), []);
   const toggleSearch = useCallback(() => setSearchOpen((prev) => !prev), []);
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
     <>
       {/* Desktop Navbar */}
       <div className={styles.navbarContainer}>
-        <nav className={`${styles.navbar} ${menuOpen ? styles.open : ''}`}>
+        <nav className={styles.navbar}>
           <div className={styles.leftSection}>
             <Link href="/">
               <img src="/images/purpleLGG.png" alt="logo" className={styles.nwlogo} />
@@ -49,35 +42,15 @@ export default function Navbar() {
           </div>
 
           <div className={styles.links}>
-            <Link href="/marketplace" onClick={closeMenu}>
+            <Link href="/marketplace" className={styles.marketplaceLink}>
               Marketplace
             </Link>
-            <Link href="/pools" onClick={closeMenu}>
-              Pools
-            </Link>
-            <Link href="/vendors" onClick={closeMenu}>
-              Vendors
-            </Link>
-            {isAdmin && (
-              <Link href="/createNFT" onClick={closeMenu}>
-                Mint NFT
-              </Link>
-            )}
-            {isAdmin && (
-              <Link href="/adminDashboard" onClick={closeMenu}>
-                Admins
-              </Link>
-            )}
-            {isVendor && walletAddress && (
-              <Link href={`/vendor/${walletAddress}`} onClick={closeMenu}>
-                Profile
-              </Link>
-            )}
-            {!isAdmin && (
-              <Link href="/learnMore" onClick={closeMenu}>
-                Learn More
-              </Link>
-            )}
+            <Link href="/pools">Pools</Link>
+            <Link href="/vendors">Vendors</Link>
+            {isAdmin && <Link href="/createNFT">Mint NFT</Link>}
+            {isAdmin && <Link href="/adminDashboard">Admins</Link>}
+            {isVendor && walletAddress && <Link href={`/vendor/${walletAddress}`}>Profile</Link>}
+            {!isAdmin && <Link href="/learnMore">Learn More</Link>}
           </div>
 
           <div className={styles.rightSection}>
@@ -89,7 +62,7 @@ export default function Navbar() {
             {/* Notification Bell */}
             {isConnected && <NotificationBell walletAddress={walletAddress} />}
 
-            {/* User Menu Dropdown - replaces old wallet button */}
+            {/* User Menu Dropdown */}
             {isClient && <UserMenuDropdown />}
           </div>
         </nav>
@@ -97,7 +70,7 @@ export default function Navbar() {
 
       {/* Mobile Navbar */}
       <div className={styles.mobileNavContainer}>
-        <nav className={`${styles.mobileNavbar} ${menuOpen ? styles.open : ''}`}>
+        <nav className={styles.mobileNavbar}>
           <div className={styles.mobileMenuContainer}>
             <div className={styles.mobileLeftSection}>
               <div className={styles.logo}>
@@ -122,14 +95,8 @@ export default function Navbar() {
               {/* Mobile Notification Bell */}
               {isConnected && <NotificationBell walletAddress={walletAddress} />}
 
-              {/* Mobile Menu Toggle */}
-              <div className={styles.menuIcon} onClick={toggleMenu}>
-                {menuOpen ? (
-                  <FaTimes className={styles.icon} />
-                ) : (
-                  <FaBars className={styles.icon} />
-                )}
-              </div>
+              {/* User Menu Dropdown */}
+              {isClient && <UserMenuDropdown />}
             </div>
           </div>
         </nav>
@@ -147,9 +114,6 @@ export default function Navbar() {
           )}
         </div>
       </div>
-
-      {/* Mobile Drawer - replaces old mobile menu */}
-      {isClient && <MobileDrawer isOpen={menuOpen} onClose={closeMenu} />}
     </>
   );
 }
