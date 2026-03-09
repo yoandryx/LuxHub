@@ -26,7 +26,6 @@ import FilterSidebar, { FilterGroup } from '../components/marketplace/FilterSide
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import UnifiedNFTCard from '../components/common/UnifiedNFTCard';
 import { VendorCard } from '../components/common/VendorCard';
-import WalletGuide from '../components/common/WalletGuide';
 import { useVendors, usePools, useEscrowListings, useSolPrice } from '../hooks/useSWR';
 
 // Types
@@ -299,7 +298,6 @@ export default function Marketplace() {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showWalletModal, setShowWalletModal] = useState(false);
 
   // Toggle filter section
   const toggleSection = (section: string) => {
@@ -541,10 +539,7 @@ export default function Marketplace() {
   // Handle buy action
   const handleBuy = useCallback(
     (listing: EscrowListing) => {
-      if (!wallet.connected) {
-        setShowWalletModal(true);
-        return;
-      }
+      if (!wallet.connected) return;
       setSelectedListing(listing);
       setShowBuyModal(true);
     },
@@ -554,10 +549,7 @@ export default function Marketplace() {
   // Handle offer action
   const handleOffer = useCallback(
     (listing: EscrowListing) => {
-      if (!wallet.connected) {
-        setShowWalletModal(true);
-        return;
-      }
+      if (!wallet.connected) return;
       setSelectedListing(listing);
       setShowOfferModal(true);
     },
@@ -622,16 +614,6 @@ export default function Marketplace() {
       <div className={styles.page}>
         {/* Ambient Background */}
         <div className={styles.ambientBg} />
-
-        {/* Wallet Banner */}
-        {!wallet.connected && (
-          <div className={styles.walletBanner}>
-            <div className={styles.walletBannerContent}>
-              <span>Connect your wallet to purchase NFTs and make offers</span>
-              <WalletGuide compact />
-            </div>
-          </div>
-        )}
 
         {/* Main Content */}
         <main className={styles.main}>
@@ -1339,18 +1321,6 @@ export default function Marketplace() {
               mutateListings();
             }}
           />
-        )}
-
-        {/* Wallet Modal */}
-        {showWalletModal && (
-          <div className={styles.walletModalOverlay} onClick={() => setShowWalletModal(false)}>
-            <div className={styles.walletModalContent} onClick={(e) => e.stopPropagation()}>
-              <button className={styles.closeModal} onClick={() => setShowWalletModal(false)}>
-                <HiOutlineX />
-              </button>
-              <WalletGuide onConnected={() => setShowWalletModal(false)} />
-            </div>
-          </div>
         )}
       </div>
     </>
