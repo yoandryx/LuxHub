@@ -328,7 +328,7 @@ export default function IndexTest() {
       <div className={styles.wrapper}>
         {/* ===== HERO SECTION - Split Layout ===== */}
         <section className={styles.heroSection}>
-          <div className={styles.hero3DBackground}>{show3DScene && <HeroScene />}</div>
+          {/* <div className={styles.hero3DBackground}>{show3DScene && <HeroScene />}</div> */}
 
           {/* Left side - Text content */}
           <div className={styles.heroContent}>
