@@ -280,9 +280,9 @@ export const NftForm: React.FC<NftFormProps> = ({
           <input value={model} onChange={(e) => setModel(e.target.value)} required />
         )}
         {renderField(
-          '* Serial Number',
+          'Serial Number',
           'Unique identifier engraved on the watch',
-          <input value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} required />
+          <input value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} />
         )}
         {renderField(
           'Material',

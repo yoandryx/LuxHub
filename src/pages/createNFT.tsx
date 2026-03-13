@@ -791,7 +791,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         throw new Error('Failed to analyze image');
       }
 
-      const data = await response.json();
+      const res = await response.json();
+      const data = res.data || res; // API wraps in { success, data }
 
       // Auto-fill form fields from AI analysis
       if (data.brand) setBrand(data.brand);
