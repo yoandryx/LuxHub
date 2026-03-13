@@ -64,18 +64,17 @@ function renderMarkdown(text: string): React.ReactNode {
       // Code
       const codeMatch = remaining.match(/`(.+?)`/);
 
-      let firstMatch: { index: number; length: number; node: React.ReactNode } | null = null;
+      const candidates: { index: number; length: number; node: React.ReactNode }[] = [];
 
       if (boldMatch && boldMatch.index !== undefined) {
-        const candidate = {
+        candidates.push({
           index: boldMatch.index,
           length: boldMatch[0].length,
           node: <strong key={key++}>{boldMatch[1]}</strong>,
-        };
-        if (!firstMatch || candidate.index < firstMatch.index) firstMatch = candidate;
+        });
       }
       if (codeMatch && codeMatch.index !== undefined) {
-        const candidate = {
+        candidates.push({
           index: codeMatch.index,
           length: codeMatch[0].length,
           node: (
@@ -91,9 +90,11 @@ function renderMarkdown(text: string): React.ReactNode {
               {codeMatch[1]}
             </code>
           ),
-        };
-        if (!firstMatch || candidate.index < firstMatch.index) firstMatch = candidate;
+        });
       }
+
+      const firstMatch =
+        candidates.length > 0 ? candidates.reduce((a, b) => (a.index <= b.index ? a : b)) : null;
 
       if (firstMatch) {
         if (firstMatch.index > 0) {
