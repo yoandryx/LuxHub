@@ -21,7 +21,8 @@ export type NotificationType =
   | 'sale_request_approved'
   | 'sale_request_rejected'
   | 'pool_investment'
-  | 'pool_distribution';
+  | 'pool_distribution'
+  | 'order_refunded';
 
 export interface NotificationMetadata {
   escrowId?: string;
@@ -119,6 +120,10 @@ const emailTemplates: Record<
   pool_distribution: {
     subject: () => 'Pool Distribution Received',
     getHtml: (p) => baseEmailTemplate(p, '#22c55e'),
+  },
+  order_refunded: {
+    subject: () => 'Refund Processed',
+    getHtml: (p) => baseEmailTemplate(p, '#f59e0b'),
   },
 };
 
@@ -684,6 +689,50 @@ export async function notifyVendorApplicationResult(params: {
   });
 }
 
+/**
+ * Notify buyer when their order is refunded
+ */
+export async function notifyOrderRefunded(params: {
+  buyerWallet: string;
+  vendorWallet: string;
+  escrowId: string;
+  escrowPda: string;
+  assetTitle: string;
+  amountUSD: number;
+  reason?: string;
+}) {
+  const { buyerWallet, vendorWallet, escrowId, escrowPda, assetTitle, amountUSD, reason } = params;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+
+  // Notify buyer
+  await notifyUser({
+    userWallet: buyerWallet,
+    type: 'order_refunded',
+    title: 'Refund Processed',
+    message: `Your $${amountUSD.toLocaleString()} USDC for "${assetTitle}" has been returned to your wallet.${reason ? ` Reason: ${reason}` : ''}`,
+    metadata: {
+      escrowId,
+      escrowPda,
+      amountUSD,
+      actionUrl: `${appUrl}/orders`,
+    },
+  });
+
+  // Notify vendor
+  await notifyUser({
+    userWallet: vendorWallet,
+    type: 'order_refunded',
+    title: 'Order Refunded',
+    message: `The order for "${assetTitle}" ($${amountUSD.toLocaleString()} USDC) has been refunded to the buyer. Your NFT has been returned to your wallet.${reason ? ` Reason: ${reason}` : ''}`,
+    metadata: {
+      escrowId,
+      escrowPda,
+      amountUSD,
+      actionUrl: `${appUrl}/vendor/orders`,
+    },
+  });
+}
+
 export default {
   notifyUser,
   notifyNewOrder,
@@ -697,4 +746,5 @@ export default {
   notifyOfferRejected,
   notifyOfferCountered,
   notifyVendorApplicationResult,
+  notifyOrderRefunded,
 };

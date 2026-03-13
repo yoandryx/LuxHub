@@ -1,5 +1,5 @@
 // src/pages/api/escrow/confirm-delivery.ts
-// Buyer confirms delivery of the item, triggering fund release
+// Buyer confirms delivery of the item, triggering fund release via Squads proposal
 // Can also be triggered by admin for dispute resolution
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
@@ -8,6 +8,8 @@ import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
 import AdminRole from '../../../lib/models/AdminRole';
+import { notifyUser } from '../../../lib/services/notificationService';
+import { strictLimiter } from '../../../lib/middleware/rateLimit';
 
 interface ConfirmDeliveryRequest {
   escrowId?: string;
@@ -19,7 +21,7 @@ interface ConfirmDeliveryRequest {
   reviewText?: string; // Optional review
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function _handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -128,10 +130,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Get asset info for response
     const asset = escrow.asset || (await Asset.findById(escrow.asset));
+    const assetTitle = asset?.title || asset?.model || 'Luxury item';
+
+    // Auto-create Squads confirm_delivery proposal for on-chain fund release
+    let squadsResult = null;
+    try {
+      squadsResult = await createConfirmDeliverySquadsProposal(escrow, wallet);
+
+      if (squadsResult.success) {
+        await Escrow.findByIdAndUpdate(escrow._id, {
+          $set: {
+            confirmDeliveryProposalIndex: squadsResult.transactionIndex,
+            confirmDeliveryProposedAt: new Date(),
+          },
+        });
+      } else {
+        console.error('[confirm-delivery] Squads proposal failed:', squadsResult.error);
+      }
+    } catch (squadsError) {
+      console.error('[confirm-delivery] Squads proposal error:', squadsError);
+    }
+
+    // Notify vendor that delivery was confirmed
+    try {
+      if (escrow.sellerWallet) {
+        await notifyUser({
+          userWallet: escrow.sellerWallet,
+          type: 'order_delivered',
+          title: 'Delivery Confirmed',
+          message: `Delivery for "${assetTitle}" has been confirmed. Fund release is in progress.`,
+          metadata: {
+            escrowId: updatedEscrow._id.toString(),
+            escrowPda: updatedEscrow.escrowPda,
+          },
+        });
+      }
+    } catch (notifyError) {
+      console.error('[confirm-delivery] Notification error:', notifyError);
+    }
+
+    // Auto-trigger pool distribution if this escrow is linked to a pool
+    let poolDistribution = null;
+    if (escrow.poolId) {
+      try {
+        poolDistribution = await triggerPoolDistribution(escrow);
+      } catch (poolError) {
+        console.error('[confirm-delivery] Pool distribution trigger error:', poolError);
+        poolDistribution = { success: false, error: (poolError as Error).message };
+      }
+    }
 
     return res.status(200).json({
       success: true,
-      message: 'Delivery confirmed successfully. Funds release process initiated.',
+      message: squadsResult?.success
+        ? 'Delivery confirmed. Squads confirm_delivery proposal created for fund release.'
+        : 'Delivery confirmed. Squads proposal creation failed — manual action required.',
       delivery: {
         escrowId: updatedEscrow._id,
         escrowPda: updatedEscrow.escrowPda,
@@ -149,26 +202,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         amountUSD: updatedEscrow.listingPriceUSD,
         royaltyAmount: updatedEscrow.royaltyAmount,
       },
+      squadsProposal: squadsResult,
+      poolDistribution,
       asset: asset
         ? {
             title: asset.title || asset.model,
             brand: asset.brand,
           }
         : null,
-      nextSteps: [
-        'Funds will be released to the vendor',
-        '3% platform fee deducted automatically',
-        'Vendor receives 97% of sale price',
-        'Transaction complete!',
-      ],
-      // Note: Actual on-chain fund release would be triggered separately
-      // via Squads multisig or admin execution
-      onChainAction: {
-        required: true,
-        action: 'release_funds',
-        description: 'Admin or Squads multisig must execute on-chain fund release',
-        endpoint: '/api/squads/execute or /api/escrow/release',
-      },
+      nextSteps: squadsResult?.success
+        ? [
+            'Squads confirm_delivery proposal created',
+            'Multisig members must approve the proposal',
+            'Execute proposal to release USDC (95% seller, 5% treasury)',
+            'NFT transferred to buyer automatically',
+          ]
+        : [
+            'Manual Squads proposal needed for fund release',
+            'Use /api/squads/propose to create confirm_delivery proposal',
+            'Multisig members approve, then execute',
+          ],
     });
   } catch (error: any) {
     console.error('[/api/escrow/confirm-delivery] Error:', error);
@@ -178,3 +231,242 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
+
+// Helper to create confirm_delivery Squads proposal for on-chain fund release
+async function createConfirmDeliverySquadsProposal(
+  escrow: any,
+  _adminWallet: string
+): Promise<{ success: boolean; transactionIndex?: string; error?: string }> {
+  try {
+    const { PublicKey } = await import('@solana/web3.js');
+
+    const rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
+    const multisigPda = process.env.NEXT_PUBLIC_SQUADS_MSIG;
+    const programId = process.env.PROGRAM_ID;
+
+    if (!rpc || !multisigPda || !programId) {
+      return {
+        success: false,
+        error: 'Missing environment configuration (RPC, SQUADS_MSIG, or PROGRAM_ID)',
+      };
+    }
+
+    const programPk = new PublicKey(programId);
+    const escrowPda = new PublicKey(escrow.escrowPda);
+
+    // confirm_delivery discriminator from IDL
+    const discriminator = Buffer.from([11, 109, 227, 53, 179, 190, 88, 155]);
+
+    const WSOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
+    const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+    const SYSVAR_INSTRUCTIONS = new PublicKey('Sysvar1nstructions1111111111111111111111111');
+
+    const buyerPk = new PublicKey(escrow.buyer?.wallet || escrow.buyerWallet);
+    const sellerPk = new PublicKey(escrow.sellerWallet);
+    const nftMintPk = new PublicKey(escrow.nftMint);
+    const luxhubWallet = new PublicKey(process.env.NEXT_PUBLIC_LUXHUB_WALLET!);
+
+    // Derive PDAs
+    const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('luxhub-config')], programPk);
+    const [nftVault] = PublicKey.findProgramAddressSync(
+      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), nftMintPk.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM
+    );
+    const [wsolVault] = PublicKey.findProgramAddressSync(
+      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM
+    );
+    const [buyerNftAta] = PublicKey.findProgramAddressSync(
+      [buyerPk.toBuffer(), TOKEN_PROGRAM.toBuffer(), nftMintPk.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM
+    );
+    const [sellerFundsAta] = PublicKey.findProgramAddressSync(
+      [sellerPk.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM
+    );
+    const [luxhubFeeAta] = PublicKey.findProgramAddressSync(
+      [luxhubWallet.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
+      ASSOCIATED_TOKEN_PROGRAM
+    );
+
+    const multisig = await import('@sqds/multisig');
+    const msigPk = new PublicKey(multisigPda);
+    const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: 0 });
+
+    // Account keys matching confirm_delivery IDL order:
+    // escrow, config, buyer_nft_ata, nft_vault, wsol_vault, mint_a (nft), mint_b (wsol),
+    // seller_funds_ata, luxhub_fee_ata, authority, instructions_sysvar, token_program
+    const keys = [
+      { pubkey: escrowPda.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: configPda.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: buyerNftAta.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: nftVault.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: wsolVault.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: nftMintPk.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: WSOL_MINT.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: sellerFundsAta.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: luxhubFeeAta.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: vaultPda.toBase58(), isSigner: true, isWritable: true },
+      { pubkey: SYSVAR_INSTRUCTIONS.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM.toBase58(), isSigner: false, isWritable: false },
+    ];
+
+    // Call Squads propose API
+    const proposeResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/squads/propose`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          programId: programPk.toBase58(),
+          keys,
+          dataBase64: discriminator.toString('base64'),
+          vaultIndex: 0,
+          autoApprove: true,
+        }),
+      }
+    );
+
+    const proposeResult = await proposeResponse.json();
+
+    if (!proposeResponse.ok) {
+      return { success: false, error: proposeResult.error || 'Failed to create proposal' };
+    }
+
+    return {
+      success: true,
+      transactionIndex: proposeResult.transactionIndex,
+    };
+  } catch (error: any) {
+    console.error('[createConfirmDeliverySquadsProposal] Error:', error);
+    return { success: false, error: error?.message || 'Unknown error' };
+  }
+}
+
+// Auto-trigger pool distribution when a pool-linked escrow completes
+async function triggerPoolDistribution(
+  escrow: any
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  const { Pool } = await import('../../../lib/models/Pool');
+  const { buildMultiTransferProposal, getTopTokenHolders } =
+    await import('../../../lib/services/squadsTransferService');
+
+  const pool = await Pool.findById(escrow.poolId);
+  if (!pool) {
+    return { success: false, error: 'Linked pool not found' };
+  }
+
+  // Only distribute if pool is in a distributable state
+  // Pool should be 'listed' (relisted for resale) or 'sold'
+  if (!['listed', 'sold', 'custody'].includes(pool.status)) {
+    return { success: false, error: `Pool status "${pool.status}" not eligible for distribution` };
+  }
+
+  // Don't double-distribute
+  if (pool.distributionStatus && pool.distributionStatus !== 'pending') {
+    return { success: false, error: `Distribution already ${pool.distributionStatus}` };
+  }
+
+  // Get resale price from the escrow that just completed
+  const resalePriceUSD = escrow.listingPriceUSD || escrow.fundedAmount || 0;
+  if (resalePriceUSD <= 0) {
+    return { success: false, error: 'No resale price found on escrow' };
+  }
+
+  // Update pool to 'sold' with resale info
+  await Pool.findByIdAndUpdate(pool._id, {
+    $set: {
+      status: 'sold',
+      resaleSoldPriceUSD: resalePriceUSD,
+      resaleSoldAt: new Date(),
+      resaleBuyerWallet: escrow.buyerWallet,
+      resaleEscrowId: escrow._id,
+    },
+  });
+
+  // Calculate distribution
+  const royaltyAmount = resalePriceUSD * 0.03;
+  const distributionPool = resalePriceUSD * 0.97;
+
+  // Get token holders
+  let distributions: { wallet: string; ownershipPercent: number; amount: number }[];
+
+  if (pool.bagsTokenMint) {
+    const holders = await getTopTokenHolders(pool.bagsTokenMint, 200);
+    if (holders.length === 0) {
+      return { success: false, error: 'No token holders found' };
+    }
+    distributions = holders.map((h: any) => ({
+      wallet: h.wallet,
+      ownershipPercent: h.ownershipPercent,
+      amount: distributionPool * (h.ownershipPercent / 100),
+    }));
+  } else {
+    // Fallback to MongoDB participants
+    distributions = (pool.participants || []).map((p: any) => {
+      const pct = pool.totalShares > 0 ? (p.shares / pool.totalShares) * 100 : 0;
+      return {
+        wallet: p.wallet,
+        ownershipPercent: pct,
+        amount: distributionPool * (pct / 100),
+      };
+    });
+  }
+
+  if (distributions.length === 0) {
+    return { success: false, error: 'No investors to distribute to' };
+  }
+
+  // Build Squads distribution proposal
+  const treasuryWallet = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
+  if (!treasuryWallet) {
+    return { success: false, error: 'Missing treasury wallet' };
+  }
+
+  const recipients = [
+    ...distributions
+      .filter((d) => d.amount > 0)
+      .map((d) => ({
+        wallet: d.wallet,
+        amountUSD: d.amount,
+        label: `Investor ${d.wallet.slice(0, 8)}... (${d.ownershipPercent.toFixed(1)}%)`,
+      })),
+    { wallet: treasuryWallet, amountUSD: royaltyAmount, label: 'LuxHub 3% royalty' },
+  ];
+
+  const squadsResult = await buildMultiTransferProposal(recipients, {
+    autoApprove: true,
+    memo: `Auto-distribution for pool ${pool._id} (resale $${resalePriceUSD.toFixed(2)})`,
+  });
+
+  // Update pool with distribution info
+  await Pool.findByIdAndUpdate(pool._id, {
+    $set: {
+      distributionStatus: squadsResult.success ? 'proposed' : 'pending',
+      distributionAmount: distributionPool,
+      distributionRoyalty: royaltyAmount,
+      ...(squadsResult.success && { squadsDistributionIndex: squadsResult.transactionIndex }),
+      distributions: distributions.map((d) => ({
+        wallet: d.wallet,
+        ownershipPercent: d.ownershipPercent,
+        amount: d.amount,
+      })),
+    },
+  });
+
+  console.log(
+    `[confirm-delivery] Auto-distribution triggered for pool ${pool._id}: $${resalePriceUSD} resale, ${distributions.length} holders, squads=${squadsResult.success}`
+  );
+
+  return {
+    success: squadsResult.success,
+    message: squadsResult.success
+      ? `Distribution proposal created for ${distributions.length} token holders ($${distributionPool.toFixed(2)} total)`
+      : 'Distribution calculated but Squads proposal failed — manual action needed',
+    error: squadsResult.success ? undefined : squadsResult.error,
+  };
+}
+
+// Rate limit confirm-delivery: 5 per minute per IP
+export default strictLimiter(_handler);

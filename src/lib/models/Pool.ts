@@ -57,6 +57,7 @@ const PoolSchema = new Schema(
     custodyVerifiedBy: { type: String }, // Admin who verified
 
     // ========== RESALE (NEW) ==========
+    resaleEscrowId: { type: Schema.Types.ObjectId, ref: 'Escrow' }, // Escrow for the resale listing
     resaleListingPrice: { type: Number }, // LuxHub's listing price for resale
     resaleListingPriceUSD: { type: Number },
     resaleListedAt: { type: Date },

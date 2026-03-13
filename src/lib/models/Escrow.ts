@@ -141,11 +141,25 @@ const EscrowSchema = new Schema(
     confirmDeliveryProposedAt: { type: Date },
     confirmDeliveryExecutedAt: { type: Date },
 
+    // ========== REFUND SQUADS TRACKING ==========
+    refundProposalIndex: { type: String }, // Squads proposal for refund_buyer
+    refundProposedAt: { type: Date },
+    refundExecutedAt: { type: Date },
+    refundedAmount: { type: Number }, // USDC atomic units returned to buyer
+
+    // ========== PAYMENT TOKEN ==========
+    paymentMint: {
+      type: String,
+      enum: ['SOL', 'USDC'],
+      default: 'USDC',
+    },
+    swapTxSignature: { type: String }, // Jupiter swap tx signature (if buyer paid with SOL)
+
     // ========== WEBHOOK TRACKING ==========
     lastSyncedAt: { type: Date }, // Last webhook sync timestamp
     lastTxSignature: { type: String }, // Last processed transaction signature
     fundedAt: { type: Date }, // When buyer funded the escrow
-    fundedAmount: { type: Number }, // Amount funded in lamports
+    fundedAmount: { type: Number }, // Amount funded (USDC atomic units for new escrows, lamports for legacy)
     releasedAt: { type: Date }, // When funds were released
     buyerWallet: { type: String, index: true }, // Buyer wallet address
     listedAt: { type: Date }, // When NFT was listed
