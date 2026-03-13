@@ -31,7 +31,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 11px 18px;
   background: transparent;
   border: none;
   border-radius: 12px;
@@ -561,6 +561,35 @@
   pointer-events: none;
 }
 
+/* Bot message formatted content */
+.message.bot .messageContent p {
+  margin: 0 0 6px 0;
+}
+
+.message.bot .messageContent p:last-child {
+  margin-bottom: 0;
+}
+
+.message.bot .messageContent strong {
+  color: #d4b8ff;
+  font-weight: 600;
+}
+
+.message.bot .messageContent ul,
+.message.bot .messageContent ol {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.message.bot .messageContent li {
+  margin-bottom: 4px;
+  line-height: 1.45;
+}
+
+.message.bot .messageContent li::marker {
+  color: #c8a1ff;
+}
+
 /* Typing Indicator */
 .typingIndicator {
   display: flex;
@@ -858,13 +887,23 @@
 }
 
 /* ========== MOBILE RESPONSIVE ========== */
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 768px) {
   .floatingButton {
-    bottom: 28px;
+    bottom: 16px;
     right: 16px;
-    padding: 10px 14px;
+    padding: 9px 14px;
   }
+}
 
+@media screen and (max-width: 420px) {
+  .floatingButton {
+    bottom: 12px;
+    right: 12px;
+    padding: 8px 12px;
+  }
+}
+
+@media screen and (max-width: 480px) {
   .chatPanel {
     bottom: 80px;
     right: 12px;

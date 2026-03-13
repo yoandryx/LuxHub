@@ -12,7 +12,6 @@ import {
   FaShieldAlt,
   FaWallet,
 } from 'react-icons/fa';
-import { HiSparkles } from 'react-icons/hi2';
 
 interface Message {
   id: string;
@@ -29,6 +28,125 @@ interface UserContext {
 interface QuickAction {
   label: string;
   prompt: string;
+}
+
+// Lightweight markdown renderer for bot messages
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let listItems: string[] = [];
+  let listType: 'ul' | 'ol' | null = null;
+
+  const flushList = () => {
+    if (listItems.length > 0 && listType) {
+      const Tag = listType;
+      elements.push(
+        <Tag key={`list-${elements.length}`}>
+          {listItems.map((item, i) => (
+            <li key={i}>{inlineFormat(item)}</li>
+          ))}
+        </Tag>
+      );
+      listItems = [];
+      listType = null;
+    }
+  };
+
+  // Inline formatting: **bold**, *italic*, `code`
+  const inlineFormat = (str: string): React.ReactNode => {
+    const parts: React.ReactNode[] = [];
+    let remaining = str;
+    let key = 0;
+
+    while (remaining.length > 0) {
+      // Bold
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+      // Code
+      const codeMatch = remaining.match(/`(.+?)`/);
+
+      let firstMatch: { index: number; length: number; node: React.ReactNode } | null = null;
+
+      if (boldMatch && boldMatch.index !== undefined) {
+        const candidate = {
+          index: boldMatch.index,
+          length: boldMatch[0].length,
+          node: <strong key={key++}>{boldMatch[1]}</strong>,
+        };
+        if (!firstMatch || candidate.index < firstMatch.index) firstMatch = candidate;
+      }
+      if (codeMatch && codeMatch.index !== undefined) {
+        const candidate = {
+          index: codeMatch.index,
+          length: codeMatch[0].length,
+          node: (
+            <code
+              key={key++}
+              style={{
+                background: 'rgba(200,161,255,0.15)',
+                padding: '1px 5px',
+                borderRadius: '4px',
+                fontSize: '0.9em',
+              }}
+            >
+              {codeMatch[1]}
+            </code>
+          ),
+        };
+        if (!firstMatch || candidate.index < firstMatch.index) firstMatch = candidate;
+      }
+
+      if (firstMatch) {
+        if (firstMatch.index > 0) {
+          parts.push(remaining.slice(0, firstMatch.index));
+        }
+        parts.push(firstMatch.node);
+        remaining = remaining.slice(firstMatch.index + firstMatch.length);
+      } else {
+        parts.push(remaining);
+        break;
+      }
+    }
+
+    return parts.length === 1 ? parts[0] : <>{parts}</>;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushList();
+      continue;
+    }
+
+    // Bullet list
+    const bulletMatch = trimmed.match(/^[-•*]\s+(.+)/);
+    if (bulletMatch) {
+      if (listType !== 'ul') flushList();
+      listType = 'ul';
+      listItems.push(bulletMatch[1]);
+      continue;
+    }
+
+    // Numbered list
+    const numMatch = trimmed.match(/^\d+[.)]\s+(.+)/);
+    if (numMatch) {
+      if (listType !== 'ol') flushList();
+      listType = 'ol';
+      listItems.push(numMatch[1]);
+      continue;
+    }
+
+    flushList();
+    elements.push(
+      <p key={`p-${i}`} style={{ margin: '0 0 6px 0' }}>
+        {inlineFormat(trimmed)}
+      </p>
+    );
+  }
+
+  flushList();
+  return <>{elements}</>;
 }
 
 const STORAGE_KEY = 'luxhub_assistant_history';
@@ -345,10 +463,7 @@ const LuxuryAssistant = () => {
         {visible ? (
           <FaTimes className={styles.toggleIcon} />
         ) : (
-          <>
-            <HiSparkles className={styles.sparkleIcon} />
-            <img src="/images/purpleLGG.png" alt="LuxHub" className={styles.logo} />
-          </>
+          <img src="/images/purpleLGG.png" alt="LuxHub" className={styles.logo} />
         )}
       </button>
 
@@ -361,7 +476,6 @@ const LuxuryAssistant = () => {
           {/* Header */}
           <div className={styles.header}>
             <div className={styles.headerLeft}>
-              <HiSparkles className={styles.headerIcon} />
               <div className={styles.headerText}>
                 <span className={styles.headerTitle}>Luxury</span>
                 <span className={styles.headerSubtitle}>AI Concierge</span>
@@ -398,7 +512,6 @@ const LuxuryAssistant = () => {
           <div className={styles.messagesContainer}>
             {messages.length === 0 && (
               <div className={styles.welcomeMessage}>
-                <HiSparkles className={styles.welcomeIcon} />
                 <h3>Welcome to LuxHub</h3>
                 <p>
                   {userContext.role === 'guest'
@@ -410,7 +523,9 @@ const LuxuryAssistant = () => {
 
             {messages.map((msg) => (
               <div key={msg.id} className={`${styles.message} ${styles[msg.sender]}`}>
-                <div className={styles.messageContent}>{msg.text}</div>
+                <div className={styles.messageContent}>
+                  {msg.sender === 'bot' ? renderMarkdown(msg.text) : msg.text}
+                </div>
               </div>
             ))}
 
@@ -464,7 +579,7 @@ const LuxuryAssistant = () => {
 
           {/* Footer */}
           <div className={styles.footer}>
-            <span>Powered by Grok</span>
+            <span>Powered by Claude</span>
             <span className={styles.footerDot}>·</span>
             <span>LuxHub AI</span>
           </div>
