@@ -418,6 +418,82 @@
       ]
     },
     {
+      "name": "refund_buyer",
+      "docs": [
+        "Refund buyer's USDC and return NFT to seller.",
+        "Only callable via Squads multisig CPI."
+      ],
+      "discriminator": [
+        199,
+        139,
+        203,
+        146,
+        192,
+        150,
+        53,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "escrow",
+          "writable": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  117,
+                  120,
+                  104,
+                  117,
+                  98,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer_funds_ata",
+          "writable": true
+        },
+        {
+          "name": "funds_vault",
+          "writable": true
+        },
+        {
+          "name": "nft_vault",
+          "writable": true
+        },
+        {
+          "name": "seller_nft_ata",
+          "writable": true
+        },
+        {
+          "name": "authority"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "update_config",
       "docs": [
         "Update the protocol config. All parameters are optional.",

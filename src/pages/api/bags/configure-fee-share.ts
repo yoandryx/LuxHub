@@ -3,7 +3,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
-import { User } from '../../../lib/models/User';
+import { getAdminConfig } from '../../../lib/config/adminConfig';
 
 interface ConfigureFeeShareRequest {
   poolId: string;
@@ -16,9 +16,6 @@ interface ConfigureFeeShareRequest {
 }
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
-
-// Admin wallets
-const ADMIN_WALLETS = process.env.ADMIN_WALLETS?.split(',') || [];
 
 // Default LuxHub treasury wallet
 const LUXHUB_TREASURY = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
@@ -54,9 +51,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
 
     // Verify admin privileges
-    const adminUser = await User.findOne({ wallet: adminWallet });
-    const isAdmin = adminUser?.role === 'admin' || ADMIN_WALLETS.includes(adminWallet);
-    if (!isAdmin) {
+    const adminConfig = getAdminConfig();
+    if (!adminConfig.isAdmin(adminWallet)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -93,12 +89,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const finalFeeClaimers = feeClaimers || defaultFeeClaimers;
 
-    // Validate total basis points doesn't exceed 100%
+    // Validate basis points
     const totalBasisPoints = finalFeeClaimers.reduce((sum, f) => sum + f.basisPoints, 0);
+    if (totalBasisPoints === 0) {
+      return res.status(400).json({
+        error: 'Total fee basis points must be greater than 0',
+        totalBasisPoints,
+      });
+    }
     if (totalBasisPoints > 10000) {
       return res.status(400).json({
         error: 'Total fee basis points cannot exceed 10000 (100%)',
         totalBasisPoints,
+      });
+    }
+    // Validate individual claimers have positive values
+    const invalidClaimer = finalFeeClaimers.find((f) => f.basisPoints <= 0);
+    if (invalidClaimer) {
+      return res.status(400).json({
+        error: 'Each fee claimer must have basisPoints > 0',
+        invalidWallet: invalidClaimer.wallet,
       });
     }
 
@@ -162,5 +172,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Failed to configure fee share',
       details: error?.message || 'Unknown error',
     });
+  }
+}
+
+/**
+ * Internal helper — configure fee share for a pool without going through HTTP.
+ * Called by create-pool-token after token creation.
+ */
+export async function configureFeeShareInternal(
+  poolId: string,
+  tokenMint: string,
+  adminWallet: string
+): Promise<{ success: boolean; configId?: string; transaction?: any; error?: string }> {
+  const bagsApiKey = process.env.BAGS_API_KEY;
+  const treasury = LUXHUB_TREASURY;
+  if (!bagsApiKey || !treasury) {
+    return { success: false, error: 'Missing BAGS_API_KEY or LUXHUB_WALLET' };
+  }
+
+  const feeClaimers = [{ wallet: treasury, basisPoints: 300 }]; // 3% to LuxHub
+
+  try {
+    const feeShareResponse = await fetch(
+      `${BAGS_API_BASE}/fee-share/create-fee-share-config-v2-transaction`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': bagsApiKey,
+        },
+        body: JSON.stringify({
+          mint: tokenMint,
+          payer: adminWallet,
+          feeClaimers,
+        }),
+      }
+    );
+
+    if (!feeShareResponse.ok) {
+      const errorData = await feeShareResponse.json().catch(() => ({}));
+      return { success: false, error: JSON.stringify(errorData) };
+    }
+
+    const result = await feeShareResponse.json();
+    const configId = result.configId || result.id;
+
+    // Update pool
+    await Pool.findByIdAndUpdate(poolId, {
+      $set: { bagsFeeShareConfigId: configId },
+    });
+
+    return { success: true, configId, transaction: result.transaction };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }

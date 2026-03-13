@@ -53,7 +53,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Handle legacy field mapping
   const finalReferenceNumber = referenceNumber || serialNumber;
-  const finalPriceUSD = priceUSD !== undefined ? priceUSD : priceSol ? priceSol * 200 : 0; // Rough conversion if only priceSol provided
+  // Convert SOL price to USD using live price feed if needed
+  let finalPriceUSD = priceUSD;
+  if (finalPriceUSD === undefined && priceSol) {
+    try {
+      const priceRes = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/users/sol-price`
+      );
+      const priceData = await priceRes.json();
+      finalPriceUSD = priceSol * (priceData.price || 150);
+    } catch {
+      finalPriceUSD = priceSol * 150; // Fallback if price API fails
+    }
+  }
+  finalPriceUSD = finalPriceUSD || 0;
 
   if (!finalReferenceNumber) {
     return res.status(400).json({ error: 'Missing required field: referenceNumber' });

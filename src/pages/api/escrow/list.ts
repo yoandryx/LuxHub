@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const escrows = await Escrow.find(filter)
       .populate(
         'asset',
-        'model serial priceUSD description imageUrl imageIpfsUrls images arweaveTxId brand title material dialColor caseSize condition productionYear movement'
+        'model serial priceUSD description imageUrl imageIpfsUrls images arweaveTxId brand title material dialColor caseSize condition productionYear movement waterResistance boxPapers country certificate features limitedEdition warrantyInfo provenance'
       )
       .populate('seller', 'businessName username verified')
       .sort({ createdAt: -1 })

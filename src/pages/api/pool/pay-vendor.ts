@@ -1,11 +1,13 @@
 // src/pages/api/pool/pay-vendor.ts
 // Pay vendor ONLY after pool fills AND custody is verified (escrow-protected flow)
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, PublicKey } from '@solana/web3.js';
-import * as multisig from '@sqds/multisig';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
-import { User } from '../../../lib/models/User';
+import { getAdminConfig } from '../../../lib/config/adminConfig';
+import {
+  buildMultiTransferProposal,
+  TransferRecipient,
+} from '../../../lib/services/squadsTransferService';
 
 interface PayVendorRequest {
   poolId: string;
@@ -13,10 +15,6 @@ interface PayVendorRequest {
   createSquadsProposal?: boolean;
   skipCustodyCheck?: boolean; // Only for emergencies, requires special admin
 }
-
-// Admin wallets (should be in env or database in production)
-const ADMIN_WALLETS = process.env.ADMIN_WALLETS?.split(',') || [];
-const SUPER_ADMIN_WALLETS = process.env.SUPER_ADMIN_WALLETS?.split(',') || [];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -41,9 +39,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
 
     // Verify admin privileges
-    const adminUser = await User.findOne({ wallet: adminWallet });
-    const isAdmin = adminUser?.role === 'admin' || ADMIN_WALLETS.includes(adminWallet);
-    const isSuperAdmin = SUPER_ADMIN_WALLETS.includes(adminWallet);
+    const adminConfig = getAdminConfig();
+    const isAdmin = adminConfig.isAdmin(adminWallet);
+    const isSuperAdmin = adminConfig.isSuperAdmin(adminWallet);
 
     if (!isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
@@ -134,9 +132,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let luxhubFee: number;
 
     if (liquidityModel === 'amm' || liquidityModel === 'hybrid') {
-      // AMM model: vendor gets vendorPaymentPercent, rest to AMM + fee
+      // AMM model: vendor gets (100 - ammPercent - 3)%, AMM gets ammPercent%, LuxHub gets 3%
       const ammPercent = pool.ammLiquidityPercent || 30;
-      vendorPayment = totalCollected * (vendorPaymentPercent / 100);
+      const vendorPercent = (100 - ammPercent - 3) / 100; // e.g. 67% if 30% AMM + 3% fee
+      vendorPayment = totalCollected * vendorPercent;
       ammLiquidityAmount = totalCollected * (ammPercent / 100);
       luxhubFee = totalCollected * 0.03;
     } else {
@@ -169,6 +168,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         $set: {
           squadsVendorPaymentIndex: squadsResult.transactionIndex,
           vendorPaidAmount: vendorPayment,
+          vendorPaidAt: new Date(),
           status: 'funded', // Move to funded status
           escrowReleasedAt: new Date(),
         },
@@ -244,52 +244,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-// Helper to create Squads payment proposal
+// Build real Squads multi-transfer proposal for vendor payment
 async function createVendorPaymentProposal(
   pool: any,
   vendorPayment: number,
   luxhubFee: number,
-  ammLiquidity: number,
-  liquidityModel: string
-): Promise<{ success: boolean; transactionIndex?: string; error?: string }> {
-  try {
-    const rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
-    const multisigPda = process.env.NEXT_PUBLIC_SQUADS_MSIG;
-
-    if (!rpc || !multisigPda) {
-      return { success: false, error: 'Missing Squads configuration' };
-    }
-
-    const connection = new Connection(rpc, 'confirmed');
-    const msigPk = new PublicKey(multisigPda);
-
-    // Fetch next transaction index
-    const multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msigPk);
-    const transactionIndex = BigInt(Number(multisigAccount.transactionIndex) + 1);
-
-    // In a full implementation, this would:
-    // 1. Build SPL token transfer: escrow → vendor (vendorPayment)
-    // 2. Build SPL token transfer: escrow → treasury (luxhubFee)
-    // 3. If AMM: Build SPL token transfer: escrow → AMM pool (ammLiquidity)
-    // 4. Create vault transaction with all transfers
-    // 5. Create proposal for multisig approval
-
-    console.log('[Squads] Creating vendor payment proposal:', {
-      poolId: pool._id,
-      vendorWallet: pool.vendorWallet,
-      vendorPayment,
-      luxhubFee,
-      ammLiquidity,
-      liquidityModel,
-      transactionIndex: transactionIndex.toString(),
-    });
-
-    return {
-      success: true,
-      transactionIndex: transactionIndex.toString(),
-    };
-  } catch (error: any) {
-    console.error('[createVendorPaymentProposal] Error:', error);
-    return { success: false, error: error?.message || 'Unknown error' };
+  _ammLiquidity: number,
+  _liquidityModel: string
+): Promise<{
+  success: boolean;
+  transactionIndex?: string;
+  squadsDeepLink?: string;
+  error?: string;
+}> {
+  const treasuryWallet = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
+  if (!treasuryWallet) {
+    return { success: false, error: 'Missing NEXT_PUBLIC_LUXHUB_WALLET (treasury)' };
   }
+  if (!pool.vendorWallet) {
+    return { success: false, error: 'Pool has no vendorWallet set' };
+  }
+
+  const recipients: TransferRecipient[] = [
+    { wallet: pool.vendorWallet, amountUSD: vendorPayment, label: 'Vendor payment' },
+    { wallet: treasuryWallet, amountUSD: luxhubFee, label: 'LuxHub 3% fee' },
+  ];
+
+  const result = await buildMultiTransferProposal(recipients, {
+    autoApprove: true,
+    memo: `Vendor payment for pool ${pool._id}`,
+  });
+
+  return {
+    success: result.success,
+    transactionIndex: result.transactionIndex,
+    squadsDeepLink: result.squadsDeepLink,
+    error: result.error,
+  };
 }

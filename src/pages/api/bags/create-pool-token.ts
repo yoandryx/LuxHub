@@ -3,8 +3,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
-import { Asset } from '../../../lib/models/Assets';
-import { User } from '../../../lib/models/User';
+import { getAdminConfig } from '../../../lib/config/adminConfig';
+import { configureFeeShareInternal } from './configure-fee-share';
 
 interface CreatePoolTokenRequest {
   poolId: string;
@@ -18,9 +18,6 @@ interface CreatePoolTokenRequest {
 }
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
-
-// Admin wallets
-const ADMIN_WALLETS = process.env.ADMIN_WALLETS?.split(',') || [];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -55,9 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect();
 
     // Verify admin privileges
-    const adminUser = await User.findOne({ wallet: adminWallet });
-    const isAdmin = adminUser?.role === 'admin' || ADMIN_WALLETS.includes(adminWallet);
-    if (!isAdmin) {
+    const adminConfig = getAdminConfig();
+    if (!adminConfig.isAdmin(adminWallet)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -185,6 +181,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await Pool.findByIdAndUpdate(poolId, { $set: poolUpdate });
 
+    // Auto-configure fee share (3% to LuxHub treasury) immediately after token creation
+    const tokenMint = launchResult.mint || launchResult.tokenMint;
+    let feeShareResult = null;
+    try {
+      feeShareResult = await configureFeeShareInternal(poolId, tokenMint, adminWallet);
+      if (!feeShareResult.success) {
+        console.warn('[create-pool-token] Fee share auto-config failed:', feeShareResult.error);
+      }
+    } catch (feeErr) {
+      console.warn('[create-pool-token] Fee share auto-config error:', feeErr);
+    }
+
     return res.status(200).json({
       success: true,
       token: {
@@ -209,6 +217,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bagsTokenMint: launchResult.mint || launchResult.tokenMint,
         bondingCurveActive: !isFixedSupply,
       },
+      feeShare: feeShareResult?.success
+        ? {
+            configured: true,
+            configId: feeShareResult.configId,
+            feePercent: '3%',
+            transaction: feeShareResult.transaction,
+          }
+        : {
+            configured: false,
+            error:
+              feeShareResult?.error ||
+              'Fee share not configured — run /api/bags/configure-fee-share manually',
+          },
       transaction: launchResult.transaction,
       message: isFixedSupply
         ? 'Pool share token created via Bags (fixed supply). Transaction ready for signing.'

@@ -1,11 +1,14 @@
 // src/pages/api/pool/distribute.ts
 // Distribute proceeds to investors when pool asset is resold
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, PublicKey } from '@solana/web3.js';
-import * as multisig from '@sqds/multisig';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
-import { User } from '../../../lib/models/User';
+import { getAdminConfig } from '../../../lib/config/adminConfig';
+import {
+  buildMultiTransferProposal,
+  getTopTokenHolders,
+  TransferRecipient,
+} from '../../../lib/services/squadsTransferService';
 
 interface DistributeRequest {
   poolId: string;
@@ -13,9 +16,6 @@ interface DistributeRequest {
   resalePriceUSD?: number; // If not already set on pool
   createSquadsProposal?: boolean;
 }
-
-// Admin wallets
-const ADMIN_WALLETS = process.env.ADMIN_WALLETS?.split(',') || [];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -39,19 +39,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
-    // Run independent queries in parallel
-    const [adminUser, pool] = await Promise.all([
-      User.findOne({ wallet: adminWallet }),
-      Pool.findById(poolId),
-    ]);
-
     // Verify admin privileges
-    const isAdmin = adminUser?.role === 'admin' || ADMIN_WALLETS.includes(adminWallet);
-    if (!isAdmin) {
+    const adminConfig = getAdminConfig();
+    if (!adminConfig.isAdmin(adminWallet)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Check pool exists
+    // Find the pool
+    const pool = await Pool.findById(poolId);
     if (!pool || pool.deleted) {
       return res.status(404).json({ error: 'Pool not found' });
     }
@@ -60,6 +55,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (pool.status !== 'sold') {
       return res.status(400).json({
         error: `Pool must be in 'sold' status to distribute. Current status: ${pool.status}`,
+      });
+    }
+
+    // Idempotency guard — prevent duplicate distribution proposals
+    if (pool.distributionStatus && pool.distributionStatus !== 'pending') {
+      return res.status(400).json({
+        error: `Distribution already initiated. Current status: ${pool.distributionStatus}`,
+        squadsDistributionIndex: pool.squadsDistributionIndex,
       });
     }
 
@@ -75,41 +78,72 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const royaltyAmount = finalResalePrice * 0.03; // 3% to LuxHub
     const distributionPool = finalResalePrice * 0.97; // 97% to investors
 
-    // Calculate individual distributions
+    // Fetch live on-chain token holders instead of stale MongoDB participants
     interface DistributionItem {
       wallet: string;
-      shares: number;
+      balance: number;
       ownershipPercent: number;
-      investedUSD: number;
       distributionAmount: number;
-      profit: number;
-      roiPercent: number;
     }
 
-    const distributions: DistributionItem[] = (pool.participants || []).map((participant: any) => {
-      const ownershipPercent = participant.shares / pool.totalShares;
-      const distributionAmount = distributionPool * ownershipPercent;
-      const profit = distributionAmount - participant.investedUSD;
-      const roiPercent = (distributionAmount / participant.investedUSD - 1) * 100;
+    let distributions: DistributionItem[];
 
-      return {
-        wallet: participant.wallet,
-        shares: participant.shares,
-        ownershipPercent: ownershipPercent * 100,
-        investedUSD: participant.investedUSD,
-        distributionAmount,
-        profit,
-        roiPercent,
-      };
-    });
+    if (pool.bagsTokenMint) {
+      // On-chain snapshot — accurate even after secondary trading
+      const holders = await getTopTokenHolders(pool.bagsTokenMint, 200);
+
+      if (holders.length === 0) {
+        return res.status(400).json({
+          error: 'No token holders found for this pool',
+          bagsTokenMint: pool.bagsTokenMint,
+        });
+      }
+
+      distributions = holders.map((h) => ({
+        wallet: h.wallet,
+        balance: h.balance,
+        ownershipPercent: h.ownershipPercent,
+        distributionAmount: distributionPool * (h.ownershipPercent / 100),
+      }));
+    } else {
+      // Fallback to MongoDB participants if no token minted
+      distributions = (pool.participants || []).map((p: any) => {
+        const pct = pool.totalShares > 0 ? (p.shares / pool.totalShares) * 100 : 0;
+        return {
+          wallet: p.wallet,
+          balance: p.shares,
+          ownershipPercent: pct,
+          distributionAmount: distributionPool * (pct / 100),
+        };
+      });
+    }
 
     // Create Squads proposal for distribution
     let squadsResult = null;
     if (createSquadsProposal) {
-      squadsResult = await createDistributionProposal(pool, distributions, royaltyAmount);
+      const treasuryWallet = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
+      if (!treasuryWallet) {
+        return res.status(500).json({ error: 'Missing NEXT_PUBLIC_LUXHUB_WALLET (treasury)' });
+      }
+
+      // Build recipient list: all holders + LuxHub fee
+      const recipients: TransferRecipient[] = [
+        ...distributions
+          .filter((d) => d.distributionAmount > 0)
+          .map((d) => ({
+            wallet: d.wallet,
+            amountUSD: d.distributionAmount,
+            label: `Investor ${d.wallet.slice(0, 8)}... (${d.ownershipPercent.toFixed(1)}%)`,
+          })),
+        { wallet: treasuryWallet, amountUSD: royaltyAmount, label: 'LuxHub 3% royalty' },
+      ];
+
+      squadsResult = await buildMultiTransferProposal(recipients, {
+        autoApprove: true,
+        memo: `Distribution for pool ${pool._id}`,
+      });
 
       if (squadsResult.success) {
-        // Update pool with proposal info
         await Pool.findByIdAndUpdate(poolId, {
           $set: {
             distributionStatus: 'proposed',
@@ -118,7 +152,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             squadsDistributionIndex: squadsResult.transactionIndex,
             distributions: distributions.map((d: DistributionItem) => ({
               wallet: d.wallet,
-              shares: d.shares,
+              balance: d.balance,
               ownershipPercent: d.ownershipPercent,
               amount: d.distributionAmount,
             })),
@@ -138,13 +172,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       distributions: distributions.map((d: DistributionItem) => ({
         wallet: d.wallet,
-        shares: d.shares,
+        balance: d.balance,
         ownershipPercent: `${d.ownershipPercent.toFixed(2)}%`,
-        invested: `$${d.investedUSD.toFixed(2)}`,
         receives: `$${d.distributionAmount.toFixed(2)}`,
-        profit: `$${d.profit.toFixed(2)}`,
-        roi: `${d.roiPercent.toFixed(2)}%`,
       })),
+      holderSource: pool.bagsTokenMint ? 'on-chain snapshot' : 'MongoDB participants',
       pool: {
         _id: pool._id,
         status: pool.status,
@@ -166,41 +198,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Failed to process distribution',
       details: error?.message || 'Unknown error',
     });
-  }
-}
-
-// Helper to create Squads distribution proposal
-async function createDistributionProposal(
-  pool: any,
-  distributions: any[],
-  royaltyAmount: number
-): Promise<{ success: boolean; transactionIndex?: string; error?: string }> {
-  try {
-    const rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
-    const multisigPda = process.env.NEXT_PUBLIC_SQUADS_MSIG;
-
-    if (!rpc || !multisigPda) {
-      return { success: false, error: 'Missing Squads configuration' };
-    }
-
-    const connection = new Connection(rpc, 'confirmed');
-    const msigPk = new PublicKey(multisigPda);
-
-    // Fetch next transaction index
-    const multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msigPk);
-    const transactionIndex = BigInt(Number(multisigAccount.transactionIndex) + 1);
-
-    // In a full implementation, this would create multiple transfer instructions:
-    // 1. Transfer royaltyAmount to LuxHub treasury
-    // 2. For each investor, transfer their distribution amount
-    // This would be a batch transaction through Squads
-
-    return {
-      success: true,
-      transactionIndex: transactionIndex.toString(),
-    };
-  } catch (error: any) {
-    console.error('[createDistributionProposal] Error:', error);
-    return { success: false, error: error?.message || 'Unknown error' };
   }
 }

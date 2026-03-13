@@ -23,7 +23,7 @@ interface CreateWithMintRequest {
 
   // Sale terms
   saleMode: 'fixed_price' | 'accepting_offers' | 'crowdfunded';
-  listingPrice: number; // In lamports
+  listingPrice?: number; // Legacy (lamports) — ignored if listingPriceUSD provided
   listingPriceUSD: number;
   minimumOffer?: number; // For accepting_offers mode
   minimumOfferUSD?: number;
@@ -63,12 +63,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } = req.body as CreateWithMintRequest;
 
     // Validation
-    if (!vendorWallet || !assetId || !nftMint || !listingPrice || !seed || !fileCid) {
+    if (!vendorWallet || !assetId || !nftMint || !listingPriceUSD || !seed || !fileCid) {
       return res.status(400).json({
         error:
-          'Missing required fields: vendorWallet, assetId, nftMint, listingPrice, seed, fileCid',
+          'Missing required fields: vendorWallet, assetId, nftMint, listingPriceUSD, seed, fileCid',
       });
     }
+
+    // Convert USD to USDC atomic units (6 decimals)
+    const USDC_DECIMALS = 6;
+    const listingPriceUsdc = Math.round(listingPriceUSD * 10 ** USDC_DECIMALS);
 
     if (!rpc || !multisigPda) {
       return res.status(500).json({ error: 'RPC or MULTISIG env is not set' });
@@ -132,14 +136,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const discriminator = Buffer.from([175, 175, 109, 31, 13, 152, 155, 237]); // anchor discriminator
     const seedBuffer = seedBn.toArrayLike(Buffer, 'le', 8);
     const initializerAmount = new BN(1).toArrayLike(Buffer, 'le', 8); // NFT = 1
-    const takerAmount = new BN(listingPrice).toArrayLike(Buffer, 'le', 8);
+    const takerAmount = new BN(listingPriceUsdc).toArrayLike(Buffer, 'le', 8);
 
     // Encode fileCid as string (4 byte length prefix + utf8 bytes)
     const cidBytes = Buffer.from(fileCid, 'utf8');
     const cidLengthBuffer = Buffer.alloc(4);
     cidLengthBuffer.writeUInt32LE(cidBytes.length, 0);
 
-    const salePriceBuffer = new BN(listingPrice).toArrayLike(Buffer, 'le', 8);
+    const salePriceBuffer = new BN(listingPriceUsdc).toArrayLike(Buffer, 'le', 8);
 
     const instructionData = Buffer.concat([
       discriminator,
@@ -153,7 +157,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Build account keys for initialize instruction
     // This matches the Initialize context in the Anchor program
-    const WSOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
+    // Use USDC as the payment mint (instead of wSOL)
+    const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
     const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
     const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
     const SYSTEM_PROGRAM = new PublicKey('11111111111111111111111111111111');
@@ -167,8 +172,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), mintPk.toBuffer()],
       ASSOCIATED_TOKEN_PROGRAM
     );
-    const [wsolVault] = PublicKey.findProgramAddressSync(
-      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
+    const [usdcVault] = PublicKey.findProgramAddressSync(
+      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), USDC_MINT.toBuffer()],
       ASSOCIATED_TOKEN_PROGRAM
     );
     const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('config')], programId);
@@ -176,11 +181,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const keys = [
       { pubkey: sellerPk.toBase58(), isSigner: true, isWritable: true },
       { pubkey: mintPk.toBase58(), isSigner: false, isWritable: false },
-      { pubkey: WSOL_MINT.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: USDC_MINT.toBase58(), isSigner: false, isWritable: false },
       { pubkey: sellerAtaB.toBase58(), isSigner: false, isWritable: true },
       { pubkey: escrowPda.toBase58(), isSigner: false, isWritable: true },
       { pubkey: nftVault.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: wsolVault.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: usdcVault.toBase58(), isSigner: false, isWritable: true },
       { pubkey: configPda.toBase58(), isSigner: false, isWritable: false },
       { pubkey: ASSOCIATED_TOKEN_PROGRAM.toBase58(), isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM.toBase58(), isSigner: false, isWritable: false },
@@ -222,9 +227,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       escrowPda: escrowPda.toBase58(),
       nftMint,
       saleMode,
-      listingPrice,
+      listingPrice: listingPriceUsdc, // USDC atomic units (6 decimals)
       listingPriceUSD,
-      minimumOffer: saleMode === 'accepting_offers' ? minimumOffer : undefined,
+      paymentMint: 'USDC',
+      minimumOffer:
+        saleMode === 'accepting_offers' && minimumOfferUSD
+          ? Math.round(minimumOfferUSD * 10 ** USDC_DECIMALS)
+          : undefined,
       minimumOfferUSD: saleMode === 'accepting_offers' ? minimumOfferUSD : undefined,
       acceptingOffers: saleMode === 'accepting_offers',
       status: 'initiated',
