@@ -7,6 +7,7 @@ import { Escrow } from '../../../lib/models/Escrow';
 import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
 import { notifyNewOrder, notifyUser } from '../../../lib/services/notificationService';
+import { strictLimiter } from '../../../lib/middleware/rateLimit';
 
 interface ShippingAddress {
   fullName: string;
@@ -26,17 +27,26 @@ interface PurchaseRequest {
   mintAddress?: string; // Alternative lookup by NFT mint
   buyerWallet: string;
   txSignature?: string; // On-chain exchange transaction signature
+  swapTxSignature?: string; // Jupiter swap tx (if buyer paid with SOL)
+  paymentToken?: 'SOL' | 'USDC'; // Which token buyer paid with
   shippingAddress: ShippingAddress;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { escrowPda, mintAddress, buyerWallet, txSignature, shippingAddress } =
-      req.body as PurchaseRequest;
+    const {
+      escrowPda,
+      mintAddress,
+      buyerWallet,
+      txSignature,
+      swapTxSignature,
+      paymentToken,
+      shippingAddress,
+    } = req.body as PurchaseRequest;
 
     // Validation
     if ((!escrowPda && !mintAddress) || !buyerWallet) {
@@ -134,6 +144,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           fundedAmount: escrow.listingPrice,
           // Store on-chain transaction signature if provided
           ...(txSignature && { txSignature, lastTxSignature: txSignature }),
+          // USDC payment tracking
+          ...(swapTxSignature && { swapTxSignature }),
+          ...(paymentToken && { paymentMint: paymentToken === 'SOL' ? 'SOL' : 'USDC' }),
         },
       },
       { new: true }
@@ -160,7 +173,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         userWallet: buyerWallet,
         type: 'order_funded',
         title: 'Purchase Confirmed',
-        message: `Your purchase of "${assetTitle}" has been confirmed. The vendor will ship your item soon!`,
+        message: `Your purchase of "${assetTitle}" has been confirmed. $${updatedEscrow.listingPriceUSD?.toLocaleString() || '0'} USDC is secured in escrow. The vendor will ship your item soon!`,
         metadata: {
           escrowId: updatedEscrow._id.toString(),
           escrowPda: updatedEscrow.escrowPda,
@@ -203,7 +216,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'Vendor will review and ship the item',
         'You will receive tracking information once shipped',
         'Confirm delivery once you receive the item',
-        'Funds will be released to vendor after confirmation',
+        'USDC released to vendor (97%) after your confirmation',
+        'If rejected, USDC is returned to you automatically',
       ],
     });
   } catch (error: any) {
@@ -214,3 +228,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
+
+// Rate limit purchases: 5 per minute per IP
+export default strictLimiter(handler);

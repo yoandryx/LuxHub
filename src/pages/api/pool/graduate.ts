@@ -4,7 +4,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || '';
+import { getAdminConfig } from '../../../lib/config/adminConfig';
+import AdminRole from '../../../lib/models/AdminRole';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -14,15 +15,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await dbConnect();
 
-    const { poolId, adminSecret } = req.body;
+    const { poolId, wallet, adminSecret } = req.body;
 
     if (!poolId) {
       return res.status(400).json({ error: 'Missing poolId' });
     }
 
-    // Verify admin access
-    if (ADMIN_SECRET && adminSecret !== ADMIN_SECRET) {
-      return res.status(403).json({ error: 'Unauthorized: Invalid admin secret' });
+    // Verify admin access via wallet or admin secret
+    const adminConfig = getAdminConfig();
+    const isWalletAdmin = wallet ? adminConfig.isAdmin(wallet) : false;
+    const isSecretValid = process.env.ADMIN_SECRET && adminSecret === process.env.ADMIN_SECRET;
+
+    if (!isWalletAdmin && !isSecretValid) {
+      // Also check database admin role
+      let isDbAdmin = false;
+      if (wallet) {
+        const dbAdmin = await AdminRole.findOne({ wallet, isActive: true });
+        isDbAdmin = !!(dbAdmin?.permissions?.canManagePools || dbAdmin?.role === 'super_admin');
+      }
+      if (!isDbAdmin) {
+        return res.status(403).json({ error: 'Unauthorized: admin access required' });
+      }
     }
 
     const pool = await Pool.findById(poolId);

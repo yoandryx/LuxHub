@@ -637,13 +637,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const secret = process.env.HELIUS_WEBHOOK_SECRET;
   const signature = req.headers['x-helius-signature'] as string | undefined;
 
-  // In development, allow requests without signature verification
-  if (process.env.NODE_ENV === 'production' && secret) {
+  if (secret) {
     const payload = JSON.stringify(req.body);
     if (!verifyHeliusSignature(payload, signature, secret)) {
       console.warn('[helius-webhook] Invalid signature received');
       return res.status(401).json({ success: false, error: 'Invalid signature' });
     }
+  } else if (process.env.NODE_ENV === 'production') {
+    console.error('[helius-webhook] HELIUS_WEBHOOK_SECRET not set in production — rejecting');
+    return res.status(500).json({ success: false, error: 'Webhook secret not configured' });
   }
 
   try {

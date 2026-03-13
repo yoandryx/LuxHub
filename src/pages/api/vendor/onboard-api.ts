@@ -37,8 +37,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const body = req.body;
-    console.log('API RECEIVED:', body); // DEBUG
-
     const parsed = onboardSchema.parse(body);
 
     await dbConnect();
