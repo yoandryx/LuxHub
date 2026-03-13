@@ -1,18 +1,13 @@
 // src/components/marketplace/BuyModal.tsx
-// Modal for buyers to purchase an escrow listing with on-chain exchange
-import React, { useState, useEffect } from 'react';
+// Modal for buyers to purchase an escrow listing with USDC-based escrow
+// Supports paying with USDC directly or SOL (auto-swapped via Jupiter)
+import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
-import {
-  PublicKey,
-  SystemProgram,
-  TransactionInstruction,
-  LAMPORTS_PER_SOL,
-} from '@solana/web3.js';
+import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
-  createSyncNativeInstruction,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import { FaShoppingCart, FaShippingFast, FaCheckCircle, FaLock, FaWallet } from 'react-icons/fa';
@@ -21,19 +16,34 @@ import { LuSparkles } from 'react-icons/lu';
 import { FiSave, FiEdit2 } from 'react-icons/fi';
 import { getProgram } from '../../utils/programUtils';
 import { resolveImageUrl, handleImageError, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
+import {
+  USDC_MINT,
+  SOL_MINT,
+  USDC_DECIMALS,
+  usdToUsdcAtomic,
+  usdcAtomicToUsd,
+  getUSDCBalance,
+  getSOLBalance,
+  getSOLtoUSDCQuote,
+  buildSwapTransaction,
+  ensureUsdcAta,
+  type JupiterQuote,
+} from '../../utils/jupiterSwap';
 import SavedAddressSelector, { SavedAddress } from '../common/SavedAddressSelector';
 import styles from '../../styles/BuyModal.module.css';
 
 // Constants
-const WSOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
 const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+
+type PaymentToken = 'USDC' | 'SOL';
 
 interface Escrow {
   escrowPda: string;
   nftMint?: string;
-  listingPrice?: number; // lamports
+  listingPrice?: number; // USDC atomic units (new) or lamports (legacy)
   listingPriceUSD: number;
+  paymentMint?: 'SOL' | 'USDC'; // new field
   seed?: number;
   asset?: {
     model?: string;
@@ -91,7 +101,18 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
+  const [swapTxSignature, setSwapTxSignature] = useState<string | null>(null);
+
+  // Payment token selection
+  const [paymentToken, setPaymentToken] = useState<PaymentToken>('USDC');
+
+  // Balances
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [solBalance, setSolBalance] = useState<number | null>(null);
+
+  // Jupiter quote (for SOL payments)
+  const [jupiterQuote, setJupiterQuote] = useState<JupiterQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
 
   const [shipping, setShipping] = useState<ShippingAddress>({
     fullName: '',
@@ -114,27 +135,59 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
 
   // Calculate prices
   const priceUSD = escrow.listingPriceUSD || 0;
-  const priceSol = priceUSD / solPrice;
-  const priceLamports = Math.floor(priceSol * LAMPORTS_PER_SOL);
+  const priceUsdcAtomic = usdToUsdcAtomic(priceUSD);
   const platformFeePercent = 3; // 3% taken at confirm_delivery, not purchase
-  const totalSol = priceSol; // Buyer pays full amount, fee taken later
 
-  // Fetch SOL balance
+  // SOL equivalent (for display)
+  const solEquivalent = priceUSD / solPrice;
+
+  // Fetch balances
   useEffect(() => {
-    const fetchBalance = async () => {
+    const fetchBalances = async () => {
       if (publicKey && connection) {
         try {
-          const balance = await connection.getBalance(publicKey);
-          setSolBalance(balance / LAMPORTS_PER_SOL);
+          const [usdc, sol] = await Promise.all([
+            getUSDCBalance(connection, publicKey),
+            getSOLBalance(connection, publicKey),
+          ]);
+          setUsdcBalance(usdc);
+          setSolBalance(sol);
         } catch (err) {
-          console.error('Failed to fetch balance:', err);
+          console.error('Failed to fetch balances:', err);
         }
       }
     };
-    fetchBalance();
+    fetchBalances();
   }, [publicKey, connection]);
 
-  // Check if shipping is valid (either saved address selected or new address form filled)
+  // Fetch Jupiter quote when SOL is selected
+  useEffect(() => {
+    if (paymentToken !== 'SOL' || !priceUsdcAtomic) {
+      setJupiterQuote(null);
+      return;
+    }
+
+    let cancelled = false;
+    const fetchQuote = async () => {
+      setQuoteLoading(true);
+      try {
+        const quote = await getSOLtoUSDCQuote(priceUsdcAtomic, 100);
+        if (!cancelled) setJupiterQuote(quote);
+      } catch (err) {
+        console.error('Jupiter quote failed:', err);
+        if (!cancelled) setJupiterQuote(null);
+      } finally {
+        if (!cancelled) setQuoteLoading(false);
+      }
+    };
+
+    fetchQuote();
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentToken, priceUsdcAtomic]);
+
+  // Check if shipping is valid
   const isNewAddressValid =
     shipping.fullName.trim() &&
     shipping.street1.trim() &&
@@ -146,9 +199,26 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
   const isShippingValid =
     selectedSavedAddress !== null || (showNewAddressForm && isNewAddressValid);
 
-  const hasEnoughBalance = solBalance !== null && solBalance >= totalSol + 0.01; // +0.01 for tx fees
+  // Balance checks
+  const hasEnoughUSDC = usdcBalance !== null && usdcBalance >= priceUsdcAtomic;
+  const solNeeded = jupiterQuote ? Number(jupiterQuote.inAmount) + 10_000_000 : 0; // +0.01 SOL for fees
+  const hasEnoughSOL = solBalance !== null && solNeeded > 0 && solBalance >= solNeeded;
+  const hasEnoughBalance = paymentToken === 'USDC' ? hasEnoughUSDC : hasEnoughSOL;
 
-  // Execute on-chain exchange instruction
+  // Format balance display
+  const balanceDisplay =
+    paymentToken === 'USDC'
+      ? `${usdcBalance !== null ? (usdcBalance / 10 ** USDC_DECIMALS).toFixed(2) : '...'} USDC`
+      : `${solBalance !== null ? (solBalance / LAMPORTS_PER_SOL).toFixed(4) : '...'} SOL`;
+
+  const neededDisplay =
+    paymentToken === 'USDC'
+      ? `${priceUSD.toLocaleString()} USDC`
+      : jupiterQuote
+        ? `~${(Number(jupiterQuote.inAmount) / LAMPORTS_PER_SOL).toFixed(4)} SOL`
+        : `~${solEquivalent.toFixed(4)} SOL`;
+
+  // Execute on-chain exchange instruction (USDC flow)
   const executeExchange = async (): Promise<string> => {
     if (!publicKey || !connected || !signTransaction) {
       throw new Error('Wallet not connected');
@@ -162,64 +232,36 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
       throw new Error('NFT mint address not found');
     }
 
-    // Derive addresses
-    const buyerWsolAta = await getAssociatedTokenAddress(WSOL_MINT, publicKey);
+    // Derive buyer's USDC ATA
+    const buyerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, publicKey);
 
-    // Derive wSOL vault PDA (same pattern as create-with-mint.ts)
-    const [wsolVault] = PublicKey.findProgramAddressSync(
-      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
+    // Derive USDC vault PDA (escrow's USDC holding account)
+    const [usdcVault] = PublicKey.findProgramAddressSync(
+      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), USDC_MINT.toBuffer()],
       ASSOCIATED_TOKEN_PROGRAM
     );
 
-    // Check if buyer wSOL ATA exists
-    const buyerWsolAtaInfo = await connection.getAccountInfo(buyerWsolAta);
-
-    // Build pre-instructions for ATA creation and SOL wrapping
-    const preInstructions: TransactionInstruction[] = [];
-
-    // Create buyer wSOL ATA if needed
-    if (!buyerWsolAtaInfo) {
-      console.log('Creating buyer wSOL ATA...');
-      preInstructions.push(
-        createAssociatedTokenAccountInstruction(publicKey, buyerWsolAta, publicKey, WSOL_MINT)
-      );
-    }
-
-    // Wrap SOL into wSOL
-    console.log(`Wrapping ${totalSol} SOL (${priceLamports} lamports) into wSOL...`);
-    preInstructions.push(
-      SystemProgram.transfer({
-        fromPubkey: publicKey,
-        toPubkey: buyerWsolAta,
-        lamports: priceLamports,
-      }),
-      createSyncNativeInstruction(buyerWsolAta)
-    );
-
-    // Execute exchange instruction
-    console.log('Executing exchange instruction...');
+    // Execute exchange instruction — deposits USDC into escrow vault
     const tx = await program.methods
       .exchange()
       .accounts({
         taker: publicKey,
         escrow: escrowPda,
-        mintA: WSOL_MINT,
+        mintA: USDC_MINT,
         mintB: nftMint,
-        takerFundsAta: buyerWsolAta,
-        wsolVault: wsolVault,
+        takerFundsAta: buyerUsdcAta,
+        wsolVault: usdcVault, // named wsolVault in program but holds USDC
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
-      .preInstructions(preInstructions)
       .rpc();
 
-    console.log('Exchange successful! TX:', tx);
     return tx;
   };
 
   // Handle purchase flow
   const handlePurchase = async () => {
-    if (!connected || !publicKey) {
+    if (!connected || !publicKey || !signTransaction) {
       setError('Please connect your wallet');
       return;
     }
@@ -230,7 +272,8 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
     }
 
     if (!hasEnoughBalance) {
-      setError(`Insufficient SOL balance. You need at least ${totalSol.toFixed(4)} SOL`);
+      const tokenName = paymentToken === 'USDC' ? 'USDC' : 'SOL';
+      setError(`Insufficient ${tokenName} balance. You need ${neededDisplay}`);
       return;
     }
 
@@ -239,9 +282,61 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
     setStep('signing');
 
     try {
-      // Step 1: Execute on-chain exchange
+      let swapSig: string | undefined;
+
+      // Step 1: If paying with SOL, swap to USDC via Jupiter first
+      if (paymentToken === 'SOL') {
+        if (!jupiterQuote) {
+          throw new Error('Jupiter quote not available. Please try again.');
+        }
+
+        // Ensure buyer has USDC ATA
+        const { instruction: createAtaIx } = await ensureUsdcAta(connection, publicKey, publicKey);
+        if (createAtaIx) {
+          // Build and send ATA creation tx separately
+          const { Transaction } = await import('@solana/web3.js');
+          const ataTx = new Transaction().add(createAtaIx);
+          const { blockhash } = await connection.getLatestBlockhash();
+          ataTx.recentBlockhash = blockhash;
+          ataTx.feePayer = publicKey;
+          const signedAtaTx = await signTransaction(ataTx);
+          await connection.sendRawTransaction(signedAtaTx.serialize());
+        }
+
+        // Build and execute Jupiter swap
+        const swapTx = await buildSwapTransaction(jupiterQuote, publicKey);
+        const signedSwapTx = await signTransaction(swapTx);
+        swapSig = await connection.sendTransaction(signedSwapTx, {
+          skipPreflight: false,
+          maxRetries: 3,
+        });
+
+        // Wait for swap confirmation
+        const latestBlockhash = await connection.getLatestBlockhash();
+        await connection.confirmTransaction({
+          signature: swapSig,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        });
+
+        setSwapTxSignature(swapSig);
+      }
+
+      // Step 2: Execute on-chain exchange (deposit USDC to escrow vault)
       const signature = await executeExchange();
       setTxSignature(signature);
+
+      // Verify exchange transaction confirmed on-chain
+      const exchangeBlockhash = await connection.getLatestBlockhash();
+      const confirmation = await connection.confirmTransaction({
+        signature,
+        blockhash: exchangeBlockhash.blockhash,
+        lastValidBlockHeight: exchangeBlockhash.lastValidBlockHeight,
+      });
+
+      if (confirmation.value.err) {
+        throw new Error('Exchange transaction failed on-chain. Please try again.');
+      }
 
       // Determine shipping address (saved or new)
       const shippingAddress = selectedSavedAddress
@@ -270,7 +365,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
             deliveryInstructions: shipping.deliveryInstructions.trim() || undefined,
           };
 
-      // Step 2: Update MongoDB with buyer info and shipping address
+      // Step 3: Update MongoDB with buyer info and shipping address
       const response = await fetch('/api/escrow/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -279,11 +374,13 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
           mintAddress: escrow.nftMint,
           buyerWallet: publicKey.toBase58(),
           txSignature: signature,
+          swapTxSignature: swapSig,
+          paymentToken,
           shippingAddress,
         }),
       });
 
-      // Step 3: Save new address if checkbox is checked
+      // Step 4: Save new address if checkbox is checked
       if (saveNewAddress && !selectedSavedAddress && isNewAddressValid) {
         try {
           await fetch('/api/addresses', {
@@ -297,7 +394,6 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
           });
         } catch (saveErr) {
           console.warn('Failed to save address:', saveErr);
-          // Don't fail the purchase if address save fails
         }
       }
 
@@ -305,7 +401,27 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
 
       if (!response.ok) {
         console.warn('MongoDB update failed but on-chain succeeded:', data.error);
-        // Don't throw - on-chain is the source of truth
+        // Retry once — on-chain tx already landed, we must sync the DB
+        try {
+          const retryResponse = await fetch('/api/escrow/purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              escrowPda: escrow.escrowPda,
+              mintAddress: escrow.nftMint,
+              buyerWallet: publicKey.toBase58(),
+              txSignature: signature,
+              swapTxSignature: swapSig,
+              paymentToken,
+              shippingAddress,
+            }),
+          });
+          if (!retryResponse.ok) {
+            console.error('MongoDB retry also failed — admin sync required');
+          }
+        } catch (retryErr) {
+          console.error('MongoDB retry error:', retryErr);
+        }
       }
 
       setStep('success');
@@ -315,7 +431,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
     } catch (err: any) {
       console.error('Purchase failed:', err);
       setError(err.message || 'Transaction failed. Please try again.');
-      setStep('confirm'); // Go back to confirm step
+      setStep('confirm');
     } finally {
       setLoading(false);
     }
@@ -379,41 +495,102 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               </div>
             </div>
 
+            {/* Payment Token Selector */}
+            <div className={styles.tokenSelector}>
+              <span className={styles.tokenSelectorLabel}>Pay with</span>
+              <div className={styles.tokenOptions}>
+                <button
+                  className={`${styles.tokenOption} ${paymentToken === 'USDC' ? styles.tokenOptionActive : ''}`}
+                  onClick={() => setPaymentToken('USDC')}
+                >
+                  <span className={styles.tokenIcon}>$</span>
+                  USDC
+                </button>
+                <button
+                  className={`${styles.tokenOption} ${paymentToken === 'SOL' ? styles.tokenOptionActive : ''}`}
+                  onClick={() => setPaymentToken('SOL')}
+                >
+                  <span className={styles.tokenIcon}>
+                    <LuSparkles />
+                  </span>
+                  SOL
+                </button>
+              </div>
+            </div>
+
             {/* Price Breakdown */}
             <div className={styles.priceSection}>
               <div className={styles.priceRow}>
                 <span>Item Price</span>
-                <span className={styles.priceValue}>${priceUSD.toLocaleString()}</span>
+                <span className={styles.priceValue}>${priceUSD.toLocaleString()} USDC</span>
               </div>
               <div className={styles.priceRow}>
                 <span>Platform Fee ({platformFeePercent}%)</span>
                 <span className={styles.feeNote}>Deducted at delivery confirmation</span>
               </div>
+
+              {paymentToken === 'SOL' && (
+                <div className={styles.priceRow}>
+                  <span>Swap Rate</span>
+                  <span className={styles.feeNote}>
+                    {quoteLoading
+                      ? 'Fetching...'
+                      : jupiterQuote
+                        ? `1 SOL ≈ $${(priceUSD / (Number(jupiterQuote.inAmount) / LAMPORTS_PER_SOL)).toFixed(2)}`
+                        : 'Unavailable'}
+                  </span>
+                </div>
+              )}
+
               <div className={`${styles.priceRow} ${styles.totalRow}`}>
                 <span>You Pay</span>
                 <div className={styles.totalValue}>
-                  <span className={styles.totalSol}>
-                    <LuSparkles /> {totalSol.toFixed(4)} SOL
-                  </span>
-                  <span className={styles.totalUSD}>≈ ${priceUSD.toLocaleString()}</span>
+                  {paymentToken === 'USDC' ? (
+                    <>
+                      <span className={styles.totalSol}>${priceUSD.toLocaleString()} USDC</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={styles.totalSol}>
+                        <LuSparkles />{' '}
+                        {quoteLoading
+                          ? '...'
+                          : jupiterQuote
+                            ? `~${(Number(jupiterQuote.inAmount) / LAMPORTS_PER_SOL).toFixed(4)} SOL`
+                            : `~${solEquivalent.toFixed(4)} SOL`}
+                      </span>
+                      <span className={styles.totalUSD}>→ ${priceUSD.toLocaleString()} USDC</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Balance Check */}
-            {connected && solBalance !== null && (
+            {connected && (
               <div
                 className={`${styles.balanceCheck} ${hasEnoughBalance ? styles.sufficient : styles.insufficient}`}
               >
                 <FaWallet />
                 <span>
-                  Your balance: {solBalance.toFixed(4)} SOL
-                  {!hasEnoughBalance && ' (Insufficient)'}
+                  Your balance: {balanceDisplay}
+                  {!hasEnoughBalance && ` (Need ${neededDisplay})`}
                 </span>
               </div>
             )}
 
-            <button className={styles.primaryBtn} onClick={() => setStep('shipping')}>
+            {paymentToken === 'SOL' && !quoteLoading && jupiterQuote && (
+              <div className={styles.swapNotice}>
+                SOL will be automatically swapped to USDC via Jupiter before depositing to escrow.
+                Slippage tolerance: 1%
+              </div>
+            )}
+
+            <button
+              className={styles.primaryBtn}
+              onClick={() => setStep('shipping')}
+              disabled={!hasEnoughBalance}
+            >
               Continue to Shipping
             </button>
           </div>
@@ -655,9 +832,13 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                   <span className={styles.summaryModel}>
                     {escrow.asset?.title || escrow.asset?.model}
                   </span>
-                  <span className={styles.summaryPrice}>
-                    <LuSparkles /> {totalSol.toFixed(4)} SOL
-                  </span>
+                  <span className={styles.summaryPrice}>${priceUSD.toLocaleString()} USDC</span>
+                  {paymentToken === 'SOL' && jupiterQuote && (
+                    <span className={styles.summarySwapNote}>
+                      Paying ~{(Number(jupiterQuote.inAmount) / LAMPORTS_PER_SOL).toFixed(4)} SOL →
+                      swapped to USDC
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -696,8 +877,9 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               <div className={styles.escrowText}>
                 <strong>Escrow Protected</strong>
                 <span>
-                  Your SOL is held in escrow until you confirm delivery. Vendor receives 97% after
-                  confirmation.
+                  Your ${priceUSD.toLocaleString()} USDC is held in escrow until you confirm
+                  delivery. Vendor receives 97% after confirmation. If rejected, funds are returned
+                  to you automatically.
                 </span>
               </div>
             </div>
@@ -717,7 +899,11 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                 onClick={handlePurchase}
                 disabled={loading || !hasEnoughBalance}
               >
-                {loading ? 'Processing...' : `Pay ${totalSol.toFixed(4)} SOL`}
+                {loading
+                  ? 'Processing...'
+                  : paymentToken === 'USDC'
+                    ? `Pay $${priceUSD.toLocaleString()} USDC`
+                    : `Pay ~${jupiterQuote ? (Number(jupiterQuote.inAmount) / LAMPORTS_PER_SOL).toFixed(4) : solEquivalent.toFixed(4)} SOL`}
               </button>
             </div>
           </div>
@@ -730,13 +916,22 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               <div className={styles.signingSpinner}>
                 <div className={styles.spinner}></div>
               </div>
-              <h2 className={styles.signingTitle}>Signing Transaction</h2>
+              <h2 className={styles.signingTitle}>
+                {paymentToken === 'SOL' && !swapTxSignature
+                  ? 'Swapping SOL → USDC'
+                  : 'Depositing to Escrow'}
+              </h2>
               <p className={styles.signingMessage}>
                 Please approve the transaction in your wallet...
               </p>
               <div className={styles.signingDetails}>
-                <p>Amount: {totalSol.toFixed(4)} SOL</p>
+                <p>Amount: ${priceUSD.toLocaleString()} USDC</p>
                 <p>To: Escrow Vault</p>
+                {paymentToken === 'SOL' && (
+                  <p className={styles.swapStep}>
+                    {!swapTxSignature ? 'Step 1/2: Jupiter Swap' : 'Step 2/2: Escrow Deposit'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -751,7 +946,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               </div>
               <h2 className={styles.successTitle}>Purchase Successful!</h2>
               <p className={styles.successMessage}>
-                Your {totalSol.toFixed(4)} SOL has been deposited to escrow.
+                ${priceUSD.toLocaleString()} USDC has been deposited to escrow.
               </p>
               {txSignature && (
                 <a
@@ -763,13 +958,24 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                   View Transaction ↗
                 </a>
               )}
+              {swapTxSignature && (
+                <a
+                  href={`https://explorer.solana.com/tx/${swapTxSignature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.txLink}
+                >
+                  View Swap Transaction ↗
+                </a>
+              )}
               <div className={styles.nextSteps}>
                 <h4>What happens next?</h4>
                 <ul>
                   <li>Vendor will prepare and ship your item</li>
                   <li>You&apos;ll receive tracking information via email</li>
                   <li>Confirm delivery once you receive the item</li>
-                  <li>Funds released to vendor (97%) after your confirmation</li>
+                  <li>Vendor receives 97% USDC after your confirmation</li>
+                  <li>If rejected, your USDC is returned automatically</li>
                 </ul>
               </div>
               <button className={styles.primaryBtn} onClick={onClose}>

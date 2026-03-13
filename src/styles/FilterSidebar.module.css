@@ -5,23 +5,42 @@
 
 /* ── Sidebar Container ────────────────────────────────── */
 .sidebar {
+  position: sticky;
+  top: 110px;
   width: 260px;
   height: fit-content;
   max-height: calc(100vh - 200px);
   overflow-y: auto;
-  position: sticky;
-  top: 110px;
   flex-shrink: 0;
 
   padding: 20px;
   background: linear-gradient(160deg, rgba(18, 18, 24, 0.95) 0%, rgba(10, 10, 14, 0.98) 100%);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(200, 161, 255, 0.15);
+  border: none;
   border-radius: 20px;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Gradient border via mask */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.35),
+    rgba(200, 161, 255, 0.08),
+    rgba(200, 161, 255, 0.35)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.3s ease;
 }
 
 /* Scrollbar */

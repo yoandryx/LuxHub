@@ -181,6 +181,42 @@
   border-radius: 5px;
 }
 
+.poolsLink {
+  position: relative;
+  overflow: hidden;
+}
+
+.poolsLink::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 5px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.35),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.35)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+  transition: background 0.3s ease;
+}
+
+.poolsLink:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.6),
+    rgba(185, 145, 255, 0.15),
+    rgba(185, 145, 255, 0.6)
+  );
+}
+
 .marketplaceLink {
   background: linear-gradient(135deg, #b991ff 0%, #d4b8ff 50%, #b991ff 100%) !important;
   background-size: 200% 200%;

@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import styles from '../../styles/NFTDetailCard.module.css';
 import { FaTimes, FaCopy } from 'react-icons/fa';
-import { LuRotate3D, LuShield, LuBadgeCheck, LuSparkles, LuGem } from 'react-icons/lu';
+import { LuBadgeCheck, LuSparkles, LuGem } from 'react-icons/lu';
 import { Connection, PublicKey } from '@solana/web3.js';
-import VanillaTilt from 'vanilla-tilt';
+import { useUserRole } from '../../hooks/useUserRole';
 import { usePriceDisplay } from '../marketplace/PriceDisplay';
 import { resolveImageUrl, resolveAssetImage, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 
@@ -63,7 +63,18 @@ interface NftDetailCardProps {
   owner?: string;
   onClose: () => void;
   showContactButton?: boolean;
+  // Role-based action props
+  buyerWallet?: string;
+  onBuy?: () => void;
+  onOffer?: () => void;
+  onDelist?: () => void;
+  onEdit?: () => void;
+  status?: 'listed' | 'escrow' | 'sold' | 'verified';
+  acceptingOffers?: boolean;
 }
+
+// Attributes to exclude from the details grid (shown elsewhere in the UI)
+const EXCLUDED_ATTRIBUTES = new Set(['Brand', 'Price', 'Price USD', 'Price SOL', 'Current Owner']);
 
 export const NftDetailCard: React.FC<NftDetailCardProps> = ({
   metadataUri,
@@ -72,142 +83,30 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
   priceSol,
   owner,
   onClose,
-  showContactButton = false,
+  buyerWallet,
+  onBuy,
+  onOffer,
+  onDelist,
+  onEdit,
+  status = 'listed',
+  acceptingOffers = true,
 }) => {
   const [metadata, setMetadata] = useState<NFTMetadata | null>(null);
   const [loading, setLoading] = useState<boolean>(!!metadataUri && !previewData);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [isFlipped, setIsFlipped] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
 
   const { formatPrice, displayInUSD, toggleDisplay } = usePriceDisplay();
+  const { walletAddress: connectedWallet, isConnected: walletConnected } = useUserRole();
 
-  const cardRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Floating sparkles animation
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth * 2;
-      canvas.height = canvas.offsetHeight * 2;
-      ctx.scale(2, 2);
-    };
-    resize();
-
-    interface Sparkle {
-      x: number;
-      y: number;
-      size: number;
-      speedY: number;
-      speedX: number;
-      opacity: number;
-      hue: number;
-      life: number;
-      maxLife: number;
-    }
-
-    const sparkles: Sparkle[] = [];
-    const sparkleCount = 25; // Reduced for subtlety
-
-    const createSparkle = (): Sparkle => ({
-      x: Math.random() * canvas.offsetWidth,
-      y: Math.random() * canvas.offsetHeight,
-      size: Math.random() * 2 + 0.5, // Smaller sparkles
-      speedY: (Math.random() - 0.5) * 0.3,
-      speedX: (Math.random() - 0.5) * 0.2,
-      opacity: 0,
-      hue: 270 + Math.random() * 20, // LuxHub purple range only (270-290)
-      life: 0,
-      maxLife: Math.random() * 300 + 150,
-    });
-
-    for (let i = 0; i < sparkleCount; i++) {
-      const s = createSparkle();
-      s.life = Math.random() * s.maxLife;
-      sparkles.push(s);
-    }
-
-    let animationId: number;
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-
-      sparkles.forEach((s, i) => {
-        s.life++;
-        s.x += s.speedX;
-        s.y += s.speedY;
-
-        const progress = s.life / s.maxLife;
-        if (progress < 0.3) {
-          s.opacity = progress / 0.3;
-        } else if (progress > 0.7) {
-          s.opacity = (1 - progress) / 0.3;
-        } else {
-          s.opacity = 1;
-        }
-
-        if (s.life >= s.maxLife) {
-          sparkles[i] = createSparkle();
-        }
-
-        ctx.save();
-        ctx.globalAlpha = s.opacity * 0.4; // More subtle
-
-        const gradient = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size * 2);
-        gradient.addColorStop(0, `hsla(${s.hue}, 60%, 75%, 0.6)`);
-        gradient.addColorStop(0.5, `hsla(${s.hue}, 50%, 65%, 0.2)`);
-        gradient.addColorStop(1, `hsla(${s.hue}, 40%, 60%, 0)`);
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.size * 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = `hsla(${s.hue}, 60%, 90%, 0.8)`;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.size * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-      });
-
-      animationId = requestAnimationFrame(animate);
-    };
-
-    animate();
-    return () => cancelAnimationFrame(animationId);
-  }, []);
-
-  // 3D Tilt Effect with enhanced settings
-  useEffect(() => {
-    if (cardRef.current) {
-      VanillaTilt.init(cardRef.current, {
-        max: 12,
-        speed: 300,
-        glare: true,
-        'max-glare': 0.35,
-        gyroscope: true,
-        gyroscopeMinAngleX: -20,
-        gyroscopeMaxAngleX: 20,
-        gyroscopeMinAngleY: -20,
-        gyroscopeMaxAngleY: 20,
-        scale: 1.02,
-        transition: true,
-        easing: 'cubic-bezier(.03,.98,.52,.99)',
-      });
-    }
-
-    return () => {
-      if (cardRef.current && (cardRef.current as any).vanillaTilt) {
-        (cardRef.current as any).vanillaTilt.destroy();
-      }
-    };
-  }, [metadata]);
+  // Role-based logic — use useUserRole (supports Privy + wallet adapter), fall back to prop
+  const walletAddress = buyerWallet || connectedWallet;
+  const isConnected = !!buyerWallet || walletConnected;
+  const isOwner = useMemo(
+    () => !!(walletAddress && metadata?.owner && walletAddress === metadata.owner),
+    [walletAddress, metadata?.owner]
+  );
+  const isListed = status === 'listed';
 
   const handleCopy = (field: string, value: string) => {
     navigator.clipboard.writeText(value);
@@ -230,10 +129,8 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
             const umi = createUmi(rpcEndpoint);
             const asset = await fetchAsset(umi, publicKey(mintAddress));
             uri = asset.uri;
-            console.log('[NftDetailCard] Fetched mpl-core asset URI:', uri);
           } catch {
             // Fall back to Metaplex for old NFTs
-            console.log('[NftDetailCard] Trying Metaplex for old NFT format...');
             const connection = new Connection(rpcEndpoint);
             const Metaplex = await loadMetaplex();
             const metaplex = Metaplex.make(connection);
@@ -278,10 +175,9 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     }
   }, [metadataUri, mintAddress, previewData, priceSol, owner]);
 
-  // Handle previewData - use comprehensive image resolution
+  // Handle previewData
   useEffect(() => {
     if (previewData && !metadata) {
-      // Resolve image using the comprehensive asset resolver
       const resolvedPreviewImage = resolveAssetImage({
         imageUrl: previewData.imageUrl,
         images: previewData.images,
@@ -306,7 +202,16 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     }
   }, [previewData, metadata]);
 
-  // Premium loading state
+  // Show all attributes except ones already displayed elsewhere
+  const displayAttributes = useMemo(
+    () =>
+      (metadata?.attributes || []).filter(
+        (a) => a.value && a.value !== '~' && !EXCLUDED_ATTRIBUTES.has(a.trait_type)
+      ),
+    [metadata?.attributes]
+  );
+
+  // Loading state
   if (loading) {
     return (
       <div className={styles.modalBackdrop}>
@@ -323,7 +228,6 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
 
   if (!metadata) return null;
 
-  // Resolve image URL for Irys/IPFS compatibility
   const resolvedImage = resolveImageUrl(metadata.image);
 
   const truncate = (value: string, length: number = 10) => {
@@ -331,16 +235,15 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     return value.length > length ? `${value.slice(0, 4)}...${value.slice(-4)}` : value;
   };
 
-  const getAttr = (type: string, shorten: boolean = false) => {
-    const value = metadata.attributes?.find((a) => a.trait_type === type)?.value || '~';
-    return shorten ? truncate(value.toString()) : value;
+  const getAttr = (type: string) => {
+    return metadata.attributes?.find((a) => a.trait_type === type)?.value || '';
   };
+
+  // Get brand from attributes
+  const brand = getAttr('Brand');
 
   return (
     <div className={styles.modalBackdrop} onClick={onClose}>
-      {/* Floating sparkles canvas */}
-      <canvas ref={canvasRef} className={styles.sparklesCanvas} />
-
       {/* Full Image Viewer */}
       {showFullImage && (
         <div
@@ -355,209 +258,143 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
         </div>
       )}
 
-      {/* 3D Holographic Card */}
-      <div
-        className={`${styles.flipCard} ${isFlipped ? styles.flipped : ''}`}
-        ref={cardRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsFlipped(!isFlipped);
-        }}
-      >
-        {/* Subtle accent border */}
-        <div className={styles.holoBorder}></div>
+      {/* Product Modal */}
+      <div className={styles.productModal} onClick={(e) => e.stopPropagation()}>
+        {/* Close Button */}
+        <button className={styles.closeButton} onClick={onClose}>
+          <FaTimes />
+        </button>
 
-        <div className={styles.flipCardInner}>
-          {/* FRONT SIDE */}
-          <div className={styles.flipCardFront}>
-            {/* Holographic shine overlay */}
-            <div className={styles.holoShine}></div>
+        <div className={styles.productLayout}>
+          {/* Image Section */}
+          <div className={styles.imageSection} onClick={() => setShowFullImage(true)}>
+            <img
+              src={resolvedImage || PLACEHOLDER_IMAGE}
+              alt={metadata.name}
+              className={styles.productImage}
+            />
+            <div className={styles.imageShine} />
 
-            {/* Authentication badge */}
-            <div className={styles.authBadge}>
-              <LuShield className={styles.authIcon} />
-              <span>VERIFIED</span>
-              <LuBadgeCheck className={styles.authCheck} />
+            {/* Status badge */}
+            <div className={styles.statusBadge}>
+              <LuBadgeCheck />
+              <span>
+                {status === 'listed'
+                  ? 'Listed'
+                  : status === 'escrow'
+                    ? 'In Escrow'
+                    : status === 'sold'
+                      ? 'Sold'
+                      : 'Verified'}
+              </span>
             </div>
 
-            {/* NFT Image with premium frame - clickable for full view */}
-            <div
-              className={styles.imageFrame}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowFullImage(true);
-              }}
-            >
-              <div className={styles.frameCorner} data-corner="tl"></div>
-              <div className={styles.frameCorner} data-corner="tr"></div>
-              <div className={styles.frameCorner} data-corner="bl"></div>
-              <div className={styles.frameCorner} data-corner="br"></div>
-              <div className={styles.imageContainer}>
-                <img src={resolvedImage} alt={metadata.name} className={styles.cardImage} />
-                <div className={styles.imageShine}></div>
-                <div className={styles.imageExpandHint}>
-                  <LuSparkles /> View Full
-                </div>
-              </div>
+            <div className={styles.imageExpandHint}>
+              <LuSparkles /> View Full
             </div>
+          </div>
 
-            {/* Title with luxury gold styling */}
-            <div className={styles.cardTitle}>
-              <h2>{metadata.name}</h2>
-              <div className={styles.titleUnderline}></div>
-            </div>
+          {/* Details Section */}
+          <div className={styles.detailsSection}>
+            {brand && <span className={styles.brandLabel}>{brand}</span>}
+            <h2 className={styles.productTitle}>{metadata.name}</h2>
 
-            {/* Quick info chips */}
-            <div className={styles.quickInfo}>
-              {metadata.mintAddress && (
-                <div className={styles.infoChip}>
-                  <span className={styles.chipLabel}>MINT</span>
-                  <span
-                    className={`${styles.chipValue} ${copiedField === 'mint' ? styles.copied : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopy('mint', metadata.mintAddress ?? '');
-                    }}
-                  >
-                    <FaCopy className={styles.copyIcon} />
-                    {truncate(metadata.mintAddress)}
-                  </span>
-                </div>
-              )}
+            {metadata.description && <p className={styles.description}>{metadata.description}</p>}
 
-              {metadata.owner && (
-                <div className={styles.infoChip}>
-                  <span className={styles.chipLabel}>OWNER</span>
-                  <span
-                    className={`${styles.chipValue} ${copiedField === 'owner' ? styles.copied : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCopy('owner', metadata.owner ?? '');
-                    }}
-                  >
-                    <FaCopy className={styles.copyIcon} />
-                    {truncate(metadata.owner)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Price display - prominent like a price tag */}
-            <div className={styles.priceSection}>
-              <div className={styles.priceTag}>
-                <LuSparkles className={styles.priceIcon} />
-                <span className={styles.priceValue}>{formatPrice(metadata.priceSol ?? 0)}</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleDisplay();
-                }}
-                className={styles.currencyToggle}
-              >
+            {/* Price */}
+            <div className={styles.priceRow}>
+              <span className={styles.priceValue}>
+                $
+                {metadata.priceSol && !displayInUSD
+                  ? formatPrice(metadata.priceSol)
+                  : formatPrice(metadata.priceSol ?? 0)}
+              </span>
+              <span className={styles.priceLabel}>USDC</span>
+              <button className={styles.currencyToggle} onClick={toggleDisplay}>
                 {displayInUSD ? 'SOL' : 'USD'}
               </button>
             </div>
 
-            {showContactButton && (
-              <button className={styles.contactBtn} onClick={(e) => e.stopPropagation()}>
-                <LuGem /> Contact Dealer
-              </button>
-            )}
-
-            {/* Edition badge like limited Pokemon cards */}
-            <div className={styles.editionBadge}>
-              <span className={styles.editionLabel}>LIMITED</span>
-              <span className={styles.editionNumber}>#001</span>
-            </div>
-          </div>
-
-          {/* BACK SIDE - Certificate of Authenticity */}
-          <div className={styles.flipCardBack}>
-            <div className={styles.holoShine}></div>
-
-            <div className={styles.backContent}>
-              {/* Certificate header */}
-              <div className={styles.certHeader}>
-                <LuShield className={styles.certShield} />
-                <h3>Certificate of Authenticity</h3>
-                <div className={styles.certLine}></div>
-              </div>
-
-              {metadata.marketStatus && (
-                <div className={styles.statusBadge}>
-                  <span>{metadata.marketStatus}</span>
-                </div>
-              )}
-
-              {/* Attributes as authentication specs */}
-              <div className={styles.attributesSection}>
-                <h4 className={styles.attributesTitle}>
-                  <LuGem /> Specifications
-                </h4>
-                <div className={styles.attributesGrid}>
-                  {[
-                    { label: 'Brand', key: 'Brand' },
-                    { label: 'Model', key: 'Model' },
-                    { label: 'Serial', key: 'Serial Number' },
-                    { label: 'Material', key: 'Material' },
-                    { label: 'Year', key: 'Production Year' },
-                    { label: 'Edition', key: 'Limited Edition' },
-                    { label: 'Certificate', key: 'Certificate' },
-                    { label: 'Warranty', key: 'Warranty Info' },
-                    { label: 'Movement', key: 'Movement' },
-                    { label: 'Case Size', key: 'Case Size' },
-                    { label: 'Water Resist', key: 'Water Resistance' },
-                    { label: 'Dial', key: 'Dial Color' },
-                    { label: 'Origin', key: 'Country' },
-                    { label: 'Released', key: 'Release Date' },
-                    { label: 'Box & Papers', key: 'Box & Papers' },
-                    { label: 'Condition', key: 'Condition' },
-                  ].map(({ label, key }) => (
-                    <div className={styles.attrCard} key={key}>
-                      <span className={styles.attrLabel}>{label}</span>
-                      <span className={styles.attrValue}>{getAttr(key)}</span>
+            {/* Attributes / Specifications */}
+            {displayAttributes.length > 0 && (
+              <div className={styles.specSection}>
+                <h4 className={styles.specTitle}>Details</h4>
+                <div className={styles.specGrid}>
+                  {displayAttributes.map((attr) => (
+                    <div className={styles.specCard} key={attr.trait_type}>
+                      <span className={styles.specLabel}>{attr.trait_type}</span>
+                      <span className={styles.specValue}>{attr.value}</span>
                     </div>
                   ))}
                 </div>
-
-                {/* Provenance - special styling */}
-                <div className={styles.provenanceCard} title={getAttr('Provenance')}>
-                  <span className={styles.provenanceLabel}>
-                    <LuBadgeCheck /> Provenance
-                  </span>
-                  <span className={styles.provenanceValue}>{getAttr('Provenance', true)}</span>
-                </div>
-
-                {/* Features */}
-                <div className={styles.featuresCard}>
-                  <span className={styles.featuresLabel}>Features</span>
-                  <span className={styles.featuresValue}>{getAttr('Features')}</span>
-                </div>
               </div>
+            )}
 
-              {/* Holographic authentication seal */}
-              <div className={styles.holoSeal}>
-                <div className={styles.sealInner}>
-                  <LuShield />
-                  <span>LUXHUB</span>
-                </div>
+            {/* Mint & Owner addresses */}
+            {(metadata.mintAddress || metadata.owner) && (
+              <div className={styles.addressRow}>
+                {metadata.mintAddress && (
+                  <div
+                    className={`${styles.addressChip} ${copiedField === 'mint' ? styles.copied : ''}`}
+                    onClick={() => handleCopy('mint', metadata.mintAddress ?? '')}
+                  >
+                    <div>
+                      <div className={styles.addressChipLabel}>Mint</div>
+                      <div className={styles.addressChipValue}>
+                        {truncate(metadata.mintAddress)}
+                      </div>
+                    </div>
+                    <FaCopy className={styles.copyIcon} />
+                  </div>
+                )}
+                {metadata.owner && (
+                  <div
+                    className={`${styles.addressChip} ${copiedField === 'owner' ? styles.copied : ''}`}
+                    onClick={() => handleCopy('owner', metadata.owner ?? '')}
+                  >
+                    <div>
+                      <div className={styles.addressChipLabel}>Owner</div>
+                      <div className={styles.addressChipValue}>{truncate(metadata.owner)}</div>
+                    </div>
+                    <FaCopy className={styles.copyIcon} />
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Role-Based Actions */}
+            <div className={styles.actionRow}>
+              {isConnected && !isOwner && isListed && (
+                <>
+                  {acceptingOffers && (
+                    <button className={`${styles.actionBtn} ${styles.offerBtn}`} onClick={onOffer}>
+                      Offer
+                    </button>
+                  )}
+                  <button className={`${styles.actionBtn} ${styles.buyBtn}`} onClick={onBuy}>
+                    Buy Now
+                  </button>
+                </>
+              )}
+
+              {isConnected && isOwner && (
+                <>
+                  <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={onEdit}>
+                    Edit
+                  </button>
+                  <button className={`${styles.actionBtn} ${styles.delistBtn}`} onClick={onDelist}>
+                    Delist
+                  </button>
+                </>
+              )}
+
+              {!isConnected && isListed && (
+                <div className={styles.connectPrompt}>Connect wallet to purchase</div>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Flip indicator */}
-        <div className={styles.flipHint}>
-          <LuRotate3D className={styles.rotateIcon} />
-          <span>Tap to {isFlipped ? 'view item' : 'authenticate'}</span>
-        </div>
       </div>
-
-      {/* Close Button */}
-      <button className={styles.closeButton} onClick={onClose}>
-        <FaTimes />
-      </button>
     </div>
   );
 };

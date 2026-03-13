@@ -3,8 +3,8 @@
 import React, { useState, memo, useMemo, useCallback } from 'react';
 import styles from '../../styles/UnifiedNFTCard.module.css';
 import { FaCheck, FaClock, FaLock, FaShoppingCart, FaFire, FaEye } from 'react-icons/fa';
-import { LuBadgeCheck, LuSparkles, LuArrowUpRight } from 'react-icons/lu';
-import { resolveImageUrl, resolveAssetImage, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
+import { LuBadgeCheck, LuSparkles } from 'react-icons/lu';
+import { resolveAssetImage, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 
 // Status types for NFT badges
 export type NFTStatus =
@@ -100,7 +100,7 @@ const UnifiedNFTCard = memo(
     arweaveTxId,
     imageIpfsUrls,
     price,
-    priceLabel = 'SOL',
+    priceLabel = 'USD',
     priceUSD,
     mintAddress,
     owner,
@@ -231,97 +231,56 @@ const UnifiedNFTCard = memo(
                     <span className={styles.overlayMintAddr}>{truncateAddress(mintAddress)}</span>
                   </div>
                 )}
-
-                {/* Action row */}
-                <div className={styles.overlayActions}>
-                  {onViewDetails && (
-                    <button
-                      className={styles.viewButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewDetails();
-                      }}
-                    >
-                      Explore <LuArrowUpRight />
-                    </button>
-                  )}
-                  {onQuickBuy && status === 'listed' && (
-                    <button
-                      className={styles.buyButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onQuickBuy();
-                      }}
-                    >
-                      Buy Now
-                    </button>
-                  )}
-                  {onOffer && acceptingOffers && (
-                    <button
-                      className={styles.offerButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOffer();
-                      }}
-                    >
-                      Offer
-                    </button>
-                  )}
-                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Card Footer - Always visible */}
+        {/* Card Footer */}
         <div className={styles.footer}>
-          <div className={styles.footerMain}>
-            <h4 className={styles.title}>{title}</h4>
-            {brand && <span className={styles.brand}>{brand}</span>}
-          </div>
+          {brand && <span className={styles.brand}>{brand}</span>}
+          <h4 className={styles.title}>{title}</h4>
 
-          <div className={styles.footerRight}>
-            {showPrice && price !== undefined && (
+          {showPrice && price !== undefined && (
+            <div className={styles.priceRow}>
               <div className={styles.priceTag}>
-                <div className={styles.priceSol}>
-                  <span className={styles.priceValue}>{price.toFixed(2)}</span>
-                  <span className={styles.priceLabel}>{priceLabel}</span>
-                </div>
-                {priceUSD !== undefined && (
-                  <span className={styles.priceUSD}>${priceUSD.toLocaleString()}</span>
-                )}
+                <span className={styles.priceValue}>{price.toFixed(2)}</span>
+                <span className={styles.priceLabel}>{priceLabel}</span>
               </div>
-            )}
-          </div>
-        </div>
+              {priceUSD !== undefined && (
+                <span className={styles.priceUSD}>${priceUSD.toLocaleString()}</span>
+              )}
+            </div>
+          )}
 
-        {/* Action Buttons - Integrated purchase bar */}
-        {showActionButtons && status === 'listed' && (onQuickBuy || onOffer) && (
-          <div className={styles.actionButtons}>
-            {onOffer && acceptingOffers && (
-              <button
-                className={styles.luxuryOfferBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOffer();
-                }}
-              >
-                Make Offer
-              </button>
-            )}
-            {onQuickBuy && (
-              <button
-                className={`${styles.luxuryBuyBtn} ${!acceptingOffers ? styles.actionBuyFull : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onQuickBuy();
-                }}
-              >
-                Buy Now
-              </button>
-            )}
-          </div>
-        )}
+          {/* Action Buttons */}
+          {showActionButtons && status === 'listed' && (onQuickBuy || onOffer) && (
+            <div className={styles.actionButtons}>
+              {onOffer && acceptingOffers && (
+                <button
+                  className={styles.luxuryOfferBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOffer();
+                  }}
+                >
+                  Offer
+                </button>
+              )}
+              {onQuickBuy && (
+                <button
+                  className={`${styles.luxuryBuyBtn} ${!acceptingOffers ? styles.actionBuyFull : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuickBuy();
+                  }}
+                >
+                  Buy Now
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -340,7 +299,7 @@ export const NFTGridCard = memo(
     arweaveTxId,
     imageIpfsUrls,
     price,
-    priceLabel = 'SOL',
+    priceLabel = 'USD',
     priceUSD,
     brand,
     subtitle,

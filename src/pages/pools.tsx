@@ -2,12 +2,14 @@
 // Investment Pools – Clean Minimalist Design
 // LuxHub × Bags — Fractional Luxury Asset Ownership
 import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
+import { createPortal } from 'react-dom';
 import Head from 'next/head';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, VersionedTransaction } from '@solana/web3.js';
 import {
   FiTrendingUp,
+  FiTrendingDown,
   FiRefreshCw,
   FiLock,
   FiBarChart2,
@@ -15,6 +17,7 @@ import {
   FiImage,
 } from 'react-icons/fi';
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
+import PoolDetail from '../components/marketplace/PoolDetail';
 import styles from '../styles/PoolsNew.module.css';
 
 // ─── Status Config ──────────────────────────────────────────────
@@ -56,15 +59,193 @@ const FILTERS = [
 type FilterKey = (typeof FILTERS)[number]['key'];
 
 // ─── Steps ──────────────────────────────────────────────────────
-const LIFECYCLE = [
-  { num: '1', title: 'Browse & Invest', desc: 'Choose a pool and take a position' },
-  { num: '2', title: 'Pool Fills', desc: 'Asset funded by investors' },
-  { num: '3', title: 'Custody Verified', desc: 'Asset shipped & secured' },
-  { num: '4', title: 'Trade or Earn', desc: 'Trade positions, earn on resale' },
+// ─── Onboarding Tour ─────────────────────────────────────────────
+interface TourStep {
+  target: string; // data-tour attribute value
+  title: string;
+  description: string;
+  position: 'top' | 'bottom' | 'left' | 'right';
+}
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    target: 'hero',
+    title: 'Welcome to Pools',
+    description:
+      'Invest in fractional ownership of luxury watches. Each pool represents a real watch — buy tokens to own a piece.',
+    position: 'bottom',
+  },
+  {
+    target: 'filters',
+    title: 'Filter & Sort',
+    description:
+      'Find pools by status. "Tradeable" shows pools with active Bags tokens you can buy and sell right now.',
+    position: 'bottom',
+  },
+  {
+    target: 'pool-grid',
+    title: 'Pool Cards',
+    description:
+      'Each card shows live price action, funding progress, and active trades. Click any card to open a detailed trading view.',
+    position: 'top',
+  },
+  {
+    target: 'card-trade',
+    title: 'Quick Trade',
+    description:
+      'Pick a preset amount or type your own, then hit Buy or Sell. Your tokens represent fractional ownership of the watch.',
+    position: 'top',
+  },
 ];
 
+const PoolsTour: React.FC<{ onClose: () => void }> = memo(({ onClose }) => {
+  const [step, setStep] = useState(0);
+  const [rect, setRect] = useState<globalThis.DOMRect | null>(null);
+
+  // Find and scroll to the target element
+  useEffect(() => {
+    const target = document.querySelector(`[data-tour="${TOUR_STEPS[step].target}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Small delay to let scroll settle
+      const timer = setTimeout(() => {
+        setRect(target.getBoundingClientRect());
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      setRect(null);
+    }
+  }, [step]);
+
+  // Recalc on scroll/resize
+  useEffect(() => {
+    const update = () => {
+      const target = document.querySelector(`[data-tour="${TOUR_STEPS[step].target}"]`);
+      if (target) setRect(target.getBoundingClientRect());
+    };
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [step]);
+
+  const handleNext = () => {
+    if (step < TOUR_STEPS.length - 1) setStep(step + 1);
+    else handleDone();
+  };
+
+  const handleDone = () => {
+    localStorage.setItem('luxhub_pools_tour_seen', '1');
+    onClose();
+  };
+
+  const current = TOUR_STEPS[step];
+  const pad = 8; // spotlight padding around element
+
+  // Tooltip positioning
+  const tooltipStyle: React.CSSProperties = {};
+  if (rect) {
+    const pos = current.position;
+    if (pos === 'bottom') {
+      tooltipStyle.top = rect.bottom + pad + 12;
+      tooltipStyle.left = rect.left + rect.width / 2;
+      tooltipStyle.transform = 'translateX(-50%)';
+    } else if (pos === 'top') {
+      tooltipStyle.bottom = window.innerHeight - rect.top + pad + 12;
+      tooltipStyle.left = rect.left + rect.width / 2;
+      tooltipStyle.transform = 'translateX(-50%)';
+    } else if (pos === 'right') {
+      tooltipStyle.top = rect.top + rect.height / 2;
+      tooltipStyle.left = rect.right + pad + 12;
+      tooltipStyle.transform = 'translateY(-50%)';
+    } else {
+      tooltipStyle.top = rect.top + rect.height / 2;
+      tooltipStyle.right = window.innerWidth - rect.left + pad + 12;
+      tooltipStyle.transform = 'translateY(-50%)';
+    }
+  }
+
+  return createPortal(
+    <div className={styles.tourOverlay}>
+      {/* Dark backdrop with spotlight cutout via clip-path */}
+      <div
+        className={styles.tourBackdrop}
+        onClick={handleDone}
+        style={
+          rect
+            ? {
+                clipPath: `polygon(
+            0% 0%, 0% 100%, ${rect.left - pad}px 100%,
+            ${rect.left - pad}px ${rect.top - pad}px,
+            ${rect.right + pad}px ${rect.top - pad}px,
+            ${rect.right + pad}px ${rect.bottom + pad}px,
+            ${rect.left - pad}px ${rect.bottom + pad}px,
+            ${rect.left - pad}px 100%, 100% 100%, 100% 0%
+          )`,
+              }
+            : {}
+        }
+      />
+
+      {/* Spotlight border ring */}
+      {rect && (
+        <div
+          className={styles.tourSpotlight}
+          style={{
+            top: rect.top - pad,
+            left: rect.left - pad,
+            width: rect.width + pad * 2,
+            height: rect.height + pad * 2,
+          }}
+        />
+      )}
+
+      {/* Tooltip */}
+      {rect && (
+        <div className={styles.tourTooltip} style={tooltipStyle}>
+          <div className={styles.tourTooltipHeader}>
+            <span className={styles.tourTooltipStep}>
+              {step + 1} of {TOUR_STEPS.length}
+            </span>
+            <button className={styles.tourTooltipSkip} onClick={handleDone}>
+              Skip tour
+            </button>
+          </div>
+          <h3 className={styles.tourTooltipTitle}>{current.title}</h3>
+          <p className={styles.tourTooltipDesc}>{current.description}</p>
+          <div className={styles.tourTooltipActions}>
+            {step > 0 && (
+              <button className={styles.tourBtnBack} onClick={() => setStep(step - 1)}>
+                Back
+              </button>
+            )}
+            <button className={styles.tourBtnNext} onClick={handleNext}>
+              {step === TOUR_STEPS.length - 1 ? 'Get Started' : 'Next'}
+            </button>
+          </div>
+          {/* Progress dots */}
+          <div className={styles.tourDots}>
+            {TOUR_STEPS.map((_, i) => (
+              <span
+                key={i}
+                className={`${styles.tourDot} ${i === step ? styles.tourDotActive : ''} ${i < step ? styles.tourDotDone : ''}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+});
+PoolsTour.displayName = 'PoolsTour';
+
 // ─── TradingView Mini Chart ──────────────────────────────────────
-const TvChart = memo(({ data }: { data: number[] }) => {
+type ChartType = 'area' | 'candlestick' | 'line';
+
+const TvChart = memo(({ data, chartType = 'area' }: { data: number[]; chartType?: ChartType }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const seriesRef = useRef<any>(null);
@@ -116,29 +297,71 @@ const TvChart = memo(({ data }: { data: number[] }) => {
         handleScroll: false,
       });
 
-      const series = chart.addSeries(lc.AreaSeries, {
-        lineColor,
-        topColor,
-        bottomColor,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: true,
-        crosshairMarkerRadius: 4,
-        crosshairMarkerBorderColor: lineColor,
-        crosshairMarkerBackgroundColor: '#0a0a0f',
-      });
-
-      // Map data to time series — use synthetic timestamps
       const now = Math.floor(Date.now() / 1000);
-      const chartData = data.map((value, i) => ({
-        time: (now - (data.length - 1 - i) * 60) as any,
-        value,
-      }));
-      series.setData(chartData);
-      chart.timeScale().fitContent();
 
+      if (chartType === 'candlestick') {
+        const series = chart.addSeries(lc.CandlestickSeries, {
+          upColor: '#4ade80',
+          downColor: '#f87171',
+          borderUpColor: '#4ade80',
+          borderDownColor: '#f87171',
+          wickUpColor: 'rgba(74, 222, 128, 0.5)',
+          wickDownColor: 'rgba(248, 113, 113, 0.5)',
+          priceLineVisible: false,
+          lastValueVisible: true,
+        });
+        const chartData = data.map((value, i) => {
+          const open = i > 0 ? data[i - 1] : value;
+          const high = Math.max(open, value) * (1 + Math.random() * 0.005);
+          const low = Math.min(open, value) * (1 - Math.random() * 0.005);
+          return {
+            time: (now - (data.length - 1 - i) * 60) as any,
+            open,
+            high,
+            low,
+            close: value,
+          };
+        });
+        series.setData(chartData);
+        seriesRef.current = series;
+      } else if (chartType === 'line') {
+        const series = chart.addSeries(lc.LineSeries, {
+          color: lineColor,
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: true,
+          crosshairMarkerRadius: 4,
+          crosshairMarkerBorderColor: lineColor,
+          crosshairMarkerBackgroundColor: '#0a0a0f',
+        });
+        const chartData = data.map((value, i) => ({
+          time: (now - (data.length - 1 - i) * 60) as any,
+          value,
+        }));
+        series.setData(chartData);
+        seriesRef.current = series;
+      } else {
+        const series = chart.addSeries(lc.AreaSeries, {
+          lineColor,
+          topColor,
+          bottomColor,
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: true,
+          crosshairMarkerRadius: 4,
+          crosshairMarkerBorderColor: lineColor,
+          crosshairMarkerBackgroundColor: '#0a0a0f',
+        });
+        const chartData = data.map((value, i) => ({
+          time: (now - (data.length - 1 - i) * 60) as any,
+          value,
+        }));
+        series.setData(chartData);
+        seriesRef.current = series;
+      }
+
+      chart.timeScale().fitContent();
       chartRef.current = chart;
-      seriesRef.current = series;
 
       // Resize observer
       const ro = new ResizeObserver((entries) => {
@@ -158,18 +381,7 @@ const TvChart = memo(({ data }: { data: number[] }) => {
         seriesRef.current = null;
       }
     };
-  }, [data]);
-
-  // Update data without recreating the chart
-  useEffect(() => {
-    if (!seriesRef.current || data.length < 2) return;
-    const now = Math.floor(Date.now() / 1000);
-    const chartData = data.map((value, i) => ({
-      time: (now - (data.length - 1 - i) * 60) as any,
-      value,
-    }));
-    seriesRef.current.setData(chartData);
-  }, [data]);
+  }, [data, chartType]);
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
 });
@@ -246,6 +458,7 @@ const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) =
             {STATUS_LABEL[pool.status] || pool.status}
           </span>
           {isTradeable && <span className={styles.tradeablePill}>Tradeable</span>}
+          {pool.status === 'graduated' && <span className={styles.daoBadge}>DAO Coming Soon</span>}
         </div>
       </div>
 
@@ -406,6 +619,9 @@ const DemoPoolCard = memo(({ pool: demoPool }: { pool: DemoPoolData }) => {
   const [priceHistory, setPriceHistory] = useState<number[]>(() =>
     generatePriceHistory(demoPool.tokenPriceUSD, 20)
   );
+  const [showModal, setShowModal] = useState(false);
+  const [modalChartType, setModalChartType] = useState<ChartType>('area');
+  const [modalTradeAmount, setModalTradeAmount] = useState('');
   const nextId = useRef(0);
   const percentFilled = (tokensSold / demoPool.totalTokens) * 100;
   const targetUSD = demoPool.totalTokens * demoPool.tokenPriceUSD;
@@ -458,7 +674,11 @@ const DemoPoolCard = memo(({ pool: demoPool }: { pool: DemoPoolData }) => {
   };
 
   return (
-    <div className={`${styles.card} ${isHot ? styles.cardHot : ''}`}>
+    <div
+      className={`${styles.card} ${isHot ? styles.cardHot : ''}`}
+      onClick={() => setShowModal(true)}
+      style={{ cursor: 'pointer' }}
+    >
       <div className={styles.cardImage}>
         <img src={demoPool.image} alt={demoPool.model} loading="lazy" />
         {showChart && (
@@ -491,7 +711,11 @@ const DemoPoolCard = memo(({ pool: demoPool }: { pool: DemoPoolData }) => {
           </span>
         </div>
 
-        <div className={styles.cardTrade}>
+        <div
+          className={styles.cardTrade}
+          onClick={(e) => e.stopPropagation()}
+          data-tour="card-trade"
+        >
           <div className={styles.cardTradeAmounts}>
             {['0.1', '0.5', '1', '5'].map((sol) => (
               <button key={sol} className={styles.cardTradeChip}>
@@ -554,6 +778,193 @@ const DemoPoolCard = memo(({ pool: demoPool }: { pool: DemoPoolData }) => {
             <span className={styles.cardStatValue}>${demoPool.minBuyInUSD.toLocaleString()}</span>
           </div>
         </div>
+
+        {/* Pool Detail Modal — portaled to document.body */}
+        {showModal &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <div className={styles.poolModalOverlay} onClick={() => setShowModal(false)}>
+              <div className={styles.poolModalContent} onClick={(e) => e.stopPropagation()}>
+                <button className={styles.poolModalClose} onClick={() => setShowModal(false)}>
+                  ×
+                </button>
+
+                {/* Header: Watch icon + name + ROI */}
+                <div className={styles.poolModalHeader}>
+                  <div className={styles.poolModalThumb}>
+                    <img src={demoPool.image} alt={demoPool.model} />
+                  </div>
+                  <div className={styles.poolModalHeaderText}>
+                    <span className={styles.poolModalBrand}>{demoPool.brand}</span>
+                    <h2 className={styles.poolModalTitle}>{demoPool.model}</h2>
+                  </div>
+                  <span
+                    className={`${styles.poolModalRoi} ${
+                      priceHistory.length > 1 &&
+                      priceHistory[priceHistory.length - 1] < priceHistory[0]
+                        ? styles.poolModalRoiNegative
+                        : ''
+                    }`}
+                  >
+                    {priceHistory.length > 1 ? (
+                      <>
+                        {priceHistory[priceHistory.length - 1] >= priceHistory[0] ? (
+                          <FiTrendingUp size={13} />
+                        ) : (
+                          <FiTrendingDown size={13} />
+                        )}{' '}
+                        {(
+                          (priceHistory[priceHistory.length - 1] / priceHistory[0] - 1) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </>
+                    ) : (
+                      <>
+                        <FiTrendingUp size={13} /> +{demoPool.projectedROI}%
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                {/* Chart with type selector */}
+                <div className={styles.poolModalChartSection}>
+                  <div className={styles.poolModalChartTypes}>
+                    {(['area', 'candlestick', 'line'] as ChartType[]).map((ct) => (
+                      <button
+                        key={ct}
+                        className={`${styles.poolModalChartTypeBtn} ${modalChartType === ct ? styles.poolModalChartTypeBtnActive : ''}`}
+                        onClick={() => setModalChartType(ct)}
+                      >
+                        {ct === 'area' ? 'Area' : ct === 'candlestick' ? 'Candles' : 'Line'}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.poolModalChart}>
+                    <TvChart data={priceHistory} chartType={modalChartType} />
+                  </div>
+                </div>
+
+                {/* Bottom: Details + Feed + Actions in two columns */}
+                <div className={styles.poolModalBottom}>
+                  <div className={styles.poolModalDetailsCol}>
+                    <div className={styles.poolModalGrid}>
+                      <div className={styles.poolModalDetail}>
+                        <span className={styles.poolModalDetailLabel}>Token Price</span>
+                        <span className={styles.poolModalDetailValue}>
+                          $
+                          {priceHistory.length > 0
+                            ? priceHistory[priceHistory.length - 1].toFixed(2)
+                            : demoPool.tokenPriceUSD}
+                        </span>
+                      </div>
+                      <div className={styles.poolModalDetail}>
+                        <span className={styles.poolModalDetailLabel}>Supply</span>
+                        <span className={styles.poolModalDetailValue}>
+                          {demoPool.totalTokens.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className={styles.poolModalDetail}>
+                        <span className={styles.poolModalDetailLabel}>Market Cap</span>
+                        <span className={styles.poolModalDetailValue}>
+                          {formatTarget(targetUSD)}
+                        </span>
+                      </div>
+                      <div className={styles.poolModalDetail}>
+                        <span className={styles.poolModalDetailLabel}>Min Buy-in</span>
+                        <span className={styles.poolModalDetailValue}>
+                          ${demoPool.minBuyInUSD.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className={styles.poolModalDetail}>
+                        <span className={styles.poolModalDetailLabel}>Sold</span>
+                        <span className={styles.poolModalDetailValue}>
+                          {Math.round(tokensSold)}/{demoPool.totalTokens}
+                        </span>
+                      </div>
+                      <div className={styles.poolModalDetail}>
+                        <span className={styles.poolModalDetailLabel}>Holders</span>
+                        <span className={styles.poolModalDetailValue}>{holders}</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.poolModalMint}>
+                      <span className={styles.poolModalDetailLabel}>Mint</span>
+                      <span className={styles.poolModalMintAddr}>demo...simulated</span>
+                    </div>
+
+                    <div
+                      className={styles.poolModalTradeSection}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className={styles.poolModalAmountChips}>
+                        {['0.1', '0.5', '1', '5'].map((sol) => (
+                          <button
+                            key={sol}
+                            className={`${styles.poolModalAmountChip} ${modalTradeAmount === sol ? styles.poolModalAmountChipActive : ''}`}
+                            onClick={() => setModalTradeAmount(sol)}
+                          >
+                            {sol} SOL
+                          </button>
+                        ))}
+                      </div>
+                      <div className={styles.poolModalCustomInput}>
+                        <input
+                          type="number"
+                          value={modalTradeAmount}
+                          onChange={(e) => setModalTradeAmount(e.target.value)}
+                          placeholder="Custom amount"
+                          min="0"
+                          step="0.01"
+                          className={styles.poolModalInput}
+                        />
+                        <span className={styles.poolModalInputLabel}>SOL</span>
+                      </div>
+                      <div className={styles.poolModalActions}>
+                        <button className={styles.poolModalBuyBtn}>Buy</button>
+                        <button className={styles.poolModalSellBtn}>Sell</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Trade Feed */}
+                  <div className={styles.poolModalFeedCol}>
+                    <span className={styles.poolModalFeedTitle}>Live Trades</span>
+                    <div className={styles.poolModalFeed}>
+                      {feed.length > 0 ? (
+                        feed.map((item) => (
+                          <div
+                            key={item.id}
+                            className={
+                              item.type === 'sell' ? styles.demoSellRow : styles.demoBuyRow
+                            }
+                          >
+                            <span
+                              className={
+                                item.type === 'sell' ? styles.demoSellDot : styles.demoBuyDot
+                              }
+                            />
+                            <span className={styles.demoBuyWallet}>{item.wallet}</span>
+                            <span
+                              className={
+                                item.type === 'sell' ? styles.demoSellShares : styles.demoBuyShares
+                              }
+                            >
+                              {item.type === 'sell' ? '-' : '+'}
+                              {item.amount} tokens
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className={styles.poolModalFeedEmpty}>Waiting for trades...</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
       </div>
     </div>
   );
@@ -967,6 +1378,13 @@ const PoolsPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'newest' | 'progress' | 'roi' | 'volume'>('newest');
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+
+  // First-time user tour detection
+  useEffect(() => {
+    const seen = localStorage.getItem('luxhub_pools_tour_seen');
+    if (!seen) setShowTour(true);
+  }, []);
 
   const { mutate: refreshStats } = usePlatformStats();
   const { pools, isLoading: poolsLoading, isError, error, mutate: refreshPools } = usePools();
@@ -1036,11 +1454,13 @@ const PoolsPage: React.FC = () => {
         <section className={styles.hero}>
           <div className={styles.heroInner}>
             <div className={styles.heroLeft}>
-              <div className={styles.heroBadge}>
-                <span className={styles.heroBadgeDot} />
-                Powered by Solana
-              </div>
-              <h1 className={styles.heroTitle}>Fractional Luxury Ownership</h1>
+              {/* <div className={styles.heroBadge}>
+                <img src="/images/bags-icon.png" alt="Bags" className={styles.heroBadgeIcon} />
+                <span>Powered by Bags</span>
+              </div> */}
+              <h1 className={styles.heroTitle} data-tour="hero">
+                Fractional Luxury Ownership
+              </h1>
               <p className={styles.heroSub}>
                 Each pool tokenizes a verified luxury watch into tradeable tokens via Bags. Buy
                 tokens to own a fraction, trade anytime on secondary markets, and when the watch
@@ -1048,22 +1468,53 @@ const PoolsPage: React.FC = () => {
                 and multisig custody.
               </p>
             </div>
-          </div>
-        </section>
 
-        {/* ─── Lifecycle Steps ─── */}
-        <section className={styles.lifecycle}>
-          <div className={styles.lifecycleTrack}>
-            {LIFECYCLE.map((step, i) => (
-              <div key={i} className={styles.lifecycleStep}>
-                <span className={styles.stepNum}>{step.num}</span>
-                <div className={styles.stepContent}>
-                  <span className={styles.stepTitle}>{step.title}</span>
-                  <span className={styles.stepDesc}>{step.desc}</span>
+            {/* Portfolio + Trade Panel (right side of hero) */}
+            <div className={styles.heroRight}>
+              {/* Portfolio */}
+              <div className={styles.portfolioCard}>
+                <div className={styles.portfolioHeader}>
+                  <h3 className={styles.portfolioTitle}>Your Portfolio</h3>
                 </div>
-                {i < LIFECYCLE.length - 1 && <div className={styles.stepArrow} />}
+                {!wallet.connected || !positions || positions.length === 0 ? (
+                  <div className={styles.portfolioEmpty}>
+                    <div className={styles.portfolioEmptyIcon}>
+                      <FiPieChart size={22} />
+                    </div>
+                    <p className={styles.portfolioEmptyText}>
+                      {wallet.connected ? 'No investments yet' : 'Connect wallet to see portfolio'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className={styles.portfolioList}>
+                    {positions.map((pos) => (
+                      <div key={pos.poolId} className={styles.positionRow}>
+                        <div className={styles.positionInfo}>
+                          <span className={styles.positionName}>{pos.assetModel}</span>
+                          <span className={styles.positionShares}>
+                            {pos.shares} tokens · {pos.ownershipPercent.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className={styles.positionValue}>
+                          <span className={styles.positionAmount}>
+                            ${pos.currentValueUSD.toLocaleString()}
+                          </span>
+                          <span
+                            className={`${styles.positionPnl} ${pos.pnl >= 0 ? styles.pnlPositive : styles.pnlNegative}`}
+                          >
+                            {pos.pnl >= 0 ? '+' : ''}
+                            {pos.pnlPercent.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+
+              {/* Trade Panel */}
+              <BagsTradePanel pool={selectedPool} onTradeComplete={handleTradeComplete} />
+            </div>
           </div>
         </section>
 
@@ -1073,7 +1524,7 @@ const PoolsPage: React.FC = () => {
             {/* Pool Grid */}
             <div>
               {/* Toolbar */}
-              <div className={styles.toolbar}>
+              <div className={styles.toolbar} data-tour="filters">
                 <div className={styles.toolbarLeft}>
                   {FILTERS.map((f) => (
                     <button
@@ -1092,16 +1543,18 @@ const PoolsPage: React.FC = () => {
                   ))}
                 </div>
                 <div className={styles.toolbarRight}>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                    className={styles.sortSelect}
-                  >
-                    <option value="newest">Newest</option>
-                    <option value="progress">Progress</option>
-                    <option value="roi">ROI</option>
-                    <option value="volume">Volume</option>
-                  </select>
+                  <div className={styles.sortWrapper}>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                      className={styles.sortSelect}
+                    >
+                      <option value="newest">Newest</option>
+                      <option value="progress">Progress</option>
+                      <option value="roi">ROI</option>
+                      <option value="volume">Volume</option>
+                    </select>
+                  </div>
                   <button
                     className={`${styles.refreshBtn} ${isRefreshing ? styles.refreshSpin : ''}`}
                     onClick={handleRefresh}
@@ -1151,7 +1604,7 @@ const PoolsPage: React.FC = () => {
                   </div>
                 </>
               ) : (
-                <div className={styles.poolGrid}>
+                <div className={styles.poolGrid} data-tour="pool-grid">
                   {DEMO_POOLS.map((dp, i) => (
                     <div
                       key={`demo-${i}`}
@@ -1173,56 +1626,36 @@ const PoolsPage: React.FC = () => {
                 </div>
               )}
             </div>
-
-            {/* ─── Sidebar ─── */}
-            <div className={styles.sidebar}>
-              {/* Portfolio */}
-              <div className={styles.portfolioCard}>
-                <div className={styles.portfolioHeader}>
-                  <h3 className={styles.portfolioTitle}>Your Portfolio</h3>
-                </div>
-                {!wallet.connected || !positions || positions.length === 0 ? (
-                  <div className={styles.portfolioEmpty}>
-                    <div className={styles.portfolioEmptyIcon}>
-                      <FiPieChart size={22} />
-                    </div>
-                    <p className={styles.portfolioEmptyText}>
-                      {wallet.connected ? 'No investments yet' : 'Connect wallet to see portfolio'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className={styles.portfolioList}>
-                    {positions.map((pos) => (
-                      <div key={pos.poolId} className={styles.positionRow}>
-                        <div className={styles.positionInfo}>
-                          <span className={styles.positionName}>{pos.assetModel}</span>
-                          <span className={styles.positionShares}>
-                            {pos.shares} tokens · {pos.ownershipPercent.toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className={styles.positionValue}>
-                          <span className={styles.positionAmount}>
-                            ${pos.currentValueUSD.toLocaleString()}
-                          </span>
-                          <span
-                            className={`${styles.positionPnl} ${pos.pnl >= 0 ? styles.pnlPositive : styles.pnlNegative}`}
-                          >
-                            {pos.pnl >= 0 ? '+' : ''}
-                            {pos.pnlPercent.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Trade Panel */}
-              <BagsTradePanel pool={selectedPool} onTradeComplete={handleTradeComplete} />
-            </div>
           </div>
         </main>
       </div>
+
+      {selectedPool && (
+        <PoolDetail
+          pool={selectedPool}
+          onClose={() => setSelectedPool(null)}
+          onInvestmentComplete={handleTradeComplete}
+        />
+      )}
+
+      {/* Onboarding Tour */}
+      {showTour && typeof document !== 'undefined' && (
+        <PoolsTour onClose={() => setShowTour(false)} />
+      )}
+
+      {/* Retake tour button */}
+      {!showTour && (
+        <button
+          className={styles.retakeTourBtn}
+          onClick={() => {
+            localStorage.removeItem('luxhub_pools_tour_seen');
+            setShowTour(true);
+          }}
+          title="Take the guided tour"
+        >
+          ?
+        </button>
+      )}
     </>
   );
 };

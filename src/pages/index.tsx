@@ -1,25 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useWallet } from '@solana/wallet-adapter-react';
-import {
-  FaShieldAlt,
-  FaLock,
-  FaArrowRight,
-  FaChartLine,
-  FaCheckCircle,
-  FaClock,
-} from 'react-icons/fa';
+import { FaLock, FaArrowRight, FaChartLine } from 'react-icons/fa';
 import { HiCube } from 'react-icons/hi2';
 import { MdVerified } from 'react-icons/md';
 import { SiSolana } from 'react-icons/si';
-import { BiTargetLock } from 'react-icons/bi';
 import Footer from '../components/common/Footer';
 import NFTCard from '../components/marketplace/NFTCard';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import { useSolPrice } from '../hooks/useSWR';
-import { resolvePoolImage, handleImageError } from '../utils/imageUtils';
 import styles from '../styles/IndexTest.module.css';
 
 // Dynamic imports for modals (bundle optimization)
@@ -27,9 +18,6 @@ const BuyModal = dynamic(() => import('../components/marketplace/BuyModal'), { s
 const MakeOfferModal = dynamic(() => import('../components/marketplace/MakeOfferModal'), {
   ssr: false,
 });
-
-// Dynamic imports for 3D/heavy components
-const HeroScene = dynamic(() => import('../components/marketplace/HeroScene'), { ssr: false });
 
 // Interfaces
 interface NFT {
@@ -60,29 +48,6 @@ interface NFT {
   attributes?: { trait_type: string; value: string }[];
 }
 
-interface Pool {
-  _id: string;
-  poolNumber?: string;
-  title?: string;
-  asset?: {
-    model?: string;
-    brand?: string;
-    priceUSD?: number;
-    imageIpfsUrls?: string[];
-    images?: string[];
-  };
-  vendor?: { businessName?: string };
-  status: string;
-  totalShares: number;
-  sharesSold: number;
-  sharePriceUSD: number;
-  targetAmountUSD: number;
-  minBuyInUSD: number;
-  projectedROI: number;
-  maxInvestors: number;
-  participants?: Array<{ wallet: string; shares: number }>;
-}
-
 // Features data
 const features = [
   {
@@ -107,80 +72,87 @@ const features = [
   },
 ];
 
-// Mock pools for demo
-const MOCK_POOLS: Pool[] = [
-  {
-    _id: 'pool_001',
-    title: 'Rolex Daytona Rainbow',
-    asset: {
-      model: 'Daytona Rainbow',
-      brand: 'Rolex',
-      priceUSD: 250000,
-      images: ['/images/rolex-daytona-rainbow.jpg'],
-    },
-    status: 'open',
-    totalShares: 100,
-    sharesSold: 75,
-    sharePriceUSD: 2500,
-    targetAmountUSD: 250000,
-    minBuyInUSD: 2500,
-    projectedROI: 1.25,
-    maxInvestors: 50,
-    participants: [],
-  },
-  {
-    _id: 'pool_002',
-    title: 'AP Royal Oak Offshore',
-    asset: {
-      model: 'Royal Oak Offshore',
-      brand: 'Audemars Piguet',
-      priceUSD: 85000,
-      images: ['/images/ap-offshore.jpg'],
-    },
-    status: 'open',
-    totalShares: 100,
-    sharesSold: 80,
-    sharePriceUSD: 850,
-    targetAmountUSD: 85000,
-    minBuyInUSD: 850,
-    projectedROI: 1.18,
-    maxInvestors: 30,
-    participants: [],
-  },
-  {
-    _id: 'pool_003',
-    title: 'Richard Mille RM 027',
-    asset: {
-      model: 'RM 027',
-      brand: 'Richard Mille',
-      priceUSD: 800000,
-      images: ['/images/rm-027.jpg'],
-    },
-    status: 'open',
-    totalShares: 100,
-    sharesSold: 30,
-    sharePriceUSD: 8000,
-    targetAmountUSD: 800000,
-    minBuyInUSD: 8000,
-    projectedROI: 1.35,
-    maxInvestors: 80,
-    participants: [],
-  },
-];
-
 export default function IndexTest() {
   const { connected } = useWallet();
   const { price: solPrice } = useSolPrice();
   const [featuredNFTs, setFeaturedNFTs] = useState<NFT[]>([]);
-  const [pools, setPools] = useState<Pool[]>([]);
-  const [show3DScene, setShow3DScene] = useState(false);
-  const [activeTab, setActiveTab] = useState<'watches' | 'pools'>('watches');
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
-  const [isLoadingPools, setIsLoadingPools] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [selectedBuyNFT, setSelectedBuyNFT] = useState<NFT | null>(null);
   const [selectedOfferNFT, setSelectedOfferNFT] = useState<NFT | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const scrollStartRef = useRef(0);
+  const autoScrollSpeed = 0.8; // px per frame
+
+  // Infinite auto-scroll + drag-to-scroll for hero slider
+  const resetScrollLoop = useCallback(() => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const half = el.scrollWidth / 2;
+    if (el.scrollLeft >= half) {
+      el.scrollLeft -= half;
+    } else if (el.scrollLeft <= 0) {
+      el.scrollLeft += half;
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = sliderRef.current;
+    if (!el || featuredNFTs.length === 0) return;
+
+    // Start scrolled to the beginning of the second copy for seamless backward drag
+    const half = el.scrollWidth / 2;
+    if (half > 0 && el.scrollLeft === 0) {
+      el.scrollLeft = 1; // just past 0 so reset logic works
+    }
+
+    let rafId: number;
+    const tick = () => {
+      if (!isDraggingRef.current && el) {
+        el.scrollLeft += autoScrollSpeed;
+        resetScrollLoop();
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
+    // Pointer drag handlers
+    const onPointerDown = (e: globalThis.PointerEvent) => {
+      isDraggingRef.current = true;
+      dragStartXRef.current = e.clientX;
+      scrollStartRef.current = el.scrollLeft;
+      el.setPointerCapture(e.pointerId);
+      el.style.cursor = 'grabbing';
+    };
+    const onPointerMove = (e: globalThis.PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      const dx = e.clientX - dragStartXRef.current;
+      el.scrollLeft = scrollStartRef.current - dx;
+      resetScrollLoop();
+    };
+    const onPointerUp = (e: globalThis.PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      el.releasePointerCapture(e.pointerId);
+      el.style.cursor = 'grab';
+    };
+
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('pointermove', onPointerMove);
+    el.addEventListener('pointerup', onPointerUp);
+    el.addEventListener('pointercancel', onPointerUp);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('pointermove', onPointerMove);
+      el.removeEventListener('pointerup', onPointerUp);
+      el.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [featuredNFTs.length, resetScrollLoop]);
 
   // Floating particles animation
   useEffect(() => {
@@ -249,12 +221,6 @@ export default function IndexTest() {
     };
   }, []);
 
-  // Delayed 3D scene load for performance
-  useEffect(() => {
-    const sceneTimeout = setTimeout(() => setShow3DScene(true), 500);
-    return () => clearTimeout(sceneTimeout);
-  }, []);
-
   // Fetch featured vendor listings (daily-randomized for fair display)
   useEffect(() => {
     const fetchNFTs = async () => {
@@ -271,33 +237,6 @@ export default function IndexTest() {
     };
     fetchNFTs();
   }, []);
-
-  // Lazy-fetch Pools when tab switches
-  useEffect(() => {
-    if (activeTab === 'pools' && pools.length === 0) {
-      const fetchPools = async () => {
-        setIsLoadingPools(true);
-        try {
-          const res = await fetch('/api/pool/list?status=open&limit=6');
-          if (res.ok) {
-            const data = await res.json();
-            if (data.pools && data.pools.length > 0) {
-              setPools(data.pools);
-            } else {
-              setPools(MOCK_POOLS);
-            }
-          } else {
-            setPools(MOCK_POOLS);
-          }
-        } catch {
-          setPools(MOCK_POOLS);
-        } finally {
-          setIsLoadingPools(false);
-        }
-      };
-      fetchPools();
-    }
-  }, [activeTab, pools.length]);
 
   // Render skeleton loading cards
   const renderSkeletonCards = (count: number) => (
@@ -326,11 +265,9 @@ export default function IndexTest() {
 
       {/* ===== MAIN CONTENT WRAPPER ===== */}
       <div className={styles.wrapper}>
-        {/* ===== HERO SECTION - Split Layout ===== */}
+        {/* ===== HERO SECTION - Centered Layout ===== */}
         <section className={styles.heroSection}>
-          {/* <div className={styles.hero3DBackground}>{show3DScene && <HeroScene />}</div> */}
-
-          {/* Left side - Text content */}
+          {/* Centered hero text content */}
           <div className={styles.heroContent}>
             <motion.div
               className={styles.heroBadge}
@@ -414,6 +351,47 @@ export default function IndexTest() {
           </div>
         </section>
 
+        {/* ===== FEATURED LISTINGS - Infinite Slider ===== */}
+        <section className={styles.sliderSection}>
+          <div className={styles.sliderHeader}>
+            <div>
+              <span className={styles.sectionBadge}>Marketplace</span>
+              <h2 className={styles.sectionTitle}>Featured Listings</h2>
+            </div>
+            <Link href="/watchMarket" className={styles.viewAllLink}>
+              View All <FaArrowRight />
+            </Link>
+          </div>
+
+          {isLoadingNFTs ? (
+            <div className={styles.sliderLoading}>{renderSkeletonCards(4)}</div>
+          ) : featuredNFTs.length > 0 ? (
+            <div className={styles.heroSlider}>
+              <div ref={sliderRef} className={styles.heroSliderTrack}>
+                {[...featuredNFTs, ...featuredNFTs].map((nft, i) => (
+                  <div key={`slider-${nft.nftId}-${i}`} className={styles.heroSliderCard}>
+                    <NFTCard
+                      nft={nft}
+                      onClick={() => setSelectedNFT(nft)}
+                      onQuickBuy={
+                        connected && nft.escrowPda ? () => setSelectedBuyNFT(nft) : undefined
+                      }
+                      onOffer={
+                        connected && nft.acceptingOffers && nft.escrowPda
+                          ? () => setSelectedOfferNFT(nft)
+                          : undefined
+                      }
+                      acceptingOffers={nft.acceptingOffers}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className={styles.emptyState}>No timepieces available</div>
+          )}
+        </section>
+
         {/* ===== FEATURES GLASS CARDS ===== */}
         <section className={styles.featuresSection}>
           <motion.div
@@ -423,7 +401,7 @@ export default function IndexTest() {
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
           >
-            <h2 className={styles.featuresTitle}>Why LuxHub</h2>
+            <h2 className={styles.featuresTitle}>LuxHub Features</h2>
           </motion.div>
           <div className={styles.featuresGrid}>
             {features.map((feature, index) => {
@@ -448,148 +426,6 @@ export default function IndexTest() {
                 </motion.div>
               );
             })}
-          </div>
-        </section>
-
-        {/* ===== MARKETPLACE SHOWCASE - Tabbed ===== */}
-        <section className={styles.showcaseSection}>
-          <div className={styles.showcaseHeader}>
-            <div>
-              <span className={styles.sectionBadge}>Marketplace</span>
-              <h2 className={styles.sectionTitle}>Browse & Invest</h2>
-            </div>
-            <div className={styles.tabSwitcher}>
-              <button
-                className={`${styles.tabBtn} ${activeTab === 'watches' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('watches')}
-              >
-                <FaClock className={styles.tabIcon} />
-                <span>Watches</span>
-              </button>
-              <button
-                className={`${styles.tabBtn} ${activeTab === 'pools' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('pools')}
-              >
-                <FaChartLine className={styles.tabIcon} />
-                <span>Investment Pools</span>
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.scroller}>
-            {activeTab === 'watches' ? (
-              <>
-                {isLoadingNFTs ? (
-                  renderSkeletonCards(4)
-                ) : featuredNFTs.length > 0 ? (
-                  featuredNFTs.map((nft, i) => (
-                    <motion.div
-                      key={`nft-${nft.nftId}-${i}`}
-                      className={styles.nftScrollCard}
-                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
-                      viewport={{ once: true, margin: '-50px' }}
-                    >
-                      <NFTCard
-                        nft={nft}
-                        onClick={() => setSelectedNFT(nft)}
-                        onQuickBuy={
-                          connected && nft.escrowPda ? () => setSelectedBuyNFT(nft) : undefined
-                        }
-                        onOffer={
-                          connected && nft.acceptingOffers && nft.escrowPda
-                            ? () => setSelectedOfferNFT(nft)
-                            : undefined
-                        }
-                        acceptingOffers={nft.acceptingOffers}
-                      />
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className={styles.emptyState}>No timepieces available</div>
-                )}
-              </>
-            ) : (
-              <>
-                {isLoadingPools ? (
-                  renderSkeletonCards(4)
-                ) : pools.length > 0 ? (
-                  pools.map((pool, i) => {
-                    const fundingPercent = Math.round((pool.sharesSold / pool.totalShares) * 100);
-                    // Resolve pool image with consistent fallback handling
-                    const imageUrl = resolvePoolImage({
-                      image: pool.asset?.images?.[0] || pool.asset?.imageIpfsUrls?.[0],
-                      asset: {
-                        imageUrl: pool.asset?.images?.[0] || pool.asset?.imageIpfsUrls?.[0],
-                      },
-                    });
-                    const isDemo = pool._id.startsWith('pool_');
-
-                    return (
-                      <motion.div
-                        key={pool._id}
-                        className={styles.poolCard}
-                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
-                        viewport={{ once: true, margin: '-50px' }}
-                      >
-                        {isDemo && <span className={styles.poolDemoBadge}>Demo</span>}
-                        <div className={styles.poolImage}>
-                          <img
-                            src={imageUrl}
-                            alt={pool.title || pool.asset?.model}
-                            onError={handleImageError}
-                          />
-                          <span className={styles.poolBrandTag}>{pool.asset?.brand}</span>
-                        </div>
-                        <div className={styles.poolContent}>
-                          <h4>{pool.title || pool.asset?.model}</h4>
-                          <div className={styles.poolProgressBar}>
-                            <div
-                              className={styles.poolProgressFill}
-                              style={{ width: `${fundingPercent}%` }}
-                            />
-                          </div>
-                          <div className={styles.poolProgressLabel}>
-                            <span>{fundingPercent}% Funded</span>
-                            <span>
-                              ${((pool.sharesSold * pool.sharePriceUSD) / 1000).toFixed(0)}K / $
-                              {(pool.targetAmountUSD / 1000).toFixed(0)}K
-                            </span>
-                          </div>
-                          <div className={styles.poolStats}>
-                            <div className={styles.poolStatItem}>
-                              <BiTargetLock />
-                              <span>${pool.sharePriceUSD.toLocaleString()}/share</span>
-                            </div>
-                            <div className={styles.poolStatItem}>
-                              <FaChartLine />
-                              <span>+{((pool.projectedROI - 1) * 100).toFixed(0)}% ROI</span>
-                            </div>
-                          </div>
-                          <Link href={`/pool/${pool._id}`} className={styles.poolInvestBtn}>
-                            Invest Now
-                          </Link>
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                ) : (
-                  <div className={styles.emptyState}>No pools available</div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className={styles.viewAllContainer}>
-            <Link
-              href={activeTab === 'watches' ? '/watchMarket' : '/pools'}
-              className={styles.viewAllLink}
-            >
-              View All {activeTab === 'watches' ? 'Watches' : 'Pools'} <FaArrowRight />
-            </Link>
           </div>
         </section>
 

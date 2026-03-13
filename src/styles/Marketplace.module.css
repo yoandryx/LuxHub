@@ -1129,19 +1129,50 @@
 }
 
 .vendorSlideCard {
+  position: relative;
   flex: 0 0 280px;
-  background: var(--glass);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+  border: none;
   border-radius: var(--radius-lg);
   padding: 20px;
   transition: all var(--transition-normal);
+  overflow: hidden;
+}
+
+/* Gradient border */
+.vendorSlideCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.3),
+    rgba(200, 161, 255, 0.08),
+    rgba(200, 161, 255, 0.3)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .vendorSlideCard:hover {
-  border-color: var(--border-accent);
-  box-shadow: var(--shadow-md);
   transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.vendorSlideCard:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.6),
+    rgba(200, 161, 255, 0.15),
+    rgba(200, 161, 255, 0.6)
+  );
 }
 
 /* Legacy vendorGrid and vendorCard (keeping for backwards compatibility) */

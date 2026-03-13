@@ -52,12 +52,21 @@ interface EscrowListing {
     imageIpfsUrls?: string[];
     images?: string[];
     arweaveTxId?: string;
+    serial?: string;
     material?: string;
     dialColor?: string;
     caseSize?: string;
     condition?: string;
     productionYear?: string;
     movement?: string;
+    waterResistance?: string;
+    boxPapers?: string;
+    country?: string;
+    certificate?: string;
+    features?: string;
+    limitedEdition?: string;
+    warrantyInfo?: string;
+    provenance?: string;
   };
   vendor?: {
     businessName?: string;
@@ -272,7 +281,7 @@ export default function Marketplace() {
   // View state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeSection, setActiveSection] = useState<MarketSection>('direct_sales');
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Search and filter state
@@ -844,8 +853,8 @@ export default function Marketplace() {
                             <UnifiedNFTCard
                               title={listing.asset?.model || 'Unknown Watch'}
                               image={resolveImage(listing)}
-                              price={priceSol}
-                              priceLabel="SOL"
+                              price={listing.listingPriceUSD || 0}
+                              priceLabel="USD"
                               priceUSD={listing.listingPriceUSD}
                               mintAddress={listing.nftMint}
                               owner={listing.sellerWallet}
@@ -1251,6 +1260,7 @@ export default function Marketplace() {
                   attributes: [
                     { trait_type: 'Brand', value: selectedListing.asset?.brand || '~' },
                     { trait_type: 'Model', value: selectedListing.asset?.model || '~' },
+                    { trait_type: 'Serial', value: selectedListing.asset?.serial || '~' },
                     { trait_type: 'Material', value: selectedListing.asset?.material || '~' },
                     { trait_type: 'Dial Color', value: selectedListing.asset?.dialColor || '~' },
                     { trait_type: 'Case Size', value: selectedListing.asset?.caseSize || '~' },
@@ -1260,6 +1270,20 @@ export default function Marketplace() {
                       value: selectedListing.asset?.productionYear || '~',
                     },
                     { trait_type: 'Movement', value: selectedListing.asset?.movement || '~' },
+                    {
+                      trait_type: 'Water Resistance',
+                      value: selectedListing.asset?.waterResistance || '~',
+                    },
+                    { trait_type: 'Box & Papers', value: selectedListing.asset?.boxPapers || '~' },
+                    { trait_type: 'Certificate', value: selectedListing.asset?.certificate || '~' },
+                    { trait_type: 'Country', value: selectedListing.asset?.country || '~' },
+                    { trait_type: 'Features', value: selectedListing.asset?.features || '~' },
+                    {
+                      trait_type: 'Limited Edition',
+                      value: selectedListing.asset?.limitedEdition || '~',
+                    },
+                    { trait_type: 'Warranty', value: selectedListing.asset?.warrantyInfo || '~' },
+                    { trait_type: 'Provenance', value: selectedListing.asset?.provenance || '~' },
                     {
                       trait_type: 'Price',
                       value: `$${selectedListing.listingPriceUSD?.toLocaleString() || '0'}`,

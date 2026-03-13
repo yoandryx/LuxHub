@@ -45,15 +45,17 @@
   z-index: 1;
 }
 
-/* ========== HERO SECTION - Split Layout ========== */
+/* ========== HERO SECTION - Centered Layout ========== */
 .heroSection {
   position: relative;
   width: 100%;
-  height: 100vh;
-  min-height: 700px;
+  min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   overflow: hidden;
+  gap: 40px;
 }
 
 .hero3DBackground {
@@ -88,13 +90,48 @@
   opacity: 0.6;
 }
 
-/* Left side content */
+/* NFT Slider - Infinite auto-scroll + drag */
+.heroSlider {
+  position: relative;
+  width: 100%;
+  z-index: 10;
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.heroSliderTrack {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+  overflow-x: auto;
+  cursor: grab;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+}
+
+.heroSliderTrack::-webkit-scrollbar {
+  display: none;
+}
+
+.heroSliderCard {
+  flex-shrink: 0;
+  width: 220px;
+  pointer-events: auto;
+}
+
+/* Centered hero content */
 .heroContent {
   position: relative;
   z-index: 10;
-  padding: 0 60px;
-  max-width: 650px;
-  width: 50%;
+  padding: 0 var(--side-spacing);
+  max-width: 700px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .heroBadge {
@@ -133,6 +170,7 @@
   display: flex;
   gap: 16px;
   margin-bottom: 40px;
+  justify-content: center;
 }
 
 .heroStats {
@@ -625,79 +663,33 @@
   margin: 0;
 }
 
-/* ========== MARKETPLACE SHOWCASE - Tabbed ========== */
-.showcaseSection {
+/* ========== FEATURED LISTINGS - Slider Section ========== */
+.sliderSection {
   width: 100%;
   max-width: var(--max-content-width);
-  padding: 40px var(--side-spacing);
+  padding: 50px var(--side-spacing);
   z-index: 2;
   box-sizing: border-box;
 }
 
-.showcaseHeader {
+.sliderHeader {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 16px;
 }
 
-.tabSwitcher {
+.sliderLoading {
   display: flex;
-  gap: 6px;
-  background: var(--glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 6px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  gap: 16px;
+  overflow: hidden;
 }
 
-.tabBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tabBtn:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.tabBtn.activeTab {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.25) 0%, rgba(138, 43, 226, 0.2) 100%);
-  border-color: var(--accent);
-  color: var(--text-primary);
-  box-shadow: 0 0 20px rgba(200, 161, 255, 0.15);
-}
-
-.tabIcon {
-  font-size: 1rem;
-  opacity: 0.8;
-}
-
-.tabBtn.activeTab .tabIcon {
-  opacity: 1;
-  color: var(--accent);
-}
-
-.viewAllContainer {
-  display: flex;
-  justify-content: center;
-  margin-top: 30px;
-  padding-bottom: 10px;
+.sliderLoading .skeletonCard {
+  flex-shrink: 0;
+  width: 220px;
 }
 
 .viewAllLink {
@@ -727,288 +719,6 @@
 
 .viewAllLink:hover svg {
   transform: translateX(4px);
-}
-
-/* Scroller - Responsive auto-fill grid matching vendor dashboard */
-.scroller {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-  padding: 16px 0;
-  width: 100%;
-}
-
-@media screen and (min-width: 480px) {
-  .scroller {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-  }
-}
-
-@media screen and (min-width: 769px) {
-  .scroller {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 20px;
-    padding: 20px 0;
-  }
-}
-
-/* NFT Cards - Wrapper for UnifiedNFTCard (no additional styling needed) */
-.nftScrollCard {
-  width: 100%;
-  /* Let UnifiedNFTCard handle all visual styling */
-  /* Wrapper only handles grid placement and animation container */
-}
-
-/* Pool Cards - Matching UnifiedNFTCard Theme */
-.poolCard {
-  position: relative;
-  width: 100%;
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Glow effect on hover */
-.poolCard::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 16px;
-  background: linear-gradient(
-    135deg,
-    var(--accent) 0%,
-    transparent 40%,
-    transparent 60%,
-    var(--accent) 100%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.poolCard:hover {
-  transform: translateY(-4px);
-  border-color: var(--accent-dim);
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    0 0 30px var(--accent-glow);
-}
-
-.poolCard:hover::before {
-  opacity: 0.15;
-}
-
-.poolDemoBadge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 5px 10px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--bg-dark);
-  background: linear-gradient(135deg, var(--accent) 0%, #d4b8ff 100%);
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  z-index: 5;
-  box-shadow: 0 2px 8px rgba(200, 161, 255, 0.3);
-}
-
-.poolImage {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4/3;
-  overflow: hidden;
-  background: var(--bg-elevated, #181818);
-}
-
-.poolImage img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.poolCard:hover .poolImage img {
-  transform: scale(1.05);
-}
-
-/* Shimmer effect on image hover */
-.poolImage::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    rgba(255, 255, 255, 0.03) 45%,
-    rgba(255, 255, 255, 0.05) 50%,
-    rgba(255, 255, 255, 0.03) 55%,
-    transparent 60%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.poolCard:hover .poolImage::after {
-  opacity: 1;
-  animation: poolShineMove 2s ease-in-out;
-}
-
-@keyframes poolShineMove {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.poolBrandTag {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Pool Status Badge - Top Left */
-.poolStatusBadge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--success, #4ade80);
-  background: rgba(74, 222, 128, 0.15);
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  z-index: 5;
-}
-
-.poolContent {
-  position: relative;
-  padding: 16px;
-  z-index: 1;
-}
-
-.poolContent h4 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.poolProgressBar {
-  width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-
-.poolProgressFill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #d4b8ff 50%, var(--success, #4ade80) 100%);
-  border-radius: 3px;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px rgba(200, 161, 255, 0.4);
-}
-
-.poolProgressLabel {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-bottom: 14px;
-}
-
-.poolProgressLabel span:first-child {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.poolProgressLabel span:last-child {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-}
-
-.poolStats {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 14px;
-  padding: 10px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.poolStatItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.poolStatItem svg {
-  color: var(--accent);
-  font-size: 0.85rem;
-}
-
-.poolStatItem span {
-  font-weight: 500;
-}
-
-.poolInvestBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--bg-dark);
-  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
-  border: none;
-  border-radius: 10px;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(200, 161, 255, 0.25);
-}
-
-.poolInvestBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(200, 161, 255, 0.4);
 }
 
 /* Empty & Loading States */
@@ -1257,11 +967,6 @@
     --side-spacing: 20px;
   }
 
-  .heroContent {
-    padding: 0 40px;
-    max-width: 550px;
-  }
-
   .heroTitle {
     font-size: 3.2rem;
     letter-spacing: 1px;
@@ -1269,10 +974,6 @@
 }
 
 @media screen and (max-width: 1024px) {
-  .heroContent {
-    width: 55%;
-  }
-
   .heroTitle {
     font-size: 2.6rem;
     letter-spacing: 0.5px;
@@ -1313,22 +1014,6 @@
     font-size: 1.25rem;
   }
 
-  .showcaseHeader {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .tabSwitcher {
-    width: 100%;
-    padding: 5px;
-  }
-
-  .tabBtn {
-    flex: 1;
-    padding: 10px 16px;
-    font-size: 0.85rem;
-  }
-
   .trustStats {
     gap: 40px;
   }
@@ -1341,9 +1026,15 @@
 
   .heroSection {
     min-height: auto;
-    height: auto;
-    padding-top: 60px;
-    padding-bottom: 40px;
+    gap: 28px;
+  }
+
+  .heroSliderCard {
+    width: 170px;
+  }
+
+  .heroSliderTrack {
+    gap: 12px;
   }
 
   .hero3DBackground {
@@ -1366,16 +1057,9 @@
   }
 
   .heroContent {
-    position: relative;
-    width: 100%;
-    max-width: 100%;
     padding: 0 20px;
-    padding-top: 220px;
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-top: 0;
+    text-align: center;
+    align-items: center;
   }
 
   .heroBadge {
@@ -1390,7 +1074,7 @@
 
   .heroSubtitle {
     font-size: 0.9rem;
-    text-align: left;
+    text-align: center;
     margin-bottom: 24px;
     max-width: 320px;
   }
@@ -1401,7 +1085,7 @@
     max-width: 280px;
     gap: 12px;
     margin-bottom: 32px;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .primaryBtn,
@@ -1416,6 +1100,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 16px 24px;
     width: 100%;
+    justify-items: center;
   }
 
   .heroStatDivider {
@@ -1425,7 +1110,7 @@
   .heroStat {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .heroStatValue {
@@ -1497,43 +1182,6 @@
     font-size: 1.5rem;
   }
 
-  .nftCardImage {
-    height: 160px;
-  }
-
-  .poolImage {
-    height: 120px;
-  }
-
-  .poolContent {
-    padding: 12px;
-  }
-
-  .poolContent h4 {
-    font-size: 0.85rem;
-    margin-bottom: 10px;
-  }
-
-  .poolProgressLabel {
-    font-size: 0.65rem;
-    margin-bottom: 10px;
-  }
-
-  .poolStats {
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
-
-  .poolStatItem {
-    font-size: 0.7rem;
-  }
-
-  .poolInvestBtn {
-    padding: 10px;
-    font-size: 0.8rem;
-  }
-
   .trustStats {
     gap: 24px;
   }
@@ -1579,12 +1227,8 @@
     width: 100%;
   }
 
-  .showcaseSection {
-    padding: 40px var(--side-spacing);
-  }
-
-  .viewAllContainer {
-    margin-top: 24px;
+  .sliderSection {
+    padding: 32px var(--side-spacing);
   }
 
   .viewAllLink {
@@ -1598,9 +1242,12 @@
     --side-spacing: 12px;
   }
 
+  .heroSliderCard {
+    width: 150px;
+  }
+
   .heroContent {
     padding: 0 16px;
-    padding-top: 200px;
   }
 
   .heroTitle {
@@ -1699,25 +1346,6 @@
   .statLabel {
     font-size: 0.6rem;
     letter-spacing: 1px;
-  }
-
-  .tabSwitcher {
-    gap: 4px;
-    padding: 4px;
-  }
-
-  .tabBtn {
-    padding: 10px 14px;
-    font-size: 0.8rem;
-    gap: 6px;
-  }
-
-  .tabBtn span {
-    display: none;
-  }
-
-  .tabIcon {
-    font-size: 1.1rem;
   }
 }
 

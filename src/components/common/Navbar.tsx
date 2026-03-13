@@ -45,7 +45,9 @@ export default function Navbar() {
             <Link href="/marketplace" className={styles.marketplaceLink}>
               Marketplace
             </Link>
-            <Link href="/pools">Pools</Link>
+            <Link href="/pools" className={styles.poolsLink}>
+              Pools
+            </Link>
             <Link href="/vendors">Vendors</Link>
             {isAdmin && <Link href="/createNFT">Mint NFT</Link>}
             {isAdmin && <Link href="/adminDashboard">Admins</Link>}

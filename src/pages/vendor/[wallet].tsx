@@ -1511,9 +1511,8 @@ const VendorProfilePage = () => {
                   <h3>{selectedNftForAction.title}</h3>
                   <div className={styles.purchasePrice}>
                     <span className={styles.priceUSD}>
-                      ${selectedNftForAction.priceUSD?.toLocaleString() || '0'}
+                      ${selectedNftForAction.priceUSD?.toLocaleString() || '0'} USDC
                     </span>
-                    <span className={styles.priceSOL}>{selectedNftForAction.priceSol} SOL</span>
                   </div>
                 </div>
               </div>

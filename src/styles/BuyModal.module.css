@@ -286,6 +286,87 @@
 }
 
 /* Price Section */
+/* Token Selector */
+.tokenSelector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+.tokenSelectorLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.tokenOptions {
+  display: flex;
+  gap: 6px;
+}
+
+.tokenOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font);
+}
+
+.tokenOption:hover {
+  border-color: rgba(200, 161, 255, 0.3);
+  color: var(--text-primary);
+}
+
+.tokenOptionActive {
+  background: rgba(200, 161, 255, 0.1);
+  border-color: #c8a1ff;
+  color: #c8a1ff;
+  font-weight: 600;
+}
+
+.tokenIcon {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+/* Swap Notice */
+.swapNotice {
+  padding: 10px 14px;
+  background: rgba(200, 161, 255, 0.06);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.swapStep {
+  font-size: 11px;
+  color: #c8a1ff;
+  margin-top: 4px;
+}
+
+.summarySwapNote {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 .priceSection {
   padding: 22px;
   background: rgba(255, 255, 255, 0.02);
