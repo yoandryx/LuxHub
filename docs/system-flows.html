@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LuxHub System Flows</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    line-height: 1.6;
+  }
+
+  /* Nav */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,13,13,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid #222;
+    padding: 16px 40px;
+    display: flex; align-items: center; gap: 32px;
+  }
+  .nav-logo {
+    font-size: 20px; font-weight: 700; letter-spacing: 3px;
+    background: linear-gradient(135deg, #c8a1ff, #8b5cf6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-link {
+    padding: 8px 16px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: #a1a1a1;
+    border: 1px solid transparent; transition: all 0.2s;
+  }
+  .nav-link:hover { color: #fff; border-color: #333; }
+  .nav-link.active {
+    color: #c8a1ff; border-color: #c8a1ff40;
+    background: #c8a1ff10;
+  }
+
+  /* Layout */
+  .container { max-width: 1400px; margin: 0 auto; padding: 40px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Headers */
+  h1 {
+    font-size: 36px; font-weight: 700; margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff, #c8a1ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  h2 {
+    font-size: 24px; font-weight: 600; margin: 48px 0 24px;
+    color: #c8a1ff; letter-spacing: 0.5px;
+  }
+  h3 { font-size: 18px; font-weight: 600; margin: 24px 0 12px; color: #fff; }
+  .subtitle { color: #666; font-size: 14px; margin-bottom: 40px; }
+
+  /* Flow Diagram */
+  .flow {
+    display: flex; flex-direction: column; gap: 0;
+    position: relative; padding-left: 40px;
+  }
+  .flow::before {
+    content: ''; position: absolute; left: 19px; top: 24px;
+    bottom: 24px; width: 2px;
+    background: linear-gradient(180deg, #c8a1ff, #8b5cf6, #c8a1ff40);
+  }
+  .flow-step {
+    position: relative; padding: 20px 24px;
+    background: #111; border: 1px solid #222; border-radius: 12px;
+    margin-bottom: 16px; transition: all 0.2s;
+  }
+  .flow-step:hover {
+    border-color: #c8a1ff40;
+    box-shadow: 0 0 20px #c8a1ff10;
+  }
+  .flow-step::before {
+    content: ''; position: absolute; left: -29px; top: 24px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #0a0a0a; border: 2px solid #c8a1ff;
+  }
+  .flow-step.active-step::before { background: #c8a1ff; }
+  .step-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+  }
+  .step-number {
+    background: linear-gradient(135deg, #c8a1ff, #8b5cf6);
+    color: #fff; font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px;
+  }
+  .step-title { font-weight: 600; font-size: 16px; color: #fff; }
+  .step-actor {
+    font-size: 11px; font-weight: 600; padding: 3px 8px;
+    border-radius: 4px; letter-spacing: 0.5px;
+  }
+  .actor-vendor { background: #22c55e20; color: #22c55e; }
+  .actor-buyer { background: #3b82f620; color: #3b82f6; }
+  .actor-admin { background: #f59e0b20; color: #f59e0b; }
+  .actor-squads { background: #c8a1ff20; color: #c8a1ff; }
+  .actor-investor { background: #ec489920; color: #ec4899; }
+  .step-body { font-size: 14px; color: #999; }
+  .step-api {
+    display: inline-block; margin-top: 8px;
+    font-family: 'SF Mono', Consolas, monospace; font-size: 12px;
+    background: #1a1a2e; color: #c8a1ff; padding: 4px 10px;
+    border-radius: 6px; border: 1px solid #c8a1ff20;
+  }
+
+  /* Phase Divider */
+  .phase-divider {
+    display: flex; align-items: center; gap: 16px;
+    margin: 32px 0 24px; padding-left: 40px;
+  }
+  .phase-label {
+    font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    color: #c8a1ff; white-space: nowrap;
+  }
+  .phase-line { flex: 1; height: 1px; background: #c8a1ff30; }
+
+  /* Cards Grid */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .card {
+    background: #111; border: 1px solid #222; border-radius: 12px;
+    padding: 24px; transition: all 0.2s;
+  }
+  .card:hover { border-color: #c8a1ff40; transform: translateY(-2px); }
+  .card-title { font-weight: 600; font-size: 16px; color: #fff; margin-bottom: 8px; }
+  .card-desc { font-size: 14px; color: #888; }
+
+  /* Status Machine */
+  .state-machine {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 24px; background: #111; border: 1px solid #222;
+    border-radius: 12px; margin: 16px 0;
+  }
+  .state {
+    padding: 8px 16px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; border: 1px solid;
+  }
+  .state-initiated { background: #33333330; border-color: #555; color: #aaa; }
+  .state-listed { background: #3b82f620; border-color: #3b82f640; color: #3b82f6; }
+  .state-funded { background: #22c55e20; border-color: #22c55e40; color: #22c55e; }
+  .state-shipped { background: #f59e0b20; border-color: #f59e0b40; color: #f59e0b; }
+  .state-delivered { background: #06b6d420; border-color: #06b6d440; color: #06b6d4; }
+  .state-released { background: #c8a1ff20; border-color: #c8a1ff40; color: #c8a1ff; }
+  .state-cancelled { background: #ef444420; border-color: #ef444440; color: #ef4444; }
+  .state-open { background: #22c55e20; border-color: #22c55e40; color: #22c55e; }
+  .state-filled { background: #3b82f620; border-color: #3b82f640; color: #3b82f6; }
+  .state-active { background: #f59e0b20; border-color: #f59e0b40; color: #f59e0b; }
+  .state-sold { background: #ec489920; border-color: #ec489940; color: #ec4899; }
+  .state-distributed { background: #c8a1ff20; border-color: #c8a1ff40; color: #c8a1ff; }
+  .arrow { color: #555; font-size: 18px; }
+
+  /* Data Table */
+  .data-table {
+    width: 100%; border-collapse: collapse;
+    background: #111; border-radius: 12px; overflow: hidden;
+    border: 1px solid #222;
+  }
+  .data-table th {
+    background: #1a1a1a; padding: 12px 16px; text-align: left;
+    font-size: 12px; font-weight: 600; color: #c8a1ff;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .data-table td {
+    padding: 10px 16px; border-top: 1px solid #1a1a1a;
+    font-size: 13px; color: #aaa;
+  }
+  .data-table tr:hover td { background: #151515; }
+
+  /* Split Box */
+  .split-box {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+    background: #222; border-radius: 12px; overflow: hidden;
+    margin: 16px 0;
+  }
+  .split-half { background: #111; padding: 24px; }
+  .split-half h4 {
+    font-size: 13px; font-weight: 700; letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .split-half.complete h4 { color: #22c55e; }
+  .split-half.needs-work h4 { color: #f59e0b; }
+  .split-half ul { list-style: none; }
+  .split-half li {
+    font-size: 13px; color: #888; padding: 4px 0;
+    padding-left: 20px; position: relative;
+  }
+  .split-half.complete li::before { content: '✓'; position: absolute; left: 0; color: #22c55e; }
+  .split-half.needs-work li::before { content: '!'; position: absolute; left: 2px; color: #f59e0b; font-weight: 700; }
+
+  /* Fund Split Visual */
+  .fund-split {
+    display: flex; align-items: stretch; gap: 2px;
+    border-radius: 10px; overflow: hidden; margin: 16px 0;
+    height: 48px;
+  }
+  .fund-vendor {
+    flex: 97; background: linear-gradient(135deg, #22c55e40, #22c55e20);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; color: #22c55e;
+  }
+  .fund-treasury {
+    flex: 3; background: linear-gradient(135deg, #c8a1ff40, #c8a1ff20);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #c8a1ff;
+    min-width: 40px;
+  }
+  .fund-refund {
+    flex: 100; background: linear-gradient(135deg, #3b82f640, #3b82f620);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; color: #3b82f6;
+  }
+
+  /* Priority Ladder */
+  .priority-ladder { display: flex; flex-direction: column; gap: 12px; }
+  .priority-item {
+    padding: 20px 24px; border-radius: 12px;
+    border: 1px solid #222; position: relative; overflow: hidden;
+  }
+  .priority-item::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px;
+  }
+  .priority-p0 { border-color: #ef444440; }
+  .priority-p0::before { background: #ef4444; }
+  .priority-p1 { border-color: #f59e0b40; }
+  .priority-p1::before { background: #f59e0b; }
+  .priority-p2 { border-color: #3b82f640; }
+  .priority-p2::before { background: #3b82f6; }
+  .priority-p3 { border-color: #22c55e40; }
+  .priority-p3::before { background: #22c55e; }
+  .priority-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .priority-p0 .priority-tag { color: #ef4444; }
+  .priority-p1 .priority-tag { color: #f59e0b; }
+  .priority-p2 .priority-tag { color: #3b82f6; }
+  .priority-p3 .priority-tag { color: #22c55e; }
+  .priority-title { font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .priority-desc { font-size: 13px; color: #888; }
+
+  /* Onchain box */
+  .onchain-box {
+    background: #0d1117; border: 1px solid #c8a1ff30;
+    border-radius: 10px; padding: 20px; margin: 12px 0;
+    position: relative;
+  }
+  .onchain-box::before {
+    content: 'ON-CHAIN'; position: absolute; top: -8px; left: 16px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    color: #c8a1ff; background: #0d1117; padding: 0 8px;
+  }
+  .onchain-box .detail { font-size: 13px; color: #999; padding: 3px 0; }
+  .onchain-box .highlight { color: #c8a1ff; font-weight: 600; }
+
+  /* MongoDB box */
+  .mongo-box {
+    background: #0d1710; border: 1px solid #22c55e30;
+    border-radius: 10px; padding: 20px; margin: 12px 0;
+    position: relative;
+  }
+  .mongo-box::before {
+    content: 'MONGODB'; position: absolute; top: -8px; left: 16px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    color: #22c55e; background: #0d1710; padding: 0 8px;
+  }
+  .mongo-box code {
+    font-family: 'SF Mono', Consolas, monospace; font-size: 12px;
+    color: #22c55e; display: block; padding: 2px 0;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">LUXHUB</div>
+  <div class="nav-links">
+    <div class="nav-link active" onclick="showSection('marketplace')">Marketplace Flow</div>
+    <div class="nav-link" onclick="showSection('pools')">Pools Flow</div>
+    <div class="nav-link" onclick="showSection('states')">State Machines</div>
+    <div class="nav-link" onclick="showSection('data')">Data Model</div>
+    <div class="nav-link" onclick="showSection('gaps')">Gaps & Priorities</div>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ==================== MARKETPLACE FLOW ==================== -->
+<div id="marketplace" class="section active">
+  <h1>Marketplace Escrow Sale</h1>
+  <p class="subtitle">Fixed USD Price &middot; USDC Settlement &middot; Squads Multisig Gating</p>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 1 &mdash; LISTING</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step active-step">
+      <div class="step-header">
+        <span class="step-number">01</span>
+        <span class="step-title">Vendor Creates Asset</span>
+        <span class="step-actor actor-vendor">VENDOR</span>
+      </div>
+      <div class="step-body">
+        Upload photos, fill specs. AI watch analysis auto-fills brand, model, condition, estimated price.
+      </div>
+      <div class="step-api">POST /api/ai/analyze-watch</div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">02</span>
+        <span class="step-title">Admin Approves Sale Request</span>
+        <span class="step-actor actor-admin">ADMIN</span>
+      </div>
+      <div class="step-body">Admin reviews asset authenticity and approves the listing for minting.</div>
+      <div class="step-api">POST /api/nft/approveSale</div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">03</span>
+        <span class="step-title">Mint NFT + Create Escrow</span>
+        <span class="step-actor actor-squads">SQUADS</span>
+      </div>
+      <div class="step-body">Creates Squads proposal for <code>initialize</code> instruction. NFT locked in vault, USDC vault created.</div>
+      <div class="step-api">POST /api/escrow/create-with-mint</div>
+      <div class="onchain-box">
+        <div class="detail">Escrow PDA created with <span class="highlight">USDC mint</span> as payment token</div>
+        <div class="detail">NFT transferred to escrow <span class="highlight">nft_vault</span></div>
+        <div class="detail">Empty <span class="highlight">USDC vault</span> initialized (awaiting buyer deposit)</div>
+        <div class="detail">sale_price set in USDC atomic units (6 decimals)</div>
+      </div>
+      <div class="mongo-box">
+        <code>status: 'listed'</code>
+        <code>listingPriceUSD: 15000</code>
+        <code>listingPrice: 15000000000 (USDC atomic)</code>
+        <code>paymentMint: 'USDC'</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 2 &mdash; PURCHASE</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step active-step">
+      <div class="step-header">
+        <span class="step-number">04</span>
+        <span class="step-title">Buyer Selects Payment Token</span>
+        <span class="step-actor actor-buyer">BUYER</span>
+      </div>
+      <div class="step-body">
+        Price shown as <strong>$15,000 USD</strong> (fixed). Buyer chooses to pay with USDC or SOL.
+        If SOL: Jupiter ExactOut quote calculates how much SOL needed for exact USDC amount.
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">05</span>
+        <span class="step-title">Deposit USDC to Escrow</span>
+        <span class="step-actor actor-buyer">BUYER</span>
+      </div>
+      <div class="step-body">
+        <strong>If USDC:</strong> Direct transfer from buyer's ATA to escrow vault.<br>
+        <strong>If SOL:</strong> Jupiter swap (SOL &rarr; USDC) into buyer's ATA, then transfer to vault.
+      </div>
+      <div class="step-api">exchange instruction &rarr; POST /api/escrow/purchase</div>
+      <div class="mongo-box">
+        <code>status: 'funded'</code>
+        <code>buyerWallet: '8N3b...'</code>
+        <code>buyerShippingAddress: { fullName, street, city, ... }</code>
+        <code>fundedAmount: 15000000000</code>
+        <code>paymentMint: 'USDC' | 'SOL'</code>
+        <code>swapTxSignature: '...' (if SOL)</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 3 &mdash; SHIPMENT</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">06</span>
+        <span class="step-title">Vendor Ships Item</span>
+        <span class="step-actor actor-vendor">VENDOR</span>
+      </div>
+      <div class="step-body">Submit tracking carrier, number, and proof photos (uploaded to IPFS).</div>
+      <div class="step-api">POST /api/escrow/submit-shipment</div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">07</span>
+        <span class="step-title">Admin Verifies Shipment</span>
+        <span class="step-actor actor-admin">ADMIN</span>
+      </div>
+      <div class="step-body">Reviews tracking + proof photos. Approves or rejects (vendor must resubmit).</div>
+      <div class="step-api">POST /api/escrow/verify-shipment</div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 4 &mdash; DELIVERY &amp; SETTLEMENT</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step active-step">
+      <div class="step-header">
+        <span class="step-number">08</span>
+        <span class="step-title">Buyer Confirms Delivery</span>
+        <span class="step-actor actor-buyer">BUYER</span>
+      </div>
+      <div class="step-body">Buyer confirms receipt, optional 1-5 rating and review.</div>
+      <div class="step-api">POST /api/escrow/confirm-delivery</div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">09</span>
+        <span class="step-title">Squads Releases Funds</span>
+        <span class="step-actor actor-squads">SQUADS</span>
+      </div>
+      <div class="step-body">
+        <code>confirm_delivery</code> instruction executed via Squads multisig.
+      </div>
+      <div class="onchain-box">
+        <div class="detail"><span class="highlight">USDC vault</span> splits funds:</div>
+      </div>
+
+      <h4 style="font-size:13px;color:#888;margin:12px 0 4px;">Fund Distribution</h4>
+      <div class="fund-split">
+        <div class="fund-vendor">97% &rarr; Vendor ($14,550 USDC)</div>
+        <div class="fund-treasury">3%</div>
+      </div>
+      <p style="font-size:12px;color:#666;text-align:right;">Treasury: $450 USDC</p>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">ALTERNATE &mdash; REFUND PATH</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">ALT</span>
+        <span class="step-title">Admin Initiates Refund</span>
+        <span class="step-actor actor-admin">ADMIN</span>
+      </div>
+      <div class="step-body">
+        If shipment rejected or dispute: <code>refund_buyer</code> instruction returns full USDC to buyer, NFT to seller.
+      </div>
+      <div class="step-api">POST /api/escrow/refund</div>
+      <div class="fund-split">
+        <div class="fund-refund">100% USDC &rarr; Buyer (full refund)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== POOLS FLOW ==================== -->
+<div id="pools" class="section">
+  <h1>Fractional Ownership Pools</h1>
+  <p class="subtitle">Crowdfunded RWA &middot; USDC Settlement &middot; Bags DEX Trading</p>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 1 &mdash; POOL CREATION</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step active-step">
+      <div class="step-header">
+        <span class="step-number">01</span>
+        <span class="step-title">Create Pool</span>
+        <span class="step-actor actor-admin">ADMIN</span>
+      </div>
+      <div class="step-body">
+        New pool from dealer asset, or convert existing escrow listing to fractional pool.
+        Sets total shares, price per share, target amount, and liquidity model.
+      </div>
+      <div class="step-api">POST /api/pool/create</div>
+      <div class="step-api">POST /api/pool/convert-from-escrow</div>
+      <div class="mongo-box">
+        <code>status: 'open'</code>
+        <code>totalShares: 1,000,000</code>
+        <code>sharePriceUSD: $0.10</code>
+        <code>targetAmountUSD: $100,000</code>
+        <code>liquidityModel: 'p2p' | 'amm' | 'hybrid'</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 2 &mdash; INVESTOR FUNDING</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step active-step">
+      <div class="step-header">
+        <span class="step-number">02</span>
+        <span class="step-title">Investors Buy Shares</span>
+        <span class="step-actor actor-investor">INVESTOR</span>
+      </div>
+      <div class="step-body">
+        Direct investment or via Bags bonding curve. Ownership % auto-calculated per investor.
+        Pool status changes to <strong>filled</strong> when all shares sold.
+      </div>
+      <div class="step-api">POST /api/pool/invest</div>
+      <div class="step-api">POST /api/pool/buy (Bags bonding curve)</div>
+      <div class="mongo-box">
+        <code>participants: [{ wallet, shares, investedUSD, ownershipPercent }]</code>
+        <code>sharesSold: 800,000 / 1,000,000</code>
+        <code>fundsInEscrow: $80,000</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 3 &mdash; VENDOR PAYMENT</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">03</span>
+        <span class="step-title">Pay Vendor via Squads</span>
+        <span class="step-actor actor-squads">SQUADS</span>
+      </div>
+      <div class="step-body">
+        When pool fills, admin triggers vendor payment. Requires custody verification first (escrow protection).
+      </div>
+      <div class="step-api">POST /api/pool/pay-vendor</div>
+      <div class="fund-split">
+        <div class="fund-vendor">97% &rarr; Vendor ($97,000 USDC)</div>
+        <div class="fund-treasury">3%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 4 &mdash; CUSTODY TRANSFER</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">04</span>
+        <span class="step-title">Vendor Ships to LuxHub Vault</span>
+        <span class="step-actor actor-vendor">VENDOR</span>
+      </div>
+      <div class="step-body">Vendor ships physical asset to LuxHub secure storage.</div>
+      <div class="step-api">POST /api/pool/custody (action: submit_tracking)</div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">05</span>
+        <span class="step-title">Custody Pipeline</span>
+        <span class="step-actor actor-admin">ADMIN</span>
+      </div>
+      <div class="step-body">
+        5-stage verification pipeline. Admin authenticates physical asset and stores in vault.
+      </div>
+      <div class="state-machine">
+        <span class="state state-initiated">pending</span>
+        <span class="arrow">&rarr;</span>
+        <span class="state state-listed">shipped</span>
+        <span class="arrow">&rarr;</span>
+        <span class="state state-funded">received</span>
+        <span class="arrow">&rarr;</span>
+        <span class="state state-shipped">verified</span>
+        <span class="arrow">&rarr;</span>
+        <span class="state state-released">stored</span>
+      </div>
+      <div class="mongo-box">
+        <code>custodyStatus: 'stored'</code>
+        <code>status: 'active' (asset in LuxHub custody)</code>
+        <code>custodyProofUrls: [IPFS photos]</code>
+        <code>custodyVerifiedBy: adminWallet</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 5 &mdash; SECONDARY TRADING</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">06</span>
+        <span class="step-title">Token Holders Trade Shares</span>
+        <span class="step-actor actor-investor">INVESTOR</span>
+      </div>
+      <div class="step-body">
+        P2P direct trades between holders, or automated via Bags bonding curve AMM.
+        Price adjusts with demand.
+      </div>
+      <div class="step-api">POST /api/pool/buy (secondary market)</div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 6 &mdash; RESALE</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-header">
+        <span class="step-number">07</span>
+        <span class="step-title">List Asset for Full-Price Resale</span>
+        <span class="step-actor actor-admin">ADMIN</span>
+      </div>
+      <div class="step-body">
+        Asset listed at $120,000. Projected ROI calculated for investors.
+        Full-price buyer purchases the physical asset.
+      </div>
+      <div class="step-api">POST /api/pool/list-for-resale</div>
+      <div class="mongo-box">
+        <code>resaleListingPriceUSD: 120000</code>
+        <code>projectedROI: 16.4%</code>
+        <code>status: 'listed' &rarr; 'sold'</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-divider">
+    <span class="phase-label">PHASE 7 &mdash; DISTRIBUTION</span>
+    <span class="phase-line"></span>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step active-step">
+      <div class="step-header">
+        <span class="step-number">08</span>
+        <span class="step-title">Distribute Proceeds to Investors</span>
+        <span class="step-actor actor-squads">SQUADS</span>
+      </div>
+      <div class="step-body">
+        Squads proposal distributes resale proceeds proportionally to all token holders.
+      </div>
+      <div class="step-api">POST /api/pool/distribute</div>
+      <div class="fund-split">
+        <div class="fund-vendor">97% &rarr; Investors ($116,400 USDC)</div>
+        <div class="fund-treasury">3%</div>
+      </div>
+
+      <table class="data-table" style="margin-top:16px;">
+        <thead>
+          <tr><th>Investor</th><th>Shares</th><th>Ownership</th><th>Payout</th><th>Profit</th><th>ROI</th></tr>
+        </thead>
+        <tbody>
+          <tr><td style="font-family:monospace;color:#c8a1ff;">8N3b...dK3t</td><td>200,000</td><td>20%</td><td>$23,280</td><td>+$3,280</td><td style="color:#22c55e;">+16.4%</td></tr>
+          <tr><td style="font-family:monospace;color:#c8a1ff;">5Kx2...m7Rq</td><td>300,000</td><td>30%</td><td>$34,920</td><td>+$4,920</td><td style="color:#22c55e;">+16.4%</td></tr>
+          <tr><td style="font-family:monospace;color:#c8a1ff;">9Rm7...pL4s</td><td>500,000</td><td>50%</td><td>$58,200</td><td>+$8,200</td><td style="color:#22c55e;">+16.4%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== STATE MACHINES ==================== -->
+<div id="states" class="section">
+  <h1>State Machines</h1>
+  <p class="subtitle">Status transitions for Escrow, Pool, Shipment, Custody, and Offers</p>
+
+  <h2>Escrow Status</h2>
+  <div class="state-machine">
+    <span class="state state-initiated">initiated</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-listed">listed</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-funded">funded</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-shipped">shipped</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-delivered">delivered</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-released">released</span>
+  </div>
+  <div class="state-machine">
+    <span class="state state-funded">funded</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-cancelled">refund &rarr; cancelled</span>
+  </div>
+  <div class="state-machine">
+    <span class="state state-initiated">initiated</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-active">converted (to pool)</span>
+  </div>
+
+  <h2>Pool Status</h2>
+  <div class="state-machine">
+    <span class="state state-open">open</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-filled">filled</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-funded">funded</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-shipped">custody</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-active">active</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-listed">listed</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-sold">sold</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-distributed">distributed</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-released">closed</span>
+  </div>
+
+  <h2>Shipment Status</h2>
+  <div class="state-machine">
+    <span class="state state-initiated">pending</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-listed">shipped</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-funded">in_transit</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-delivered">delivered</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-shipped">proof_submitted</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-released">verified</span>
+  </div>
+  <div class="state-machine">
+    <span class="state state-shipped">proof_submitted</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-cancelled">rejected (resubmit)</span>
+  </div>
+
+  <h2>Custody Status (Pools)</h2>
+  <div class="state-machine">
+    <span class="state state-initiated">pending</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-listed">shipped</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-funded">received</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-shipped">verified</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-released">stored</span>
+  </div>
+
+  <h2>Offer Status</h2>
+  <div class="state-machine">
+    <span class="state state-initiated">pending</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-funded">accepted</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-released">settled</span>
+  </div>
+  <div class="state-machine">
+    <span class="state state-initiated">pending</span>
+    <span class="arrow">&rarr;</span>
+    <span class="state state-cancelled">rejected / withdrawn / expired</span>
+  </div>
+  <div class="state-machine">
+    <span class="state state-funded">accepted</span>
+    <span class="arrow">&harr;</span>
+    <span class="state state-shipped">countered</span>
+  </div>
+</div>
+
+<!-- ==================== DATA MODEL ==================== -->
+<div id="data" class="section">
+  <h1>Data Tracked Per Transaction</h1>
+  <p class="subtitle">Every piece of real-world data managed by the platform</p>
+
+  <h2>Escrow Data</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="card-title">Listing Data</div>
+      <div class="card-desc">
+        Asset (brand, model, serial, condition, specs, IPFS photos) &middot;
+        Pricing (listingPriceUSD fixed, USDC atomic) &middot;
+        Sale mode (fixed, offers, crowdfunded) &middot;
+        On-chain (escrowPda, nftMint, seed, bump) &middot;
+        Squads (transactionIndex, proposedAt)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Purchase Data</div>
+      <div class="card-desc">
+        Buyer wallet &middot; Payment token (SOL or USDC) &middot;
+        Jupiter swap tx (if SOL) &middot; Funded amount &middot;
+        Shipping address (name, street, city, state, zip, country, phone, email, delivery instructions)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Shipment Data</div>
+      <div class="card-desc">
+        Carrier (FedEx/UPS/DHL/USPS) &middot; Tracking number &middot; Auto-generated tracking URL &middot;
+        IPFS proof photos &middot; Ship-from address &middot; ETA &middot; Vendor notes &middot;
+        Rejection history (reason, admin, previous tracking)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Delivery & Settlement</div>
+      <div class="card-desc">
+        Confirmation (who, type, when) &middot; Rating (1-5) &middot; Review text &middot;
+        Actual delivery date &middot; Squads proposal index &middot;
+        Financial split (97% vendor, 3% treasury) enforced on-chain
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Refund Data</div>
+      <div class="card-desc">
+        Cancel reason &middot; Refunded amount (full USDC) &middot;
+        Cancel/propose/execute timestamps &middot; Squads proposal index &middot;
+        Both parties notified automatically
+      </div>
+    </div>
+  </div>
+
+  <h2>Pool Data</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="card-title">Pool Configuration</div>
+      <div class="card-desc">
+        Asset reference &middot; Total shares &middot; Share price &middot; Target amount &middot;
+        Liquidity model (P2P/AMM/Hybrid) &middot; Bonding curve type &middot;
+        Min buy-in &middot; Max investors &middot; Source type (dealer/escrow conversion)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Investor Records</div>
+      <div class="card-desc">
+        Participants array (wallet, shares, investedUSD, ownershipPercent, date) &middot;
+        Shares sold &middot; Funds in escrow &middot; Investor count &middot; Auto-calculated ownership %
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tokenization (Bags)</div>
+      <div class="card-desc">
+        SPL token mint address &middot; Token status (pending/minted/unlocked) &middot;
+        Bonding curve active &middot; Current price &middot; Curve type (linear/exp/sqrt)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Custody Chain</div>
+      <div class="card-desc">
+        5-stage pipeline (pending &rarr; shipped &rarr; received &rarr; verified &rarr; stored) &middot;
+        Tracking carrier + number &middot; IPFS proof photos &middot;
+        Admin who verified &middot; All timestamps recorded
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Vendor Payment</div>
+      <div class="card-desc">
+        Payment amount (97% of target) &middot; Payment timestamp &middot;
+        On-chain tx signature &middot; Squads proposal reference
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Resale & Distribution</div>
+      <div class="card-desc">
+        Resale listing price &middot; Sold price &middot; Buyer wallet &middot;
+        Per-investor distributions (amount, profit, ROI) &middot;
+        Squads distribution proposal &middot; Royalty amount (3%)
+      </div>
+    </div>
+  </div>
+
+  <h2>Squads-Gated Actions</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>Action</th><th>System</th><th>What Happens On-Chain</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>initialize</td><td>Marketplace</td><td>Create escrow PDA, lock NFT in vault</td></tr>
+      <tr><td>confirm_delivery</td><td>Marketplace</td><td>Release USDC (97/3 split), transfer NFT to buyer</td></tr>
+      <tr><td>refund_buyer</td><td>Marketplace</td><td>Return full USDC to buyer, NFT to seller</td></tr>
+      <tr><td>pay_vendor</td><td>Pools</td><td>Send 97% of pool funds to vendor wallet</td></tr>
+      <tr><td>distribute</td><td>Pools</td><td>Split resale proceeds to all investors</td></tr>
+      <tr><td>update_config</td><td>Protocol</td><td>Change authority, treasury, fee, pause state</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== GAPS & PRIORITIES ==================== -->
+<div id="gaps" class="section">
+  <h1>Gaps & Priorities</h1>
+  <p class="subtitle">What works, what doesn't, and what to build next</p>
+
+  <h2>Marketplace (90% Complete)</h2>
+  <div class="split-box">
+    <div class="split-half complete">
+      <h4>COMPLETE</h4>
+      <ul>
+        <li>NFT minting + IPFS metadata</li>
+        <li>Escrow PDA creation via Squads</li>
+        <li>USDC-based pricing (fixed USD)</li>
+        <li>Jupiter SOL&rarr;USDC swap</li>
+        <li>BuyModal with token selector</li>
+        <li>Purchase recording + notifications</li>
+        <li>Shipment tracking (carrier + #)</li>
+        <li>Shipment proof (IPFS photos)</li>
+        <li>Admin verification of shipment</li>
+        <li>Buyer delivery confirmation</li>
+        <li>confirm_delivery (97/3 USDC)</li>
+        <li>refund_buyer (full USDC return)</li>
+        <li>Notification system (app + email)</li>
+        <li>Shipping address collection</li>
+      </ul>
+    </div>
+    <div class="split-half needs-work">
+      <h4>NEEDS WORK</h4>
+      <ul>
+        <li>Escrow timeout/auto-refund after N days</li>
+        <li>Dispute resolution UI</li>
+        <li>Tracking update webhooks</li>
+        <li>Offer mode UX polish</li>
+        <li>Transaction history page for buyers</li>
+        <li>EasyPost label integration</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Pools (40% Complete)</h2>
+  <div class="split-box">
+    <div class="split-half complete">
+      <h4>COMPLETE</h4>
+      <ul>
+        <li>Data model (240+ fields)</li>
+        <li>Pool creation API</li>
+        <li>Investment recording + auto-calc</li>
+        <li>Custody pipeline (5-stage)</li>
+        <li>Resale listing + ROI projection</li>
+        <li>Distribution math (per-investor)</li>
+        <li>Status state machine</li>
+        <li>Admin guards + role checks</li>
+        <li>Pool UI page with filters</li>
+        <li>SWR hooks for data fetching</li>
+      </ul>
+    </div>
+    <div class="split-half needs-work">
+      <h4>NEEDS WORK</h4>
+      <ul>
+        <li>Vendor payment doesn't execute on-chain</li>
+        <li>Distribution doesn't transfer USDC</li>
+        <li>Funds tracked in MongoDB only (no on-chain escrow)</li>
+        <li>Token minting falls back to mock</li>
+        <li>No resale buyer mechanism</li>
+        <li>Bonding curve not on-chain</li>
+        <li>No token burn post-distribution</li>
+        <li>No Squad DAO creation</li>
+        <li>No AMM liquidity pool</li>
+        <li>No Bags webhook sync</li>
+        <li>No investor claim/withdrawal UI</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Priority Ladder for Pools MVP</h2>
+  <div class="priority-ladder">
+    <div class="priority-item priority-p0">
+      <div class="priority-tag">P0 &mdash; BLOCKS MVP</div>
+      <div class="priority-title">Money Must Move</div>
+      <div class="priority-desc">
+        1. On-chain escrow for pool investments (hold USDC)<br>
+        2. Vendor payment execution (not just proposal creation)<br>
+        3. Distribution execution (actually pay investors)
+      </div>
+    </div>
+    <div class="priority-item priority-p1">
+      <div class="priority-tag">P1 &mdash; TOKEN FUNCTIONALITY</div>
+      <div class="priority-title">Tokens Must Exist</div>
+      <div class="priority-desc">
+        4. Real Bags token minting (not mock fallback)<br>
+        5. Token unlock after vendor payment<br>
+        6. Token burn after distribution
+      </div>
+    </div>
+    <div class="priority-item priority-p2">
+      <div class="priority-tag">P2 &mdash; EXIT MECHANISM</div>
+      <div class="priority-title">Assets Must Be Sellable</div>
+      <div class="priority-desc">
+        7. Resale buyer matching (marketplace or auction)<br>
+        8. Resale purchase flow (buyer pays, triggers distribution)
+      </div>
+    </div>
+    <div class="priority-item priority-p3">
+      <div class="priority-tag">P3 &mdash; SECONDARY MARKET</div>
+      <div class="priority-title">Trading Must Work</div>
+      <div class="priority-desc">
+        9. Bags bonding curve on-chain<br>
+        10. Secondary market trading UI<br>
+        11. Bags webhook sync for price updates
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
