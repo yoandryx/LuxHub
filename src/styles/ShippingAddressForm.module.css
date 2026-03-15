@@ -1,20 +1,47 @@
 /* ShippingAddressForm.module.css */
-/* Glassmorphic shipping address form matching LuxHub design */
+/* Chrome Glass shipping address form — LuxHub Design System */
 
 .container {
   --accent: #c8a1ff;
-  --accent-dim: #c8a1ff40;
-  --border: #333;
-  --bg-dark: #0d0d0d;
+  --accent-dim: rgba(200, 161, 255, 0.15);
+  --accent-glow: rgba(200, 161, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-focus: rgba(200, 161, 255, 0.35);
+  --bg-dark: #0a0a0c;
   --text-primary: #ffffff;
-  --text-secondary: #a1a1a1;
-  --error: #ff4d4f;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --error: #f87171;
+  --font: 'Clash Display', 'SF Pro Display', -apple-system, sans-serif;
 
-  background: linear-gradient(135deg, rgba(31, 31, 31, 0.9) 0%, rgba(19, 19, 19, 0.95) 100%);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
-  backdrop-filter: blur(20px);
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border: none;
+  border-radius: 14px;
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* Gradient border mask */
+.container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.25),
+    rgba(185, 145, 255, 0.04),
+    rgba(185, 145, 255, 0.25)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .container.compact {
@@ -22,40 +49,54 @@
 }
 
 .container.compact .header h3 {
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
+/* Header with gradient divider */
 .header {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.1), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: bottom;
 }
 
 .headerIcon {
   color: var(--accent);
-  font-size: 1.25rem;
+  font-size: 1.15rem;
 }
 
 .header h3 {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: linear-gradient(90deg, #dbc2ff, #fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
+/* Form layout */
 .form {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 @media (max-width: 480px) {
@@ -64,100 +105,139 @@
   }
 }
 
+/* Field */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .field label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  font-family: var(--font);
 }
 
 .fieldIcon {
-  font-size: 0.9rem;
-  opacity: 0.7;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  color: var(--accent);
 }
 
+/* Inputs, selects, textareas — dark glass */
 .field input,
 .field select,
 .field textarea {
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 11px 13px;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-family: var(--font);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
   outline: none;
-  border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  border-color: var(--border-focus);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.08);
 }
 
 .field input::placeholder,
 .field textarea::placeholder {
-  color: #666;
+  color: var(--text-muted);
 }
 
+/* Select dropdown styling */
 .field select {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a1a1a1' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c8a1ff' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
 }
 
 .field select option {
-  background: #1a1a1a;
+  background: #111114;
   color: var(--text-primary);
 }
 
 .field textarea {
   resize: vertical;
-  min-height: 60px;
+  min-height: 56px;
 }
 
+/* Error states */
 .inputError {
   border-color: var(--error) !important;
-  background: rgba(255, 77, 79, 0.05) !important;
+  background: rgba(248, 113, 113, 0.04) !important;
+}
+
+.inputError:focus {
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.1) !important;
 }
 
 .error {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--error);
-  margin-top: 2px;
+  margin-top: 1px;
+  font-family: var(--font);
 }
 
+/* Security note — subtle glass panel */
 .securityNote {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-top: 20px;
-  padding: 12px;
-  background: rgba(200, 161, 255, 0.05);
-  border: 1px solid var(--accent-dim);
-  border-radius: 8px;
-  font-size: 0.8rem;
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: rgba(200, 161, 255, 0.03);
+  border: none;
+  border-radius: 10px;
+  font-size: 0.75rem;
   color: var(--text-secondary);
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+.securityNote::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.15),
+    rgba(200, 161, 255, 0.03),
+    rgba(200, 161, 255, 0.15)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .securityNote svg {
   flex-shrink: 0;
   color: var(--accent);
-  margin-top: 2px;
+  margin-top: 1px;
+  font-size: 0.85rem;
 }
 
 /* Compact mode adjustments */
@@ -165,19 +245,24 @@
 .compact .field select,
 .compact .field textarea {
   padding: 10px 12px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .compact .row {
-  gap: 12px;
+  gap: 10px;
 }
 
 .compact .form {
-  gap: 12px;
+  gap: 10px;
+}
+
+.compact .header {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
 }
 
 .compact .securityNote {
   margin-top: 12px;
-  padding: 10px;
-  font-size: 0.75rem;
+  padding: 8px 10px;
+  font-size: 0.7rem;
 }
