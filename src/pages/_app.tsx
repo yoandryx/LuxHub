@@ -105,7 +105,13 @@ const App = ({ Component, pageProps }: AppProps) => {
   );
 
   const content = (
-    <ErrorBoundary FallbackComponent={Fallback}>
+    <ErrorBoundary
+      FallbackComponent={Fallback}
+      onError={(error, info) => {
+        console.error('[LuxHub] ErrorBoundary caught:', error);
+        console.error('[LuxHub] Component stack:', info?.componentStack);
+      }}
+    >
       <Head>
         <title>LuxHub</title>
         <link rel="icon" href="/images/purpleLGG.png" type="image/luxury-marketplace" />

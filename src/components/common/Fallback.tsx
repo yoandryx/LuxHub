@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styles from '../../styles/Fallback.module.css';
 
 const Fallback = ({
@@ -8,6 +8,11 @@ const Fallback = ({
   error: Error;
   resetErrorBoundary: () => void;
 }) => {
+  useEffect(() => {
+    console.error('[LuxHub] Fallback rendered due to error:', error?.message);
+    console.error('[LuxHub] Stack:', error?.stack);
+  }, [error]);
+
   return (
     <div className={styles.container}>
       <div className={styles.card}>
