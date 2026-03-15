@@ -1210,7 +1210,9 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1342,7 +1344,7 @@
 }
 
 /* ============================================
-   PURCHASE / OFFER MODAL STYLES
+   PURCHASE / OFFER MODAL — Chrome Glass
    ============================================ */
 .purchaseModal {
   position: relative;
@@ -1350,13 +1352,55 @@
   max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
-  background: linear-gradient(135deg, rgba(31, 31, 31, 0.98) 0%, rgba(19, 19, 19, 0.99) 100%);
-  border: 1px solid var(--border);
+  background: #0a0a0c;
+  border: none;
   border-radius: 20px;
   padding: 28px;
-  backdrop-filter: blur(40px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
+/* Gradient border mask */
+.purchaseModal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.55),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.55)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Top radial glow */
+.purchaseModal::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 20px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(185, 145, 255, 0.1) 0%,
+    rgba(185, 145, 255, 0) 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Close button — chrome glass circle */
 .modalCloseBtn {
   position: absolute;
   top: 16px;
@@ -1366,44 +1410,105 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 50%;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 3;
+  overflow: hidden;
+}
+
+.modalCloseBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.12)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .modalCloseBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
+  color: var(--accent);
+  background: rgba(200, 161, 255, 0.06);
 }
 
+.modalCloseBtn:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.4),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.4)
+  );
+}
+
+/* Header */
 .purchaseHeader {
+  position: relative;
+  z-index: 2;
   margin-bottom: 24px;
 }
 
 .purchaseHeader h2 {
-  font-size: 1.35rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .purchaseHeader p {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   margin: 0;
 }
 
+/* Item preview card — inner glass panel */
 .purchaseItem {
+  position: relative;
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: none;
+  border-radius: 14px;
   margin-bottom: 20px;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.purchaseItem::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.08)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .purchaseItemImage {
@@ -1443,12 +1548,13 @@
 }
 
 .priceLabel {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-secondary);
+  letter-spacing: 0.3px;
 }
 
 .priceUSD {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--accent);
 }
@@ -1458,20 +1564,27 @@
   color: var(--text-secondary);
 }
 
+/* Shipping section */
 .shippingSection {
+  position: relative;
+  z-index: 2;
   margin-bottom: 20px;
 }
 
+/* Offer input section */
 .offerInputSection {
+  position: relative;
+  z-index: 2;
   margin-bottom: 20px;
 }
 
 .offerInputSection label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  font-weight: 600;
   margin-bottom: 8px;
 }
 
@@ -1486,68 +1599,113 @@
   transform: translateY(-50%);
   color: var(--accent);
   font-size: 1.1rem;
+  z-index: 1;
 }
 
 .offerInputSection input {
   width: 100%;
   padding: 14px 14px 14px 42px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   color: var(--text-primary);
   font-size: 1.1rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
 }
 
 .offerInputSection input:focus {
   outline: none;
-  border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.15);
+  border-color: rgba(200, 161, 255, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.08);
 }
 
 .offerInputSection textarea {
   width: 100%;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   resize: vertical;
   min-height: 60px;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
 }
 
 .offerInputSection textarea:focus {
   outline: none;
-  border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(200, 161, 255, 0.35);
+  background: rgba(255, 255, 255, 0.05);
 }
 
+/* Action buttons row */
 .purchaseActions {
+  position: relative;
+  z-index: 2;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   margin-top: 20px;
+  padding-top: 16px;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.08), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: top;
 }
 
+/* Cancel — ghost button with gradient border */
 .cancelBtn {
+  position: relative;
   flex: 1;
-  padding: 14px 20px;
+  padding: 13px 20px;
   background: transparent;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 10px;
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
+  overflow: hidden;
+}
+
+.cancelBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.1)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .cancelBtn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cancelBtn:hover:not(:disabled)::before {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.18)
+  );
 }
 
 .cancelBtn:disabled {
@@ -1555,27 +1713,82 @@
   cursor: not-allowed;
 }
 
+/* Confirm Purchase — green gradient border + glow */
 .confirmPurchaseBtn {
+  position: relative;
   flex: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 20px;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(22, 163, 74, 0.4) 100%);
-  border: 1px solid rgba(34, 197, 94, 0.5);
+  padding: 13px 20px;
+  background: transparent;
+  border: none;
   border-radius: 10px;
-  color: #22c55e;
-  font-size: 0.95rem;
-  font-weight: 600;
+  color: #4ade80;
+  font-size: 0.88rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
+  overflow: hidden;
+}
+
+.confirmPurchaseBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(74, 222, 128, 0.5),
+    rgba(74, 222, 128, 0.1),
+    rgba(74, 222, 128, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.confirmPurchaseBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(74, 222, 128, 0.06) 0%,
+    rgba(74, 222, 128, 0) 70%
+  );
+  pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .confirmPurchaseBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.5) 0%, rgba(22, 163, 74, 0.6) 100%);
-  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
-  transform: translateY(-1px);
+  color: #86efac;
+  transform: translateY(-2px);
+}
+
+.confirmPurchaseBtn:hover:not(:disabled)::before {
+  background: linear-gradient(
+    135deg,
+    rgba(74, 222, 128, 0.7),
+    rgba(74, 222, 128, 0.2),
+    rgba(74, 222, 128, 0.7)
+  );
+}
+
+.confirmPurchaseBtn:hover:not(:disabled)::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(74, 222, 128, 0.12) 0%,
+    rgba(74, 222, 128, 0) 70%
+  );
 }
 
 .confirmPurchaseBtn:disabled {
@@ -1583,27 +1796,82 @@
   cursor: not-allowed;
 }
 
+/* Confirm Offer — purple gradient border + glow */
 .confirmOfferBtn {
+  position: relative;
   flex: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 20px;
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.25) 0%, rgba(155, 93, 229, 0.35) 100%);
-  border: 1px solid rgba(200, 161, 255, 0.5);
+  padding: 13px 20px;
+  background: transparent;
+  border: none;
   border-radius: 10px;
   color: var(--accent);
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
+  overflow: hidden;
+}
+
+.confirmOfferBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.5),
+    rgba(200, 161, 255, 0.1),
+    rgba(200, 161, 255, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.confirmOfferBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(200, 161, 255, 0.06) 0%,
+    rgba(200, 161, 255, 0) 70%
+  );
+  pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .confirmOfferBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(200, 161, 255, 0.4) 0%, rgba(155, 93, 229, 0.5) 100%);
-  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
-  transform: translateY(-1px);
+  color: #e0c4ff;
+  transform: translateY(-2px);
+}
+
+.confirmOfferBtn:hover:not(:disabled)::before {
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.7),
+    rgba(200, 161, 255, 0.2),
+    rgba(200, 161, 255, 0.7)
+  );
+}
+
+.confirmOfferBtn:hover:not(:disabled)::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(200, 161, 255, 0.12) 0%,
+    rgba(200, 161, 255, 0) 70%
+  );
 }
 
 .confirmOfferBtn:disabled {
@@ -1632,7 +1900,7 @@
   }
 
   .purchaseHeader h2 {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
   }
 
   .purchaseItem {
