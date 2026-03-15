@@ -5,12 +5,6 @@ if (!SECRET_KEY) {
   throw new Error('JWT_SECRET environment variable is required');
 }
 
-// Generate a token for admin
-export const generateAdminToken = () => {
-  const payload = { role: 'admin' };
-  return jwt.sign(payload, SECRET_KEY, { expiresIn: '24h' });
-};
-
 // Function to sign tokens
 export const signToken = (payload: object) => {
   return jwt.sign(payload, SECRET_KEY, { expiresIn: '7d' });
