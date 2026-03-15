@@ -1,6 +1,7 @@
 // src/pages/marketplace.tsx
 // LuxHub Premium Marketplace - Scalable Luxury Watch NFT Trading Platform
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import { createPortal } from 'react-dom';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -263,6 +264,188 @@ const MOCK_LISTINGS: EscrowListing[] = [
   },
 ];
 
+// ─── Onboarding Tour ─────────────────────────────────────────────
+interface TourStep {
+  target: string;
+  title: string;
+  description: string;
+  position: 'top' | 'bottom' | 'left' | 'right';
+}
+
+const MARKETPLACE_TOUR_STEPS: TourStep[] = [
+  {
+    target: 'vendor-slider',
+    title: 'Verified Dealers',
+    description:
+      'Browse our network of authenticated luxury watch dealers. Each vendor is manually verified before listing on LuxHub. Click any dealer to view their full collection and reputation.',
+    position: 'bottom',
+  },
+  {
+    target: 'section-tabs',
+    title: 'Browse by Category',
+    description:
+      'Direct Sales are individual listings you can buy outright or make offers on. Pools let you participate in tokenized group ownership. Custody shows watches currently held in secure storage awaiting resale.',
+    position: 'bottom',
+  },
+  {
+    target: 'search-bar',
+    title: 'Search & Discover',
+    description:
+      'Search by brand name, model, Solana mint address, or keywords. Results update instantly across all categories.',
+    position: 'bottom',
+  },
+  {
+    target: 'controls-area',
+    title: 'Sort, View & Filter',
+    description:
+      'Sort listings by price, date, or brand. Toggle between grid and list layouts. Open the filter panel to narrow by brand, price range, material, or condition.',
+    position: 'bottom',
+  },
+  {
+    target: 'nft-grid',
+    title: 'Marketplace Listings',
+    description:
+      'Each card shows the watch image, brand, price in SOL and USD, and vendor info. Click a card to view the full holographic detail card with specifications, provenance, and purchase options.',
+    position: 'top',
+  },
+];
+
+const MarketplaceTour: React.FC<{ onClose: () => void }> = memo(({ onClose }) => {
+  const [step, setStep] = useState(0);
+  const [rect, setRect] = useState<globalThis.DOMRect | null>(null);
+
+  useEffect(() => {
+    const target = document.querySelector(`[data-tour="${MARKETPLACE_TOUR_STEPS[step].target}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const timer = setTimeout(() => {
+        setRect(target.getBoundingClientRect());
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      setRect(null);
+    }
+  }, [step]);
+
+  useEffect(() => {
+    const update = () => {
+      const target = document.querySelector(`[data-tour="${MARKETPLACE_TOUR_STEPS[step].target}"]`);
+      if (target) setRect(target.getBoundingClientRect());
+    };
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [step]);
+
+  const handleNext = () => {
+    if (step < MARKETPLACE_TOUR_STEPS.length - 1) setStep(step + 1);
+    else handleDone();
+  };
+
+  const handleDone = () => {
+    localStorage.setItem('luxhub_marketplace_tour_seen', '1');
+    onClose();
+  };
+
+  const current = MARKETPLACE_TOUR_STEPS[step];
+  const pad = 8;
+
+  const tooltipStyle: React.CSSProperties = {};
+  if (rect) {
+    const pos = current.position;
+    if (pos === 'bottom') {
+      tooltipStyle.top = rect.bottom + pad + 12;
+      tooltipStyle.left = rect.left + rect.width / 2;
+      tooltipStyle.transform = 'translateX(-50%)';
+    } else if (pos === 'top') {
+      tooltipStyle.bottom = window.innerHeight - rect.top + pad + 12;
+      tooltipStyle.left = rect.left + rect.width / 2;
+      tooltipStyle.transform = 'translateX(-50%)';
+    } else if (pos === 'right') {
+      tooltipStyle.top = rect.top + rect.height / 2;
+      tooltipStyle.left = rect.right + pad + 12;
+      tooltipStyle.transform = 'translateY(-50%)';
+    } else {
+      tooltipStyle.top = rect.top + rect.height / 2;
+      tooltipStyle.right = window.innerWidth - rect.left + pad + 12;
+      tooltipStyle.transform = 'translateY(-50%)';
+    }
+  }
+
+  return createPortal(
+    <div className={styles.tourOverlay}>
+      <div
+        className={styles.tourBackdrop}
+        onClick={handleDone}
+        style={
+          rect
+            ? {
+                clipPath: `polygon(
+            0% 0%, 0% 100%, ${rect.left - pad}px 100%,
+            ${rect.left - pad}px ${rect.top - pad}px,
+            ${rect.right + pad}px ${rect.top - pad}px,
+            ${rect.right + pad}px ${rect.bottom + pad}px,
+            ${rect.left - pad}px ${rect.bottom + pad}px,
+            ${rect.left - pad}px 100%, 100% 100%, 100% 0%
+          )`,
+              }
+            : {}
+        }
+      />
+
+      {rect && (
+        <div
+          className={styles.tourSpotlight}
+          style={{
+            top: rect.top - pad,
+            left: rect.left - pad,
+            width: rect.width + pad * 2,
+            height: rect.height + pad * 2,
+          }}
+        />
+      )}
+
+      {rect && (
+        <div className={styles.tourTooltip} style={tooltipStyle}>
+          <div className={styles.tourTooltipHeader}>
+            <span className={styles.tourTooltipStep}>
+              {step + 1} of {MARKETPLACE_TOUR_STEPS.length}
+            </span>
+            <button className={styles.tourTooltipSkip} onClick={handleDone}>
+              Skip tour
+            </button>
+          </div>
+          <h3 className={styles.tourTooltipTitle}>{current.title}</h3>
+          <p className={styles.tourTooltipDesc}>{current.description}</p>
+          <div className={styles.tourTooltipActions}>
+            {step > 0 && (
+              <button className={styles.tourBtnBack} onClick={() => setStep(step - 1)}>
+                Back
+              </button>
+            )}
+            <button className={styles.tourBtnNext} onClick={handleNext}>
+              {step === MARKETPLACE_TOUR_STEPS.length - 1 ? 'Get Started' : 'Next'}
+            </button>
+          </div>
+          <div className={styles.tourDots}>
+            {MARKETPLACE_TOUR_STEPS.map((_, i) => (
+              <span
+                key={i}
+                className={`${styles.tourDot} ${i === step ? styles.tourDotActive : ''} ${i < step ? styles.tourDotDone : ''}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+});
+MarketplaceTour.displayName = 'MarketplaceTour';
+
 // Marketplace Page Component
 export default function Marketplace() {
   const wallet = useWallet();
@@ -277,6 +460,13 @@ export default function Marketplace() {
   const { pools: openPools, isLoading: isLoadingPools } = usePools('open');
   const { pools: listedPools, isLoading: isLoadingCustody } = usePools('listed');
   const { price: solPrice } = useSolPrice();
+
+  // Tour state
+  const [showTour, setShowTour] = useState(false);
+  useEffect(() => {
+    const seen = localStorage.getItem('luxhub_marketplace_tour_seen');
+    if (!seen) setShowTour(true);
+  }, []);
 
   // View state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -624,7 +814,7 @@ export default function Marketplace() {
         {/* Main Content */}
         <main className={styles.main}>
           {/* Vendor Slider */}
-          <div className={styles.vendorSliderContainer}>
+          <div className={styles.vendorSliderContainer} data-tour="vendor-slider">
             <div className={styles.vendorSliderHeader}>
               <span className={styles.vendorSliderLabel}>Dealers</span>
               <Link href="/vendors" className={styles.viewAllLink}>
@@ -649,7 +839,7 @@ export default function Marketplace() {
           </div>
 
           {/* Section Tabs */}
-          <div className={styles.sectionTabs}>
+          <div className={styles.sectionTabs} data-tour="section-tabs">
             <button
               className={`${styles.sectionTab} ${activeSection === 'direct_sales' ? styles.activeTab : ''}`}
               onClick={() => setActiveSection('direct_sales')}
@@ -679,7 +869,7 @@ export default function Marketplace() {
           {/* Top Bar */}
           <div className={styles.topBar}>
             {/* Search */}
-            <div className={styles.searchWrapper}>
+            <div className={styles.searchWrapper} data-tour="search-bar">
               <HiOutlineSearch className={styles.searchIcon} />
               <input
                 type="text"
@@ -696,7 +886,7 @@ export default function Marketplace() {
             </div>
 
             {/* Controls */}
-            <div className={styles.controls}>
+            <div className={styles.controls} data-tour="controls-area">
               {/* Sort Dropdown */}
               <div className={styles.sortWrapper}>
                 <select
@@ -765,7 +955,7 @@ export default function Marketplace() {
             )}
 
             {/* Main Grid */}
-            <div className={styles.gridArea}>
+            <div className={styles.gridArea} data-tour="nft-grid">
               {/* Active Filters Display */}
               {activeFilterCount > 0 && (
                 <div className={styles.activeFilters}>
@@ -1299,6 +1489,25 @@ export default function Marketplace() {
               setShowOfferModal(false);
             }}
           />
+        )}
+
+        {/* Onboarding Tour */}
+        {showTour && typeof document !== 'undefined' && (
+          <MarketplaceTour onClose={() => setShowTour(false)} />
+        )}
+
+        {/* Retake tour button */}
+        {!showTour && (
+          <button
+            className={styles.retakeTourBtn}
+            onClick={() => {
+              localStorage.removeItem('luxhub_marketplace_tour_seen');
+              setShowTour(true);
+            }}
+            title="Take the guided tour"
+          >
+            ?
+          </button>
         )}
 
         {/* Buy Modal */}

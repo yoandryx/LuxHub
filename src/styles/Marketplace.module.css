@@ -3513,3 +3513,374 @@
     background-position: 200% 0;
   }
 }
+
+/* ===== ONBOARDING TOUR — Chrome Glass ===== */
+.tourOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+.tourBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  pointer-events: auto;
+  transition: clip-path 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tourSpotlight {
+  position: fixed;
+  border: none;
+  border-radius: 14px;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: tourSpotlightPulse 3s ease-in-out infinite;
+  overflow: visible;
+}
+
+.tourSpotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.6),
+    rgba(200, 161, 255, 0.1),
+    rgba(200, 161, 255, 0.6)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.tourSpotlight::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 18px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(200, 161, 255, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+@keyframes tourSpotlightPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 24px rgba(200, 161, 255, 0.06),
+      0 0 60px rgba(200, 161, 255, 0.03);
+  }
+  50% {
+    box-shadow:
+      0 0 32px rgba(200, 161, 255, 0.12),
+      0 0 80px rgba(200, 161, 255, 0.06);
+  }
+}
+
+.tourTooltip {
+  position: fixed;
+  width: 340px;
+  background: #0a0a0c;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
+  border-radius: 16px;
+  padding: 22px 24px;
+  pointer-events: auto;
+  z-index: 100000;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    0 8px 32px rgba(0, 0, 0, 0.35);
+  animation: tourTooltipIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
+}
+
+.tourTooltip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.55),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.55)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tourTooltip::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 16px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(185, 145, 255, 0.1) 0%,
+    rgba(185, 145, 255, 0) 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes tourTooltipIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.tourTooltipHeader {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tourTooltipStep {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 3px 8px;
+  background: rgba(200, 161, 255, 0.08);
+  border-radius: 6px;
+  border: 1px solid rgba(200, 161, 255, 0.12);
+}
+
+.tourTooltipSkip {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
+}
+
+.tourTooltipSkip:hover {
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tourTooltipTitle {
+  position: relative;
+  z-index: 3;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tourTooltipDesc {
+  position: relative;
+  z-index: 3;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+
+.tourTooltipActions {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.tourBtnBack {
+  position: relative;
+  padding: 8px 18px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
+  overflow: hidden;
+}
+
+.tourBtnBack::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.12)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.tourBtnBack:hover {
+  color: #fff;
+  background: rgba(185, 145, 255, 0.06);
+}
+
+.tourBtnBack:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.4),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.4)
+  );
+}
+
+.tourBtnNext {
+  padding: 8px 22px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 50%, #9333ea 100%);
+  background-size: 200% auto;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0a0a0c;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.25);
+}
+
+.tourBtnNext:hover {
+  background-position: right center;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(200, 161, 255, 0.4);
+}
+
+.tourDots {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.tourDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(200, 161, 255, 0.12);
+  transition: all 0.3s;
+}
+
+.tourDotActive {
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(200, 161, 255, 0.5);
+  width: 20px;
+  border-radius: 3px;
+}
+
+.tourDotDone {
+  background: rgba(200, 161, 255, 0.4);
+}
+
+/* Retake tour button — chrome glass, stacked with floating components */
+.retakeTourBtn {
+  position: fixed;
+  bottom: 108px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #0a0a0c;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 9996;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  font-family: var(--font, 'Clash Display', -apple-system, sans-serif);
+  overflow: visible;
+}
+
+.retakeTourBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.55),
+    rgba(185, 145, 255, 0.12),
+    rgba(185, 145, 255, 0.55)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.retakeTourBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 50%, rgba(185, 145, 255, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.retakeTourBtn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(200, 161, 255, 0.12);
+}
+
+.retakeTourBtn:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.75),
+    rgba(185, 145, 255, 0.2),
+    rgba(185, 145, 255, 0.75)
+  );
+}
