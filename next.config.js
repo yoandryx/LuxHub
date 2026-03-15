@@ -1,5 +1,6 @@
 // next.config.js (ES Modules)
 
+import { withSentryConfig } from '@sentry/nextjs';
 import { createRequire } from 'module';
 import bundleAnalyzer from '@next/bundle-analyzer';
 
@@ -74,4 +75,18 @@ const nextConfig = {
   },
 };
 
-export default withBundleAnalyzer(nextConfig);
+export default withSentryConfig(withBundleAnalyzer(nextConfig), {
+  // Suppress source map upload warnings when no auth token is set
+  silent: true,
+
+  // Upload source maps for readable stack traces in Sentry
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Hide source maps from users
+  hideSourceMaps: true,
+
+  // Disable Sentry webpack plugin when no DSN (local dev)
+  disableServerWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
+  disableClientWebpackPlugin: !process.env.NEXT_PUBLIC_SENTRY_DSN,
+});

@@ -44,6 +44,7 @@
     "@react-three/drei": "^10.0.7",
     "@react-three/fiber": "^9.0.4",
     "@react-three/postprocessing": "^3.0.4",
+    "@sentry/nextjs": "^10.43.0",
     "@solana-program/memo": "^0.10.0",
     "@solana-program/system": "^0.10.0",
     "@solana-program/token": "^0.9.0",
