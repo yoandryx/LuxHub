@@ -14,6 +14,9 @@ export interface IDelistRequest extends Document {
   reviewedBy?: string;
   reviewedAt?: Date;
   reviewNotes?: string;
+  hasActiveEscrow: boolean;
+  relatedEscrowId?: Schema.Types.ObjectId;
+  escrowActionTaken: 'none' | 'cancelled' | 'refunded';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +47,9 @@ const DelistRequestSchema = new Schema(
     reviewedBy: { type: String },
     reviewedAt: { type: Date },
     reviewNotes: { type: String },
+    hasActiveEscrow: { type: Boolean, default: false },
+    relatedEscrowId: { type: Schema.Types.ObjectId, ref: 'Escrow' },
+    escrowActionTaken: { type: String, enum: ['none', 'cancelled', 'refunded'], default: 'none' },
   },
   { timestamps: true }
 );

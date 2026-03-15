@@ -34,7 +34,7 @@ const MintRequestSchema = new mongoose.Schema(
 
     // Legacy field support (maps to priceUSD for old data)
     priceSol: { type: Number },
-    // Legacy field support (maps to referenceNumber)
+    // Internal tracking — physical serial number, never goes on-chain
     serialNumber: { type: String },
 
     // Admin fields
