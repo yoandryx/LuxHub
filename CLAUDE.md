@@ -312,7 +312,7 @@ Detailed documentation is organized in `.claude/docs/`:
 |---------|--------|-------------|
 | **Squads Protocol** | Active | Multisig treasury/pool vaults for institutional-grade security |
 | **Backpack (Bags API)** | Planned | Wallet linking, session management, xNFT support |
-| **Helius** | Active | RPC infrastructure, enhanced Solana APIs |
+| **Helius** | Active | RPC infrastructure, DAS API (asset indexing), webhooks |
 | **Pinata** | Active | IPFS gateway for NFT metadata and asset storage |
 
 ## Squads Protocol Integration
@@ -387,20 +387,110 @@ const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: 0 });
 - [x] Analytics dashboard models (Global, User, Vendor)
 - [x] JWT authentication with bcrypt
 - [x] 6-agent automation system
+- [x] Squads Protocol multisig integration (proposal, execute, sync, status APIs)
+- [x] Pool distribution mechanics (AMM liquidity, custody upload, resale purchase, refund, Squad DAO graduation)
+- [x] Production deployment optimizations (cache headers, next/image, ISR, bundle analyzer)
+- [x] Public user profiles with real on-chain NFT holdings via Helius DAS API
+- [x] Helius DAS API integration (asset indexing, token holders, NFT metadata)
+- [x] On-chain transaction verification for all fund-moving endpoints
+- [x] Buyer dispute/refund system with 7-day SLA
+- [x] Escrow timeout enforcement (auto-cancel, overdue flags, dispute escalation)
+- [x] Unified wallet connection (Privy + wallet adapter fallback)
+- [x] Compact user menu dropdown with role-based navigation
 
-### In Progress
-- [x] Squads Protocol multisig integration (proposal, execute, sync, status APIs complete)
+### Deferred
+- [ ] Enhanced vendor KYC flow (direct vendor relationships for now)
 - [ ] Backpack Bags API wallet sessions
-- [ ] Enhanced vendor KYC flow
-- [ ] Pool distribution mechanics
-- [ ] Production deployment optimizations
+
+## Security Architecture
+
+### Fund Protection
+| Layer | Protection | Implementation |
+|-------|-----------|----------------|
+| **On-chain escrow** | Funds held in PDA, not LuxHub wallets | Anchor program (`lib.rs`) |
+| **Multisig treasury** | All fund movements require Squads multisig approval | `squadsTransferService.ts` |
+| **TX verification** | On-chain payment verified before MongoDB update | `txVerification.ts` — applied to purchase, invest, buy-resale |
+| **Escrow timeouts** | Auto-cancel if vendor doesn't ship in 14 days | `enforce-timeouts.ts` |
+| **Dispute system** | Buyer-initiated disputes with 7-day SLA | `dispute.ts` |
+| **Wallet auth** | Signature verification middleware available | `walletAuth.ts` |
+| **PII encryption** | AES-256-GCM for sensitive vendor data | `encryption.ts` |
+| **Rate limiting** | Strict limits on purchase endpoints | `rateLimit.ts` |
+
+### Transaction Verification Flow
+```
+Buyer clicks "BUY" → Wallet signs on-chain tx → txSignature returned
+  → POST /api/escrow/purchase with txSignature
+  → Server calls verifyTransactionForWallet(txSignature, buyerWallet)
+  → Checks: tx exists on Solana? Confirmed? Wallet is signer?
+  → ✅ Verified → Update MongoDB (escrow status = "funded")
+  → ❌ Failed → Reject with error, MongoDB unchanged
+```
+
+### Escrow Lifecycle Protection
+```
+Listed → Buyer purchases (TX verified) → Funded
+  → Vendor ships → Shipped
+  → Buyer confirms delivery → Delivered → Funds released via Squads
+
+  Timeout protections:
+  → 14 days funded, no shipment → Auto-cancelled, buyer refunded
+  → 30 days shipped, no delivery → Flagged for admin review
+  → Buyer disputes → 7-day SLA → Admin resolves or auto-escalate
+```
+
+### User Capabilities by Role
+
+**Buyers:**
+- Browse marketplace and pools
+- Purchase NFTs (on-chain escrow)
+- Make offers on listings
+- Track orders and shipping
+- View on-chain NFT holdings (DAS API)
+- Dispute orders and request refunds
+- Public profile with NFT portfolio
+
+**Vendors:**
+- Onboard with 3-step wizard
+- Manage inventory and listings
+- Fulfill orders with shipping tracking
+- Track payouts and earnings
+- Delist items (via admin-approved requests)
+- Public vendor profile with collection display
+
+**Admins:**
+- Approve/reject vendors
+- Manage escrows (confirm delivery, refund)
+- Execute Squads multisig proposals
+- Freeze/burn NFTs
+- Resolve buyer disputes
+- Enforce escrow timeouts
+- Platform configuration
+- Mint NFTs directly
+
+## Helius DAS API Integration
+
+LuxHub uses Helius DAS (Digital Asset Standard) for real-time on-chain asset data:
+
+| Service | File | Purpose |
+|---------|------|---------|
+| `getAssetsByOwner` | `dasApi.ts` | User profile — shows ALL NFTs a wallet holds on Solana |
+| `getAsset` | `dasApi.ts` | NFT metadata in 1 call (replaces Metaplex + IPFS chain) |
+| `getTokenHolders` | `dasApi.ts` | Pool distribution — get token holders for SPL mints |
+| `searchAssets` | `dasApi.ts` | Advanced asset search by collection, creator, type |
+| Webhooks | `webhooks/helius.ts` | Real-time NFT transfer, sale, mint, burn events |
+
+**Key files:**
+- `src/lib/services/dasApi.ts` — DAS service with typed wrappers
+- `src/lib/services/txVerification.ts` — On-chain TX verification
+- `src/lib/services/heliusService.ts` — Legacy token holder queries (DAS fallback)
+- `src/pages/api/webhooks/helius.ts` — Webhook handler for real-time events
 
 ## Current Sprint Goals
 
-1. **Stabilize Vercel Deployment** - Ensure all TypeScript errors resolved
-2. **Complete Squads Integration** - Treasury vault with multisig approval
-3. **Refine Escrow Flow** - Optimize gas costs and UX
-4. **Launch Vendor Beta** - Onboard first verified luxury vendors
+1. **Security hardening** — TX verification, dispute system, timeout enforcement
+2. **Helius DAS integration** — Real on-chain data for profiles and metadata
+3. **UI/UX polish** — Compact navigation, consistent styling, mobile optimization
+4. **Launch prep** — Vendor onboarding, marketplace refinement
 
 ## Roadmap
 
@@ -410,13 +500,13 @@ const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: 0 });
 - Basic vendor/buyer flows
 - MongoDB data layer
 
-### Phase 2: MVP Prep (Current)
-- Partnership integrations (Squads, Bags)
-- Enhanced security (multisig vaults)
+### Phase 2: MVP Prep (Completed)
+- Partnership integrations (Squads, Bags, Helius DAS)
+- Security hardening (TX verification, disputes, timeouts)
 - Production-ready UI/UX
 - Vendor verification system
 
-### Phase 3: Launch
+### Phase 3: Launch (Current)
 - Mainnet deployment
 - First vendor onboarding
 - Marketing and community building

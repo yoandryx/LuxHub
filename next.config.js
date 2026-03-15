@@ -1,7 +1,13 @@
 // next.config.js (ES Modules)
 
 import { createRequire } from 'module';
+import bundleAnalyzer from '@next/bundle-analyzer';
+
 const require = createRequire(import.meta.url);
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 const nextConfig = {
   reactStrictMode: true,
@@ -68,4 +74,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
