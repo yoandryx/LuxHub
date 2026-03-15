@@ -116,7 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             metadata: {
               escrowId: escrow._id.toString(),
               escrowPda: escrow.escrowPda,
-              actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io'}/orders`,
+              actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/orders`,
             },
           });
         }

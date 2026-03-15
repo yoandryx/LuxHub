@@ -305,7 +305,7 @@ async function sendEmail(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'LuxHub <notifications@luxhub.io>',
+        from: process.env.RESEND_FROM_EMAIL || 'LuxHub <notifications@luxhub.gold>',
         to: [to],
         subject,
         html,
@@ -456,7 +456,7 @@ export async function notifyNewOrder(params: {
   amountUSD: number;
 }) {
   const { vendorWallet, escrowId, escrowPda, assetTitle, amountUSD } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: vendorWallet,
@@ -493,7 +493,7 @@ export async function notifyOrderShipped(params: {
     trackingCarrier,
     trackingUrl,
   } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: buyerWallet,
@@ -521,7 +521,7 @@ export async function notifyShipmentProofSubmitted(params: {
   assetTitle: string;
 }) {
   const { adminWallets, escrowId, escrowPda, assetTitle } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   const results = await Promise.all(
     adminWallets.map((adminWallet) =>
@@ -552,7 +552,7 @@ export async function notifyShipmentVerified(params: {
   assetTitle: string;
 }) {
   const { vendorWallet, escrowId, escrowPda, assetTitle } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: vendorWallet,
@@ -578,7 +578,7 @@ export async function notifyShipmentRejected(params: {
   reason: string;
 }) {
   const { vendorWallet, escrowId, escrowPda, assetTitle, reason } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: vendorWallet,
@@ -604,7 +604,7 @@ export async function notifyDeliveryConfirmed(params: {
   assetTitle: string;
 }) {
   const { buyerWallet, vendorWallet, escrowId, escrowPda, assetTitle } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   // Notify buyer
   await notifyUser({
@@ -645,7 +645,7 @@ export async function notifyOfferReceived(params: {
   offerAmountUSD: number;
 }) {
   const { vendorWallet, offerId, escrowId, assetTitle, offerAmountUSD } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: vendorWallet,
@@ -673,7 +673,7 @@ export async function notifyOfferAccepted(params: {
   acceptedAmountUSD: number;
 }) {
   const { buyerWallet, offerId, escrowId, escrowPda, assetTitle, acceptedAmountUSD } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: buyerWallet,
@@ -701,7 +701,7 @@ export async function notifyOfferRejected(params: {
   reason?: string;
 }) {
   const { buyerWallet, offerId, escrowId, assetTitle, reason } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: buyerWallet,
@@ -730,7 +730,7 @@ export async function notifyOfferCountered(params: {
   counterAmountUSD: number;
 }) {
   const { buyerWallet, offerId, escrowId, escrowPda, assetTitle, counterAmountUSD } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: buyerWallet,
@@ -757,7 +757,7 @@ export async function notifyVendorApplicationResult(params: {
   reason?: string;
 }) {
   const { vendorWallet, approved, vendorName, reason } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   const result = await notifyUser({
     userWallet: vendorWallet,
@@ -803,7 +803,7 @@ export async function notifyOrderRefunded(params: {
   reason?: string;
 }) {
   const { buyerWallet, vendorWallet, escrowId, escrowPda, assetTitle, amountUSD, reason } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   // Notify buyer
   await notifyUser({
@@ -845,7 +845,7 @@ export async function notifyNewVendorApplication(params: {
   primaryCategory?: string;
 }) {
   const { vendorName, vendorWallet, vendorUsername, businessType, primaryCategory } = params;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   // Get admin wallets from env
   const adminWallets = (process.env.ADMIN_WALLETS || '')

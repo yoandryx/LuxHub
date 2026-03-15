@@ -108,7 +108,7 @@ export const createMetadata = (
     symbol: 'LUXHUB',
     description,
     image: finalImageUrl,
-    external_url: 'https://luxhub.io',
+    external_url: process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold',
     seller_fee_basis_points: 500,
     attributes,
     properties: {
@@ -151,7 +151,7 @@ export const createMetadata = (
       vault_address: verification.vaultAddress || walletAddress,
       minted_by: verification.mintedBy || walletAddress,
       minted_at: new Date().toISOString(),
-      verification_url: `https://luxhub.io/verify?mint=`, // Mint address appended at runtime
+      verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/verify?mint=`,
     };
   }
 

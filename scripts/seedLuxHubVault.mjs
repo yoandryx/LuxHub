@@ -89,8 +89,8 @@ async function seedLuxHubVault() {
       bio: 'Official LuxHub vault for verified luxury asset NFTs. All NFTs minted here are authenticity-verified by the LuxHub team.',
       walletAddress: process.env.NEXT_PUBLIC_LUXHUB_WALLET || '',
       socials: {
-        twitter: 'https://twitter.com/luxhub',
-        website: 'https://luxhub.io',
+        twitter: 'https://x.com/LuxHubStudio',
+        website: 'https://luxhub.gold',
       },
       verified: true,
       isOfficial: true,

@@ -200,7 +200,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           escrowId: updatedEscrow._id.toString(),
           escrowPda: updatedEscrow.escrowPda,
           amountUSD: updatedEscrow.listingPriceUSD,
-          actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io'}/orders`,
+          actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/orders`,
         },
       });
     } catch (notifyError) {

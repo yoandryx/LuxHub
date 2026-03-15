@@ -26,7 +26,7 @@ export const TEST_ADDRESSES = {
     zip: '94104',
     country: 'US',
     phone: '415-528-7555',
-    email: 'shipping@luxhub.io',
+    email: process.env.RESEND_FROM_EMAIL || 'shipping@luxhub.gold',
   },
   recipient: {
     name: 'Test Buyer',

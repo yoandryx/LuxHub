@@ -59,13 +59,14 @@ const App = ({ Component, pageProps }: AppProps) => {
       new RemoteSolanaMobileWalletAdapter({
         appIdentity: {
           name: 'LuxHub',
-          uri: 'https://luxhub-gamma.vercel.app',
-          icon: 'https://luxhub-gamma.vercel.app/purpleLGG.png',
+          uri: process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold',
+          icon: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/images/purpleLGG.png`,
         },
         addressSelector: createDefaultAddressSelector(),
         authorizationResultCache: createDefaultAuthorizationResultCache(),
         chain: 'devnet',
-        remoteHostAuthority: 'luxhub-gamma.vercel.app',
+        remoteHostAuthority: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold')
+          .hostname,
         onWalletNotFound: createDefaultWalletNotFoundHandler(),
       }),
       new PhantomWalletAdapter(),

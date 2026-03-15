@@ -93,8 +93,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         symbol: finalTokenSymbol,
         description: `Fractional ownership of authenticated ${assetModel}. Pool ID: ${poolId}`,
         image: assetImage,
-        twitter: 'https://twitter.com/LuxHubMarket',
-        website: 'https://luxhub.market',
+        twitter: 'https://x.com/LuxHubStudio',
+        website: process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold',
         // Additional metadata
         attributes: [
           { trait_type: 'Pool ID', value: poolId },

@@ -216,7 +216,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       symbol: 'LUXHUB',
       description: mintRequest.description || `${mintRequest.brand} ${mintRequest.model}`,
       image: imageUrl,
-      external_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io'}/nft/`,
+      external_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/nft/`,
       attributes: [
         { trait_type: 'Brand', value: mintRequest.brand },
         { trait_type: 'Model', value: mintRequest.model },
