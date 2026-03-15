@@ -46,6 +46,11 @@ export function resolveImageUrl(idOrUrl: string | undefined | null): string {
     return trimmed;
   }
 
+  // Base64 data URI (from file upload previews)
+  if (trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+
   // Local path
   if (trimmed.startsWith('/')) {
     return trimmed;

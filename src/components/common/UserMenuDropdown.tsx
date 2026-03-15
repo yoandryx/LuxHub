@@ -1,5 +1,6 @@
-// src/components/common/UserMenuDropdown.tsx - Refined user profile dropdown
+// src/components/common/UserMenuDropdown.tsx - Compact user menu dropdown
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
+import Link from 'next/link';
 import {
   FaWallet,
   FaCopy,
@@ -7,15 +8,24 @@ import {
   FaSignOutAlt,
   FaChevronDown,
   FaExternalLinkAlt,
-  FaCreditCard,
+  FaGem,
+  FaChartLine,
+  FaUsers,
+  FaShoppingBag,
+  FaUser,
+  FaStore,
+  FaPlus,
+  FaUserShield,
+  FaClock,
+  FaCog,
 } from 'react-icons/fa';
 import { SiSolana } from 'react-icons/si';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { useUserRole, UserRole } from '@/hooks/useUserRole';
-import RoleNavItems from './RoleNavItems';
 import styles from '@/styles/UserMenuDropdown.module.css';
 
 const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? 'https://api.devnet.solana.com';
@@ -27,33 +37,16 @@ interface UserMenuDropdownProps {
   className?: string;
 }
 
-// Role badge component
+// Role badge
 const RoleBadge = memo(function RoleBadge({ role }: { role: UserRole }) {
   if (role === 'browser') return null;
-
   const labels: Record<UserRole, string> = {
     admin: 'Admin',
     vendor: 'Vendor',
     user: 'User',
     browser: '',
   };
-
   return <span className={`${styles.roleBadge} ${styles[role]}`}>{labels[role]}</span>;
-});
-
-// Avatar component
-const Avatar = memo(function Avatar({
-  src,
-  large = false,
-}: {
-  src?: string | null;
-  large?: boolean;
-}) {
-  return (
-    <div className={`${styles.avatar} ${large ? styles.avatarLarge : ''}`}>
-      {src ? <img src={src} alt="Profile" /> : <FaWallet className={styles.avatarFallback} />}
-    </div>
-  );
 });
 
 function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
@@ -63,121 +56,125 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
   const [isClient, setIsClient] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Hooks
   const { logout } = usePrivy();
   const { disconnect } = useWallet();
   const { connection } = useConnection();
-  const { role, isConnected, walletAddress, displayAddress, vendorProfile, isLoading } =
-    useUserRole();
+  const { role, isConnected, walletAddress, displayAddress, vendorProfile } = useUserRole();
 
-  // Client-side rendering check
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   // Fetch balance when dropdown opens
   useEffect(() => {
-    const fetchBalance = async () => {
-      if (!walletAddress || !isOpen) return;
-
+    if (!walletAddress || !isOpen) return;
+    (async () => {
       try {
-        const publicKey = await import('@solana/web3.js').then(
-          ({ PublicKey }) => new PublicKey(walletAddress)
-        );
-        const bal = await connection.getBalance(publicKey);
+        const { PublicKey } = await import('@solana/web3.js');
+        const bal = await connection.getBalance(new PublicKey(walletAddress));
         setBalance(bal / LAMPORTS_PER_SOL);
-      } catch (err) {
-        console.error('Failed to fetch balance:', err);
+      } catch {
         setBalance(null);
       }
-    };
-
-    fetchBalance();
+    })();
   }, [walletAddress, isOpen, connection]);
 
-  // Close dropdown when clicking outside
+  // Click outside to close
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsOpen(false);
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Toggle dropdown
-  const handleToggle = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
-
-  // Copy address to clipboard
-  const handleCopyAddress = useCallback(async () => {
+  const handleCopy = useCallback(async () => {
     if (!walletAddress) return;
-
-    try {
-      await navigator.clipboard.writeText(walletAddress);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy address:', err);
-    }
+    await navigator.clipboard.writeText(walletAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }, [walletAddress]);
 
-  // Open explorer
-  const handleExplorer = useCallback(() => {
-    if (!walletAddress) return;
-    window.open(`${explorerUrl}${walletAddress}?cluster=devnet`, '_blank', 'noopener,noreferrer');
-  }, [walletAddress]);
-
-  // Open fund page
-  const handleFund = useCallback(() => {
-    window.open('https://buy.moonpay.com/?defaultCurrencyCode=sol', '_blank');
-  }, []);
-
-  // Disconnect wallet
   const handleDisconnect = useCallback(async () => {
-    try {
-      await disconnect();
-      await logout();
-      setIsOpen(false);
-    } catch (err) {
-      console.error('Failed to disconnect:', err);
-    }
+    await disconnect().catch(() => {});
+    await logout().catch(() => {});
+    setIsOpen(false);
   }, [disconnect, logout]);
 
-  // Close dropdown on navigation
-  const handleNavClick = useCallback(() => {
-    setIsOpen(false);
-  }, []);
+  const close = useCallback(() => setIsOpen(false), []);
 
-  // Handle connect (Privy login)
-  const { login } = usePrivy();
+  const { login, ready: privyReady } = usePrivy();
+  const { setVisible: setWalletModalVisible } = useWalletModal();
+
   const handleConnect = useCallback(() => {
-    login();
-  }, [login]);
+    if (process.env.NEXT_PUBLIC_PRIVY_APP_ID && privyReady) login();
+    else setWalletModalVisible(true);
+  }, [login, privyReady, setWalletModalVisible]);
 
-  if (!isClient) {
-    return null;
-  }
+  if (!isClient) return null;
 
   const displayName = vendorProfile?.username
     ? `@${vendorProfile.username}`
     : vendorProfile?.name || displayAddress;
 
+  // Build nav items based on role
+  const navItems: { href: string; label: string; icon: React.ReactNode; roles: UserRole[] }[] = [
+    {
+      href: '/marketplace',
+      label: 'Marketplace',
+      icon: <FaGem />,
+      roles: ['user', 'vendor', 'admin'],
+    },
+    { href: '/pools', label: 'Pools', icon: <FaChartLine />, roles: ['user', 'vendor', 'admin'] },
+    { href: '/vendors', label: 'Vendors', icon: <FaUsers />, roles: ['user', 'vendor', 'admin'] },
+    {
+      href: `/user/${walletAddress}`,
+      label: 'My Profile',
+      icon: <FaUser />,
+      roles: ['user', 'vendor', 'admin'],
+    },
+    {
+      href: '/my-orders',
+      label: 'My Orders',
+      icon: <FaShoppingBag />,
+      roles: ['user', 'vendor', 'admin'],
+    },
+    { href: '/settings', label: 'Settings', icon: <FaCog />, roles: ['user', 'vendor', 'admin'] },
+    {
+      href: '/vendor/vendorDashboard',
+      label: 'Vendor Dashboard',
+      icon: <FaStore />,
+      roles: ['vendor', 'admin'],
+    },
+    {
+      href: '/vendor/vendorDashboard?tab=inventory',
+      label: 'Add Listing',
+      icon: <FaPlus />,
+      roles: ['vendor', 'admin'],
+    },
+    { href: '/adminDashboard', label: 'Admin Panel', icon: <FaUserShield />, roles: ['admin'] },
+    { href: '/createNFT', label: 'Mint NFT', icon: <FaClock />, roles: ['admin'] },
+  ];
+
+  const visibleItems = navItems.filter((item) => item.roles.includes(role));
+
   return (
     <div ref={dropdownRef} className={`${styles.container} ${className}`}>
-      {/* Trigger Button */}
+      {/* Trigger */}
       <button
         className={`${styles.trigger} ${isOpen ? styles.open : ''}`}
-        onClick={handleToggle}
+        onClick={() => setIsOpen((p) => !p)}
         aria-expanded={isOpen}
-        aria-haspopup="true"
       >
         {isConnected ? (
           <>
-            <Avatar src={vendorProfile?.avatarUrl} />
+            <div className={styles.avatar}>
+              <img
+                src={vendorProfile?.avatarUrl || '/images/purpleLGG.png'}
+                alt=""
+                style={!vendorProfile?.avatarUrl ? { padding: '3px' } : undefined}
+              />
+            </div>
             <span className={styles.addressText}>{displayAddress}</span>
             <FaChevronDown className={`${styles.chevron} ${isOpen ? styles.open : ''}`} />
           </>
@@ -189,74 +186,85 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
         )}
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown */}
       {isOpen && (
         <div className={styles.dropdown} role="menu">
           {isConnected ? (
             <>
-              {/* Identity Header */}
+              {/* Header: avatar + name + balance + wallet inline */}
               <div className={styles.identityHeader}>
                 <div className={styles.identityRow}>
-                  <Avatar src={vendorProfile?.avatarUrl} large />
+                  <div className={`${styles.avatar} ${styles.avatarLarge}`}>
+                    <img
+                      src={vendorProfile?.avatarUrl || '/images/purpleLGG.png'}
+                      alt=""
+                      style={!vendorProfile?.avatarUrl ? { padding: '4px' } : undefined}
+                    />
+                  </div>
                   <div className={styles.identityInfo}>
                     <span className={styles.username}>{displayName}</span>
-                    <RoleBadge role={role} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <RoleBadge role={role} />
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          color: 'rgba(255,255,255,0.4)',
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        {displayAddress}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Wallet + Balance Section */}
-              <div className={styles.walletPanel}>
-                <div className={styles.balanceRow}>
+                {/* Balance + wallet tools inline */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: '12px',
+                  }}
+                >
                   <div className={styles.balanceDisplay}>
                     <SiSolana className={styles.solIcon} />
                     <span className={styles.balance}>
-                      {balance !== null ? balance.toFixed(4) : '—'}
+                      {balance !== null ? balance.toFixed(3) : '—'}
                     </span>
                     <span className={styles.balanceLabel}>SOL</span>
                   </div>
-                </div>
-                <div className={styles.walletAddressRow}>
-                  <span className={styles.walletAddress}>{walletAddress}</span>
-                </div>
-                <div className={styles.walletTools}>
-                  <button
-                    className={`${styles.toolButton} ${copied ? styles.copied : ''}`}
-                    onClick={handleCopyAddress}
-                    title="Copy address"
-                  >
-                    {copied ? <FaCheck /> : <FaCopy />}
-                    <span>{copied ? 'Copied' : 'Copy'}</span>
-                  </button>
-                  <button
-                    className={styles.toolButton}
-                    onClick={handleExplorer}
-                    title="View on Explorer"
-                  >
-                    <FaExternalLinkAlt />
-                    <span>Explorer</span>
-                  </button>
-                  <button className={styles.toolButton} onClick={handleFund} title="Buy SOL">
-                    <FaCreditCard />
-                    <span>Fund</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      className={`${styles.toolButton} ${copied ? styles.copied : ''}`}
+                      onClick={handleCopy}
+                      title="Copy address"
+                    >
+                      {copied ? <FaCheck /> : <FaCopy />}
+                    </button>
+                    <button
+                      className={styles.toolButton}
+                      onClick={() =>
+                        window.open(`${explorerUrl}${walletAddress}?cluster=devnet`, '_blank')
+                      }
+                      title="Explorer"
+                    >
+                      <FaExternalLinkAlt />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Navigation Section */}
-              {isLoading ? (
-                <div className={styles.loading}>
-                  <div className={styles.spinner} />
-                </div>
-              ) : (
-                <RoleNavItems
-                  role={role}
-                  walletAddress={walletAddress}
-                  onItemClick={handleNavClick}
-                />
-              )}
+              {/* Navigation — compact list */}
+              <nav className={styles.navSection}>
+                {visibleItems.map((item) => (
+                  <Link key={item.href} href={item.href} className={styles.navItem} onClick={close}>
+                    <span className={styles.navIcon}>{item.icon}</span>
+                    <span className={styles.navLabel}>{item.label}</span>
+                  </Link>
+                ))}
+              </nav>
 
-              {/* Disconnect Button */}
+              {/* Sign Out */}
               <div className={styles.disconnectSection}>
                 <button className={styles.disconnectButton} onClick={handleDisconnect}>
                   <FaSignOutAlt />
@@ -265,13 +273,14 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
               </div>
             </>
           ) : (
-            /* Connect CTA */
             <div className={styles.connectCta}>
               <div className={styles.connectIcon}>
-                <FaWallet />
+                <img src="/images/purpleLGG.png" alt="LuxHub" style={{ width: 28, height: 28 }} />
               </div>
-              <p className={styles.connectTitle}>Connect Wallet</p>
-              <p className={styles.connectText}>Access orders, investments, and your collection.</p>
+              <p className={styles.connectTitle}>Welcome to LuxHub</p>
+              <p className={styles.connectText}>
+                Connect your wallet to browse, buy, and invest in luxury assets.
+              </p>
               <button className={styles.connectButton} onClick={handleConnect}>
                 <FaWallet />
                 <span>Connect Wallet</span>

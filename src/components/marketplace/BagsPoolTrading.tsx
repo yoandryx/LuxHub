@@ -1,6 +1,7 @@
 // src/components/marketplace/BagsPoolTrading.tsx
 // Secondary market trading for pool shares via Bags API
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, VersionedTransaction } from '@solana/web3.js';
 import styles from '../../styles/BagsPoolTrading.module.css';
@@ -22,6 +23,7 @@ interface Pool {
   liquidityModel?: string; // p2p, amm, hybrid
   ammEnabled?: boolean;
   ammLiquidityPercent?: number;
+  windDownStatus?: string;
 }
 
 interface TradeQuote {
@@ -190,7 +192,13 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.bagsLogo}>
-            <img src="/images/bags-icon.png" alt="Bags" className={styles.bagsIcon} />
+            <Image
+              src="/images/bags-icon.png"
+              alt="Bags"
+              width={20}
+              height={20}
+              className={styles.bagsIcon}
+            />
             <span>Powered by Bags</span>
           </div>
           <h3>Secondary Market Trading</h3>
@@ -210,7 +218,13 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.bagsLogo}>
-            <img src="/images/bags-icon.png" alt="Bags" className={styles.bagsIcon} />
+            <Image
+              src="/images/bags-icon.png"
+              alt="Bags"
+              width={20}
+              height={20}
+              className={styles.bagsIcon}
+            />
             <span>Powered by Bags</span>
           </div>
           <h3>Secondary Market Trading</h3>
@@ -269,13 +283,30 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
     );
   }
 
+  // Wind-down: trading disabled after snapshot
+  if (['snapshot_taken', 'distributing', 'completed'].includes(pool.windDownStatus || '')) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.tradingDisabled}>
+          <p>Trading is closed. This pool is in the wind-down process.</p>
+        </div>
+      </div>
+    );
+  }
+
   // Token frozen or burned
   if (tokenStatus === 'frozen' || tokenStatus === 'burned') {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.bagsLogo}>
-            <img src="/images/bags-icon.png" alt="Bags" className={styles.bagsIcon} />
+            <Image
+              src="/images/bags-icon.png"
+              alt="Bags"
+              width={20}
+              height={20}
+              className={styles.bagsIcon}
+            />
             <span>Powered by Bags</span>
           </div>
           <h3>Secondary Market Trading</h3>
@@ -298,7 +329,13 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
       {/* Header with Bags branding */}
       <div className={styles.header}>
         <div className={styles.bagsLogo}>
-          <img src="/images/bags-icon.png" alt="Bags" className={styles.bagsIcon} />
+          <Image
+            src="/images/bags-icon.png"
+            alt="Bags"
+            width={20}
+            height={20}
+            className={styles.bagsIcon}
+          />
           <span>Powered by Bags</span>
         </div>
         <h3>Trade Pool Shares</h3>
@@ -316,6 +353,13 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
           )}
         </div>
       </div>
+
+      {/* Wind-Down Notice */}
+      {pool.windDownStatus === 'announced' && (
+        <div className={styles.windDownNotice}>
+          This pool is winding down. Trading will close after the snapshot deadline.
+        </div>
+      )}
 
       {/* Trade Type Tabs */}
       <div className={styles.tabs}>
@@ -472,7 +516,13 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
       <div className={styles.attribution}>
         <span>Trading powered by</span>
         <a href="https://bags.fm" target="_blank" rel="noopener noreferrer">
-          <img src="/images/bags-logo.svg" alt="Bags" className={styles.bagsLogoFull} />
+          <Image
+            src="/images/bags-logo.svg"
+            alt="Bags"
+            width={64}
+            height={20}
+            className={styles.bagsLogoFull}
+          />
         </a>
       </div>
     </div>

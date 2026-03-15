@@ -1,4 +1,5 @@
 import React, { memo, useMemo } from 'react';
+import Image from 'next/image';
 import { FiTrendingUp, FiUsers, FiClock } from 'react-icons/fi';
 import styles from '../../styles/PoolCard.module.css';
 
@@ -9,6 +10,7 @@ const POOL_STATUS_MAP: Record<string, { label: string; color: string; glow: stri
   custody: { label: 'In Custody', color: '#f472b6', glow: 'rgba(244, 114, 182, 0.3)' },
   active: { label: 'Active', color: '#a78bfa', glow: 'rgba(167, 139, 250, 0.3)' },
   graduated: { label: 'Graduated', color: '#c8a1ff', glow: 'rgba(200, 161, 255, 0.3)' },
+  winding_down: { label: 'Winding Down', color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.3)' },
   listed: { label: 'Listed', color: '#fb923c', glow: 'rgba(251, 146, 60, 0.3)' },
   sold: { label: 'Sold', color: '#4ade80', glow: 'rgba(74, 222, 128, 0.3)' },
   distributed: { label: 'Distributed', color: '#94a3b8', glow: 'rgba(148, 163, 184, 0.2)' },
@@ -99,8 +101,16 @@ const PoolCard: React.FC<PoolCardProps> = memo(({ pool, onClick }) => {
       <div className={styles.shine} />
 
       {/* Image Section */}
-      <div className={styles.imageWrap}>
-        <img src={assetImage} alt={assetModel} className={styles.image} loading="lazy" />
+      <div className={styles.imageWrap} style={{ position: 'relative' }}>
+        <Image
+          src={assetImage}
+          alt={assetModel}
+          className={styles.image}
+          fill
+          sizes="(max-width: 768px) 100vw, 400px"
+          style={{ objectFit: 'cover' }}
+          unoptimized
+        />
         <div className={styles.imageOverlay} />
 
         {/* Status Badge */}

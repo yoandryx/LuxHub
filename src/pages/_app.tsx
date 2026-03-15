@@ -30,6 +30,7 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import '@solana/wallet-adapter-react-ui/styles.css';
 // Consolidated to single toast library (react-hot-toast) - saves ~5KB
 import LuxuryAssistant from '../components/user/LuxuryAssistant';
+import VendorFab from '../components/vendor/VendorFab';
 import { Toaster } from 'react-hot-toast';
 import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
 import { PrivyProvider } from '@privy-io/react-auth';
@@ -94,6 +95,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
             {usePrivyWallet ? <WalletNavbar /> : <WalletNavbarSimple />}
             <Component {...pageProps} />
+            <VendorFab />
             <LuxuryAssistant />
             <Footer />
           </WalletModalProvider>

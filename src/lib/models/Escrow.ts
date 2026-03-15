@@ -130,6 +130,31 @@ const EscrowSchema = new Schema(
     expiresAt: Date,
     deleted: { type: Boolean, default: false },
 
+    // ========== DISPUTE RESOLUTION ==========
+    dispute: {
+      status: {
+        type: String,
+        enum: ['open', 'under_review', 'resolved', 'escalated'],
+      },
+      reason: {
+        type: String,
+        enum: ['not_received', 'wrong_item', 'damaged', 'counterfeit', 'other'],
+      },
+      description: String,
+      evidenceUrls: [String],
+      buyerWallet: String,
+      createdAt: Date,
+      slaDeadline: Date,
+      resolution: {
+        type: String,
+        enum: ['refund', 'release_to_vendor', 'partial_refund'],
+      },
+      partialRefundPercent: Number,
+      resolvedAt: Date,
+      resolvedBy: String, // Admin wallet
+      adminNotes: String,
+    },
+
     // ========== SQUADS PROTOCOL MULTISIG ==========
     squadsTransactionIndex: { type: String, index: true }, // Squads vault transaction index
     squadsExecutionSignature: String, // Transaction signature after Squads execution

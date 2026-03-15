@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -62,8 +63,8 @@ const features = [
   },
   {
     icon: HiCube,
-    title: 'Fractional Ownership',
-    desc: 'Own shares of premium watches from $500',
+    title: 'Tokenized Pools',
+    desc: 'Participate in premium watch pools from $500',
   },
   {
     icon: FaChartLine,
@@ -269,16 +270,6 @@ export default function IndexTest() {
         <section className={styles.heroSection}>
           {/* Centered hero text content */}
           <div className={styles.heroContent}>
-            <motion.div
-              className={styles.heroBadge}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <SiSolana />
-              <span>Powered by Solana</span>
-            </motion.div>
-
             <motion.h1
               className={styles.heroTitle}
               initial={{ opacity: 0, y: 30 }}
@@ -298,8 +289,8 @@ export default function IndexTest() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
-              NFT-backed luxury timepieces with verified provenance, secure escrow, and fractional
-              ownership.
+              NFT-backed luxury timepieces with verified provenance, secure escrow, and tokenized
+              asset pools.
             </motion.p>
 
             <motion.div
@@ -308,7 +299,7 @@ export default function IndexTest() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
             >
-              <Link href="/watchMarket" className={styles.primaryBtn}>
+              <Link href="/marketplace" className={styles.primaryBtn}>
                 Explore Marketplace
                 <FaArrowRight />
               </Link>
@@ -325,8 +316,8 @@ export default function IndexTest() {
               transition={{ duration: 0.8, delay: 0.7 }}
             >
               <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>Full or Fractional</span>
-                <span className={styles.heroStatLabel}>Ownership</span>
+                <span className={styles.heroStatValue}>Direct or Pooled</span>
+                <span className={styles.heroStatLabel}>Access</span>
               </div>
               <div className={styles.heroStatDivider} />
               <div className={styles.heroStat}>
@@ -345,10 +336,6 @@ export default function IndexTest() {
               </div>
             </motion.div>
           </div>
-
-          <div className={styles.scrollIndicator}>
-            <span />
-          </div>
         </section>
 
         {/* ===== FEATURED LISTINGS - Infinite Slider ===== */}
@@ -358,7 +345,7 @@ export default function IndexTest() {
               <span className={styles.sectionBadge}>Marketplace</span>
               <h2 className={styles.sectionTitle}>Featured Listings</h2>
             </div>
-            <Link href="/watchMarket" className={styles.viewAllLink}>
+            <Link href="/marketplace" className={styles.viewAllLink}>
               View All <FaArrowRight />
             </Link>
           </div>
@@ -439,9 +426,9 @@ export default function IndexTest() {
             viewport={{ once: true }}
           >
             <h2>Start Your Collection</h2>
-            <p>Join the future of authenticated luxury asset ownership on Solana.</p>
+            <p>Join the future of authenticated luxury assets on Solana.</p>
             <div className={styles.ctaButtons}>
-              <Link href="/watchMarket" className={styles.primaryBtn}>
+              <Link href="/marketplace" className={styles.primaryBtn}>
                 Browse Marketplace
                 <FaArrowRight />
               </Link>
@@ -491,16 +478,16 @@ export default function IndexTest() {
             <span className={styles.poweredLabel}>Powered by</span>
             <div className={styles.partnerLogos}>
               <a href="https://squads.xyz" target="_blank" rel="noopener noreferrer">
-                <img src="/images/Squads Logomark White.svg" alt="Squads" />
+                <Image src="/images/Squads-logo.png" alt="Squads" width={40} height={40} />
               </a>
               <a href="https://helius.dev" target="_blank" rel="noopener noreferrer">
-                <img src="/images/helius-logo.svg" alt="Helius" />
+                <Image src="/images/helius-logo.svg" alt="Helius" width={40} height={40} />
               </a>
               <a href="https://www.metaplex.com" target="_blank" rel="noopener noreferrer">
-                <img src="/images/metaplex-logo.svg" alt="Metaplex" />
+                <Image src="/images/metaplex-logo.svg" alt="Metaplex" width={40} height={40} />
               </a>
               <a href="https://www.privy.io" target="_blank" rel="noopener noreferrer">
-                <img src="/images/Privy_Brandmark_White.png" alt="Privy" />
+                <Image src="/images/Privy_Brandmark_White.png" alt="Privy" width={40} height={40} />
               </a>
             </div>
           </div>
@@ -568,4 +555,9 @@ export default function IndexTest() {
       )}
     </div>
   );
+}
+
+// ISR: pre-render homepage at edge, revalidate every 60s
+export async function getStaticProps() {
+  return { props: {}, revalidate: 60 };
 }

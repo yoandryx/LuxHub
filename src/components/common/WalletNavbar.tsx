@@ -583,217 +583,110 @@ export default function WalletNavbar() {
 
         {isConnected && hasWallet ? (
           <>
-            {/* Account Info Section */}
+            {/* Identity + Balance — compact header */}
             <div className={styles.section}>
-              {vendorProfile ? (
-                <div className={styles.vendorProfileSection}>
-                  <div className={styles.vendorProfileHeader}>
-                    {vendorProfile.avatarUrl ? (
-                      <img
-                        src={vendorProfile.avatarUrl}
-                        alt={vendorProfile.username}
-                        className={styles.vendorAvatar}
-                      />
-                    ) : (
-                      <div className={styles.vendorAvatarPlaceholder}>
-                        <FaUser />
-                      </div>
-                    )}
-                    <div className={styles.vendorInfo}>
-                      <span className={styles.vendorName}>
-                        {vendorProfile.name}
-                        {vendorProfile.verified && (
-                          <FaCircleCheck className={styles.verifiedBadge} />
-                        )}
-                      </span>
-                      <span className={styles.vendorUsername}>@{vendorProfile.username}</span>
-                    </div>
+              <div className={styles.vendorProfileSection}>
+                <div className={styles.vendorProfileHeader}>
+                  {vendorProfile?.avatarUrl ? (
+                    <img src={vendorProfile.avatarUrl} alt="" className={styles.vendorAvatar} />
+                  ) : (
+                    <img
+                      src="/images/purpleLGG.png"
+                      alt="LuxHub"
+                      className={styles.vendorAvatar}
+                      style={{ padding: '4px' }}
+                    />
+                  )}
+                  <div className={styles.vendorInfo}>
+                    <span className={styles.vendorName}>
+                      {vendorProfile?.name ||
+                        `${activePublicKey!.toBase58().slice(0, 4)}...${activePublicKey!.toBase58().slice(-4)}`}
+                      {vendorProfile?.verified && (
+                        <FaCircleCheck className={styles.verifiedBadge} />
+                      )}
+                    </span>
+                    <span className={styles.vendorUsername}>
+                      {vendorProfile ? `@${vendorProfile.username}` : getWalletType()}
+                    </span>
                   </div>
                 </div>
-              ) : user?.email ? (
-                <div className={styles.infoRow}>
-                  <FaEnvelope className={styles.infoIcon} />
-                  <span className={styles.emailText}>{user.email.address}</span>
-                </div>
-              ) : null}
-              <div className={styles.infoRow}>
-                <span className={styles.label}>Wallet ({getWalletType()})</span>
-                <span className={styles.address} onClick={handleCopy}>
-                  {activePublicKey!.toBase58().slice(0, 6)}...
-                  {activePublicKey!.toBase58().slice(-4)}
-                  <FaCopy className={styles.copyIcon} />
-                  {copied && <span className={styles.copied}>Copied</span>}
-                </span>
               </div>
 
-              {/* Show all linked wallets toggle */}
-              {allLinkedWallets.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowAllWallets(!showAllWallets);
-                  }}
-                  className={styles.showWalletsBtn}
-                >
-                  <FaLink />
-                  {showAllWallets ? 'Hide' : 'Show'} all wallets ({allLinkedWallets.length})
-                </button>
-              )}
-
-              {/* All linked wallets list */}
-              {showAllWallets && allLinkedWallets.length > 0 && (
-                <div className={styles.linkedWalletsList}>
-                  {allLinkedWallets.map((wallet, idx) => (
-                    <div
-                      key={wallet.address}
-                      className={`${styles.linkedWalletItem} ${
-                        activePublicKey?.toBase58() === wallet.address ? styles.activeWallet : ''
-                      }`}
-                      onClick={() => {
-                        navigator.clipboard.writeText(wallet.address);
-                        toast.success('Address copied!');
-                      }}
-                    >
-                      <div className={styles.walletItemLeft}>
-                        {wallet.isPrimary && (
-                          <FaStar className={styles.primaryStar} title="Primary" />
-                        )}
-                        <span className={styles.walletTypeTag}>
-                          {wallet.type === 'embedded' ? '🔐' : '🔗'}
-                          {wallet.type}
-                        </span>
-                      </div>
-                      <span className={styles.walletItemAddress}>
-                        {wallet.address.slice(0, 4)}...{wallet.address.slice(-4)}
-                      </span>
-                      {wallet.walletClient && wallet.walletClient !== 'privy_embedded' && (
-                        <span className={styles.walletClientTag}>{wallet.walletClient}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Balance Section */}
-            <div className={styles.section}>
-              <div className={styles.infoRow}>
-                <span className={styles.label}>Balance</span>
-                <span className={styles.balance}>
-                  <SiSolana /> {balance !== null ? formatPrice(balance) : '—'}
-                </span>
-              </div>
-              {balance === 0 && (
-                <div className={styles.zeroBalanceHint}>
-                  Add funds to start collecting luxury items
-                </div>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleDisplay();
+              {/* Balance + wallet tools inline */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: '8px',
                 }}
-                className={styles.toggleBtn}
               >
-                Show in {displayInUSD ? 'SOL' : 'USD'}
-              </button>
+                <span className={styles.balance}>
+                  <SiSolana style={{ fontSize: '12px', opacity: 0.7 }} />{' '}
+                  {balance !== null ? formatPrice(balance) : '—'}
+                </span>
+                <div className={styles.actionRow}>
+                  <button onClick={handleCopy} className={styles.smallBtn} title="Copy address">
+                    {copied ? <FaCircleCheck style={{ color: '#4ade80' }} /> : <FaCopy />}
+                  </button>
+                  <button onClick={handleExplorer} className={styles.smallBtn} title="Explorer">
+                    <FaArrowUpRightFromSquare />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDisplay();
+                    }}
+                    className={styles.smallBtn}
+                    title={`Show in ${displayInUSD ? 'SOL' : 'USD'}`}
+                  >
+                    <SiSolana />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Wallet Tools */}
+            {/* Navigation — same items as UserMenuDropdown */}
             <div className={styles.section}>
-              <div className={styles.sectionTitle}>Wallet Tools</div>
-              <div className={styles.actionRow}>
-                <button onClick={handleCopy} className={styles.smallBtn} title="Copy address">
-                  <FaCopy />
+              <div className={styles.menuList}>
+                <button onClick={() => navigateTo('/marketplace')} className={styles.menuItem}>
+                  <FaBoxesStacked /> Marketplace
+                </button>
+                <button onClick={() => navigateTo('/pools')} className={styles.menuItem}>
+                  <FaChartLine /> Pools
                 </button>
                 <button
-                  onClick={handleExplorer}
-                  className={styles.smallBtn}
-                  title="View on Explorer"
+                  onClick={() => navigateTo(`/user/${activePublicKey!.toBase58()}`)}
+                  className={styles.menuItem}
                 >
-                  <FaArrowUpRightFromSquare />
+                  <FaUser /> My Profile
                 </button>
-                <button onClick={handleFund} className={styles.smallBtn} title="Fund with card">
-                  <FaCreditCard />
+                <button onClick={() => navigateTo('/my-orders')} className={styles.menuItem}>
+                  <FaClipboardList /> My Orders
                 </button>
-              </div>
-            </div>
 
-            {/* Role-Based Menu */}
-            <div className={styles.section}>
-              <div className={styles.sectionTitle}>
-                {role === 'admin' && (
+                {(role === 'vendor' || role === 'admin') && (
                   <>
-                    <FaShieldHalved className={styles.roleIcon} /> Admin
-                  </>
-                )}
-                {role === 'vendor' && (
-                  <>
-                    <FaStore className={styles.roleIcon} /> Vendor
-                  </>
-                )}
-                {role === 'user' && (
-                  <>
-                    <FaUser className={styles.roleIcon} /> My Account
-                  </>
-                )}
-              </div>
-
-              <div className={styles.menuList}>
-                {/* Regular User Menu */}
-                {role === 'user' && (
-                  <>
+                    <div className={styles.sectionTitle} style={{ marginTop: '4px' }}>
+                      <FaStore className={styles.roleIcon} /> Vendor
+                    </div>
                     <button
-                      onClick={() => navigateTo('/watchMarket?owned=true')}
-                      className={styles.menuItem}
-                    >
-                      <FaBoxesStacked /> My Collection
-                    </button>
-                    <button onClick={() => navigateTo('/pools')} className={styles.menuItem}>
-                      <FaChartLine /> My Investments
-                    </button>
-                    <button onClick={() => navigateTo('/orders')} className={styles.menuItem}>
-                      <FaClipboardList /> Active Orders
-                    </button>
-                    <button onClick={() => navigateTo('/profile')} className={styles.menuItem}>
-                      <FaUser /> Profile
-                    </button>
-                  </>
-                )}
-
-                {/* Vendor Menu */}
-                {role === 'vendor' && (
-                  <>
-                    <button
-                      onClick={() => navigateTo('/sellerDashboard')}
+                      onClick={() => navigateTo(`/vendor/${activePublicKey!.toBase58()}`)}
                       className={styles.menuItem}
                     >
                       <FaStore /> Vendor Dashboard
                     </button>
-                    <button
-                      onClick={() => navigateTo('/sellerDashboard?tab=inventory')}
-                      className={styles.menuItem}
-                    >
-                      <FaBoxOpen /> Add New Item
-                    </button>
-                    <button
-                      onClick={() => navigateTo('/sellerDashboard?tab=orders')}
-                      className={styles.menuItem}
-                    >
-                      <FaClipboardList /> Active Orders
-                    </button>
-                    <button
-                      onClick={() => navigateTo('/sellerDashboard?tab=payouts')}
-                      className={styles.menuItem}
-                    >
-                      <FaMoneyBillTrendUp /> Earnings
+                    <button onClick={() => navigateTo('/requestMint')} className={styles.menuItem}>
+                      <FaBoxOpen /> Request Listing
                     </button>
                   </>
                 )}
 
-                {/* Admin Menu */}
                 {role === 'admin' && (
                   <>
+                    <div className={styles.sectionTitle} style={{ marginTop: '4px' }}>
+                      <FaShieldHalved className={styles.roleIcon} /> Admin
+                    </div>
                     <button
                       onClick={() => navigateTo('/adminDashboard')}
                       className={styles.menuItem}
@@ -803,31 +696,12 @@ export default function WalletNavbar() {
                     <button onClick={() => navigateTo('/createNFT')} className={styles.menuItem}>
                       <FaWandMagicSparkles /> Mint NFT
                     </button>
-                    <button
-                      onClick={() => navigateTo('/adminDashboard?tab=requests')}
-                      className={styles.menuItem}
-                    >
-                      <FaCircleCheck /> Pending Approvals
-                    </button>
-                    <button
-                      onClick={() => navigateTo('/adminDashboard?tab=escrow')}
-                      className={styles.menuItem}
-                    >
-                      <FaBoxesStacked /> Escrow Management
-                    </button>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Link Additional Wallet (for Privy users) */}
-            {authenticated && privySolanaWallets.length < 2 && (
-              <button onClick={handleLinkWallet} className={styles.actionBtn}>
-                Add External Wallet
-              </button>
-            )}
-
-            {/* Disconnect Button */}
+            {/* Disconnect */}
             <button
               onClick={(e) => {
                 e.stopPropagation();

@@ -81,7 +81,7 @@ const statusConfig: Record<NFTStatus, { label: string; icon: React.ReactNode; cl
     verified: { label: 'Verified', icon: <LuBadgeCheck />, className: styles.badgeVerified },
     pending: { label: 'Pending', icon: <FaClock />, className: styles.badgePending },
     escrow: { label: 'In Escrow', icon: <FaLock />, className: styles.badgeEscrow },
-    listed: { label: 'Listed', icon: <FaShoppingCart />, className: styles.badgeListed },
+    listed: { label: 'Listed', icon: <LuBadgeCheck />, className: styles.badgeListed },
     sold: { label: 'Sold', icon: <FaCheck />, className: styles.badgeSold },
     pooled: { label: 'Pooled', icon: <LuSparkles />, className: styles.badgePooled },
     burned: { label: 'Burned', icon: <FaFire />, className: styles.badgeBurned },
@@ -244,10 +244,14 @@ const UnifiedNFTCard = memo(
           {showPrice && price !== undefined && (
             <div className={styles.priceRow}>
               <div className={styles.priceTag}>
-                <span className={styles.priceValue}>{price.toFixed(2)}</span>
-                <span className={styles.priceLabel}>{priceLabel}</span>
+                <span className={styles.priceValue}>
+                  {priceLabel === 'USD' || priceLabel === 'usd'
+                    ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                    : price.toFixed(2)}
+                </span>
+                <span className={styles.priceLabel}>{priceLabel === 'USD' ? '' : priceLabel}</span>
               </div>
-              {priceUSD !== undefined && (
+              {priceUSD !== undefined && priceLabel !== 'USD' && priceLabel !== 'usd' && (
                 <span className={styles.priceUSD}>${priceUSD.toLocaleString()}</span>
               )}
             </div>
@@ -275,7 +279,7 @@ const UnifiedNFTCard = memo(
                     onQuickBuy();
                   }}
                 >
-                  Buy Now
+                  BUY
                 </button>
               )}
             </div>

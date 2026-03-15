@@ -218,23 +218,30 @@ export async function buildMultiTransferProposal(
 }
 
 /**
- * Fetch top token holders for a given SPL mint using Helius DAS API.
+ * Fetch top token holders for a given SPL mint.
+ * Uses Helius DAS getTokenAccounts (1 call) with fallback to standard RPC (N+1 calls).
  * Returns wallets sorted by balance descending.
  */
 export async function getTopTokenHolders(
   tokenMint: string,
   limit: number = 100
 ): Promise<{ wallet: string; balance: number; ownershipPercent: number }[]> {
+  // Try DAS API first (single call, much faster)
+  try {
+    const { getTokenHolders } = await import('./dasApi');
+    return await getTokenHolders(tokenMint, limit);
+  } catch (dasError) {
+    console.warn('[getTopTokenHolders] DAS API failed, falling back to standard RPC:', dasError);
+  }
+
+  // Fallback: standard Solana RPC (N+1 calls)
   const rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
   if (!rpc) throw new Error('NEXT_PUBLIC_SOLANA_ENDPOINT not configured');
 
   const connection = new Connection(rpc, 'confirmed');
-
-  // Use getTokenLargestAccounts (standard Solana RPC, works on all providers)
   const mintPk = new PublicKey(tokenMint);
   const largestAccounts = await connection.getTokenLargestAccounts(mintPk);
 
-  // Resolve owner wallets for each token account
   const holders: { wallet: string; balance: number }[] = [];
   const accountInfos = await connection.getMultipleAccountsInfo(
     largestAccounts.value.map((a) => a.address)
@@ -242,24 +249,15 @@ export async function getTopTokenHolders(
 
   for (let i = 0; i < largestAccounts.value.length && holders.length < limit; i++) {
     const accountInfo = accountInfos[i];
-    const tokenAmount = largestAccounts.value[i].amount;
     const uiAmount = largestAccounts.value[i].uiAmount ?? 0;
 
     if (!accountInfo || uiAmount === 0) continue;
-
-    // Validate this is a valid SPL token account (165 bytes, owned by Token Program)
     if (accountInfo.data.length !== 165 || !accountInfo.owner.equals(TOKEN_PROGRAM_ID)) continue;
 
-    // Parse owner from SPL token account data (bytes 32-64)
     const owner = new PublicKey(accountInfo.data.slice(32, 64));
-
-    holders.push({
-      wallet: owner.toBase58(),
-      balance: uiAmount,
-    });
+    holders.push({ wallet: owner.toBase58(), balance: uiAmount });
   }
 
-  // Calculate total for ownership percentages
   const totalBalance = holders.reduce((sum, h) => sum + h.balance, 0);
 
   return holders.map((h) => ({

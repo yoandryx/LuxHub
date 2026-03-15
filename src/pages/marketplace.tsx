@@ -538,10 +538,7 @@ export default function Marketplace() {
       ...vendors.filter((v) => !verifiedVendors.some((vv) => vv.wallet === v.wallet)),
     ];
     return allVendors.filter(
-      (v) =>
-        v.name?.toLowerCase().includes(query) ||
-        v.username?.toLowerCase().includes(query) ||
-        v.businessName?.toLowerCase().includes(query)
+      (v) => v.name?.toLowerCase().includes(query) || v.username?.toLowerCase().includes(query)
     );
   }, [vendors, verifiedVendors, searchQuery]);
 
@@ -629,11 +626,9 @@ export default function Marketplace() {
           {/* Vendor Slider */}
           <div className={styles.vendorSliderContainer}>
             <div className={styles.vendorSliderHeader}>
-              <h2 className={styles.vendorSliderTitle}>
-                <FaStore /> LuxHub Dealers
-              </h2>
+              <span className={styles.vendorSliderLabel}>Dealers</span>
               <Link href="/vendors" className={styles.viewAllLink}>
-                View All <HiOutlineChevronRight />
+                View All
               </Link>
             </div>
             <div className={styles.vendorSlider}>
@@ -641,14 +636,7 @@ export default function Marketplace() {
                 {filteredVendors.slice(0, 12).map((vendor) => (
                   <VendorCard
                     key={vendor.wallet}
-                    vendor={{
-                      wallet: vendor.wallet,
-                      name: vendor.name || vendor.businessName || vendor.username || 'Vendor',
-                      username: vendor.username || vendor.wallet?.slice(0, 8) || 'vendor',
-                      avatarUrl: vendor.avatarUrl || vendor.profileImage,
-                      verified: vendor.verified,
-                      stats: vendor.stats,
-                    }}
+                    vendor={vendor}
                     variant="slider"
                     showStats={false}
                   />
@@ -853,8 +841,8 @@ export default function Marketplace() {
                             <UnifiedNFTCard
                               title={listing.asset?.model || 'Unknown Watch'}
                               image={resolveImage(listing)}
-                              price={listing.listingPriceUSD || 0}
-                              priceLabel="USD"
+                              price={priceSol || 0}
+                              priceLabel="SOL"
                               priceUSD={listing.listingPriceUSD}
                               mintAddress={listing.nftMint}
                               owner={listing.sellerWallet}
@@ -900,13 +888,10 @@ export default function Marketplace() {
                 </>
               )}
 
-              {/* Investment Pools Section */}
+              {/* Asset Pools Section */}
               {activeSection === 'pools' && (
                 <>
-                  <div className={styles.sectionHeader}>
-                    <h3>Fractional Investment Pools</h3>
-                    <p>Invest in luxury timepieces with fractional ownership</p>
-                  </div>
+                  <span className={styles.sectionLabel}>Asset Pools</span>
 
                   {isLoadingPools ? (
                     <div className={styles.poolGrid}>
@@ -967,12 +952,12 @@ export default function Marketplace() {
                                 </div>
                                 <div className={styles.poolStat}>
                                   <FaChartLine />
-                                  <span>{((pool.projectedROI - 1) * 100).toFixed(0)}% ROI</span>
+                                  <span>{((pool.projectedROI - 1) * 100).toFixed(0)}% Est.</span>
                                 </div>
                               </div>
 
                               <Link href={`/pool/${pool._id}`} className={styles.investButton}>
-                                Invest Now
+                                Join Pool
                               </Link>
                             </div>
                           </div>
@@ -983,7 +968,7 @@ export default function Marketplace() {
                     <div className={styles.emptyState}>
                       <FaUsers className={styles.emptyIcon} />
                       <h3>No active pools</h3>
-                      <p>New investment opportunities coming soon</p>
+                      <p>New pool opportunities coming soon</p>
                     </div>
                   )}
                 </>
@@ -992,10 +977,7 @@ export default function Marketplace() {
               {/* Custody Section */}
               {activeSection === 'custody' && (
                 <>
-                  <div className={styles.sectionHeader}>
-                    <h3>LuxHub Custody</h3>
-                    <p>Verified watches ready for resale</p>
-                  </div>
+                  <span className={styles.sectionLabel}>Custody</span>
 
                   {isLoadingCustody ? (
                     <div className={styles.custodyGrid}>
@@ -1043,10 +1025,10 @@ export default function Marketplace() {
 
                             <div className={styles.custodyStats}>
                               <span>
-                                <FaUsers /> {item.totalInvestors} investors
+                                <FaUsers /> {item.totalInvestors} participants
                               </span>
                               <span className={styles.profitBadge}>
-                                <FaChartLine /> +{item.projectedProfitPercent}%
+                                <FaChartLine /> +{item.projectedProfitPercent}% est.
                               </span>
                             </div>
 

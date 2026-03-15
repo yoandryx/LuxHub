@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import Head from 'next/head';
+import Image from 'next/image';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, VersionedTransaction } from '@solana/web3.js';
@@ -436,8 +437,15 @@ const PoolCard = memo(({ pool, onClick }: { pool: Pool; onClick: () => void }) =
 
   return (
     <div className={`${styles.card} ${isHot ? styles.cardHot : ''}`} onClick={onClick}>
-      <div className={styles.cardImage}>
-        <img src={image} alt={model} loading="lazy" />
+      <div className={styles.cardImage} style={{ position: 'relative' }}>
+        <Image
+          src={image}
+          alt={model}
+          fill
+          sizes="(max-width: 768px) 100vw, 400px"
+          style={{ objectFit: 'cover' }}
+          unoptimized
+        />
         {showChart && (
           <div className={styles.cardChart}>
             <TvChart data={priceHistory} />
@@ -679,8 +687,15 @@ const DemoPoolCard = memo(({ pool: demoPool }: { pool: DemoPoolData }) => {
       onClick={() => setShowModal(true)}
       style={{ cursor: 'pointer' }}
     >
-      <div className={styles.cardImage}>
-        <img src={demoPool.image} alt={demoPool.model} loading="lazy" />
+      <div className={styles.cardImage} style={{ position: 'relative' }}>
+        <Image
+          src={demoPool.image}
+          alt={demoPool.model}
+          fill
+          sizes="400px"
+          style={{ objectFit: 'cover' }}
+          unoptimized
+        />
         {showChart && (
           <div className={styles.cardChart}>
             <TvChart data={priceHistory} />
@@ -791,8 +806,15 @@ const DemoPoolCard = memo(({ pool: demoPool }: { pool: DemoPoolData }) => {
 
                 {/* Header: Watch icon + name + ROI */}
                 <div className={styles.poolModalHeader}>
-                  <div className={styles.poolModalThumb}>
-                    <img src={demoPool.image} alt={demoPool.model} />
+                  <div className={styles.poolModalThumb} style={{ position: 'relative' }}>
+                    <Image
+                      src={demoPool.image}
+                      alt={demoPool.model}
+                      fill
+                      sizes="80px"
+                      style={{ objectFit: 'cover' }}
+                      unoptimized
+                    />
                   </div>
                   <div className={styles.poolModalHeaderText}>
                     <span className={styles.poolModalBrand}>{demoPool.brand}</span>
@@ -1088,7 +1110,13 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
           <div className={styles.tradePanelTitle}>
             <h3>Trade</h3>
             <span className={styles.tradePanelBagsChip}>
-              <img src="/images/bags-icon.png" alt="" className={styles.tradePanelBagsIcon} />
+              <Image
+                src="/images/bags-icon.png"
+                alt=""
+                width={20}
+                height={20}
+                className={styles.tradePanelBagsIcon}
+              />
               Bags
             </span>
           </div>
@@ -1112,7 +1140,13 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
           <div className={styles.tradePanelTitle}>
             <h3>Trade</h3>
             <span className={styles.tradePanelBagsChip}>
-              <img src="/images/bags-icon.png" alt="" className={styles.tradePanelBagsIcon} />
+              <Image
+                src="/images/bags-icon.png"
+                alt=""
+                width={20}
+                height={20}
+                className={styles.tradePanelBagsIcon}
+              />
               Bags
             </span>
           </div>
@@ -1138,7 +1172,13 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
           <div className={styles.tradePanelTitle}>
             <h3>Trade</h3>
             <span className={styles.tradePanelBagsChip}>
-              <img src="/images/bags-icon.png" alt="" className={styles.tradePanelBagsIcon} />
+              <Image
+                src="/images/bags-icon.png"
+                alt=""
+                width={20}
+                height={20}
+                className={styles.tradePanelBagsIcon}
+              />
               Bags
             </span>
           </div>
@@ -1190,7 +1230,13 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
           <div className={styles.tradePanelTitle}>
             <h3>Trade</h3>
             <span className={styles.tradePanelBagsChip}>
-              <img src="/images/bags-icon.png" alt="" className={styles.tradePanelBagsIcon} />
+              <Image
+                src="/images/bags-icon.png"
+                alt=""
+                width={20}
+                height={20}
+                className={styles.tradePanelBagsIcon}
+              />
               Bags
             </span>
           </div>
@@ -1217,7 +1263,13 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
         <div className={styles.tradePanelTitle}>
           <h3>{pool.asset?.model || 'Trade'}</h3>
           <span className={styles.tradePanelBagsChip}>
-            <img src="/images/bags-icon.png" alt="" className={styles.tradePanelBagsIcon} />
+            <Image
+              src="/images/bags-icon.png"
+              alt=""
+              width={20}
+              height={20}
+              className={styles.tradePanelBagsIcon}
+            />
             Bags
           </span>
         </div>
@@ -1364,7 +1416,13 @@ const BagsTradePanel: React.FC<{ pool: Pool | null; onTradeComplete?: () => void
       <div className={styles.tradeAttribution}>
         <span>Powered by</span>
         <a href="https://bags.fm" target="_blank" rel="noopener noreferrer">
-          <img src="/images/bags-logo.svg" alt="Bags" className={styles.tradeAttrLogo} />
+          <Image
+            src="/images/bags-logo.svg"
+            alt="Bags"
+            width={60}
+            height={20}
+            className={styles.tradeAttrLogo}
+          />
         </a>
       </div>
     </div>
@@ -1455,7 +1513,7 @@ const PoolsPage: React.FC = () => {
           <div className={styles.heroInner}>
             <div className={styles.heroLeft}>
               {/* <div className={styles.heroBadge}>
-                <img src="/images/bags-icon.png" alt="Bags" className={styles.heroBadgeIcon} />
+                <Image src="/images/bags-icon.png" alt="Bags" width={16} height={16} className={styles.heroBadgeIcon} />
                 <span>Powered by Bags</span>
               </div> */}
               <h1 className={styles.heroTitle} data-tour="hero">
@@ -1661,3 +1719,8 @@ const PoolsPage: React.FC = () => {
 };
 
 export default PoolsPage;
+
+// ISR: pre-render page shell at edge, revalidate every 30s
+export async function getStaticProps() {
+  return { props: {}, revalidate: 30 };
+}

@@ -164,6 +164,7 @@ const PoolSchema = new Schema(
         'minted', // Tokens created, locked
         'unlocked', // Tokens tradeable (pool filled + custody verified)
         'frozen', // Trading halted (emergency)
+        'redeemable', // Pool winding down, tokens redeemable
         'burned', // Pool closed, tokens burned
       ],
       default: 'pending',
@@ -195,6 +196,30 @@ const PoolSchema = new Schema(
     fundsInEscrow: { type: Number, default: 0 }, // Current amount in escrow
     escrowReleasedAt: { type: Date }, // When funds released to vendor/AMM
 
+    // ========== WIND-DOWN ==========
+    windDownStatus: {
+      type: String,
+      enum: ['none', 'announced', 'snapshot_taken', 'distributing', 'completed'],
+      default: 'none',
+    },
+    windDownAnnouncedAt: { type: Date },
+    windDownDeadline: { type: Date },
+    windDownSnapshotAt: { type: Date },
+    windDownSnapshotHolders: [
+      {
+        wallet: { type: String },
+        balance: { type: Number },
+        ownershipPercent: { type: Number },
+        choice: { type: String, enum: ['pending', 'cash_out', 'rollover'], default: 'pending' },
+        choiceMadeAt: { type: Date },
+        rolloverPoolId: { type: Schema.Types.ObjectId, ref: 'Pool' },
+        cashOutAmount: { type: Number },
+        distributedAt: { type: Date },
+      },
+    ],
+    windDownClaimDeadline: { type: Date },
+    accumulatedTradingFees: { type: Number, default: 0 },
+
     // ========== SECURITY & ADMIN ==========
     securityConfirmedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     marketPostedAt: Date,
@@ -213,6 +238,7 @@ const PoolSchema = new Schema(
         'custody', // Vendor shipping to LuxHub
         'active', // LuxHub holds asset, pool operational
         'graduated', // Bonding curve completed, Squad DAO created
+        'winding_down', // Wind-down announced, awaiting snapshot/distribution
         'listed', // Asset listed for resale
         'sold', // Asset sold, distribution pending
         'distributing', // Distribution in progress
@@ -240,6 +266,7 @@ PoolSchema.index({ bagsTokenMint: 1 }); // Bags token lookup
 PoolSchema.index({ graduated: 1 }); // Find graduated pools
 PoolSchema.index({ squadMultisigPda: 1 }); // Squad lookup
 PoolSchema.index({ 'squadMembers.wallet': 1 }); // Find pools by member wallet
+PoolSchema.index({ windDownStatus: 1 }); // Wind-down tracking
 
 // ========== PRE-SAVE HOOKS ==========
 PoolSchema.pre('save', function (next) {

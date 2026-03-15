@@ -301,18 +301,71 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
 
             {metadata.description && <p className={styles.description}>{metadata.description}</p>}
 
-            {/* Price */}
-            <div className={styles.priceRow}>
-              <span className={styles.priceValue}>
-                $
-                {metadata.priceSol && !displayInUSD
-                  ? formatPrice(metadata.priceSol)
-                  : formatPrice(metadata.priceSol ?? 0)}
-              </span>
-              <span className={styles.priceLabel}>USDC</span>
-              <button className={styles.currencyToggle} onClick={toggleDisplay}>
-                {displayInUSD ? 'SOL' : 'USD'}
-              </button>
+            {/* Price + Actions — together */}
+            <div className={styles.priceActionBlock}>
+              <div className={styles.priceRow}>
+                <span className={styles.priceValue}>
+                  {(() => {
+                    // Get USD price from attributes first (most reliable)
+                    const usdAttr = getAttr('Price USD') || getAttr('Estimated Value');
+                    const priceUsdNum = usdAttr ? parseFloat(usdAttr.replace(/[^0-9.]/g, '')) : 0;
+                    if (priceUsdNum > 0) {
+                      return `$${priceUsdNum.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                    }
+                    // Fallback to priceSol (which may actually be USD from metadata)
+                    const raw = metadata.priceSol ?? 0;
+                    if (raw > 1000) {
+                      // Likely USD
+                      return `$${raw.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                    }
+                    return `${raw.toFixed(2)} SOL`;
+                  })()}
+                </span>
+                <span className={styles.priceLabel}>
+                  {(() => {
+                    const usdAttr = getAttr('Price USD') || getAttr('Estimated Value');
+                    const priceUsdNum = usdAttr ? parseFloat(usdAttr.replace(/[^0-9.]/g, '')) : 0;
+                    if (priceUsdNum > 0) return 'USD';
+                    const raw = metadata.priceSol ?? 0;
+                    return raw > 1000 ? 'USD' : 'SOL';
+                  })()}
+                </span>
+              </div>
+
+              {/* Actions right next to price */}
+              <div className={styles.actionRow}>
+                {isConnected && !isOwner && isListed && (
+                  <>
+                    {acceptingOffers && (
+                      <button
+                        className={`${styles.actionBtn} ${styles.offerBtn}`}
+                        onClick={onOffer}
+                      >
+                        Offer
+                      </button>
+                    )}
+                    <button className={`${styles.actionBtn} ${styles.buyBtn}`} onClick={onBuy}>
+                      Buy
+                    </button>
+                  </>
+                )}
+                {isConnected && isOwner && (
+                  <>
+                    <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={onEdit}>
+                      Edit
+                    </button>
+                    <button
+                      className={`${styles.actionBtn} ${styles.delistBtn}`}
+                      onClick={onDelist}
+                    >
+                      Delist
+                    </button>
+                  </>
+                )}
+                {!isConnected && isListed && (
+                  <span className={styles.connectPrompt}>Connect wallet to purchase</span>
+                )}
+              </div>
             </div>
 
             {/* Attributes / Specifications */}
@@ -361,37 +414,6 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
                 )}
               </div>
             )}
-
-            {/* Role-Based Actions */}
-            <div className={styles.actionRow}>
-              {isConnected && !isOwner && isListed && (
-                <>
-                  {acceptingOffers && (
-                    <button className={`${styles.actionBtn} ${styles.offerBtn}`} onClick={onOffer}>
-                      Offer
-                    </button>
-                  )}
-                  <button className={`${styles.actionBtn} ${styles.buyBtn}`} onClick={onBuy}>
-                    Buy Now
-                  </button>
-                </>
-              )}
-
-              {isConnected && isOwner && (
-                <>
-                  <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={onEdit}>
-                    Edit
-                  </button>
-                  <button className={`${styles.actionBtn} ${styles.delistBtn}`} onClick={onDelist}>
-                    Delist
-                  </button>
-                </>
-              )}
-
-              {!isConnected && isListed && (
-                <div className={styles.connectPrompt}>Connect wallet to purchase</div>
-              )}
-            </div>
           </div>
         </div>
       </div>

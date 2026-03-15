@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { FaStore } from 'react-icons/fa6';
 import { HiMiniCheckBadge } from 'react-icons/hi2';
-import { TierBadge } from './TierBadge';
 import { resolveImageUrl } from '../../utils/imageUtils';
 import styles from '../../styles/VendorCard.module.css';
 
@@ -37,7 +36,6 @@ export const VendorCard: React.FC<VendorCardProps> = ({
   className = '',
 }) => {
   const [imgError, setImgError] = useState(false);
-  const inventoryValue = vendor.stats?.inventoryValue || 0;
   const avatarSrc =
     !imgError && (vendor.avatarUrl || vendor.avatarCid)
       ? resolveImageUrl(vendor.avatarUrl || vendor.avatarCid)
@@ -89,8 +87,10 @@ export const VendorCard: React.FC<VendorCardProps> = ({
           </div>
         )}
 
-        {/* Tier Badge */}
-        <TierBadge inventoryValue={inventoryValue} size={variant === 'grid' ? 'small' : 'small'} />
+        {/* Verified pill - grid only */}
+        {variant === 'grid' && vendor.verified && (
+          <span className={styles.verifiedPill}>Verified Dealer</span>
+        )}
       </div>
     </Link>
   );

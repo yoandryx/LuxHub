@@ -1067,7 +1067,7 @@ const Marketplace = () => {
                         onClick={() => handlePurchase(nft)}
                         disabled={loadingMint === nft.mintAddress}
                       >
-                        {loadingMint === nft.mintAddress ? '...' : 'Buy Now'}
+                        {loadingMint === nft.mintAddress ? '...' : 'BUY'}
                       </button>
                     )}
 

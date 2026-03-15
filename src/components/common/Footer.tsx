@@ -20,7 +20,7 @@ export default function Footer() {
           </p>
           <div className={styles.socialIcons}>
             <a
-              href="https://x.com/LuxHubdotFun"
+              href="https://x.com/LuxHubStudio"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Twitter"
@@ -58,15 +58,16 @@ export default function Footer() {
         <div className={styles.linkColumn}>
           <h4>Marketplace</h4>
           <Link href="/">Home</Link>
-          <Link href="/watchMarket">Browse Watches</Link>
+          <Link href="/marketplace">Browse Watches</Link>
           <Link href="/pools">Fractional Pools</Link>
           <Link href="/learnMore">How It Works</Link>
+          <Link href="/security">Security & Trust</Link>
         </div>
 
         {/* For Dealers */}
         <div className={styles.linkColumn}>
           <h4>For Dealers</h4>
-          <Link href="/sellerDashboard">Become a Dealer</Link>
+          <Link href="/vendor/apply">Become a Dealer</Link>
           <Link href="/vendor/vendorDashboard">Vendor Dashboard</Link>
           <Link href="/learnMore#verification">Verification Process</Link>
         </div>
@@ -75,12 +76,12 @@ export default function Footer() {
         <div className={styles.connectColumn}>
           <h4>Connect</h4>
           <a
-            href="https://x.com/LuxHubdotFun"
+            href="https://x.com/LuxHubStudio"
             target="_blank"
             rel="noopener noreferrer"
             className={styles.emailLink}
           >
-            @LuxHubdotFun
+            @LuxHubStudio
           </a>
           <div className={styles.networkBadge}>
             <SiSolana />

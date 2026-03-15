@@ -1,334 +1,348 @@
 import React from 'react';
+import Head from 'next/head';
+import Link from 'next/link';
 import styles from '../styles/LearnMore.module.css';
 import {
   FaShieldAlt,
-  FaGem,
-  FaWallet,
   FaUsers,
   FaArrowRight,
   FaLock,
-  FaSyncAlt,
   FaChartLine,
-  FaBox,
   FaCheckCircle,
+  FaSyncAlt,
   FaGlobe,
 } from 'react-icons/fa';
-import Link from 'next/link';
+import { SiSolana } from 'react-icons/si';
+import { HiOutlineBuildingStorefront } from 'react-icons/hi2';
 
 const LearnMorePage: React.FC = () => {
   return (
-    <div className={styles.container}>
-      {/* Hero Section */}
-      <header className={styles.hero}>
-        <div className={styles.heroContent}>
-          <span className={styles.badge}>Decentralized Luxury Marketplace</span>
-          <h1 className={styles.heroTitle}>Welcome to LuxHub</h1>
-          <p className={styles.heroSubtitle}>
-            The premier Web3 marketplace for authenticated luxury assets. NFT-backed watches,
-            jewelry, and collectibles with verified provenance, secure escrow, and fractional
-            ownership.
-          </p>
-          <div className={styles.heroActions}>
-            <Link href="/watchMarket" className={styles.primaryBtn}>
-              Explore Marketplace <FaArrowRight />
-            </Link>
-            <Link href="/sellerDashboard" className={styles.secondaryBtn}>
-              Start Selling
-            </Link>
-          </div>
-        </div>
-      </header>
+    <>
+      <Head>
+        <title>Learn More | LuxHub</title>
+        <meta
+          name="description"
+          content="LuxHub — decentralized luxury marketplace on Solana. NFT-backed physical assets with verified provenance, on-chain escrow, and tokenized asset pools."
+        />
+      </Head>
 
-      {/* Features Grid */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Why LuxHub?</h2>
-        <div className={styles.featuresGrid}>
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              <FaShieldAlt />
-            </div>
-            <h3>Verified Authenticity</h3>
-            <p>
-              Every NFT is admin-verified before minting. Zero counterfeit risk with on-chain
-              provenance records.
+      <div className={styles.page}>
+        <div className={styles.ambientBg} />
+
+        <main className={styles.main}>
+          {/* Hero */}
+          <header className={styles.hero}>
+            <h1 className={styles.heroTitle}>
+              The Luxury Asset
+              <br />
+              <span className={styles.heroAccent}>Protocol</span>
+            </h1>
+            <p className={styles.heroSubtitle}>
+              NFT-backed watches, jewelry, and collectibles with verified provenance, on-chain
+              escrow, multisig security, and tokenized asset pools.
             </p>
-          </div>
-
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              <FaLock />
+            <div className={styles.heroActions}>
+              <Link href="/marketplace" className={styles.primaryBtn}>
+                Explore Marketplace <FaArrowRight />
+              </Link>
+              <Link href="/vendors" className={styles.secondaryBtn}>
+                View Dealers
+              </Link>
             </div>
-            <h3>Secure Escrow</h3>
-            <p>
-              Funds and NFTs held in smart contract vaults. Protected by Squads Protocol multisig
-              security.
-            </p>
-          </div>
+          </header>
 
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              <FaUsers />
+          {/* Stats */}
+          <div className={styles.statsBar}>
+            <div className={styles.stat}>
+              <span className={styles.statValue}>5%</span>
+              <span className={styles.statLabel}>Treasury Fee</span>
             </div>
-            <h3>Fractional Ownership</h3>
-            <p>
-              Own shares of high-value assets through investment pools. Democratizing luxury
-              collectibles.
-            </p>
-          </div>
-
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              <FaGlobe />
+            <div className={styles.statDivider} />
+            <div className={styles.stat}>
+              <span className={styles.statValue}>v0.2</span>
+              <span className={styles.statLabel}>Version</span>
             </div>
-            <h3>Global Marketplace</h3>
-            <p>
-              Borderless trading on Solana. Fast, low-cost transactions with worldwide
-              accessibility.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>How It Works</h2>
-        <div className={styles.stepsContainer}>
-          <div className={styles.step}>
-            <div className={styles.stepNumber}>01</div>
-            <div className={styles.stepContent}>
-              <h3>Verification & Minting</h3>
-              <p>
-                Vendors submit asset details for review. Admins verify authenticity, then mint an
-                NFT tied to the physical item with full metadata stored on IPFS.
-              </p>
+            <div className={styles.statDivider} />
+            <div className={styles.stat}>
+              <span className={styles.statValue}>Devnet</span>
+              <span className={styles.statLabel}>Network</span>
+            </div>
+            <div className={styles.statDivider} />
+            <div className={styles.stat}>
+              <span className={styles.statValue}>Anchor</span>
+              <span className={styles.statLabel}>Framework</span>
             </div>
           </div>
 
-          <div className={styles.step}>
-            <div className={styles.stepNumber}>02</div>
-            <div className={styles.stepContent}>
-              <h3>Escrow Protection</h3>
-              <p>
-                NFTs are held in on-chain escrow vaults. Buyers can make offers or purchase at
-                listing price. Funds are secured until delivery is confirmed.
-              </p>
+          {/* Why LuxHub */}
+          <section className={styles.section}>
+            <span className={styles.sectionLabel}>Why LuxHub</span>
+            <div className={styles.cardGrid}>
+              <div className={styles.card}>
+                <div className={styles.cardIcon}>
+                  <FaShieldAlt />
+                </div>
+                <h3>Verified Authenticity</h3>
+                <p>
+                  Every asset is admin-verified before NFT minting. On-chain provenance with
+                  metadata stored on IPFS via Pinata. AI-powered watch analysis for
+                  auto-identification.
+                </p>
+              </div>
+
+              <div className={styles.card}>
+                <div className={styles.cardIcon}>
+                  <FaLock />
+                </div>
+                <h3>Escrow Protection</h3>
+                <p>
+                  Funds locked in Anchor program PDAs — not LuxHub wallets. Squads Protocol multisig
+                  required for all fund releases. 14-day auto-cancel if vendor doesn't ship.
+                </p>
+              </div>
+
+              <div className={styles.card}>
+                <div className={styles.cardIcon}>
+                  <FaUsers />
+                </div>
+                <h3>Tokenized Pools</h3>
+                <p>
+                  Collective pools let multiple participants access high-value assets through
+                  tokenized positions. AMM-powered secondary trading and DAO graduation via Squads.
+                </p>
+              </div>
+
+              <div className={styles.card}>
+                <div className={styles.cardIcon}>
+                  <FaGlobe />
+                </div>
+                <h3>Buyer Protection</h3>
+                <p>
+                  7-day dispute SLA with admin resolution. On-chain transaction verification for
+                  every purchase. Rate-limited endpoints prevent abuse.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* How It Works */}
+          <section className={styles.section}>
+            <span className={styles.sectionLabel}>How It Works</span>
+            <div className={styles.stepsGrid}>
+              <div className={styles.step}>
+                <span className={styles.stepNumber}>01</span>
+                <div className={styles.stepContent}>
+                  <h3>List & Verify</h3>
+                  <p>
+                    Vendor submits asset details and images. Admin reviews authenticity, then mints
+                    an NFT with full metadata on IPFS. AI can auto-detect watch brand, model, and
+                    specs from photos.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.step}>
+                <span className={styles.stepNumber}>02</span>
+                <div className={styles.stepContent}>
+                  <h3>Purchase via Escrow</h3>
+                  <p>
+                    Buyer sends SOL — funds are locked in the Anchor escrow PDA. Transaction
+                    signature is verified on-chain before MongoDB status updates. No trust required.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.step}>
+                <span className={styles.stepNumber}>03</span>
+                <div className={styles.stepContent}>
+                  <h3>Ship & Confirm</h3>
+                  <p>
+                    Vendor ships the physical item with tracking. Buyer confirms delivery. If no
+                    shipment in 14 days, escrow auto-cancels and buyer is refunded.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.step}>
+                <span className={styles.stepNumber}>04</span>
+                <div className={styles.stepContent}>
+                  <h3>Multisig Release</h3>
+                  <p>
+                    Squads multisig executes the release: NFT transfers to buyer, 95% of funds go to
+                    seller, 5% to LuxHub treasury vault. Provenance history recorded on-chain
+                    forever.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Marketplace Features */}
+          <section className={styles.section}>
+            <span className={styles.sectionLabel}>Platform</span>
+            <div className={styles.featureGrid}>
+              <div className={styles.featureCard}>
+                <h3>
+                  <HiOutlineBuildingStorefront /> Direct Sales
+                </h3>
+                <ul>
+                  <li>Fixed price or accepting offers</li>
+                  <li>On-chain escrow with TX verification</li>
+                  <li>Instant purchase or counter-offers</li>
+                  <li>Admin-approved price changes</li>
+                </ul>
+              </div>
+
+              <div className={styles.featureCard}>
+                <h3>
+                  <FaChartLine /> Asset Pools
+                </h3>
+                <ul>
+                  <li>Tokenized positions in luxury assets</li>
+                  <li>AMM-powered secondary trading</li>
+                  <li>Automatic proceeds distribution</li>
+                  <li>DAO graduation via Squads multisig</li>
+                </ul>
+              </div>
+
+              <div className={styles.featureCard}>
+                <h3>
+                  <FaLock /> Security Layers
+                </h3>
+                <ul>
+                  <li>Squads multisig on all fund movements</li>
+                  <li>On-chain TX verification before DB writes</li>
+                  <li>AES-256-GCM encryption for vendor PII</li>
+                  <li>Rate limiting on purchase endpoints</li>
+                </ul>
+              </div>
+
+              <div className={styles.featureCard}>
+                <h3>
+                  <FaUsers /> For Dealers
+                </h3>
+                <ul>
+                  <li>3-step vendor onboarding wizard</li>
+                  <li>Inventory management dashboard</li>
+                  <li>Public profile with NFT collection</li>
+                  <li>Payout tracking and earnings</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          {/* Partners */}
+          <section className={styles.section}>
+            <span className={styles.sectionLabel}>Partners</span>
+            <div className={styles.partnerGrid}>
+              <div className={styles.partnerCard}>
+                <h4>Squads Protocol</h4>
+                <p>Multisig security for treasury and escrow fund releases</p>
+              </div>
+              <div className={styles.partnerCard}>
+                <h4>Helius</h4>
+                <p>RPC infrastructure, DAS API for on-chain asset indexing</p>
+              </div>
+              <div className={styles.partnerCard}>
+                <h4>Pinata</h4>
+                <p>IPFS gateway for NFT metadata and asset image storage</p>
+              </div>
+              <div className={styles.partnerCard}>
+                <h4>Metaplex</h4>
+                <p>mpl-core NFT standard for token metadata</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Roadmap */}
+          <section className={styles.section}>
+            <span className={styles.sectionLabel}>Roadmap</span>
+            <div className={styles.roadmapGrid}>
+              <div className={`${styles.roadmapCard} ${styles.complete}`}>
+                <div className={styles.roadmapStatus}>
+                  <FaCheckCircle /> Complete
+                </div>
+                <h3>Phase 1 — Foundation</h3>
+                <ul>
+                  <li>Anchor escrow smart contracts</li>
+                  <li>NFT minting with admin verification</li>
+                  <li>Seller & admin dashboards</li>
+                  <li>Offer / counter-offer system</li>
+                  <li>MongoDB data layer with Mongoose</li>
+                </ul>
+              </div>
+
+              <div className={`${styles.roadmapCard} ${styles.complete}`}>
+                <div className={styles.roadmapStatus}>
+                  <FaCheckCircle /> Complete
+                </div>
+                <h3>Phase 2 — MVP Prep</h3>
+                <ul>
+                  <li>Squads multisig integration</li>
+                  <li>Helius DAS API for on-chain data</li>
+                  <li>TX verification on all purchases</li>
+                  <li>Dispute system with 7-day SLA</li>
+                  <li>Escrow timeout enforcement</li>
+                  <li>Glass-chrome UI overhaul</li>
+                </ul>
+              </div>
+
+              <div className={`${styles.roadmapCard} ${styles.active}`}>
+                <div className={styles.roadmapStatus}>
+                  <FaSyncAlt /> Current
+                </div>
+                <h3>Phase 3 — Launch</h3>
+                <ul>
+                  <li>Mainnet deployment</li>
+                  <li>First vendor onboarding</li>
+                  <li>Community building</li>
+                  <li>Mobile optimization</li>
+                </ul>
+              </div>
+
+              <div className={styles.roadmapCard}>
+                <div className={styles.roadmapStatus}>Upcoming</div>
+                <h3>Phase 4 — Scale</h3>
+                <ul>
+                  <li>Tokenized asset pools launch</li>
+                  <li>Advanced analytics dashboards</li>
+                  <li>Third-party API integrations</li>
+                  <li>NFC authentication chips</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          {/* CTA */}
+          <div className={styles.cta}>
+            <h2>Ready to start?</h2>
+            <p>Whether you're collecting, dealing, or participating — LuxHub is your protocol.</p>
+            <div className={styles.ctaButtons}>
+              <Link href="/marketplace" className={styles.primaryBtn}>
+                Browse Marketplace
+              </Link>
+              <Link href="/pools" className={styles.secondaryBtn}>
+                View Pools
+              </Link>
             </div>
           </div>
 
-          <div className={styles.step}>
-            <div className={styles.stepNumber}>03</div>
-            <div className={styles.stepContent}>
-              <h3>Secure Transfer</h3>
-              <p>
-                After admin verifies delivery, Squads multisig executes the transfer: NFT goes to
-                buyer, funds (97%) to seller, and 3% royalty to treasury.
-              </p>
+          {/* Footer */}
+          <footer className={styles.footer}>
+            <div className={styles.footerLinks}>
+              <span>Program: kW2w...Npj</span>
+              <span>Devnet</span>
+              <span>v0.2.0</span>
             </div>
-          </div>
-
-          <div className={styles.step}>
-            <div className={styles.stepNumber}>04</div>
-            <div className={styles.stepContent}>
-              <h3>Immutable Provenance</h3>
-              <p>
-                Ownership history and all transactions are recorded on-chain forever. Every future
-                sale builds upon verified provenance.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Marketplace Features */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Marketplace Features</h2>
-        <div className={styles.featuresListGrid}>
-          <div className={styles.featureListCard}>
-            <h3>
-              <FaGem /> Direct Sales
-            </h3>
-            <ul>
-              <li>Fixed price listings or accepting offers</li>
-              <li>Counter-offer negotiations</li>
-              <li>Instant purchase option</li>
-              <li>Price updates via admin approval</li>
-            </ul>
-          </div>
-
-          <div className={styles.featureListCard}>
-            <h3>
-              <FaChartLine /> Fractional Pools
-            </h3>
-            <ul>
-              <li>Buy shares in high-value assets</li>
-              <li>Pool status tracking (open to distributed)</li>
-              <li>Automatic profit distribution</li>
-              <li>Convert escrows to pools</li>
-            </ul>
-          </div>
-
-          <div className={styles.featureListCard}>
-            <h3>
-              <FaBox /> Escrow System
-            </h3>
-            <ul>
-              <li>Shipment tracking integration</li>
-              <li>Admin delivery verification</li>
-              <li>Multisig-protected releases</li>
-              <li>Dispute resolution support</li>
-            </ul>
-          </div>
-
-          <div className={styles.featureListCard}>
-            <h3>
-              <FaWallet /> Wallet Integration
-            </h3>
-            <ul>
-              <li>Phantom, Solflare, Backpack</li>
-              <li>Mobile wallet support</li>
-              <li>Session management</li>
-              <li>Secure transaction signing</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Tech Stack */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Built on Solana</h2>
-        <div className={styles.techContainer}>
-          <div className={styles.techCard}>
-            <h4>Frontend</h4>
-            <p>Next.js 14, React 18, TypeScript, CSS Modules, Framer Motion, Three.js</p>
-          </div>
-          <div className={styles.techCard}>
-            <h4>Blockchain</h4>
-            <p>Solana, Anchor Framework, Metaplex mpl-core, Squads Protocol v4</p>
-          </div>
-          <div className={styles.techCard}>
-            <h4>Storage</h4>
-            <p>MongoDB, Pinata/IPFS for metadata, Helius RPC infrastructure</p>
-          </div>
-          <div className={styles.techCard}>
-            <h4>Security</h4>
-            <p>Multisig vaults, Admin-gated minting, On-chain escrow PDAs</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Roadmap */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Roadmap</h2>
-        <div className={styles.roadmapContainer}>
-          <div className={`${styles.roadmapCard} ${styles.complete}`}>
-            <div className={styles.roadmapStatus}>
-              <FaCheckCircle /> Complete
-            </div>
-            <h3>Phase 1: Foundation</h3>
-            <ul>
-              <li>NFT minting with admin approval</li>
-              <li>Seller & Admin dashboards</li>
-              <li>Escrow smart contracts</li>
-              <li>Offer/counter-offer system</li>
-              <li>Fractional pool models</li>
-            </ul>
-          </div>
-
-          <div className={`${styles.roadmapCard} ${styles.active}`}>
-            <div className={styles.roadmapStatus}>
-              <FaSyncAlt /> In Progress
-            </div>
-            <h3>Phase 2: MVP Launch</h3>
-            <ul>
-              <li>Squads Protocol multisig integration</li>
-              <li>Enhanced UI/UX overhaul</li>
-              <li>Vendor verification system</li>
-              <li>Production deployment</li>
-              <li>First vendor onboarding</li>
-            </ul>
-          </div>
-
-          <div className={styles.roadmapCard}>
-            <div className={styles.roadmapStatus}>Upcoming</div>
-            <h3>Phase 3: Expansion</h3>
-            <ul>
-              <li>Luxury bags, art, jewelry support</li>
-              <li>Verified dealer profiles</li>
-              <li>Multi-language UI</li>
-              <li>Global dealer network</li>
-              <li>Mobile optimization</li>
-            </ul>
-          </div>
-
-          <div className={styles.roadmapCard}>
-            <div className={styles.roadmapStatus}>Upcoming</div>
-            <h3>Phase 4: Innovation</h3>
-            <ul>
-              <li>LuxHub NFC authentication chips</li>
-              <li>Mobile scan verification app</li>
-              <li>AI-powered authenticity models</li>
-              <li>3D NFT metaverse integration</li>
-              <li>Logistics partner APIs</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Partnerships */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Partnerships</h2>
-        <div className={styles.partnersGrid}>
-          <div className={styles.partnerCard}>
-            <h4>Squads Protocol</h4>
-            <p>Multisig security for treasury and escrow operations</p>
-          </div>
-          <div className={styles.partnerCard}>
-            <h4>Helius</h4>
-            <p>Enterprise-grade Solana RPC infrastructure</p>
-          </div>
-          <div className={styles.partnerCard}>
-            <h4>Pinata</h4>
-            <p>IPFS gateway for NFT metadata storage</p>
-          </div>
-          <div className={styles.partnerCard}>
-            <h4>Metaplex</h4>
-            <p>NFT standard and token metadata</p>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className={styles.ctaSection}>
-        <h2>Ready to Get Started?</h2>
-        <p>
-          Join the future of luxury asset trading. Whether you're a collector, dealer, or investor.
-        </p>
-        <div className={styles.ctaButtons}>
-          <Link href="/watchMarket" className={styles.primaryBtn}>
-            Browse Marketplace
-          </Link>
-          <Link href="/sellerDashboard" className={styles.secondaryBtn}>
-            List Your Asset
-          </Link>
-          <Link href="/pools" className={styles.secondaryBtn}>
-            View Pools
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer Info */}
-      <footer className={styles.footer}>
-        <p>
-          Questions? Reach out to the LuxHub team. We're building the future of authenticated luxury
-          together.
-        </p>
-        <div className={styles.footerLinks}>
-          <span>Devnet Program: kW2w...Npj</span>
-          <span>3% Treasury Royalty</span>
-        </div>
-      </footer>
-    </div>
+          </footer>
+        </main>
+      </div>
+    </>
   );
 };
 
 export default LearnMorePage;
+
+export async function getStaticProps() {
+  return { props: {}, revalidate: 300 };
+}

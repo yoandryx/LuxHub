@@ -128,12 +128,11 @@ export function useUserRole(): UserRoleState {
     return 'user';
   }, [isConnected, isAdmin, isVendor]);
 
-  // Loading state
+  // Loading state — SWR returns undefined while fetching, null for 404s
   const isLoading = useMemo(() => {
     if (!walletAddress) return false;
-    // Loading if we're fetching and don't have data yet
-    const vaultLoading = !vaultData && !vaultError;
-    const vendorLoading = !vendorData && !vendorError;
+    const vaultLoading = vaultData === undefined && !vaultError;
+    const vendorLoading = vendorData === undefined && !vendorError;
     return vaultLoading || vendorLoading;
   }, [walletAddress, vaultData, vaultError, vendorData, vendorError]);
 

@@ -1,6 +1,6 @@
 // src/components/vendor/DelistRequestModal.tsx
 // Modal for vendors to request delisting of an NFT
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import styles from '../../styles/DelistRequestModal.module.css';
 import { HiOutlineX, HiOutlineExclamation } from 'react-icons/hi';
@@ -42,6 +42,30 @@ const DelistRequestModal: React.FC<DelistRequestModalProps> = ({ asset, onClose,
   const [reasonDetails, setReasonDetails] = useState('');
   const [requestedAction, setRequestedAction] = useState<'delist' | 'burn'>('delist');
   const [submitting, setSubmitting] = useState(false);
+  const [activeEscrow, setActiveEscrow] = useState<any>(null);
+  const [checkingEscrow, setCheckingEscrow] = useState(true);
+
+  useEffect(() => {
+    const checkEscrow = async () => {
+      const mint = asset.mintAddress || asset.nftMint;
+      if (!mint) {
+        setCheckingEscrow(false);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/escrow/list?nftMint=${mint}&status=funded,shipped`);
+        const data = await res.json();
+        if (data.escrows && data.escrows.length > 0) {
+          setActiveEscrow(data.escrows[0]);
+        }
+      } catch (err) {
+        console.error('Failed to check escrow status:', err);
+      } finally {
+        setCheckingEscrow(false);
+      }
+    };
+    checkEscrow();
+  }, [asset.mintAddress, asset.nftMint]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +98,8 @@ const DelistRequestModal: React.FC<DelistRequestModalProps> = ({ asset, onClose,
           reason,
           reasonDetails: reasonDetails.trim(),
           requestedAction,
+          hasActiveEscrow: !!activeEscrow,
+          escrowId: activeEscrow?._id || activeEscrow?.escrowPda,
         }),
       });
 
@@ -117,6 +143,19 @@ const DelistRequestModal: React.FC<DelistRequestModalProps> = ({ asset, onClose,
             </code>
           </div>
         </div>
+
+        {activeEscrow && (
+          <div className={styles.escrowWarning}>
+            <HiOutlineExclamation />
+            <div>
+              <strong>Active Buyer Escrow Detected</strong>
+              <p>
+                This item has an active buyer escrow. Delisting will trigger cancellation and buyer
+                refund.
+              </p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>

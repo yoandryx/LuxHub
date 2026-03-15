@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useWallet } from '@solana/wallet-adapter-react';
 import BagsPoolTrading from './BagsPoolTrading';
 import { GovernanceDashboard } from '../governance';
@@ -39,6 +40,22 @@ interface Pool {
   custodyStatus?: string;
   resaleListingPriceUSD?: number;
   createdAt?: string;
+  // Wind-down
+  windDownStatus?: string;
+  windDownAnnouncedAt?: string;
+  windDownDeadline?: string;
+  windDownSnapshotAt?: string;
+  windDownSnapshotHolders?: Array<{
+    wallet: string;
+    balance: number;
+    ownershipPercent: number;
+    choice: string;
+    choiceMadeAt?: string;
+    rolloverPoolId?: string;
+    cashOutAmount?: number;
+  }>;
+  windDownClaimDeadline?: string;
+  accumulatedTradingFees?: number;
   // Bags integration
   bagsTokenMint?: string;
   tokenStatus?: string;
@@ -183,6 +200,11 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
         color: '#c0c0c0',
         description: 'Proceeds distributed to investors',
       },
+      winding_down: {
+        label: 'Winding Down',
+        color: '#f59e0b',
+        description: 'Pool is in the wind-down process',
+      },
       closed: { label: 'Closed', color: '#808080', description: 'Pool finalized' },
     };
     return statusMap[status] || { label: status, color: '#c8a1ff', description: '' };
@@ -203,8 +225,16 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
 
         <div className={styles.content}>
           {/* Left: Asset Image */}
-          <div className={styles.imageSection}>
-            <img src={assetImage} alt={poolData.asset?.model} className={styles.assetImage} />
+          <div className={styles.imageSection} style={{ position: 'relative' }}>
+            <Image
+              src={assetImage}
+              alt={poolData.asset?.model || 'Asset'}
+              className={styles.assetImage}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              style={{ objectFit: 'cover' }}
+              unoptimized
+            />
             <div className={styles.statusBadge} style={{ backgroundColor: statusInfo.color }}>
               {statusInfo.label}
             </div>
@@ -293,6 +323,68 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
                     <strong>${userInvestment.investedUSD.toLocaleString()}</strong>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Wind-Down Status */}
+            {(poolData.status === 'winding_down' ||
+              (poolData.windDownStatus && poolData.windDownStatus !== 'none')) && (
+              <div className={styles.windDownSection}>
+                <h3 className={styles.windDownTitle}>Pool Wind-Down</h3>
+
+                {poolData.windDownStatus === 'announced' && pool.windDownDeadline && (
+                  <div className={styles.windDownInfo}>
+                    <p className={styles.windDownMessage}>
+                      This pool is winding down. Trading remains active until the deadline.
+                    </p>
+                    <div className={styles.windDownDeadline}>
+                      <span>Deadline:</span>
+                      <strong>{new Date(pool.windDownDeadline).toLocaleDateString()}</strong>
+                    </div>
+                  </div>
+                )}
+
+                {poolData.windDownStatus === 'snapshot_taken' && (
+                  <div className={styles.windDownInfo}>
+                    <p className={styles.windDownMessage}>
+                      Snapshot taken. Holders can now choose to cash out or rollover.
+                    </p>
+                    {poolData.windDownClaimDeadline && (
+                      <div className={styles.windDownDeadline}>
+                        <span>Claim by:</span>
+                        <strong>
+                          {new Date(poolData.windDownClaimDeadline).toLocaleDateString()}
+                        </strong>
+                      </div>
+                    )}
+                    <div className={styles.windDownHolders}>
+                      <span>
+                        {poolData.windDownSnapshotHolders?.filter((h) => h.choice !== 'pending')
+                          .length || 0}
+                      </span>
+                      <span>
+                        {' '}
+                        / {poolData.windDownSnapshotHolders?.length || 0} holders have chosen
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {poolData.windDownStatus === 'distributing' && (
+                  <div className={styles.windDownInfo}>
+                    <p className={styles.windDownMessage}>
+                      Distribution in progress. All holders have made their choices.
+                    </p>
+                  </div>
+                )}
+
+                {poolData.windDownStatus === 'completed' && (
+                  <div className={styles.windDownInfo}>
+                    <p className={styles.windDownMessage}>
+                      Wind-down complete. All proceeds have been distributed.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

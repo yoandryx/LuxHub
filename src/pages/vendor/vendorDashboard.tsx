@@ -25,6 +25,7 @@ import {
   FiAlertCircle,
 } from 'react-icons/fi';
 import AddInventoryForm from '../../components/vendor/AddInventoryForm';
+import DelistRequestModal from '../../components/vendor/DelistRequestModal';
 import OrderShipmentPanel from '../../components/vendor/OrderShipmentPanel';
 import toast from 'react-hot-toast';
 import { NFTGridCard } from '../../components/common/UnifiedNFTCard';
@@ -54,6 +55,7 @@ interface MintRequest {
   condition?: string;
   boxPapers?: string;
   country?: string;
+  serialNumber?: string;
   createdAt: string;
 }
 
@@ -97,7 +99,21 @@ const VendorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+
+  // Read tab from URL query param (e.g. ?tab=inventory)
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab') as TabId;
+      if (
+        tab &&
+        ['dashboard', 'inventory', 'orders', 'offers', 'payouts', 'profile'].includes(tab)
+      ) {
+        return tab;
+      }
+    }
+    return 'dashboard';
+  });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const [vendorAssets, setVendorAssets] = useState<any[]>([]);
@@ -134,6 +150,10 @@ const VendorDashboard = () => {
 
   const [payouts, setPayouts] = useState<any[]>([]);
   const [payoutsLoading, setPayoutsLoading] = useState(false);
+
+  // Delist/action menu state
+  const [delistAsset, setDelistAsset] = useState<any>(null);
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
 
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalInventoryValue: 0,
@@ -450,37 +470,60 @@ const VendorDashboard = () => {
     offerFilter === 'all' ? true : o.status === offerFilter
   );
 
-  // Load data based on active tab
+  // Load data based on active tab + auto-refresh every 30s
   useEffect(() => {
     if (!publicKey) return;
 
-    if (activeTab === 'dashboard') {
-      fetchVendorAssets();
-      fetchOrders();
-      fetchOffers();
-      fetchPayouts();
-    } else if (activeTab === 'inventory') {
-      fetchMintRequests();
-    } else if (activeTab === 'orders') {
-      fetchOrders();
-    } else if (activeTab === 'offers') {
-      fetchOffers();
-    } else if (activeTab === 'payouts') {
-      fetchPayouts();
-    }
+    const loadTabData = () => {
+      if (activeTab === 'dashboard') {
+        fetchVendorAssets();
+        fetchOrders();
+        fetchOffers();
+        fetchPayouts();
+      } else if (activeTab === 'inventory') {
+        fetchMintRequests();
+      } else if (activeTab === 'orders') {
+        fetchOrders();
+      } else if (activeTab === 'offers') {
+        fetchOffers();
+      } else if (activeTab === 'payouts') {
+        fetchPayouts();
+      }
+    };
+
+    loadTabData();
+    const interval = setInterval(loadTabData, 30000);
+    return () => clearInterval(interval);
   }, [publicKey, activeTab]);
+
+  // Close action menu on outside click
+  useEffect(() => {
+    const handleClickOutside = () => setOpenActionMenu(null);
+    if (openActionMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openActionMenu]);
 
   useEffect(() => {
     if (!publicKey) return;
     fetch(`/api/vendor/profile?wallet=${publicKey.toBase58()}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 404) {
+          setError('no_profile');
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
+        if (!data) return;
         if (data.error) setError(data.error);
         else {
           setProfile(data);
           setFormData(data);
         }
       })
+      .catch(() => setError('Failed to load vendor profile'))
       .finally(() => setLoading(false));
   }, [publicKey]);
 
@@ -633,9 +676,13 @@ const VendorDashboard = () => {
     { id: 'offers' as TabId, label: 'Offers', icon: FiInbox, badge: metrics.pendingOffers },
   ];
 
-  const financeNavItems = [{ id: 'payouts' as TabId, label: 'Payouts', icon: FiDollarSign }];
+  const financeNavItems: typeof navItems = [
+    { id: 'payouts' as TabId, label: 'Payouts', icon: FiDollarSign, badge: metrics.pendingPayouts },
+  ];
 
-  const settingsNavItems = [{ id: 'profile' as TabId, label: 'Profile', icon: FiUser }];
+  const settingsNavItems: typeof navItems = [
+    { id: 'profile' as TabId, label: 'Profile', icon: FiUser, badge: 0 },
+  ];
 
   // Page titles for each tab
   const pageTitles: Record<TabId, { title: string; subtitle: string }> = {
@@ -645,42 +692,6 @@ const VendorDashboard = () => {
     offers: { title: 'Incoming Offers', subtitle: 'Review and respond to buyer offers' },
     payouts: { title: 'Earnings & Payouts', subtitle: 'Track your sales and pending payouts' },
     profile: { title: 'Vendor Profile', subtitle: 'Manage your public vendor profile' },
-  };
-
-  // Render sidebar nav item
-  const renderNavItem = (item: { id: TabId; label: string; icon: any; badge?: number }) => {
-    const Icon = item.icon;
-    return (
-      <button
-        key={item.id}
-        className={`${styles.navItem} ${activeTab === item.id ? styles.active : ''}`}
-        onClick={() => setActiveTab(item.id)}
-      >
-        <Icon className={styles.navIcon} />
-        <span>{item.label}</span>
-        {item.badge !== undefined && item.badge > 0 && (
-          <span className={styles.navBadge}>{item.badge}</span>
-        )}
-      </button>
-    );
-  };
-
-  // Refresh data handler
-  const refreshData = () => {
-    if (activeTab === 'dashboard') {
-      fetchVendorAssets();
-      fetchOrders();
-      fetchOffers();
-      fetchPayouts();
-    } else if (activeTab === 'inventory') {
-      fetchMintRequests();
-    } else if (activeTab === 'orders') {
-      fetchOrders();
-    } else if (activeTab === 'offers') {
-      fetchOffers();
-    } else if (activeTab === 'payouts') {
-      fetchPayouts();
-    }
   };
 
   if (loading)
@@ -711,8 +722,14 @@ const VendorDashboard = () => {
       <div className={styles.dashboard}>
         <div className={styles.accessDenied}>
           <FiLock className={styles.accessDeniedIcon} />
-          <h1 className={styles.accessDeniedTitle}>Error</h1>
-          <p className={styles.accessDeniedText}>{error}</p>
+          <h1 className={styles.accessDeniedTitle}>
+            {error === 'no_profile' ? 'No Vendor Profile' : 'Error'}
+          </h1>
+          <p className={styles.accessDeniedText}>
+            {error === 'no_profile'
+              ? 'No vendor profile found for this wallet. Complete vendor onboarding to access the dashboard.'
+              : error}
+          </p>
         </div>
       </div>
     );
@@ -730,47 +747,34 @@ const VendorDashboard = () => {
       </div>
     );
 
+  const allNavItems = [...navItems, ...financeNavItems, ...settingsNavItems];
+
   return (
     <div className={styles.dashboard}>
-      {/* Sidebar Navigation */}
-      <aside className={styles.sidebar}>
-        <nav className={styles.sidebarNav}>
-          <div className={styles.navSection}>
-            <div className={styles.navSectionLabel}>Marketplace</div>
-            {navItems.map(renderNavItem)}
-          </div>
-
-          <div className={styles.navSection}>
-            <div className={styles.navSectionLabel}>Finance</div>
-            {financeNavItems.map(renderNavItem)}
-          </div>
-
-          <div className={styles.navSection}>
-            <div className={styles.navSectionLabel}>Settings</div>
-            {settingsNavItems.map(renderNavItem)}
-          </div>
-        </nav>
-      </aside>
+      {/* Tab Navigation — works on mobile and desktop */}
+      <nav className={styles.tabBar}>
+        <div className={styles.tabBarInner}>
+          {allNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                className={`${styles.tabItem} ${activeTab === item.id ? styles.active : ''}`}
+                onClick={() => setActiveTab(item.id)}
+              >
+                <Icon className={styles.tabIcon} />
+                <span className={styles.tabLabel}>{item.label}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className={styles.tabBadge}>{item.badge}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
       {/* Main Content Area */}
       <main className={styles.mainContent}>
-        <header className={styles.contentHeader}>
-          <div className={styles.pageTitle}>
-            <h1>{pageTitles[activeTab]?.title || 'Dashboard'}</h1>
-            <p>{pageTitles[activeTab]?.subtitle || ''}</p>
-          </div>
-          <div className={styles.headerActions}>
-            <button
-              className={styles.refreshBtn}
-              onClick={refreshData}
-              disabled={loading || assetsLoading}
-            >
-              <FiRefreshCw className={loading || assetsLoading ? styles.spinning : ''} />
-              {loading || assetsLoading ? 'Refreshing...' : 'Refresh'}
-            </button>
-          </div>
-        </header>
-
         <div className={styles.contentBody}>
           {/* Dashboard Tab */}
           {activeTab === 'dashboard' && (
@@ -895,13 +899,6 @@ const VendorDashboard = () => {
           {/* Inventory Tab */}
           {activeTab === 'inventory' && (
             <>
-              <AddInventoryForm onSuccess={fetchMintRequests} />
-
-              {/* Mint Requests Section */}
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Your Mint Requests</h2>
-              </div>
-
               {/* Filter Tabs */}
               <div className={styles.filterTabs}>
                 {(['all', 'pending', 'approved', 'minted', 'rejected'] as const).map((filter) => (
@@ -934,7 +931,7 @@ const VendorDashboard = () => {
                   <FiPackage className={styles.emptyIcon} />
                   <p>
                     {requestFilter === 'all'
-                      ? 'No mint requests yet. Add inventory above to request NFT minting.'
+                      ? 'No mint requests yet. Tap the + button to add your first item.'
                       : `No ${requestFilter} requests.`}
                   </p>
                 </div>
@@ -958,7 +955,56 @@ const VendorDashboard = () => {
                     };
 
                     return (
-                      <div key={request._id} className={styles.assetCardWrapper}>
+                      <div
+                        key={request._id}
+                        className={`${styles.assetCardWrapper} ${styles.inventoryCardWrapper}`}
+                      >
+                        {/* Action Menu */}
+                        <button
+                          className={styles.actionMenuBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenActionMenu(openActionMenu === request._id ? null : request._id);
+                          }}
+                        >
+                          &#8230;
+                        </button>
+                        {openActionMenu === request._id && (
+                          <div className={styles.actionDropdown}>
+                            <button
+                              className={styles.actionItem}
+                              onClick={() => {
+                                setDelistAsset({ ...request, requestedAction: 'delist' });
+                                setOpenActionMenu(null);
+                              }}
+                            >
+                              <FiEye /> Delist
+                            </button>
+                            <button
+                              className={`${styles.actionItem} ${styles.destructive}`}
+                              onClick={() => {
+                                setDelistAsset({ ...request, requestedAction: 'burn' });
+                                setOpenActionMenu(null);
+                              }}
+                            >
+                              <FiTrash2 /> Burn
+                            </button>
+                            <button
+                              className={styles.actionItem}
+                              onClick={() => {
+                                setDelistAsset({
+                                  ...request,
+                                  requestedAction: 'delist',
+                                  reason: 'sold_externally',
+                                });
+                                setOpenActionMenu(null);
+                              }}
+                            >
+                              <FiAlertCircle /> Report External Sale
+                            </button>
+                          </div>
+                        )}
+
                         <div
                           onClick={() => setSelectedRequest(request)}
                           style={{ cursor: 'pointer' }}
@@ -1631,6 +1677,18 @@ const VendorDashboard = () => {
           )}
         </div>
       </main>
+
+      {/* Delist / Burn / External Sale Modal */}
+      {delistAsset && (
+        <DelistRequestModal
+          asset={delistAsset}
+          onClose={() => setDelistAsset(null)}
+          onSuccess={() => {
+            setDelistAsset(null);
+            fetchMintRequests();
+          }}
+        />
+      )}
     </div>
   );
 };

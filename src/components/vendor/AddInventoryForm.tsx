@@ -8,6 +8,7 @@ import styles from '../../styles/AddInventoryForm.module.css';
 import RadixSelect from '../admins/RadixSelect';
 import toast from 'react-hot-toast';
 import { FaEdit, FaLayerGroup, FaUpload, FaFileDownload, FaSpinner, FaImage } from 'react-icons/fa';
+import { FaWandMagicSparkles } from 'react-icons/fa6';
 import {
   HiOutlinePhotograph,
   HiOutlineDocumentText,
@@ -46,6 +47,7 @@ interface AssetRow {
   warrantyInfo?: string;
   provenance?: string;
   features?: string;
+  serialNumber?: string;
 }
 
 // Column name mapping - maps common CSV column variations to expected property names
@@ -196,6 +198,14 @@ const columnMappings: Record<string, string> = {
   features: 'features',
   'special features': 'features',
   complications: 'features',
+
+  // Serial number variations
+  serialnumber: 'serialNumber',
+  serial_number: 'serialNumber',
+  'serial number': 'serialNumber',
+  serial: 'serialNumber',
+  'serial #': 'serialNumber',
+  'serial no': 'serialNumber',
 };
 
 // Normalize a row object by mapping column names to expected properties
@@ -251,8 +261,11 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
     warrantyInfo: '',
     provenance: '',
     features: '',
+    serialNumber: '',
     images: [] as File[],
   });
+
+  const [aiLoading, setAiLoading] = useState(false);
 
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkImages, setBulkImages] = useState<File[]>([]); // Separate image upload for CSV
@@ -351,6 +364,58 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  };
+
+  // AI autofill — analyze uploaded image and fill form fields
+  const handleAiAutofill = async () => {
+    if (single.images.length === 0) {
+      toast.error('Upload an image first');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const base64 = await fileToBase64(single.images[0]);
+      const res = await fetch('/api/ai/analyze-watch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: base64 }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'AI analysis failed');
+      }
+
+      const json = await res.json();
+      const data = json.data || json; // API wraps in { success, data }
+      setSingle((prev) => ({
+        ...prev,
+        brand: data.brand || prev.brand,
+        model: data.model || prev.model,
+        title: data.title || prev.title,
+        description: data.description || prev.description,
+        material: data.material || prev.material,
+        dialColor: data.dialColor || prev.dialColor,
+        caseSize: data.caseSize || prev.caseSize,
+        movement: data.movement || prev.movement,
+        waterResistance: data.waterResistance || prev.waterResistance,
+        productionYear: data.productionYear || prev.productionYear,
+        condition: data.condition || prev.condition,
+        features: data.features || prev.features,
+        country: data.country || prev.country,
+        priceUSD: data.estimatedPriceUSD || prev.priceUSD,
+      }));
+
+      toast.success(
+        `AI identified: ${data.brand} ${data.model} (${data.confidence}% confidence) — please review all fields for accuracy`,
+        { duration: 6000 }
+      );
+    } catch (err: any) {
+      toast.error(err.message || 'AI analysis failed');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   // Handle separate image upload for bulk CSV mode
@@ -595,6 +660,7 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
           caseSize: single.caseSize,
           provenance: single.provenance,
           features: single.features,
+          serialNumber: single.serialNumber || undefined,
         }),
       });
 
@@ -681,6 +747,7 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
               caseSize: row.caseSize,
               provenance: row.provenance,
               features: row.features,
+              serialNumber: row.serialNumber || undefined,
             }),
           });
 
@@ -718,6 +785,21 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
 
   return (
     <div className={styles.inventoryContainer}>
+      {/* Mode Switcher — always visible at top */}
+      <div className={styles.modeTabs}>
+        <button
+          className={mode === 'single' ? styles.active : ''}
+          onClick={() => setMode('single')}
+        >
+          <FaEdit className={styles.modeIcon} />
+          <span>Manual</span>
+        </button>
+        <button className={mode === 'bulk' ? styles.active : ''} onClick={() => setMode('bulk')}>
+          <FaLayerGroup className={styles.modeIcon} />
+          <span>Bulk</span>
+        </button>
+      </div>
+
       {/* Single Mode */}
       {mode === 'single' && (
         <div className={styles.formLayout}>
@@ -750,13 +832,34 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
               </div>
 
               {single.images.length > 0 && (
-                <div className={styles.imagePreviewGrid}>
-                  {single.images.map((file, idx) => (
-                    <div key={idx} className={styles.imagePreviewItem}>
-                      <img src={URL.createObjectURL(file)} alt={`Preview ${idx + 1}`} />
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className={styles.imagePreviewGrid}>
+                    {single.images.map((file, idx) => (
+                      <div key={idx} className={styles.imagePreviewItem}>
+                        <img src={URL.createObjectURL(file)} alt={`Preview ${idx + 1}`} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles.aiButton}
+                    onClick={handleAiAutofill}
+                    disabled={aiLoading}
+                  >
+                    {aiLoading ? (
+                      <>
+                        <FaSpinner className={styles.spinner} />
+                        <span>Analyzing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FaWandMagicSparkles />
+                        <span>AI Autofill</span>
+                      </>
+                    )}
+                  </button>
+                </>
               )}
             </div>
 
@@ -795,6 +898,16 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
                     value={single.reference}
                     onChange={(e) => setSingle((p) => ({ ...p, reference: e.target.value }))}
                     placeholder="126610LN"
+                  />
+                </div>
+
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Serial Number</label>
+                  <input
+                    className={styles.formInput}
+                    value={single.serialNumber}
+                    onChange={(e) => setSingle((p) => ({ ...p, serialNumber: e.target.value }))}
+                    placeholder="Internal only — not shown on-chain"
                   />
                 </div>
 
@@ -1703,30 +1816,6 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
           </div>
         </div>
       )}
-
-      {/* Mode Switcher */}
-      <div className={styles.modeTabs}>
-        <button
-          className={mode === 'single' ? styles.active : ''}
-          onClick={() => {
-            setMode('single');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-        >
-          <FaEdit className={styles.modeIcon} />
-          <span>Manual</span>
-        </button>
-        <button
-          className={mode === 'bulk' ? styles.active : ''}
-          onClick={() => {
-            setMode('bulk');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-        >
-          <FaLayerGroup className={styles.modeIcon} />
-          <span>Bulk</span>
-        </button>
-      </div>
     </div>
   );
 }

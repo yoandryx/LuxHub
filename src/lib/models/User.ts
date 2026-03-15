@@ -63,6 +63,20 @@ const UserSchema = new Schema(
     analytics: { type: Schema.Types.ObjectId, ref: 'UserAnalytics' },
     totalInvested: { type: Number, default: 0 },
 
+    // Notification Preferences
+    notificationPrefs: {
+      // Channels
+      emailEnabled: { type: Boolean, default: true },
+      inAppEnabled: { type: Boolean, default: true },
+      // What to notify about
+      orderUpdates: { type: Boolean, default: true }, // Purchase, shipment, delivery
+      offerAlerts: { type: Boolean, default: true }, // New offers, counter-offers
+      paymentAlerts: { type: Boolean, default: true }, // Payouts, refunds, distributions
+      poolUpdates: { type: Boolean, default: true }, // Investment confirmations, pool status
+      securityAlerts: { type: Boolean, default: true }, // Disputes, escalations (always recommended)
+      marketingUpdates: { type: Boolean, default: false }, // Platform news (off by default)
+    },
+
     // Account status
     deleted: { type: Boolean, default: false },
     lastLoginAt: Date,

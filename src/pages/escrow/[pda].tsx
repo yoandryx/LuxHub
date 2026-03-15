@@ -166,7 +166,7 @@ const EscrowDetailPage: React.FC = () => {
         <FaExclamationCircle className={styles.errorIcon} />
         <h2>Escrow Not Found</h2>
         <p>{error || 'The requested escrow could not be found.'}</p>
-        <Link href="/watchMarket" className={styles.backLink}>
+        <Link href="/marketplace" className={styles.backLink}>
           <FaArrowLeft /> Back to Marketplace
         </Link>
       </div>
@@ -185,7 +185,7 @@ const EscrowDetailPage: React.FC = () => {
 
       <div className={styles.pageContainer}>
         {/* Back Navigation */}
-        <Link href="/watchMarket" className={styles.backLink}>
+        <Link href="/marketplace" className={styles.backLink}>
           <FaArrowLeft /> Back to Marketplace
         </Link>
 
@@ -320,14 +320,14 @@ const EscrowDetailPage: React.FC = () => {
                         className={styles.primaryButton}
                         onClick={() => !wallet.connected && setShowWalletModal(true)}
                       >
-                        Buy Now
+                        BUY
                       </button>
                     )}
                   </>
                 )}
                 {escrow.convertedToPool && escrow.poolId && (
                   <Link href={`/pool/${escrow.poolId}`} className={styles.poolButton}>
-                    <FaUsers /> View Investment Pool
+                    <FaUsers /> View Asset Pool
                   </Link>
                 )}
               </div>

@@ -22,7 +22,14 @@ export type NotificationType =
   | 'sale_request_rejected'
   | 'pool_investment'
   | 'pool_distribution'
-  | 'order_refunded';
+  | 'order_refunded'
+  | 'escrow_cancelled_external_sale'
+  | 'delist_request_approved'
+  | 'delist_request_rejected'
+  | 'pool_wind_down_announced'
+  | 'pool_snapshot_taken'
+  | 'pool_distribution_complete'
+  | 'vendor_application_received';
 
 export interface NotificationMetadata {
   escrowId?: string;
@@ -124,6 +131,34 @@ const emailTemplates: Record<
   order_refunded: {
     subject: () => 'Refund Processed',
     getHtml: (p) => baseEmailTemplate(p, '#f59e0b'),
+  },
+  escrow_cancelled_external_sale: {
+    subject: () => 'Order Cancelled - Item Sold Externally',
+    getHtml: (p) => baseEmailTemplate(p, '#ef4444'),
+  },
+  delist_request_approved: {
+    subject: () => 'Delist Request Approved',
+    getHtml: (p) => baseEmailTemplate(p, '#22c55e'),
+  },
+  delist_request_rejected: {
+    subject: () => 'Delist Request Update',
+    getHtml: (p) => baseEmailTemplate(p, '#ef4444'),
+  },
+  pool_wind_down_announced: {
+    subject: () => 'Pool Wind-Down Announced',
+    getHtml: (p) => baseEmailTemplate(p, '#f59e0b'),
+  },
+  pool_snapshot_taken: {
+    subject: () => 'Pool Snapshot Taken - Choose Your Option',
+    getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
+  },
+  pool_distribution_complete: {
+    subject: () => 'Pool Distribution Complete',
+    getHtml: (p) => baseEmailTemplate(p, '#22c55e'),
+  },
+  vendor_application_received: {
+    subject: () => 'New Vendor Application — Action Required',
+    getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
   },
 };
 
@@ -290,10 +325,45 @@ async function sendEmail(
   }
 }
 
+// ========== PREFERENCE HELPERS ==========
+
+// Map notification types to user preference categories
+function getNotificationCategory(type: NotificationType): string {
+  const categoryMap: Record<NotificationType, string> = {
+    order_funded: 'orderUpdates',
+    order_shipped: 'orderUpdates',
+    order_delivered: 'orderUpdates',
+    order_refunded: 'orderUpdates',
+    shipment_submitted: 'orderUpdates',
+    shipment_verified: 'orderUpdates',
+    shipment_rejected: 'orderUpdates',
+    offer_received: 'offerAlerts',
+    offer_accepted: 'offerAlerts',
+    offer_rejected: 'offerAlerts',
+    offer_countered: 'offerAlerts',
+    payment_released: 'paymentAlerts',
+    pool_investment: 'poolUpdates',
+    pool_distribution: 'poolUpdates',
+    vendor_approved: 'securityAlerts',
+    vendor_rejected: 'securityAlerts',
+    sale_request_approved: 'orderUpdates',
+    sale_request_rejected: 'orderUpdates',
+    escrow_cancelled_external_sale: 'orderUpdates',
+    delist_request_approved: 'orderUpdates',
+    delist_request_rejected: 'orderUpdates',
+    pool_wind_down_announced: 'poolUpdates',
+    pool_snapshot_taken: 'poolUpdates',
+    pool_distribution_complete: 'poolUpdates',
+    vendor_application_received: 'securityAlerts',
+  };
+  return categoryMap[type] || 'orderUpdates';
+}
+
 // ========== MAIN SERVICE FUNCTIONS ==========
 
 /**
- * Create an in-app notification and optionally send email
+ * Create an in-app notification and optionally send email.
+ * Respects user notification preferences (channel + category).
  */
 export async function notifyUser(params: CreateNotificationParams): Promise<{
   notification: any;
@@ -317,24 +387,35 @@ export async function notifyUser(params: CreateNotificationParams): Promise<{
 
     if (!user) {
       console.warn(`[NotificationService] User not found for wallet: ${userWallet}`);
-      // Still create notification with just wallet address
     }
 
-    // Create in-app notification
-    const notification = await Notification.create({
-      user: user?._id,
-      userWallet,
-      type,
-      title,
-      message,
-      metadata,
-    });
+    // Check user notification preferences
+    const prefs = user?.notificationPrefs || {};
+    const category = getNotificationCategory(type);
 
-    // Send email if user has email and sendEmail is true
+    // Check if user has opted out of this category
+    const categoryEnabled = prefs[category] !== false; // Default true if not set
+    const inAppEnabled = prefs.inAppEnabled !== false;
+    const emailEnabled = prefs.emailEnabled !== false;
+
+    // Create in-app notification (if enabled)
+    let notification = null;
+    if (inAppEnabled && categoryEnabled) {
+      notification = await Notification.create({
+        user: user?._id,
+        userWallet,
+        type,
+        title,
+        message,
+        metadata,
+      });
+    }
+
+    // Send email if user has email, channel enabled, and category enabled
     let emailSent = false;
     let emailError: string | undefined;
 
-    if (shouldSendEmail && user?.email) {
+    if (shouldSendEmail && user?.email && emailEnabled && categoryEnabled) {
       const result = await sendEmail(user.email, type, {
         title,
         message,
@@ -346,10 +427,12 @@ export async function notifyUser(params: CreateNotificationParams): Promise<{
       emailError = result.error;
 
       // Update notification with email status
-      notification.emailSent = emailSent;
-      notification.emailSentAt = emailSent ? new Date() : undefined;
-      notification.emailError = emailError;
-      await notification.save();
+      if (notification) {
+        notification.emailSent = emailSent;
+        notification.emailSentAt = emailSent ? new Date() : undefined;
+        notification.emailError = emailError;
+        await notification.save();
+      }
     }
 
     return { notification, emailSent, emailError };
@@ -676,17 +759,35 @@ export async function notifyVendorApplicationResult(params: {
   const { vendorWallet, approved, vendorName, reason } = params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
 
-  return notifyUser({
+  const result = await notifyUser({
     userWallet: vendorWallet,
     type: approved ? 'vendor_approved' : 'vendor_rejected',
     title: approved ? 'Vendor Application Approved!' : 'Vendor Application Update',
     message: approved
-      ? `Congratulations${vendorName ? ` ${vendorName}` : ''}! Your vendor application has been approved. Start listing your luxury assets now!`
+      ? `Congratulations${vendorName ? ` ${vendorName}` : ''}! Your vendor application has been approved. You can now access your Vendor Dashboard to set up your inventory and start listing luxury assets on LuxHub.`
       : `Thank you for your interest in becoming a LuxHub vendor.${reason ? ` ${reason}` : ' Unfortunately, we cannot approve your application at this time.'}`,
     metadata: {
-      actionUrl: approved ? `${appUrl}/vendor/dashboard` : `${appUrl}/apply`,
+      actionUrl: approved ? `${appUrl}/vendor/vendorDashboard` : `${appUrl}/vendor/apply`,
     },
   });
+
+  // CC admin email on approval/rejection for record-keeping
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  if (adminEmail) {
+    const statusLabel = approved ? 'APPROVED' : 'REJECTED';
+    try {
+      await sendEmail(adminEmail, approved ? 'vendor_approved' : 'vendor_rejected', {
+        title: `Vendor ${statusLabel}: ${vendorName || vendorWallet.slice(0, 8)}`,
+        message: `Vendor ${vendorName ? `"${vendorName}" (${vendorWallet.slice(0, 8)}...)` : vendorWallet.slice(0, 8) + '...'} has been ${statusLabel.toLowerCase()}.${!approved && reason ? ` Reason: ${reason}` : ''}`,
+        actionUrl: `${appUrl}/adminDashboard`,
+        type: approved ? 'vendor_approved' : 'vendor_rejected',
+      });
+    } catch (emailErr) {
+      console.error('[NotificationService] Admin CC email error:', emailErr);
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -733,6 +834,80 @@ export async function notifyOrderRefunded(params: {
   });
 }
 
+/**
+ * Notify all admins when a new vendor application is submitted
+ */
+export async function notifyNewVendorApplication(params: {
+  vendorName: string;
+  vendorWallet: string;
+  vendorUsername: string;
+  businessType?: string;
+  primaryCategory?: string;
+}) {
+  const { vendorName, vendorWallet, vendorUsername, businessType, primaryCategory } = params;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.io';
+
+  // Get admin wallets from env
+  const adminWallets = (process.env.ADMIN_WALLETS || '')
+    .split(',')
+    .map((w) => w.trim())
+    .filter(Boolean);
+
+  const superAdminWallets = (process.env.SUPER_ADMIN_WALLETS || '')
+    .split(',')
+    .map((w) => w.trim())
+    .filter(Boolean);
+
+  const allAdmins = [...new Set([...adminWallets, ...superAdminWallets])];
+
+  if (allAdmins.length === 0) {
+    console.warn('[NotificationService] No admin wallets configured, skipping admin notification');
+    return [];
+  }
+
+  const details = [
+    `Business: ${vendorName} (@${vendorUsername})`,
+    businessType ? `Type: ${businessType}` : null,
+    primaryCategory ? `Category: ${primaryCategory}` : null,
+    `Wallet: ${vendorWallet.slice(0, 8)}...${vendorWallet.slice(-4)}`,
+  ]
+    .filter(Boolean)
+    .join(' | ');
+
+  const results = await Promise.allSettled(
+    allAdmins.map((adminWallet) =>
+      notifyUser({
+        userWallet: adminWallet,
+        type: 'vendor_application_received',
+        title: 'New Vendor Application',
+        message: `A new vendor application needs your review. ${details}. Go to the Admin Dashboard to approve or reject.`,
+        metadata: {
+          vendorId: vendorWallet,
+          actionUrl: `${appUrl}/adminDashboard`,
+        },
+      })
+    )
+  );
+
+  // Also send directly to the admin notification email (fallback for when
+  // admin wallets don't have User records with emails in the DB)
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  if (adminEmail) {
+    try {
+      await sendEmail(adminEmail, 'vendor_application_received', {
+        title: 'New Vendor Application',
+        message: `A new vendor application needs your review.\n\n${details}\n\nLog in to the Admin Dashboard to approve or reject this application.`,
+        actionUrl: `${appUrl}/adminDashboard`,
+        type: 'vendor_application_received',
+      });
+    } catch (emailErr) {
+      console.error('[NotificationService] Admin email fallback error:', emailErr);
+    }
+  }
+
+  return results;
+}
+
 export default {
   notifyUser,
   notifyNewOrder,
@@ -747,4 +922,5 @@ export default {
   notifyOfferCountered,
   notifyVendorApplicationResult,
   notifyOrderRefunded,
+  notifyNewVendorApplication,
 };
