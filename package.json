@@ -18,6 +18,7 @@
     "test:anchor": "cd Solana-Anchor && anchor test",
     "env:check": "node scripts/validate-env.js",
     "build:all": "npm run build && cd Solana-Anchor && anchor build",
+    "analyze": "ANALYZE=true next build --webpack",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -99,6 +100,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@next/bundle-analyzer": "^16.1.6",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@types/jest": "^30.0.0",
