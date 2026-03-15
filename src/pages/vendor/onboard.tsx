@@ -31,7 +31,7 @@ const { Permission, Permissions } = multisig.types;
 export default function VendorOnboard() {
   const router = useRouter();
   const { query } = router;
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, signTransaction, signMessage } = useWallet();
   const { connection } = useConnection();
 
   // Wizard step state (0: Account Info, 1: Images, 2: Review)
@@ -47,6 +47,13 @@ export default function VendorOnboard() {
     website: '',
     avatarUrl: '',
     bannerUrl: '',
+    businessType: '',
+    primaryCategory: '',
+    estimatedInventorySize: '',
+    yearsInBusiness: '',
+    hasPhysicalLocation: false,
+    additionalNotes: '',
+    _company: '',
   });
 
   const [errors, setErrors] = useState({
@@ -307,6 +314,29 @@ export default function VendorOnboard() {
       return;
     }
 
+    // Wallet signature verification
+    if (!signMessage) {
+      toast.error('Wallet does not support message signing');
+      return;
+    }
+
+    setSubmitting(true);
+
+    let walletSignature = '';
+    try {
+      const nonceRes = await fetch(`/api/auth/nonce?wallet=${publicKey!.toBase58()}`);
+      const nonceData = await nonceRes.json();
+      if (!nonceData.nonce) throw new Error('Failed to get nonce');
+
+      const messageBytes = new TextEncoder().encode(nonceData.nonce);
+      const signatureBytes = await signMessage(messageBytes);
+      walletSignature = bs58.encode(signatureBytes);
+    } catch (e: any) {
+      toast.error('Failed to verify wallet ownership');
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       wallet: publicKey?.toBase58(),
       name: formData.name.trim(),
@@ -320,13 +350,23 @@ export default function VendorOnboard() {
         website: formData.website.trim() || '',
       },
       multisigPda: enableTreasury && multisigState.pda ? multisigState.pda : null,
+      businessType: formData.businessType || undefined,
+      primaryCategory: formData.primaryCategory || undefined,
+      estimatedInventorySize: formData.estimatedInventorySize || undefined,
+      yearsInBusiness: formData.yearsInBusiness ? Number(formData.yearsInBusiness) : undefined,
+      hasPhysicalLocation: formData.hasPhysicalLocation || undefined,
+      additionalNotes: formData.additionalNotes.trim() || undefined,
+      _company: formData._company || undefined,
     };
 
-    setSubmitting(true);
     try {
       const res = await fetch('/api/vendor/onboard-api', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': publicKey!.toBase58(),
+          'x-wallet-signature': walletSignature,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -527,6 +567,105 @@ export default function VendorOnboard() {
                     }
                     setFormData({ ...formData, website: value });
                   }}
+                />
+              </div>
+
+              <div className={styles.sectionHeading}>
+                <FaInfoCircle className={styles.sectionIcon} />
+                <h2>About Your Business</h2>
+              </div>
+              <p className={styles.sectionSubtext}>
+                Help us understand your business better. This information helps us review your
+                application.
+              </p>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Business Type</label>
+                  <select
+                    className={styles.formInput}
+                    value={formData.businessType}
+                    onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
+                  >
+                    <option value="">Select type...</option>
+                    <option value="individual">Individual Seller</option>
+                    <option value="small_business">Small Business</option>
+                    <option value="dealer">Dealer</option>
+                    <option value="auction_house">Auction House</option>
+                    <option value="brand_authorized">Brand Authorized</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Primary Category</label>
+                  <select
+                    className={styles.formInput}
+                    value={formData.primaryCategory}
+                    onChange={(e) => setFormData({ ...formData, primaryCategory: e.target.value })}
+                  >
+                    <option value="">Select category...</option>
+                    <option value="watches">Watches</option>
+                    <option value="jewelry">Jewelry</option>
+                    <option value="collectibles">Collectibles</option>
+                    <option value="art">Art</option>
+                    <option value="mixed">Mixed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Estimated Inventory</label>
+                  <select
+                    className={styles.formInput}
+                    value={formData.estimatedInventorySize}
+                    onChange={(e) =>
+                      setFormData({ ...formData, estimatedInventorySize: e.target.value })
+                    }
+                  >
+                    <option value="">Select range...</option>
+                    <option value="1-5">1-5 items</option>
+                    <option value="6-20">6-20 items</option>
+                    <option value="21-50">21-50 items</option>
+                    <option value="50+">50+ items</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Years in Business</label>
+                  <input
+                    type="number"
+                    className={styles.formInput}
+                    placeholder="0"
+                    min="0"
+                    value={formData.yearsInBusiness}
+                    onChange={(e) => setFormData({ ...formData, yearsInBusiness: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <input
+                    type="checkbox"
+                    checked={formData.hasPhysicalLocation}
+                    onChange={(e) =>
+                      setFormData({ ...formData, hasPhysicalLocation: e.target.checked })
+                    }
+                    style={{ marginRight: 8 }}
+                  />
+                  I have a physical store or showroom
+                </label>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Tell Us About Your Collection</label>
+                <textarea
+                  className={styles.formTextarea}
+                  placeholder="Describe what you sell, your expertise, notable pieces..."
+                  value={formData.additionalNotes}
+                  onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
+                  rows={3}
                 />
               </div>
             </>
@@ -802,6 +941,17 @@ export default function VendorOnboard() {
               )}
             </>
           )}
+
+          {/* Honeypot - hidden from real users */}
+          <input
+            type="text"
+            name="_company"
+            value={formData._company}
+            onChange={(e) => setFormData({ ...formData, _company: e.target.value })}
+            style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0 }}
+            tabIndex={-1}
+            autoComplete="off"
+          />
 
           {/* Navigation Buttons */}
           <div className={styles.navButtons}>
