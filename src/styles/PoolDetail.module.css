@@ -1126,6 +1126,51 @@
   color: rgba(200, 161, 255, 0.6);
 }
 
+/* ===== WIND-DOWN SECTION ===== */
+.windDownSection {
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.windDownTitle {
+  color: #f59e0b;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.windDownInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.windDownMessage {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.windDownDeadline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.windDownDeadline strong {
+  color: #f59e0b;
+}
+
+.windDownHolders {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .content {

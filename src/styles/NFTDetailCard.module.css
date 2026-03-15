@@ -94,7 +94,9 @@
   position: relative;
   width: 100%;
   max-width: 900px;
-  background: linear-gradient(160deg, rgba(18, 18, 24, 0.97) 0%, rgba(10, 10, 14, 0.99) 100%);
+  background: #0a0a0c;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
   border: none;
   border-radius: 20px;
   overflow: hidden;
@@ -367,17 +369,18 @@
 
 /* Brand label */
 .brandLabel {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--accent);
+  opacity: 0.6;
   margin-bottom: 4px;
 }
 
 /* Product title */
 .productTitle {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0 0 4px;
@@ -388,7 +391,7 @@
 .description {
   font-size: 0.8rem;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.48);
   margin: 8px 0 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -396,80 +399,45 @@
   overflow: hidden;
 }
 
-/* ========== PRICE ROW ========== */
+/* ========== PRICE + ACTION BLOCK ========== */
+.priceActionBlock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px 0;
+  padding: 16px 0;
+  background-image:
+    linear-gradient(to right, transparent, rgba(185, 145, 255, 0.1), transparent),
+    linear-gradient(to right, transparent, rgba(185, 145, 255, 0.1), transparent);
+  background-size:
+    100% 1px,
+    100% 1px;
+  background-repeat: no-repeat;
+  background-position: top, bottom;
+}
+
 .priceRow {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  margin: 16px 0;
-  padding: 16px 0;
-  border-top: 1px solid rgba(200, 161, 255, 0.08);
-  border-bottom: 1px solid rgba(200, 161, 255, 0.08);
+  gap: 8px;
 }
 
 .priceValue {
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #e0c3ff 0%, #c8a1ff 40%, #a78bfa 70%, #d4b4ff 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 
 .priceLabel {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
   color: var(--accent);
   opacity: 0.5;
   text-transform: uppercase;
-}
-
-.priceUSD {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.currencyToggle {
-  margin-left: auto;
-  background: rgba(13, 13, 13, 0.7);
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.currencyToggle::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: 6px;
-  background: linear-gradient(
-    135deg,
-    rgba(200, 161, 255, 0.3),
-    rgba(200, 161, 255, 0.08),
-    rgba(200, 161, 255, 0.3)
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-.currencyToggle:hover {
-  color: var(--accent);
 }
 
 /* ========== SPEC GRID ========== */
@@ -478,11 +446,12 @@
 }
 
 .specTitle {
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 1.5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--accent);
+  opacity: 0.6;
   margin: 0 0 10px;
 }
 
@@ -638,30 +607,32 @@
 /* ========== ACTION BUTTONS ========== */
 .actionRow {
   display: flex;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid rgba(200, 161, 255, 0.06);
+  gap: 6px;
 }
 
 .actionBtn {
   position: relative;
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 13px 16px;
+  padding: 10px 20px;
   border-radius: 10px;
   border: none;
   background: transparent;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   overflow: hidden;
+}
+
+.connectPrompt {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
 }
 
 /* Buy button - green gradient border */

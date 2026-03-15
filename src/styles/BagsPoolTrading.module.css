@@ -632,6 +632,26 @@
   color: #22c55e;
 }
 
+/* ============================================
+   Wind-Down States
+   ============================================ */
+.windDownNotice {
+  padding: 12px 16px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+  color: #f59e0b;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.tradingDisabled {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .container {

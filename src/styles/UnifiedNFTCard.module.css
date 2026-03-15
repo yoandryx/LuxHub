@@ -30,7 +30,7 @@
 .card {
   position: relative;
   width: 100%;
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+  background: #0a0a0c;
   border: none;
   border-radius: 16px;
   overflow: hidden;
@@ -42,8 +42,8 @@
 .card:hover {
   transform: translateY(-4px);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    0 0 30px var(--accent-glow);
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* Gradient border via mask (purchaseButton style) */
@@ -234,18 +234,18 @@
 
 .badgeListed {
   background: rgba(13, 13, 13, 0.7);
-  color: var(--info);
+  color: var(--accent);
 }
 .badgeListed::before {
   background: linear-gradient(
     135deg,
-    rgba(96, 165, 250, 0.5),
-    rgba(96, 165, 250, 0.1),
-    rgba(96, 165, 250, 0.5)
+    rgba(200, 161, 255, 0.5),
+    rgba(200, 161, 255, 0.1),
+    rgba(200, 161, 255, 0.5)
   );
 }
 .badgeListed::after {
-  background: radial-gradient(circle at 50% 50%, rgba(96, 165, 250, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(200, 161, 255, 0.08) 0%, transparent 70%);
 }
 
 .badgeSold {
@@ -543,7 +543,11 @@
   gap: 8px;
   padding: 14px 16px;
   background: transparent;
-  border-top: 1px solid rgba(200, 161, 255, 0.08);
+  border-top: none;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.1), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: top;
 }
 
 /* Price row - inline with label */
@@ -562,7 +566,11 @@
   align-items: center;
   gap: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(200, 161, 255, 0.06);
+  border-top: none;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.08), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: top;
 }
 
 .luxuryBuyBtn,
@@ -720,11 +728,12 @@
 }
 
 .brand {
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 1.5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--accent);
+  opacity: 0.6;
 }
 
 .title {
@@ -746,19 +755,17 @@
 }
 
 .priceValue {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #e0c3ff 0%, #c8a1ff 40%, #a78bfa 70%, #d4b4ff 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 
 .priceLabel {
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
   color: var(--accent);
   opacity: 0.5;
   text-transform: uppercase;
@@ -767,8 +774,7 @@
 .priceUSD {
   font-size: 0.7rem;
   font-weight: 500;
-  color: var(--text-secondary);
-  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.48);
 }
 
 /* ========== CARD VARIANTS ========== */
@@ -836,14 +842,18 @@
   justify-content: space-between;
   align-items: center;
   border-top: none;
-  border-left: 1px solid var(--border);
+  border-left: none;
   border-radius: 0 12px 12px 0;
+  background-image: linear-gradient(to bottom, transparent, rgba(185, 145, 255, 0.08), transparent);
+  background-size: 1px 100%;
+  background-repeat: no-repeat;
+  background-position: left;
 }
 
 /* ========== GRID CARD (Simpler version) ========== */
 .gridCard {
   position: relative;
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+  background: #0a0a0c;
   border: none;
   border-radius: 16px;
   overflow: hidden;
@@ -983,8 +993,12 @@
 }
 
 .gridBrand {
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .gridSubtitle {
@@ -1002,11 +1016,10 @@
 
 .gridPrice {
   font-size: 0.85rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #e0c3ff 0%, #c8a1ff 40%, #a78bfa 70%, #d4b4ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 
 .gridPriceUSD {

@@ -1,6 +1,6 @@
 /* ============================================
    LUXHUB VENDOR CARD - Unified Reusable Component
-   Glassmorphic Purple Accent Theme
+   Glass-chrome gradient border theme
    ============================================ */
 
 .vendorCard {
@@ -10,47 +10,85 @@
   --bg-dark: #0d0d0d;
   --border: #222222;
   --border-light: rgba(255, 255, 255, 0.08);
-  --glass: rgba(20, 20, 25, 0.7);
+  --glass: rgba(8, 8, 10, 0.82);
   --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-muted: rgba(255, 255, 255, 0.5);
+  --text-secondary: rgba(255, 255, 255, 0.72);
+  --text-muted: rgba(255, 255, 255, 0.48);
 
   display: flex;
-  background: var(--glass);
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.25s ease;
+  background: #0a0a0c;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
+  border-radius: 16px;
+  transition: all 0.3s ease;
   cursor: pointer;
   text-decoration: none;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
-/* Top accent line on hover */
+/* Gradient border via mask */
 .vendorCard::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0;
-  transition: opacity 0.25s ease;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.35),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.35)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+
+/* Ambient glow */
+.vendorCard::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 16px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(185, 145, 255, 0.06) 0%,
+    rgba(185, 145, 255, 0) 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+  transition: background 0.3s ease;
 }
 
 .vendorCard:hover {
-  border-color: var(--accent-dim);
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(200, 161, 255, 0.08);
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
 .vendorCard:hover::before {
-  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.6),
+    rgba(185, 145, 255, 0.15),
+    rgba(185, 145, 255, 0.6)
+  );
+}
+
+.vendorCard:hover::after {
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(185, 145, 255, 0.12) 0%,
+    rgba(185, 145, 255, 0) 60%
+  );
 }
 
 /* ============================================
@@ -59,8 +97,10 @@
 .gridVariant {
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 16px 12px;
+  min-height: 160px;
 }
 
 .gridVariant .avatarWrapper {
@@ -109,12 +149,13 @@
   align-items: center;
   padding: 10px 14px;
   gap: 12px;
-  min-width: 200px;
-  max-width: 260px;
+  width: 220px;
+  height: 64px;
+  flex-shrink: 0;
 }
 
 .sliderVariant:hover {
-  transform: translateX(4px);
+  transform: translateY(-3px);
 }
 
 .sliderVariant .avatarWrapper {
@@ -164,11 +205,13 @@
   align-items: center;
   padding: 8px 10px;
   gap: 8px;
-  min-width: 160px;
+  width: 180px;
+  height: 48px;
+  flex-shrink: 0;
 }
 
 .compactVariant:hover {
-  transform: translateX(3px);
+  transform: translateY(-2px);
 }
 
 .compactVariant .avatarWrapper {
@@ -211,29 +254,32 @@
    ============================================ */
 .avatarWrapper {
   position: relative;
+  z-index: 2;
 }
 
 .avatar {
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--border);
-  transition: border-color 0.25s ease;
+  border: 1.5px solid rgba(200, 161, 255, 0.35);
+  background: linear-gradient(145deg, rgba(200, 161, 255, 0.15), rgba(100, 70, 160, 0.08));
+  transition: border-color 0.3s ease;
 }
 
 .avatarPlaceholder {
   border-radius: 50%;
-  border: 2px solid var(--border);
-  background: linear-gradient(135deg, #1a1a20 0%, #15151a 100%);
+  border: 1.5px solid rgba(200, 161, 255, 0.35);
+  background: linear-gradient(145deg, rgba(200, 161, 255, 0.15), rgba(100, 70, 160, 0.08));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--accent);
   font-size: 1rem;
+  opacity: 0.7;
 }
 
 .vendorCard:hover .avatar,
 .vendorCard:hover .avatarPlaceholder {
-  border-color: var(--accent);
+  border-color: rgba(200, 161, 255, 0.6);
 }
 
 /* ============================================
@@ -246,20 +292,79 @@
   justify-content: center;
   color: var(--accent);
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+  z-index: 3;
 }
 
 /* ============================================
    INFO STYLES
    ============================================ */
+.info {
+  position: relative;
+  z-index: 2;
+}
+
 .name {
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
+  letter-spacing: 0.1px;
 }
 
 .username {
   color: var(--text-muted);
   line-height: 1.2;
+  letter-spacing: 0.1px;
+}
+
+/* ============================================
+   VERIFIED PILL
+   ============================================ */
+.verifiedPill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  overflow: hidden;
+  z-index: 2;
+}
+
+.verifiedPill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.5),
+    rgba(185, 145, 255, 0.12),
+    rgba(185, 145, 255, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.verifiedPill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 145, 255, 0.1) 0%,
+    rgba(185, 145, 255, 0) 70%
+  );
+  pointer-events: none;
 }
 
 /* ============================================
@@ -270,6 +375,8 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
+  position: relative;
+  z-index: 2;
 }
 
 .statItem {
@@ -289,6 +396,7 @@
   /* Grid variant mobile */
   .gridVariant {
     padding: 12px 8px;
+    min-height: 140px;
   }
 
   .gridVariant .avatar,
@@ -317,7 +425,8 @@
 
   /* Slider variant mobile */
   .sliderVariant {
-    min-width: 180px;
+    width: 190px;
+    height: 56px;
     padding: 8px 12px;
     gap: 10px;
   }
@@ -339,7 +448,8 @@
 
   /* Compact variant mobile */
   .compactVariant {
-    min-width: 140px;
+    width: 150px;
+    height: 42px;
     padding: 6px 8px;
   }
 

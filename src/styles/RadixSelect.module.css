@@ -1,83 +1,158 @@
-/* Radix Select – luxury dark theme (reusable across dashboard) */
+/* ========================================
+   RADIX SELECT — LuxHub Glass-Chrome Theme
+   ======================================== */
+
+/* ========== TRIGGER ========== */
 .selectTrigger {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.5rem;
-  background: #1f1f1f90;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   color: #ffffff;
-  font-size: 1rem;
+  font-size: 0.85rem;
   width: 100%;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .selectTrigger:hover {
-  border-color: #c8a1ff;
-  box-shadow: 0 0 15px #c8a1ff4d;
+  border-color: rgba(185, 145, 255, 0.3);
 }
 
 .selectTrigger:focus {
   outline: none;
-  border-color: #c8a1ff;
-  box-shadow: 0 0 20px #c8a1ff;
+  border-color: rgba(185, 145, 255, 0.4);
+  background: rgba(185, 145, 255, 0.04);
 }
 
 .selectTrigger[data-placeholder] {
-  color: #888; /* Placeholder gray */
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .selectIcon {
+  color: rgba(200, 161, 255, 0.6);
+  transition: color 0.2s ease;
+}
+
+.selectTrigger:hover .selectIcon {
   color: #c8a1ff;
 }
 
+/* ========== CONTENT DROPDOWN ========== */
 .selectContent {
-  background: #1f1f1f;
-  border: 1px solid var(--border);
+  position: relative;
+  background: #0a0a0c;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
   overflow: hidden;
-  z-index: 1000;
-  backdrop-filter: blur(10px);
+  z-index: 10000;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    0 8px 32px rgba(0, 0, 0, 0.35);
+  animation: selectIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Gradient border */
+.selectContent::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.45),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.45)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ambient glow */
+.selectContent::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(185, 145, 255, 0.08) 0%,
+    rgba(185, 145, 255, 0) 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes selectIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ========== VIEWPORT ========== */
 .selectViewport {
-  padding: 0.5rem;
+  padding: 4px;
 }
 
+/* ========== ITEMS ========== */
 .selectItem {
-  padding: 1rem 1.5rem;
-  color: #ffffff;
-  font-size: 1rem;
+  position: relative;
+  padding: 10px 12px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.82rem;
   cursor: pointer;
   border-radius: 8px;
   transition: all 0.2s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  overflow: hidden;
 }
 
 .selectItem:hover {
-  background: #4c4c4c60;
+  color: #d4b8ff;
 }
 
 .selectItem[data-highlighted] {
-  background: #c8a1ff40;
+  background: rgba(185, 145, 255, 0.1);
+  color: #fff;
+  outline: none;
 }
 
+/* ========== CHECK INDICATOR ========== */
 .selectCheck {
   color: #c8a1ff;
 }
 
+/* ========== SCROLL BUTTONS ========== */
 .selectScroll {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 30px;
-  background: #1f1f1f;
-  color: #c8a1ff;
+  height: 28px;
+  background: transparent;
+  color: rgba(200, 161, 255, 0.5);
   cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.selectScroll:hover {
+  color: #c8a1ff;
 }

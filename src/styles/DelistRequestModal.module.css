@@ -283,6 +283,37 @@
   text-align: center;
 }
 
+.escrowWarning {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  color: #ef4444;
+  align-items: flex-start;
+}
+
+.escrowWarning svg {
+  flex-shrink: 0;
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.escrowWarning strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.escrowWarning p {
+  margin: 0;
+  font-size: 13px;
+  color: #a1a1a1;
+  line-height: 1.4;
+}
+
 @media (max-width: 480px) {
   .modal {
     padding: 16px;

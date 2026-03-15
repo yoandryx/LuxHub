@@ -1,7 +1,7 @@
 .luxWalletOrb {
   position: fixed;
-  bottom: 28px;
-  left: 28px;
+  bottom: 20px;
+  left: 20px;
   z-index: 1000;
   transition: all 0.3s ease-in-out;
 }
@@ -11,14 +11,14 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 11px 18px;
+  gap: 8px;
+  padding: 8px 14px;
   background: transparent;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   color: white;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   transition: all 0.3s ease;
   overflow: hidden;
@@ -31,7 +31,7 @@
   position: absolute;
   inset: 0;
   padding: 1.5px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(
     135deg,
     rgba(185, 145, 255, 0.5),
@@ -164,7 +164,7 @@
 /* Panel — gradient border, expands upward */
 .panel {
   position: absolute;
-  bottom: 76px;
+  bottom: 60px;
   left: 0;
   width: 320px;
   max-height: 80vh;
@@ -1396,19 +1396,19 @@
    ============================ */
 @media (max-width: 768px) {
   .luxWalletOrb {
-    bottom: 16px;
-    left: 16px;
+    bottom: 14px;
+    left: 12px;
   }
 
   .trigger {
-    padding: 9px 14px;
-    font-size: 13px;
+    padding: 7px 12px;
+    font-size: 11px;
   }
 
   .panel {
-    width: calc(100vw - 32px);
-    max-width: 320px;
-    bottom: 68px;
+    width: calc(100vw - 24px);
+    max-width: 300px;
+    bottom: 54px;
     max-height: 70vh;
     padding: 14px;
   }
@@ -1459,18 +1459,18 @@
 @media (max-width: 420px) {
   .luxWalletOrb {
     bottom: 12px;
-    left: 12px;
+    left: 10px;
   }
 
   .trigger {
-    padding: 8px 12px;
-    font-size: 12px;
-    gap: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    gap: 6px;
   }
 
   .panel {
-    width: calc(100vw - 24px);
-    bottom: 60px;
+    width: calc(100vw - 20px);
+    bottom: 50px;
     max-height: 65vh;
     padding: 12px;
   }

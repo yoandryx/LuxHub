@@ -66,36 +66,61 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 16px;
+  padding-bottom: 14px;
   margin-bottom: 8px;
-  border-bottom: 1px solid rgba(200, 161, 255, 0.12);
+  border-bottom: none;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.12), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: bottom;
 }
 
 .title {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   margin: 0;
-  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #c8a1ff;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  opacity: 0.6;
 }
 
 .clearBtn {
-  padding: 6px 12px;
-  background: rgba(200, 161, 255, 0.08);
-  border: 1px solid rgba(200, 161, 255, 0.2);
+  position: relative;
+  padding: 5px 10px;
+  background: transparent;
+  border: none;
   border-radius: 8px;
   color: #c8a1ff;
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.7rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.clearBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.4),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.4)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .clearBtn:hover {
-  background: rgba(200, 161, 255, 0.18);
-  border-color: #c8a1ff;
+  color: #d4b8ff;
 }
 
 /* ── Sections Container ───────────────────────────────── */
@@ -106,7 +131,11 @@
 
 /* ── Individual Section ───────────────────────────────── */
 .section {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: none;
+  background-image: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.04), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: bottom;
 }
 
 .section:last-child {

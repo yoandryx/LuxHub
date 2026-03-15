@@ -25,16 +25,16 @@
 /* ========== FLOATING BUTTON — gradient border ========== */
 .floatingButton {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
+  bottom: 20px;
+  right: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 11px 18px;
+  gap: 8px;
+  padding: 8px 14px;
   background: transparent;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   z-index: 9999;
   transition: all 0.3s ease;
@@ -47,7 +47,7 @@
   position: absolute;
   inset: 0;
   padding: 1.5px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(
     135deg,
     rgba(185, 145, 255, 0.5),
@@ -68,7 +68,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: radial-gradient(
     circle at 50% 50%,
     rgba(185, 145, 255, 0.08) 0%,
@@ -117,8 +117,8 @@
 }
 
 .logo {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
   transition: transform 0.3s ease;
 }
@@ -128,13 +128,13 @@
 }
 
 .sparkleIcon {
-  font-size: 16px;
+  font-size: 14px;
   color: #c8a1ff;
   animation: sparkle 2s ease-in-out infinite;
 }
 
 .toggleIcon {
-  font-size: 16px;
+  font-size: 14px;
   color: #ffffff;
 }
 
@@ -153,8 +153,8 @@
 /* ========== CHAT PANEL — gradient border ========== */
 .chatPanel {
   position: fixed;
-  bottom: 90px;
-  right: 28px;
+  bottom: 72px;
+  right: 20px;
   width: 380px;
   max-width: calc(100vw - 48px);
   height: 520px;
@@ -889,25 +889,25 @@
 /* ========== MOBILE RESPONSIVE ========== */
 @media screen and (max-width: 768px) {
   .floatingButton {
-    bottom: 16px;
-    right: 16px;
-    padding: 9px 14px;
+    bottom: 14px;
+    right: 12px;
+    padding: 7px 12px;
   }
 }
 
 @media screen and (max-width: 420px) {
   .floatingButton {
     bottom: 12px;
-    right: 12px;
-    padding: 8px 12px;
+    right: 10px;
+    padding: 6px 10px;
   }
 }
 
 @media screen and (max-width: 480px) {
   .chatPanel {
-    bottom: 80px;
-    right: 12px;
-    left: 12px;
+    bottom: 60px;
+    right: 10px;
+    left: 10px;
     width: auto;
     max-width: none;
     height: calc(100vh - 110px);
