@@ -114,6 +114,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       .select('txSignature amountSOL depositType fromWallet createdAt')
       .lean();
 
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     return res.status(200).json({
       success: true,
       data: {

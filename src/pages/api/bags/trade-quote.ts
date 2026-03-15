@@ -110,6 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const platformFee = quoteResult.platformFee || 0;
     const priceImpact = quoteResult.priceImpact || quoteResult.priceImpactPct || 0;
 
+    res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=10');
     return res.status(200).json({
       success: true,
       quote: {

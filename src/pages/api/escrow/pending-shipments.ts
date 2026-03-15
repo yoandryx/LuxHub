@@ -32,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .sort({ shipmentSubmittedAt: -1 })
       .lean();
 
+    res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
     return res.status(200).json({
       success: true,
       escrows,

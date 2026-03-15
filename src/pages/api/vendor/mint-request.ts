@@ -54,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       brand,
       model,
       referenceNumber,
-      serialNumber, // Legacy support
+      serialNumber, // Internal tracking only — never goes on-chain
       description,
       priceUSD,
       imageBase64, // Primary image as base64
@@ -195,6 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         provenance,
         features,
         releaseDate,
+        serialNumber: serialNumber || undefined, // Internal only — never on-chain
         status: 'pending',
       });
 

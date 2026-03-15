@@ -5,6 +5,14 @@ import { withErrorMonitoring } from '@/lib/monitoring/errorHandler';
 import { validateBody } from '@/lib/middleware/validate';
 import { AnalyzeImageSchema } from '@/lib/validation/schemas';
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 // Lazy initialization to avoid errors when API key is not set
 let anthropic: any = null;
 
@@ -81,6 +89,33 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     const client = getAnthropicClient();
+
+    // Determine image source type — base64 data URI or URL
+    let imageContent: any;
+    if (imageUrl.startsWith('data:')) {
+      // Extract media type and base64 data from data URI
+      const match = imageUrl.match(/^data:(image\/\w+);base64,(.+)$/s);
+      if (!match) {
+        return res.status(400).json({ success: false, error: 'Invalid base64 image format' });
+      }
+      imageContent = {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: match[1],
+          data: match[2],
+        },
+      };
+    } else {
+      imageContent = {
+        type: 'image',
+        source: {
+          type: 'url',
+          url: imageUrl,
+        },
+      };
+    }
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2048,
@@ -88,13 +123,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: {
-                type: 'url',
-                url: imageUrl,
-              },
-            },
+            imageContent,
             {
               type: 'text',
               text: `Analyze this luxury watch image and provide detailed information for an NFT marketplace listing with authenticity assessment.

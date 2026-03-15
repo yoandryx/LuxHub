@@ -185,10 +185,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      // If AMM model, we would also create the AMM pool here
+      // If AMM model, create the AMM liquidity pool via Bags API
       if (ammLiquidityAmount > 0) {
-        // TODO: Call Bags API to create AMM liquidity pool
-        // This would seed the pool with ammLiquidityAmount
+        const ammResult = await createAmmLiquidityPool(pool, ammLiquidityAmount);
+        if (ammResult.success) {
+          await Pool.findByIdAndUpdate(poolId, {
+            $set: {
+              ammEnabled: true,
+              ammPoolAddress: ammResult.poolAddress,
+              ammLiquidityAmount,
+              ammCreatedAt: new Date(),
+              bagsPoolAddress: ammResult.poolAddress,
+              bagsPoolCreatedAt: new Date(),
+            },
+          });
+        } else {
+          console.warn('[pay-vendor] AMM pool creation failed:', ammResult.error);
+          // Non-blocking — vendor payment still proceeds, AMM can be retried
+        }
       }
     }
 
@@ -241,6 +255,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Failed to process vendor payment',
       details: error?.message || 'Unknown error',
     });
+  }
+}
+
+const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
+
+// Create AMM liquidity pool via Bags API after vendor payment
+async function createAmmLiquidityPool(
+  pool: any,
+  liquidityAmountUSD: number
+): Promise<{ success: boolean; poolAddress?: string; error?: string }> {
+  const bagsApiKey = process.env.BAGS_API_KEY;
+  if (!bagsApiKey) {
+    return { success: false, error: 'BAGS_API_KEY not configured' };
+  }
+  if (!pool.bagsTokenMint) {
+    return { success: false, error: 'Pool has no Bags token mint' };
+  }
+
+  try {
+    const response = await fetch(`${BAGS_API_BASE}/liquidity/create-pool`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': bagsApiKey,
+      },
+      body: JSON.stringify({
+        tokenMint: pool.bagsTokenMint,
+        quoteToken: 'USDC',
+        initialLiquidityUSD: liquidityAmountUSD,
+        poolType: 'concentrated', // concentrated liquidity for better capital efficiency
+        feeTier: 300, // 3% fee tier matching LuxHub royalty
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: JSON.stringify(errorData) };
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      poolAddress: result.poolAddress || result.pool,
+    };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }
 

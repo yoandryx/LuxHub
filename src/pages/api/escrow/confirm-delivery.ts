@@ -170,13 +170,26 @@ async function _handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Auto-trigger pool distribution if this escrow is linked to a pool
+    // This is blocking — we wait for it before responding
     let poolDistribution = null;
     if (escrow.poolId) {
       try {
         poolDistribution = await triggerPoolDistribution(escrow);
+        if (!poolDistribution?.success) {
+          console.warn('[confirm-delivery] Pool distribution returned failure:', poolDistribution);
+        }
       } catch (poolError) {
         console.error('[confirm-delivery] Pool distribution trigger error:', poolError);
         poolDistribution = { success: false, error: (poolError as Error).message };
+        // Also update pool to reflect the failed distribution attempt
+        try {
+          const { Pool } = await import('../../../lib/models/Pool');
+          await Pool.findByIdAndUpdate(escrow.poolId, {
+            $set: { distributionStatus: 'pending' },
+          });
+        } catch {
+          /* non-blocking */
+        }
       }
     }
 

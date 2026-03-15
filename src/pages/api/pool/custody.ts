@@ -112,6 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         stored: custodyItems.filter((p: any) => p.custodyStatus === 'stored'),
       };
 
+      res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
       return res.status(200).json({
         success: true,
         items: custodyItems,

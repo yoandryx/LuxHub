@@ -102,6 +102,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       { $sort: { totalSOL: -1 } },
     ]);
 
+    res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
     return res.status(200).json({
       success: true,
       data: {

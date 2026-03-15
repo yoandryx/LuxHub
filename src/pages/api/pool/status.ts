@@ -60,6 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const percentFilled =
       pool.totalShares > 0 ? ((pool.sharesSold / pool.totalShares) * 100).toFixed(2) : '0';
 
+    res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
     return res.status(200).json({
       success: true,
       pool: {

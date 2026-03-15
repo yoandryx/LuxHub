@@ -8,6 +8,7 @@ import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
 import { notifyNewOrder, notifyUser } from '../../../lib/services/notificationService';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
+import { verifyTransactionForWallet } from '../../../lib/services/txVerification';
 
 interface ShippingAddress {
   fullName: string;
@@ -107,6 +108,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (escrow.buyerWallet && escrow.status === 'funded') {
       return res.status(400).json({
         error: 'This item already has a pending purchase',
+      });
+    }
+
+    // ========== ON-CHAIN TX VERIFICATION ==========
+    // Verify the payment transaction actually exists and is confirmed on Solana
+    if (txSignature) {
+      const txResult = await verifyTransactionForWallet(txSignature, buyerWallet);
+      if (!txResult.verified) {
+        return res.status(400).json({
+          error: 'Transaction verification failed',
+          details: txResult.error,
+          message:
+            'The on-chain payment could not be verified. Please ensure the transaction is confirmed.',
+        });
+      }
+    } else {
+      // If no txSignature provided, mark as pending (not funded) until on-chain proof is given
+      // This prevents marking escrow as "funded" without payment
+      return res.status(400).json({
+        error: 'Transaction signature required',
+        message: 'Provide the on-chain transaction signature (txSignature) to prove payment.',
       });
     }
 

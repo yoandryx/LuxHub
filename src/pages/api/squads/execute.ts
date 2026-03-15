@@ -120,13 +120,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Wait for confirmation
     await connection.confirmTransaction(signature, 'confirmed');
 
+    // Auto-sync MongoDB state after successful execution
+    // This closes Gap 2: Squads execution now triggers DB sync
+    try {
+      const syncUrl = `${req.headers.origin || ''}/api/squads/sync`;
+      await fetch(syncUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionIndex, multisigPda, signature }),
+      }).catch((err) => console.warn('[execute] Auto-sync call failed:', err));
+    } catch (syncErr) {
+      console.warn('[execute] Auto-sync error (non-blocking):', syncErr);
+    }
+
     return res.status(200).json({
       ok: true,
       signature,
       transactionIndex,
       multisigPda,
       vaultIndex,
-    } as ExecuteResponse);
+      synced: true,
+    } as ExecuteResponse & { synced: boolean });
   } catch (e: any) {
     console.error('[/api/squads/execute] error:', e);
     return res.status(500).json({ error: e?.message ?? 'Unknown error' });

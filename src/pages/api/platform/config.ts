@@ -80,6 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
       return res.status(200).json({
         success: true,
         data: responseConfig,

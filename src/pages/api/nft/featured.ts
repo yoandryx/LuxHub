@@ -114,6 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         : null,
     }));
 
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
     return res.status(200).json(listings);
   } catch (error: any) {
     console.error('[/api/nft/featured] Error:', error);

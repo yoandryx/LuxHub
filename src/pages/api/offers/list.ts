@@ -166,6 +166,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       countered: offers.filter((o: any) => o.status === 'countered').length,
     };
 
+    res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
     return res.status(200).json({
       success: true,
       offers: transformedOffers,

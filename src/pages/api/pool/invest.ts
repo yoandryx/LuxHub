@@ -4,6 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 import { User } from '../../../lib/models/User';
+import { verifyTransactionForWallet } from '../../../lib/services/txVerification';
 
 interface InvestRequest {
   poolId: string;
@@ -46,6 +47,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (pool.status !== 'open') {
       return res.status(400).json({
         error: `Pool is not open for investment. Current status: ${pool.status}`,
+      });
+    }
+
+    // Verify on-chain payment before recording investment
+    if (txSignature) {
+      const txResult = await verifyTransactionForWallet(txSignature, investorWallet);
+      if (!txResult.verified) {
+        return res.status(400).json({
+          error: 'Transaction verification failed',
+          details: txResult.error,
+          message: 'On-chain payment could not be verified.',
+        });
+      }
+    } else {
+      return res.status(400).json({
+        error: 'Transaction signature required',
+        message: 'Provide txSignature to prove on-chain payment.',
       });
     }
 
