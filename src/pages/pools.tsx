@@ -439,8 +439,18 @@ const PoolCard = memo(
       [pool.participants]
     );
 
-    const image =
-      pool.asset?.imageIpfsUrls?.[0] || pool.asset?.images?.[0] || '/images/placeholder-watch.png';
+    // Resolve image: prefer imageUrl, then resolve IPFS/Irys CIDs to full URLs
+    const rawImage =
+      pool.asset?.imageUrl ||
+      pool.asset?.images?.[0] ||
+      pool.asset?.imageIpfsUrls?.[0] ||
+      pool.asset?.arweaveTxId ||
+      '';
+    const image = rawImage
+      ? rawImage.startsWith('http')
+        ? rawImage
+        : `https://gateway.irys.xyz/${rawImage}`
+      : '/images/placeholder-watch.png';
     const brand = pool.asset?.brand || '';
     const model = pool.asset?.model || 'Luxury Watch';
     const tokensLeft = pool.totalShares - pool.sharesSold;

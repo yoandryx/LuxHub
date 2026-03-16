@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import styles from '../../styles/ConvertToPoolModal.module.css';
 import { HiOutlineX } from 'react-icons/hi';
-import { FiPieChart, FiLoader } from 'react-icons/fi';
+import { FiPieChart, FiLoader, FiShield } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 interface ConvertToPoolModalProps {
@@ -16,6 +16,7 @@ interface ConvertToPoolModalProps {
     priceSol?: number;
     image?: string;
     escrowPda?: string;
+    brand?: string;
   };
   onClose: () => void;
   onSuccess?: () => void;
@@ -29,7 +30,6 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
   const summary = useMemo(() => {
     const luxhubFee = targetAmount * 0.03;
     const vendorPayment = targetAmount * 0.97;
-
     return { luxhubFee, vendorPayment };
   }, [targetAmount]);
 
@@ -69,14 +69,17 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
 
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': wallet.publicKey.toBase58(),
+        },
         body: JSON.stringify(body),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        toast.success('Pool created! Participants can now join.');
+        toast.success('Pool created! Participants can now contribute.');
         onSuccess?.();
         onClose();
       } else {
@@ -97,83 +100,81 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
           <HiOutlineX />
         </button>
 
+        {/* Header — compact */}
         <div className={styles.header}>
-          <FiPieChart className={styles.headerIcon} />
-          <h2>Convert to Pool</h2>
-          <p>Create a tokenized pool for this asset</p>
+          <div className={styles.headerIconWrap}>
+            <FiPieChart className={styles.headerIcon} />
+          </div>
+          <div>
+            <h2 className={styles.title}>Create Pool</h2>
+            <p className={styles.subtitle}>Tokenize for community participation</p>
+          </div>
         </div>
 
-        <div className={styles.assetInfo}>
+        {/* Asset Preview — inline */}
+        <div className={styles.assetCard}>
           {asset.image && <img src={asset.image} alt={asset.title} className={styles.assetImage} />}
           <div className={styles.assetDetails}>
-            <h3>{asset.title}</h3>
-            {targetAmount > 0 && <p>${targetAmount.toLocaleString()}</p>}
-            {asset.mintAddress && (
-              <code className={styles.mintAddress}>{asset.mintAddress.slice(0, 8)}...</code>
-            )}
+            {asset.brand && <span className={styles.assetBrand}>{asset.brand}</span>}
+            <h3 className={styles.assetTitle}>{asset.title}</h3>
           </div>
+          {asset.mintAddress && (
+            <code className={styles.mintAddress}>
+              {asset.mintAddress.slice(0, 4)}...{asset.mintAddress.slice(-4)}
+            </code>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Pool Target Value */}
+          {/* Target Input */}
           <div className={styles.field}>
-            <label>Set Your Pool Target (USD)</label>
-            <input
-              type="number"
-              value={targetAmount}
-              onChange={(e) => setTargetAmount(Math.max(0, parseFloat(e.target.value) || 0))}
-              min={1}
-              step="0.01"
-              placeholder="How much do you want to raise?"
-            />
-            <span className={styles.fieldHint}>
-              This is how much you want to raise for your watch. You can price above market value —
-              the premium is your opportunity for listing it.
-            </span>
-          </div>
-
-          {/* Info Blurb */}
-          <div className={styles.summaryPanel}>
-            <h4>How it works</h4>
-            <p className={styles.infoBlurb}>
-              Your watch gets tokenized into 1 billion tokens. Anyone can buy in starting at $1.50.
-              As traders buy tokens, the price rises along a bonding curve until your target is
-              reached. You receive 97% when the pool fills — then ship the watch to LuxHub custody.
-              The token keeps trading and generates ongoing fees for you and holders.
-            </p>
-          </div>
-
-          {/* Financial Summary */}
-          <div className={styles.summaryPanel}>
-            <h4>Pool Summary</h4>
-            <div className={styles.summaryGrid}>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Pool Target</span>
-                <span className={styles.summaryValue}>${targetAmount.toLocaleString()}</span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>You Receive (97%)</span>
-                <span className={styles.summaryValueAccent}>
-                  $
-                  {summary.vendorPayment.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>LuxHub Fee (3%)</span>
-                <span className={styles.summaryValue}>
-                  $
-                  {summary.luxhubFee.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
+            <label className={styles.fieldLabel}>Pool Target (USD)</label>
+            <div className={styles.inputWrap}>
+              <span className={styles.inputPrefix}>$</span>
+              <input
+                type="number"
+                value={targetAmount}
+                onChange={(e) => setTargetAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+                min={1}
+                step="0.01"
+                className={styles.input}
+              />
             </div>
           </div>
 
+          {/* Summary — compact 2-column */}
+          <div className={styles.summaryPanel}>
+            <div className={styles.summaryRow}>
+              <div className={styles.summaryCell}>
+                <span className={styles.summaryLabel}>You Receive</span>
+                <span className={styles.summaryValueAccent}>
+                  $
+                  {summary.vendorPayment.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </span>
+                <span className={styles.summaryMeta}>97% of target</span>
+              </div>
+              <div className={styles.summaryCell}>
+                <span className={styles.summaryLabel}>Platform Fee</span>
+                <span className={styles.summaryValue}>
+                  $
+                  {summary.luxhubFee.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </span>
+                <span className={styles.summaryMeta}>3% total</span>
+              </div>
+            </div>
+            <div className={styles.tokenRow}>
+              <span className={styles.tokenTag}>1B tokens</span>
+              <span className={styles.tokenDetail}>Bonding curve · $1.50 min buy-in</span>
+            </div>
+          </div>
+
+          {/* Actions */}
           <div className={styles.actions}>
             <button type="button" className={styles.cancelBtn} onClick={onClose}>
               Cancel
@@ -194,10 +195,11 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
           </div>
         </form>
 
-        <p className={styles.note}>
-          Once created, participants can contribute to the pool. Funds are held in escrow until the
-          pool fills and custody is verified.
-        </p>
+        {/* Escrow notice — single line */}
+        <div className={styles.escrowNotice}>
+          <FiShield className={styles.escrowIcon} />
+          <span>Protected by on-chain escrow. Participants can exit before pool fills.</span>
+        </div>
       </div>
     </div>
   );

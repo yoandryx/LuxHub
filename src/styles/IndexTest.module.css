@@ -109,6 +109,7 @@
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
   user-select: none;
+  touch-action: pan-y;
 }
 
 .heroSliderTrack::-webkit-scrollbar {

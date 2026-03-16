@@ -78,27 +78,38 @@ interface EscrowListing {
 
 interface Pool {
   _id: string;
-  title: string;
-  description: string;
-  image?: string;
+  poolNumber?: string;
   targetAmountUSD: number;
-  currentAmountUSD: number;
   sharesSold: number;
   totalShares: number;
   sharePriceUSD: number;
   minBuyInUSD: number;
   maxInvestors: number;
-  currentInvestors: number;
   projectedROI: number;
   status: string;
-  brand: string;
-  model: string;
   createdAt: string;
+  vendorWallet?: string;
+  participants?: Array<{ wallet: string }>;
   asset?: {
+    _id?: string;
     imageUrl?: string;
+    imageIpfsUrls?: string[];
+    images?: string[];
+    arweaveTxId?: string;
     brand?: string;
     model?: string;
+    description?: string;
+    priceUSD?: number;
   };
+  vendor?: { businessName?: string };
+  // Computed helpers
+  title?: string;
+  brand?: string;
+  model?: string;
+  description?: string;
+  image?: string;
+  currentAmountUSD?: number;
+  currentInvestors?: number;
 }
 
 interface CustodyItem {
@@ -683,14 +694,15 @@ export default function Marketplace() {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (p: Pool) =>
+          p.asset?.model?.toLowerCase().includes(query) ||
+          p.asset?.brand?.toLowerCase().includes(query) ||
           p.title?.toLowerCase().includes(query) ||
-          p.brand?.toLowerCase().includes(query) ||
-          p.model?.toLowerCase().includes(query)
+          p.brand?.toLowerCase().includes(query)
       );
     }
 
     if (selectedBrands.length) {
-      result = result.filter((p: Pool) => selectedBrands.includes(p.brand));
+      result = result.filter((p: Pool) => selectedBrands.includes(p.asset?.brand || p.brand || ''));
     }
 
     return result;
@@ -701,13 +713,14 @@ export default function Marketplace() {
     return (listedPools as Pool[]).map((pool) => ({
       _id: pool._id,
       poolId: pool._id,
-      title: pool.asset?.model || pool.title || 'Luxury Item',
-      description: pool.description || 'Verified item in LuxHub custody.',
+      title: pool.asset?.model || pool.model || 'Luxury Item',
+      description:
+        pool.asset?.description || pool.description || 'Verified item in LuxHub custody.',
       image: resolvePoolImage(pool),
       originalPurchaseUSD: pool.targetAmountUSD,
       resaleListingPriceUSD: pool.targetAmountUSD * 1.15, // 15% markup
       resaleListingPriceSol: (pool.targetAmountUSD * 1.15) / (solPrice || 100),
-      totalInvestors: pool.currentInvestors || 0,
+      totalInvestors: new Set(pool.participants?.map((p) => p.wallet) || []).size,
       projectedProfitPercent: 15,
       brand: pool.asset?.brand || pool.brand || '',
       model: pool.asset?.model || pool.model || '',
@@ -1098,23 +1111,28 @@ export default function Marketplace() {
                   ) : filteredPools.length > 0 ? (
                     <div className={styles.poolGrid}>
                       {filteredPools.map((pool: Pool) => {
-                        const fundingPercent = Math.round(
-                          (pool.currentAmountUSD / pool.targetAmountUSD) * 100
-                        );
+                        const raisedUSD = pool.sharesSold * pool.sharePriceUSD;
+                        const fundingPercent =
+                          pool.targetAmountUSD > 0
+                            ? Math.round((raisedUSD / pool.targetAmountUSD) * 100)
+                            : 0;
+                        const brand = pool.asset?.brand || pool.brand || '';
+                        const model = pool.asset?.model || pool.model || 'Luxury Watch';
+                        const holders = new Set(pool.participants?.map((p) => p.wallet) || []).size;
                         return (
                           <div key={pool._id} className={styles.poolCard}>
                             <div className={styles.poolImageWrapper}>
                               <img
                                 src={resolvePoolImage(pool)}
-                                alt={pool.title}
+                                alt={model}
                                 className={styles.poolImage}
                                 onError={handleImageError}
                               />
-                              <div className={styles.poolBrand}>{pool.brand}</div>
+                              {brand && <div className={styles.poolBrand}>{brand}</div>}
                             </div>
                             <div className={styles.poolContent}>
-                              <h4 className={styles.poolTitle}>{pool.title}</h4>
-                              <p className={styles.poolModel}>{pool.model}</p>
+                              <h4 className={styles.poolTitle}>{model}</h4>
+                              {brand && <p className={styles.poolModel}>{brand}</p>}
 
                               <div className={styles.progressSection}>
                                 <div className={styles.progressHeader}>
@@ -1132,13 +1150,11 @@ export default function Marketplace() {
                               <div className={styles.poolStats}>
                                 <div className={styles.poolStat}>
                                   <BiTargetLock />
-                                  <span>${pool.sharePriceUSD.toLocaleString()}/share</span>
+                                  <span>${pool.targetAmountUSD.toLocaleString()}</span>
                                 </div>
                                 <div className={styles.poolStat}>
                                   <FaUsers />
-                                  <span>
-                                    {pool.currentInvestors}/{pool.maxInvestors}
-                                  </span>
+                                  <span>{holders} holders</span>
                                 </div>
                                 <div className={styles.poolStat}>
                                   <FaChartLine />

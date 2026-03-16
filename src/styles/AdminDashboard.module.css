@@ -105,8 +105,8 @@
   height: calc(100vh - var(--navbar-height));
   background: var(--glass-sidebar);
   border-right: 1px solid var(--border-subtle);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
   display: flex;
   flex-direction: column;
   z-index: 90;
@@ -114,7 +114,7 @@
 }
 
 .sidebarHeader {
-  padding: 24px 20px;
+  padding: 16px 16px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -150,42 +150,54 @@
 
 .sidebarNav {
   flex: 1;
-  padding: 24px 12px;
+  padding: 8px 10px;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebarNav::-webkit-scrollbar {
+  display: none;
 }
 
 .navSection {
-  margin-bottom: 28px;
+  margin-bottom: 12px;
+}
+
+.navSection:last-child {
+  margin-bottom: 0;
 }
 
 .navSectionLabel {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: var(--text-dim);
   padding: 0 12px;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .navItem {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 12px 14px;
-  margin-bottom: 4px;
+  padding: 7px 12px;
+  margin-bottom: 1px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
   text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
 }
 
 .navItem:hover {
@@ -203,18 +215,35 @@
 .navItem.active::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 24px;
-  background: var(--accent);
-  border-radius: 0 4px 4px 0;
+  inset: 0;
+  padding: 1px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.5),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.navItem.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  background: radial-gradient(circle at 50% 50%, rgba(185, 145, 255, 0.1) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .navIcon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   opacity: 0.7;
   flex-shrink: 0;
 }
@@ -236,7 +265,7 @@
 }
 
 .sidebarFooter {
-  padding: 16px 12px;
+  padding: 12px 10px;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -298,8 +327,8 @@
   justify-content: space-between;
   padding: 20px 32px;
   background: var(--glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
   border-bottom: 1px solid var(--border-subtle);
   z-index: 50;
 }
@@ -377,33 +406,62 @@
 
 .statCard {
   position: relative;
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-dark);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
   border-radius: var(--radius-lg);
   padding: 20px;
-  overflow: hidden;
-  transition: all var(--transition-normal);
+  overflow: visible;
+  transition: all 0.3s ease;
 }
 
 .statCard::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+  inset: 0;
+  padding: 1.5px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.3),
+    rgba(185, 145, 255, 0.06),
+    rgba(185, 145, 255, 0.3)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+
+.statCard::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse at 50% 0%, rgba(185, 145, 255, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .statCard:hover {
-  border-color: var(--accent-border);
   transform: translateY(-2px);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .statCard:hover::before {
-  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.55),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.55)
+  );
 }
 
 .statIcon {
@@ -575,35 +633,61 @@
 
 .dataCard {
   position: relative;
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(15, 15, 20, 0.95) 100%);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-dark);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: all var(--transition-normal);
+  transition: all 0.3s ease;
 }
 
 .dataCard::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--accent-dim) 50%, transparent 100%);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+  inset: 0;
+  padding: 1.5px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.3),
+    rgba(185, 145, 255, 0.06),
+    rgba(185, 145, 255, 0.3)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+
+.dataCard::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse at 50% 0%, rgba(185, 145, 255, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .dataCard:hover {
-  border-color: var(--accent-border);
   transform: translateY(-3px);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    0 0 40px var(--accent-glow);
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .dataCard:hover::before {
-  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.55),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.55)
+  );
 }
 
 .cardHeader {
@@ -825,10 +909,33 @@
 
 /* ==================== CONFIGURATION PANEL ==================== */
 .configPanel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  position: relative;
+  background: var(--bg-dark);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
+}
+
+.configPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.2),
+    rgba(185, 145, 255, 0.04),
+    rgba(185, 145, 255, 0.2)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .configSection {
@@ -1006,11 +1113,34 @@
 
 /* ==================== SQUADS MULTISIG PANEL ==================== */
 .multisigPanel {
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(15, 15, 20, 0.95) 100%);
-  border: 1px solid var(--accent-border);
+  position: relative;
+  background: var(--bg-dark);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
   border-radius: var(--radius-lg);
   padding: 24px;
   margin-bottom: 24px;
+}
+
+.multisigPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.35),
+    rgba(185, 145, 255, 0.08),
+    rgba(185, 145, 255, 0.35)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .multisigHeader {
@@ -1267,7 +1397,8 @@
   transform: translateX(-50%);
   padding: 14px 28px;
   background: rgba(30, 30, 35, 0.98);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
   border: 1px solid var(--accent);
   border-radius: var(--radius-lg);
   color: #ffffff;
@@ -1483,8 +1614,8 @@
     border-bottom: 1px solid rgba(200, 161, 255, 0.15);
     z-index: 90;
     background: rgba(13, 13, 13, 0.85);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(48px);
+    -webkit-backdrop-filter: blur(48px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   }
 
@@ -1935,19 +2066,50 @@
 }
 
 .activityItem {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 14px 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-dark);
+  border: none;
   border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.activityItem::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.15),
+    rgba(185, 145, 255, 0.03),
+    rgba(185, 145, 255, 0.15)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.25s ease;
 }
 
 .activityItem:hover {
-  border-color: var(--accent-border);
   background: var(--bg-elevated);
+}
+
+.activityItem:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.35),
+    rgba(185, 145, 255, 0.06),
+    rgba(185, 145, 255, 0.35)
+  );
 }
 
 .activityIcon {
@@ -2002,24 +2164,63 @@
   align-items: center;
   gap: 10px;
   padding: 24px 20px;
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-dark) 100%);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-dark);
+  border: none;
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all 0.3s ease;
   position: relative;
+  overflow: hidden;
+}
+
+.quickActionCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.2),
+    rgba(185, 145, 255, 0.04),
+    rgba(185, 145, 255, 0.2)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.quickActionCard::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse at 50% 0%, rgba(185, 145, 255, 0.06) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .quickActionCard:hover {
-  border-color: var(--accent-border);
   color: var(--text-primary);
   transform: translateY(-3px);
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.3),
-    0 0 24px var(--accent-glow);
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.quickActionCard:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.55),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.55)
+  );
 }
 
 .quickActionCard svg {

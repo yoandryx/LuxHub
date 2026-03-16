@@ -84,9 +84,12 @@ export default function IndexTest() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
+  const pointerDownRef = useRef(false);
   const dragStartXRef = useRef(0);
   const scrollStartRef = useRef(0);
+  const dragDistanceRef = useRef(0);
   const autoScrollSpeed = 0.8; // px per frame
+  const DRAG_THRESHOLD = 5; // px before we treat it as a drag
 
   // Infinite auto-scroll + drag-to-scroll for hero slider
   const resetScrollLoop = useCallback(() => {
@@ -112,7 +115,7 @@ export default function IndexTest() {
 
     let rafId: number;
     const tick = () => {
-      if (!isDraggingRef.current && el) {
+      if (!isDraggingRef.current && !pointerDownRef.current && el) {
         el.scrollLeft += autoScrollSpeed;
         resetScrollLoop();
       }
@@ -120,31 +123,63 @@ export default function IndexTest() {
     };
     rafId = requestAnimationFrame(tick);
 
-    // Pointer drag handlers
+    // Pointer drag handlers — use a threshold so clicks pass through to NFT cards
     const onPointerDown = (e: globalThis.PointerEvent) => {
-      isDraggingRef.current = true;
+      // Only handle primary button / touch
+      if (e.button !== 0) return;
+      pointerDownRef.current = true;
+      isDraggingRef.current = false;
+      dragDistanceRef.current = 0;
       dragStartXRef.current = e.clientX;
       scrollStartRef.current = el.scrollLeft;
-      el.setPointerCapture(e.pointerId);
-      el.style.cursor = 'grabbing';
     };
     const onPointerMove = (e: globalThis.PointerEvent) => {
-      if (!isDraggingRef.current) return;
+      if (!pointerDownRef.current) return;
       const dx = e.clientX - dragStartXRef.current;
-      el.scrollLeft = scrollStartRef.current - dx;
-      resetScrollLoop();
+      dragDistanceRef.current = Math.abs(dx);
+
+      // Only start dragging after passing threshold
+      if (!isDraggingRef.current && dragDistanceRef.current > DRAG_THRESHOLD) {
+        isDraggingRef.current = true;
+        el.setPointerCapture(e.pointerId);
+        el.style.cursor = 'grabbing';
+      }
+
+      if (isDraggingRef.current) {
+        e.preventDefault();
+        el.scrollLeft = scrollStartRef.current - dx;
+        resetScrollLoop();
+      }
     };
     const onPointerUp = (e: globalThis.PointerEvent) => {
-      if (!isDraggingRef.current) return;
+      const wasDragging = isDraggingRef.current;
+      pointerDownRef.current = false;
       isDraggingRef.current = false;
-      el.releasePointerCapture(e.pointerId);
-      el.style.cursor = 'grab';
+
+      if (wasDragging) {
+        try {
+          el.releasePointerCapture(e.pointerId);
+        } catch {
+          /* already released */
+        }
+        el.style.cursor = 'grab';
+      }
+      // If we never exceeded the threshold, this was a click — let it propagate naturally
+    };
+
+    // Block click events that happen right after a drag to prevent accidental navigation
+    const onClickCapture = (e: MouseEvent) => {
+      if (dragDistanceRef.current > DRAG_THRESHOLD) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     };
 
     el.addEventListener('pointerdown', onPointerDown);
     el.addEventListener('pointermove', onPointerMove);
     el.addEventListener('pointerup', onPointerUp);
     el.addEventListener('pointercancel', onPointerUp);
+    el.addEventListener('click', onClickCapture, true);
 
     return () => {
       cancelAnimationFrame(rafId);
@@ -152,6 +187,7 @@ export default function IndexTest() {
       el.removeEventListener('pointermove', onPointerMove);
       el.removeEventListener('pointerup', onPointerUp);
       el.removeEventListener('pointercancel', onPointerUp);
+      el.removeEventListener('click', onClickCapture, true);
     };
   }, [featuredNFTs.length, resetScrollLoop]);
 
@@ -439,43 +475,13 @@ export default function IndexTest() {
           </motion.div>
         </section>
 
-        {/* ===== TRUST FOOTER - Stats & Partners ===== */}
+        {/* ===== POWERED BY - Partners ===== */}
         <section className={styles.trustFooter}>
-          <div className={styles.trustStats}>
-            <motion.div
-              className={styles.trustStat}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
-              <span className={styles.statValue}>&lt;$0.01</span>
-              <span className={styles.statLabel}>Gas Fees</span>
-            </motion.div>
-            <motion.div
-              className={styles.trustStat}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              viewport={{ once: true }}
-            >
-              <span className={styles.statValue}>Verified</span>
-              <span className={styles.statLabel}>Vendors</span>
-            </motion.div>
-            <motion.div
-              className={styles.trustStat}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              <span className={styles.statValue}>&lt;400ms</span>
-              <span className={styles.statLabel}>Settlement</span>
-            </motion.div>
-          </div>
-
           <div className={styles.poweredBy}>
             <span className={styles.poweredLabel}>Powered by</span>
+            <Link href="/learnMore" className={styles.viewAllLink}>
+              Learn More <FaArrowRight />
+            </Link>
             <div className={styles.partnerLogos}>
               <a href="https://squads.xyz" target="_blank" rel="noopener noreferrer">
                 <Image src="/images/Squads-logo.png" alt="Squads" width={40} height={40} />

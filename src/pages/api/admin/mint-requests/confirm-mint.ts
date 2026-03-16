@@ -152,6 +152,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Use the owner's vendor if available, otherwise use requester's vendor
     const vendor = ownerVendor || requesterVendor;
 
+    // Map free-text condition to Asset enum values
+    const validConditions = [
+      'New',
+      'Excellent',
+      'Very Good',
+      'Good',
+      'Fair',
+      'Poor',
+      'Non-functional',
+    ];
+    let mappedCondition: string | undefined;
+    if (mintRequest.condition) {
+      const condLower = mintRequest.condition.toLowerCase();
+      mappedCondition = validConditions.find((c) => condLower.includes(c.toLowerCase()));
+    }
+
     // Create Asset record
     const asset = await Asset.create({
       vendor: vendor?._id || null,
@@ -175,7 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       caseSize: mintRequest.caseSize,
       waterResistance: mintRequest.waterResistance,
       dialColor: mintRequest.dialColor,
-      condition: mintRequest.condition,
+      condition: mappedCondition,
       boxPapers: mintRequest.boxPapers,
       limitedEdition: mintRequest.limitedEdition,
       country: mintRequest.country,
@@ -294,8 +310,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       transferSuccess: !!transferSuccess,
       listingPriceUSD: mintRequest.priceUSD,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error confirming mint:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      details: error?.message || 'Unknown error',
+      code: error?.code,
+    });
   }
 }

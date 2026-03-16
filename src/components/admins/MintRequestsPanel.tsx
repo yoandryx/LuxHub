@@ -37,6 +37,7 @@ interface MintRequest {
   brand: string;
   model: string;
   referenceNumber: string;
+  serialNumber?: string;
   priceUSD: number;
   wallet: string;
   imageUrl?: string;
@@ -117,6 +118,20 @@ const MintRequestsPanel: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [total, setTotal] = useState(0);
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    steps?: string[];
+    confirmLabel: string;
+    confirmColor: string;
+    onConfirm: () => void;
+    rejectReason?: boolean;
+    requestId?: string;
+  } | null>(null);
+  const [rejectReasonInput, setRejectReasonInput] = useState('');
   const [squadsMembership, setSquadsMembership] = useState<SquadsMembership | null>(null);
   const [checkingSquads, setCheckingSquads] = useState(false);
 
@@ -240,6 +255,11 @@ const MintRequestsPanel: React.FC = () => {
     fetchRequests();
   }, [fetchRequests]);
 
+  const closeModal = () => {
+    setConfirmModal(null);
+    setRejectReasonInput('');
+  };
+
   // Step 1: Review (Approve without minting)
   const handleReview = async (requestId: string, action: 'approve' | 'reject') => {
     if (!wallet.publicKey) {
@@ -247,23 +267,55 @@ const MintRequestsPanel: React.FC = () => {
       return;
     }
 
-    if (action === 'reject' && !adminNotes[requestId]) {
-      const reason = prompt('Reason for rejection:');
-      if (!reason) {
-        toast.error('Please provide a reason for rejection');
-        return;
-      }
-      setAdminNotes((prev) => ({ ...prev, [requestId]: reason }));
+    const request = requests.find((r) => r._id === requestId);
+
+    if (action === 'reject') {
+      // Show reject modal with reason input
+      setRejectReasonInput(adminNotes[requestId] || '');
+      setConfirmModal({
+        open: true,
+        title: 'Reject Mint Request',
+        message: request
+          ? `${request.brand} ${request.model} — ${request.title}`
+          : 'This mint request',
+        confirmLabel: 'Reject Request',
+        confirmColor: 'rgba(239, 68, 68, 0.8)',
+        rejectReason: true,
+        requestId,
+        onConfirm: () => {},
+      });
+      return;
     }
 
-    const confirmed = window.confirm(
-      action === 'approve'
-        ? 'Approve this mint request? After approval, any admin with minting permission can mint the NFT.'
-        : 'Reject this mint request?'
-    );
+    // Approve flow
+    setConfirmModal({
+      open: true,
+      title: 'Approve Mint Request',
+      message: request
+        ? `${request.brand} ${request.model} — ${request.title}`
+        : 'This mint request',
+      steps: [
+        'Request will be marked as approved',
+        'Any admin with minting permission can mint it later',
+        'No on-chain transaction yet',
+      ],
+      confirmLabel: 'Approve',
+      confirmColor: 'rgba(59, 130, 246, 0.8)',
+      requestId,
+      onConfirm: () => {},
+    });
+    return;
+  };
 
-    if (!confirmed) return;
+  // Actually execute the review after modal confirmation
+  const executeReview = async (requestId: string, action: 'approve' | 'reject', notes?: string) => {
+    if (!wallet.publicKey) return;
 
+    if (action === 'reject' && notes) {
+      setAdminNotes((prev) => ({ ...prev, [requestId]: notes }));
+    }
+
+    closeModal();
     setProcessing(requestId);
     const toastId = toast.loading(action === 'approve' ? 'Approving...' : 'Rejecting...');
 
@@ -277,7 +329,7 @@ const MintRequestsPanel: React.FC = () => {
         body: JSON.stringify({
           mintRequestId: requestId,
           action,
-          adminNotes: adminNotes[requestId] || '',
+          adminNotes: notes || adminNotes[requestId] || '',
         }),
       });
 
@@ -333,93 +385,72 @@ const MintRequestsPanel: React.FC = () => {
       ? `Transfer to: ${transferDest.slice(0, 8)}...`
       : 'NFT will stay in admin wallet';
 
-    const confirmed = window.confirm(
-      'Mint this NFT? This will:\n\n' +
-        '1. Upload the image to permanent storage (Irys)\n' +
-        '2. Mint the NFT with your wallet\n' +
-        `3. ${transferDest ? 'Transfer to: ' + transferDest.slice(0, 8) + '...' : 'Keep in admin wallet'}\n` +
-        '4. Auto-list on marketplace\n\n' +
-        'Your wallet will be prompted to sign.'
-    );
+    setConfirmModal({
+      open: true,
+      title: 'Mint NFT',
+      message: `${request.brand} ${request.model} — ${request.title}`,
+      steps: [
+        'Upload image to permanent storage (Irys)',
+        'Mint the NFT on-chain with your wallet',
+        transferDest ? `Transfer to ${transferDest.slice(0, 8)}...` : 'Keep in admin wallet',
+        'Auto-list on marketplace',
+      ],
+      confirmLabel: 'Mint NFT',
+      confirmColor: 'rgba(34, 197, 94, 0.8)',
+      requestId,
+      onConfirm: () => {},
+    });
+    return;
+  };
 
-    if (!confirmed) {
-      console.log('[MINT] ❌ User cancelled mint confirmation');
-      return;
-    }
+  // Actually execute the mint after modal confirmation (for already-approved requests)
+  const executeMint = async (requestId: string) => {
+    const request = requests.find((r) => r._id === requestId);
+    if (!request || !wallet.publicKey || !wallet.signTransaction) return;
 
+    const transferDest = getTransferDestination(request);
+    const transferTypeSelected = transferType[requestId] || 'requester';
+
+    closeModal();
     setProcessing(requestId);
     const toastId = toast.loading('Preparing metadata...');
 
     try {
-      // Step 1: Prepare metadata (uploads image/metadata to storage)
-      console.log('[MINT] Step 1: Calling prepare-mint API...');
+      // Step 1: Generate signer first so we know the mint address for metadata
+      const umi = createUmi(connection.rpcEndpoint)
+        .use(walletAdapterIdentity(wallet))
+        .use(mplCore());
+
+      const assetSigner = generateSigner(umi);
+      const mintAddress = assetSigner.publicKey.toString();
+      const nftOwner = umi.identity.publicKey;
+
+      // Step 2: Prepare metadata with mint address for external_url
       const prepareRes = await fetch('/api/admin/mint-requests/prepare-mint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-wallet-address': wallet.publicKey.toBase58(),
         },
-        body: JSON.stringify({ mintRequestId: requestId }),
+        body: JSON.stringify({ mintRequestId: requestId, mintAddress }),
       });
 
       const prepareData = await prepareRes.json();
-      console.log('[MINT] Prepare response:', JSON.stringify(prepareData, null, 2));
 
       if (!prepareData.success) {
-        console.error('[MINT] ❌ Prepare failed:', prepareData.error);
         toast.error(prepareData.error || 'Failed to prepare metadata', { id: toastId });
         return;
       }
 
-      console.log('[MINT] ✅ Metadata prepared successfully');
-      console.log('[MINT]   - Title:', prepareData.title);
-      console.log('[MINT]   - Metadata URI:', prepareData.metadataUri);
-      console.log('[MINT]   - Image URL:', prepareData.imageUrl);
-      console.log('[MINT]   - Vendor Wallet:', prepareData.vendorWallet);
-
       toast.loading('Minting NFT with your wallet...', { id: toastId });
 
-      // Step 2: Create UMI instance with wallet adapter (matching createNFT.tsx)
-      console.log('[MINT] Step 2: Creating UMI instance...');
-      console.log('[MINT]   - RPC:', connection.rpcEndpoint);
-      const umi = createUmi(connection.rpcEndpoint)
-        .use(walletAdapterIdentity(wallet))
-        .use(mplCore());
-      console.log('[MINT] ✅ UMI instance created');
-
-      // Step 3: Generate asset signer and mint
-      console.log('[MINT] Step 3: Generating asset signer...');
-      const assetSigner = generateSigner(umi);
-      const nftOwner = umi.identity.publicKey;
-      console.log('[MINT]   - Asset Public Key:', assetSigner.publicKey.toString());
-      console.log('[MINT]   - NFT Owner (admin):', nftOwner.toString());
-
-      console.log('[MINT] Step 4: Calling createAsset on-chain...');
-      console.log('[MINT]   - Name:', prepareData.title);
-      console.log('[MINT]   - URI:', prepareData.metadataUri);
-
-      // Send and confirm with finalized commitment for reliability
-      const mintResult = await createAsset(umi, {
+      // Step 3: Mint on-chain
+      await createAsset(umi, {
         asset: assetSigner,
         name: prepareData.title,
         uri: prepareData.metadataUri,
         owner: nftOwner,
       }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
-
-      const mintAddress = assetSigner.publicKey.toString();
-      console.log('[MINT] ✅ NFT MINTED SUCCESSFULLY!');
-      console.log('[MINT]   - Mint Address:', mintAddress);
-      console.log(
-        '[MINT]   - Signature:',
-        mintResult.signature
-          ? Buffer.from(mintResult.signature).toString('base64').slice(0, 20) + '...'
-          : 'N/A'
-      );
-      console.log(
-        '[MINT]   - Explorer: https://explorer.solana.com/address/' +
-          mintAddress +
-          '?cluster=devnet'
-      );
 
       // Transfer NFT to destination wallet (if specified)
       let transferSuccess = false;
@@ -565,16 +596,30 @@ const MintRequestsPanel: React.FC = () => {
       return;
     }
 
-    const confirmed = window.confirm(
-      'Approve and mint this NFT? This will:\n\n' +
-        '1. Approve the mint request\n' +
-        '2. Upload image to permanent storage\n' +
-        '3. Mint the NFT with your wallet\n\n' +
-        'Your wallet will be prompted to sign.'
-    );
+    const request = requests.find((r) => r._id === requestId);
+    setConfirmModal({
+      open: true,
+      title: 'Approve + Mint NFT',
+      message: request ? `${request.brand} ${request.model} — ${request.title}` : 'This NFT',
+      steps: [
+        'Approve the mint request',
+        'Upload image to permanent storage (Irys)',
+        'Mint the NFT on-chain with your wallet',
+        'Transfer to designated recipient',
+      ],
+      confirmLabel: 'Approve + Mint',
+      confirmColor: 'rgba(34, 197, 94, 0.8)',
+      requestId,
+      onConfirm: () => {},
+    });
+    return;
+  };
 
-    if (!confirmed) return;
+  // Actually execute the approve + mint after modal confirmation
+  const executeApproveAndMint = async (requestId: string) => {
+    if (!wallet.publicKey || !wallet.signTransaction) return;
 
+    closeModal();
     setProcessing(requestId);
     const toastId = toast.loading('Approving request...');
 
@@ -599,16 +644,25 @@ const MintRequestsPanel: React.FC = () => {
         return;
       }
 
+      // Step 2: Generate signer first so we know the mint address
+      const umi = createUmi(connection.rpcEndpoint)
+        .use(walletAdapterIdentity(wallet))
+        .use(mplCore());
+
+      const assetSigner = generateSigner(umi);
+      const mintAddress = assetSigner.publicKey.toString();
+      const nftOwner = umi.identity.publicKey;
+
       toast.loading('Preparing metadata...', { id: toastId });
 
-      // Step 2: Prepare metadata (upload image/metadata)
+      // Step 3: Prepare metadata with mint address for external_url
       const prepareRes = await fetch('/api/admin/mint-requests/prepare-mint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-wallet-address': wallet.publicKey.toBase58(),
         },
-        body: JSON.stringify({ mintRequestId: requestId }),
+        body: JSON.stringify({ mintRequestId: requestId, mintAddress }),
       });
 
       const prepareData = await prepareRes.json();
@@ -620,14 +674,7 @@ const MintRequestsPanel: React.FC = () => {
 
       toast.loading('Minting NFT with your wallet...', { id: toastId });
 
-      // Step 3: Create UMI and mint (matching createNFT.tsx pattern)
-      const umi = createUmi(connection.rpcEndpoint)
-        .use(walletAdapterIdentity(wallet))
-        .use(mplCore());
-
-      const assetSigner = generateSigner(umi);
-      const nftOwner = umi.identity.publicKey;
-
+      // Step 4: Mint with the pre-generated signer
       console.log('[MINT] Approve & Mint:', prepareData.title);
 
       await createAsset(umi, {
@@ -636,8 +683,6 @@ const MintRequestsPanel: React.FC = () => {
         uri: prepareData.metadataUri,
         owner: nftOwner,
       }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
-
-      const mintAddress = assetSigner.publicKey.toString();
       console.log('[MINT] Success! Mint address:', mintAddress);
 
       // Transfer NFT to vendor wallet with retry logic
@@ -759,7 +804,9 @@ const MintRequestsPanel: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Squads Membership Badge */}
           {checkingSquads ? (
-            <span style={{ fontSize: '0.75rem', color: '#666' }}>Checking Squads...</span>
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.35)' }}>
+              Checking Squads...
+            </span>
           ) : squadsMembership?.squadsConfigured ? (
             <span
               style={{
@@ -794,9 +841,9 @@ const MintRequestsPanel: React.FC = () => {
         style={{
           display: 'flex',
           gap: '8px',
-          marginBottom: '16px',
-          borderBottom: '1px solid #222',
-          paddingBottom: '8px',
+          marginBottom: '20px',
+          borderBottom: '1px solid rgba(185, 145, 255, 0.08)',
+          paddingBottom: '10px',
           flexWrap: 'wrap',
         }}
       >
@@ -806,15 +853,15 @@ const MintRequestsPanel: React.FC = () => {
             onClick={() => setFilter(f)}
             style={{
               padding: '8px 16px',
-              background: filter === f ? 'rgba(200, 161, 255, 0.1)' : 'transparent',
+              background: filter === f ? 'rgba(185, 145, 255, 0.12)' : '#0a0a0c',
               border: '1px solid',
-              borderColor: filter === f ? '#c8a1ff' : '#333',
-              borderRadius: '6px',
-              color: filter === f ? '#c8a1ff' : '#a1a1a1',
+              borderColor: filter === f ? 'rgba(185, 145, 255, 0.4)' : 'rgba(185, 145, 255, 0.08)',
+              borderRadius: '10px',
+              color: filter === f ? '#c8a1ff' : 'rgba(255, 255, 255, 0.5)',
               cursor: 'pointer',
-              fontSize: '0.875rem',
+              fontSize: '0.85rem',
               textTransform: 'capitalize',
-              transition: 'all 0.2s',
+              transition: 'all 0.25s ease',
             }}
           >
             <HiOutlineFilter style={{ marginRight: '4px', verticalAlign: 'middle' }} />
@@ -827,13 +874,13 @@ const MintRequestsPanel: React.FC = () => {
       {filter === 'pending' && (
         <div
           style={{
-            padding: '12px 16px',
-            background: 'rgba(59, 130, 246, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            borderRadius: '8px',
-            marginBottom: '16px',
+            padding: '14px 18px',
+            background: 'rgba(185, 145, 255, 0.06)',
+            border: '1px solid rgba(185, 145, 255, 0.15)',
+            borderRadius: '12px',
+            marginBottom: '20px',
             fontSize: '0.85rem',
-            color: '#93c5fd',
+            color: 'rgba(200, 161, 255, 0.8)',
           }}
         >
           <strong>Two-Step Flow:</strong> Review requests first (approve/reject), then mint approved
@@ -845,9 +892,15 @@ const MintRequestsPanel: React.FC = () => {
       {loading ? (
         <div className={styles.loadingTab}>Loading mint requests...</div>
       ) : requests.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#a1a1a1' }}>
-          <HiOutlineCube style={{ fontSize: '2rem', marginBottom: '8px' }} />
-          <p>No {filter !== 'all' ? filter : ''} mint requests found</p>
+        <div
+          style={{ textAlign: 'center', padding: '60px 40px', color: 'rgba(255, 255, 255, 0.4)' }}
+        >
+          <HiOutlineCube
+            style={{ fontSize: '2.5rem', marginBottom: '12px', color: 'rgba(185, 145, 255, 0.3)' }}
+          />
+          <p style={{ margin: 0, fontSize: '0.9rem' }}>
+            No {filter !== 'all' ? filter : ''} mint requests found
+          </p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -855,10 +908,14 @@ const MintRequestsPanel: React.FC = () => {
             <div
               key={request._id}
               style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid #222',
-                borderRadius: '12px',
+                position: 'relative',
+                background: 'rgba(10, 10, 14, 0.6)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
+                border: '1px solid rgba(185, 145, 255, 0.1)',
+                borderRadius: '14px',
                 overflow: 'hidden',
+                transition: 'all 0.25s ease',
               }}
             >
               {/* Request Header */}
@@ -867,8 +924,9 @@ const MintRequestsPanel: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '16px',
+                  padding: '16px 20px',
                   cursor: 'pointer',
+                  transition: 'background 0.2s ease',
                 }}
                 onClick={() => setExpandedId(expandedId === request._id ? null : request._id)}
               >
@@ -878,8 +936,9 @@ const MintRequestsPanel: React.FC = () => {
                     style={{
                       width: '60px',
                       height: '60px',
-                      borderRadius: '8px',
-                      background: '#1a1a1a',
+                      borderRadius: '10px',
+                      background: 'rgba(10, 10, 14, 0.7)',
+                      border: '1px solid rgba(185, 145, 255, 0.1)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -896,7 +955,9 @@ const MintRequestsPanel: React.FC = () => {
                         }}
                       />
                     ) : (
-                      <HiOutlinePhotograph style={{ fontSize: '1.5rem', color: '#666' }} />
+                      <HiOutlinePhotograph
+                        style={{ fontSize: '1.5rem', color: 'rgba(255, 255, 255, 0.35)' }}
+                      />
                     )}
                   </div>
 
@@ -948,9 +1009,9 @@ const MintRequestsPanel: React.FC = () => {
 
                   {/* Expand Icon */}
                   {expandedId === request._id ? (
-                    <HiOutlineChevronUp style={{ color: '#666' }} />
+                    <HiOutlineChevronUp style={{ color: 'rgba(255, 255, 255, 0.35)' }} />
                   ) : (
-                    <HiOutlineChevronDown style={{ color: '#666' }} />
+                    <HiOutlineChevronDown style={{ color: 'rgba(255, 255, 255, 0.35)' }} />
                   )}
                 </div>
               </div>
@@ -959,202 +1020,281 @@ const MintRequestsPanel: React.FC = () => {
               {expandedId === request._id && (
                 <div
                   style={{
-                    padding: '16px',
-                    borderTop: '1px solid #222',
-                    background: 'rgba(0, 0, 0, 0.2)',
+                    padding: '20px',
+                    borderTop: '1px solid rgba(185, 145, 255, 0.08)',
+                    background: 'rgba(10, 10, 14, 0.5)',
+                    backdropFilter: 'blur(24px)',
                   }}
                 >
-                  {/* Large Image Preview */}
-                  {getDisplayImageUrl(request.imageUrl) && (
-                    <div style={{ marginBottom: '16px', textAlign: 'center' }}>
-                      <img
-                        src={getDisplayImageUrl(request.imageUrl)!}
-                        alt={request.title}
-                        style={{
-                          maxWidth: '300px',
-                          maxHeight: '300px',
-                          borderRadius: '12px',
-                          border: '1px solid #333',
-                          objectFit: 'contain',
-                        }}
-                      />
-                      <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '8px' }}>
-                        Image will be uploaded to Irys (permanent storage) on mint
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Details Grid */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                      gap: '12px',
-                      marginBottom: '16px',
-                    }}
-                  >
-                    <div>
-                      <span style={{ color: '#666', fontSize: '0.75rem' }}>Vendor Wallet</span>
-                      <div style={{ color: '#fff', fontSize: '0.85rem', fontFamily: 'monospace' }}>
-                        {shortenWallet(request.wallet)}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', fontSize: '0.75rem' }}>Submitted</span>
-                      <div style={{ color: '#fff', fontSize: '0.85rem' }}>
-                        {formatDate(request.createdAt)}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', fontSize: '0.75rem' }}>Reference #</span>
-                      <div style={{ color: '#c8a1ff', fontSize: '0.85rem', fontWeight: 600 }}>
-                        {request.referenceNumber}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: '#666', fontSize: '0.75rem' }}>Price</span>
-                      <div style={{ color: '#22c55e', fontSize: '0.85rem', fontWeight: 600 }}>
-                        ${request.priceUSD?.toLocaleString()}
-                      </div>
-                    </div>
-
-                    {/* All Specifications */}
-                    {request.material && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Material</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>{request.material}</div>
-                      </div>
-                    )}
-                    {request.movement && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Movement</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>{request.movement}</div>
-                      </div>
-                    )}
-                    {request.caseSize && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Case Size</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>{request.caseSize}</div>
-                      </div>
-                    )}
-                    {request.dialColor && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Dial Color</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
-                          {request.dialColor}
-                        </div>
-                      </div>
-                    )}
-                    {request.waterResistance && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Water Resistance</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
-                          {request.waterResistance}
-                        </div>
-                      </div>
-                    )}
-                    {request.condition && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Condition</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
-                          {request.condition}
-                        </div>
-                      </div>
-                    )}
-                    {request.productionYear && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Production Year</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
-                          {request.productionYear}
-                        </div>
-                      </div>
-                    )}
-                    {request.boxPapers && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Box & Papers</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
-                          {request.boxPapers}
-                        </div>
-                      </div>
-                    )}
-                    {request.country && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Country</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>{request.country}</div>
+                  {/* Image + Details Side by Side */}
+                  <div style={{ display: 'flex', gap: '20px', marginBottom: '16px' }}>
+                    {/* Image - compact left column */}
+                    {getDisplayImageUrl(request.imageUrl) && (
+                      <div style={{ flexShrink: 0 }}>
+                        <img
+                          src={getDisplayImageUrl(request.imageUrl)!}
+                          alt={request.title}
+                          style={{
+                            width: '140px',
+                            height: '140px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(185, 145, 255, 0.15)',
+                            objectFit: 'cover',
+                          }}
+                        />
                       </div>
                     )}
 
-                    {/* Audit Trail */}
-                    {request.reviewedBy && (
+                    {/* Details Grid - fills remaining space */}
+                    <div
+                      style={{
+                        flex: 1,
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                        gap: '10px',
+                        alignContent: 'start',
+                      }}
+                    >
                       <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Reviewed By</span>
+                        <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                          Vendor Wallet
+                        </span>
                         <div
-                          style={{ color: '#3b82f6', fontSize: '0.85rem', fontFamily: 'monospace' }}
+                          style={{ color: '#fff', fontSize: '0.85rem', fontFamily: 'monospace' }}
                         >
-                          {shortenWallet(request.reviewedBy)}
+                          {shortenWallet(request.wallet)}
                         </div>
                       </div>
-                    )}
-                    {request.reviewedAt && (
                       <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Reviewed At</span>
+                        <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                          Submitted
+                        </span>
                         <div style={{ color: '#fff', fontSize: '0.85rem' }}>
-                          {formatDate(request.reviewedAt)}
+                          {formatDate(request.createdAt)}
                         </div>
                       </div>
-                    )}
-                    {request.mintedBy && (
                       <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Minted By</span>
-                        <div
-                          style={{ color: '#22c55e', fontSize: '0.85rem', fontFamily: 'monospace' }}
-                        >
-                          {shortenWallet(request.mintedBy)}
+                        <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                          Reference #
+                        </span>
+                        <div style={{ color: '#c8a1ff', fontSize: '0.85rem', fontWeight: 600 }}>
+                          {request.referenceNumber}
                         </div>
                       </div>
-                    )}
-                    {request.mintedAt && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Minted At</span>
-                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
-                          {formatDate(request.mintedAt)}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Mint Address */}
-                    {request.mintAddress && (
-                      <div>
-                        <span style={{ color: '#666', fontSize: '0.75rem' }}>Mint Address</span>
-                        <div
-                          style={{ color: '#22c55e', fontSize: '0.85rem', fontFamily: 'monospace' }}
-                        >
-                          {request.mintAddress?.slice(0, 8)}...
-                          <a
-                            href={`https://explorer.solana.com/address/${request.mintAddress}?cluster=devnet`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{ marginLeft: '4px', color: '#c8a1ff' }}
+                      {request.serialNumber && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Serial Number
+                          </span>
+                          <div
+                            style={{
+                              color: '#f59e0b',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              fontFamily: 'monospace',
+                            }}
                           >
-                            <HiOutlineExternalLink />
-                          </a>
+                            {request.serialNumber}
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                          Price
+                        </span>
+                        <div style={{ color: '#22c55e', fontSize: '0.85rem', fontWeight: 600 }}>
+                          ${request.priceUSD?.toLocaleString()}
                         </div>
                       </div>
-                    )}
+
+                      {/* All Specifications */}
+                      {request.material && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Material
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.material}
+                          </div>
+                        </div>
+                      )}
+                      {request.movement && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Movement
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.movement}
+                          </div>
+                        </div>
+                      )}
+                      {request.caseSize && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Case Size
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.caseSize}
+                          </div>
+                        </div>
+                      )}
+                      {request.dialColor && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Dial Color
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.dialColor}
+                          </div>
+                        </div>
+                      )}
+                      {request.waterResistance && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Water Resistance
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.waterResistance}
+                          </div>
+                        </div>
+                      )}
+                      {request.condition && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Condition
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.condition}
+                          </div>
+                        </div>
+                      )}
+                      {request.productionYear && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Production Year
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.productionYear}
+                          </div>
+                        </div>
+                      )}
+                      {request.boxPapers && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Box & Papers
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.boxPapers}
+                          </div>
+                        </div>
+                      )}
+                      {request.country && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Country
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {request.country}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Audit Trail */}
+                      {request.reviewedBy && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Reviewed By
+                          </span>
+                          <div
+                            style={{
+                              color: '#3b82f6',
+                              fontSize: '0.85rem',
+                              fontFamily: 'monospace',
+                            }}
+                          >
+                            {shortenWallet(request.reviewedBy)}
+                          </div>
+                        </div>
+                      )}
+                      {request.reviewedAt && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Reviewed At
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {formatDate(request.reviewedAt)}
+                          </div>
+                        </div>
+                      )}
+                      {request.mintedBy && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Minted By
+                          </span>
+                          <div
+                            style={{
+                              color: '#22c55e',
+                              fontSize: '0.85rem',
+                              fontFamily: 'monospace',
+                            }}
+                          >
+                            {shortenWallet(request.mintedBy)}
+                          </div>
+                        </div>
+                      )}
+                      {request.mintedAt && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Minted At
+                          </span>
+                          <div style={{ color: '#fff', fontSize: '0.85rem' }}>
+                            {formatDate(request.mintedAt)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mint Address */}
+                      {request.mintAddress && (
+                        <div>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                            Mint Address
+                          </span>
+                          <div
+                            style={{
+                              color: '#22c55e',
+                              fontSize: '0.85rem',
+                              fontFamily: 'monospace',
+                            }}
+                          >
+                            {request.mintAddress?.slice(0, 8)}...
+                            <a
+                              href={`https://explorer.solana.com/address/${request.mintAddress}?cluster=devnet`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ marginLeft: '4px', color: '#c8a1ff' }}
+                            >
+                              <HiOutlineExternalLink />
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Description */}
                   {request.description && (
                     <div style={{ marginBottom: '16px' }}>
-                      <span style={{ color: '#666', fontSize: '0.75rem' }}>Description</span>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                        Description
+                      </span>
                       <div
                         style={{
                           color: '#fff',
                           fontSize: '0.85rem',
-                          background: 'rgba(255,255,255,0.02)',
-                          padding: '12px',
-                          borderRadius: '8px',
-                          border: '1px solid #222',
+                          background: 'rgba(10, 10, 14, 0.7)',
+                          padding: '14px',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(185, 145, 255, 0.1)',
                           marginTop: '4px',
                         }}
                       >
@@ -1166,7 +1306,9 @@ const MintRequestsPanel: React.FC = () => {
                   {/* Admin Notes */}
                   {request.adminNotes && (
                     <div style={{ marginBottom: '16px' }}>
-                      <span style={{ color: '#666', fontSize: '0.75rem' }}>Admin Notes</span>
+                      <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '0.75rem' }}>
+                        Admin Notes
+                      </span>
                       <div style={{ color: '#f59e0b', fontSize: '0.85rem' }}>
                         {request.adminNotes}
                       </div>
@@ -1184,28 +1326,30 @@ const MintRequestsPanel: React.FC = () => {
                           setAdminNotes((prev) => ({ ...prev, [request._id]: e.target.value }))
                         }
                         style={{
-                          padding: '10px 12px',
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid #333',
-                          borderRadius: '8px',
+                          padding: '10px 14px',
+                          background: 'rgba(10, 10, 14, 0.7)',
+                          border: '1px solid rgba(185, 145, 255, 0.12)',
+                          borderRadius: '10px',
                           color: '#fff',
-                          fontSize: '0.875rem',
+                          fontSize: '0.85rem',
                           width: '100%',
+                          outline: 'none',
+                          transition: 'border-color 0.2s ease',
                         }}
                       />
                       <div style={{ display: 'flex', gap: '12px' }}>
-                        {/* Approve Only (Review Step) */}
+                        {/* Approve Only - marks as approved, does NOT mint */}
                         <button
                           onClick={() => handleReview(request._id, 'approve')}
                           disabled={processing === request._id}
                           style={{
                             flex: 1,
                             padding: '12px 16px',
-                            background: '#3b82f6',
-                            border: 'none',
-                            borderRadius: '8px',
-                            color: '#fff',
-                            fontSize: '0.875rem',
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.4)',
+                            borderRadius: '10px',
+                            color: '#93c5fd',
+                            fontSize: '0.85rem',
                             fontWeight: 600,
                             cursor: processing === request._id ? 'wait' : 'pointer',
                             display: 'flex',
@@ -1213,24 +1357,26 @@ const MintRequestsPanel: React.FC = () => {
                             justifyContent: 'center',
                             gap: '8px',
                             opacity: processing === request._id ? 0.6 : 1,
+                            transition: 'all 0.2s ease',
                           }}
                         >
                           <HiOutlineCheck />
-                          Approve
+                          Approve Only
                         </button>
 
-                        {/* Approve & Mint in One Step (Legacy/Quick) */}
+                        {/* Approve + Mint - approves AND mints on-chain in one step */}
                         <button
                           onClick={() => handleApproveAndMint(request._id)}
                           disabled={processing === request._id}
                           style={{
                             flex: 1,
                             padding: '12px 16px',
-                            background: '#22c55e',
-                            border: 'none',
-                            borderRadius: '8px',
-                            color: '#fff',
-                            fontSize: '0.875rem',
+                            background:
+                              'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.15) 100%)',
+                            border: '1px solid rgba(34, 197, 94, 0.4)',
+                            borderRadius: '10px',
+                            color: '#86efac',
+                            fontSize: '0.85rem',
                             fontWeight: 600,
                             cursor: processing === request._id ? 'wait' : 'pointer',
                             display: 'flex',
@@ -1238,10 +1384,11 @@ const MintRequestsPanel: React.FC = () => {
                             justifyContent: 'center',
                             gap: '8px',
                             opacity: processing === request._id ? 0.6 : 1,
+                            transition: 'all 0.2s ease',
                           }}
                         >
                           <HiOutlineSparkles />
-                          {processing === request._id ? 'Minting...' : 'Approve & Mint'}
+                          {processing === request._id ? 'Minting...' : 'Approve + Mint'}
                         </button>
 
                         {/* Reject */}
@@ -1251,11 +1398,11 @@ const MintRequestsPanel: React.FC = () => {
                           style={{
                             flex: 1,
                             padding: '12px 16px',
-                            background: '#ef4444',
-                            border: 'none',
-                            borderRadius: '8px',
-                            color: '#fff',
-                            fontSize: '0.875rem',
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.35)',
+                            borderRadius: '10px',
+                            color: '#fca5a5',
+                            fontSize: '0.85rem',
                             fontWeight: 600,
                             cursor: processing === request._id ? 'wait' : 'pointer',
                             display: 'flex',
@@ -1263,6 +1410,7 @@ const MintRequestsPanel: React.FC = () => {
                             justifyContent: 'center',
                             gap: '8px',
                             opacity: processing === request._id ? 0.6 : 1,
+                            transition: 'all 0.2s ease',
                           }}
                         >
                           <HiOutlineX />
@@ -1277,12 +1425,12 @@ const MintRequestsPanel: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <div
                         style={{
-                          padding: '12px 16px',
-                          background: 'rgba(59, 130, 246, 0.1)',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                          borderRadius: '8px',
+                          padding: '14px 18px',
+                          background: 'rgba(34, 197, 94, 0.08)',
+                          border: '1px solid rgba(34, 197, 94, 0.2)',
+                          borderRadius: '12px',
                           fontSize: '0.85rem',
-                          color: '#93c5fd',
+                          color: '#86efac',
                         }}
                       >
                         Approved by <strong>{shortenWallet(request.reviewedBy)}</strong> on{' '}
@@ -1292,10 +1440,10 @@ const MintRequestsPanel: React.FC = () => {
                       {/* Transfer Destination Selector */}
                       <div
                         style={{
-                          padding: '16px',
-                          background: 'rgba(200, 161, 255, 0.05)',
-                          border: '1px solid rgba(200, 161, 255, 0.2)',
-                          borderRadius: '8px',
+                          padding: '18px',
+                          background: 'rgba(10, 10, 14, 0.7)',
+                          border: '1px solid rgba(185, 145, 255, 0.15)',
+                          borderRadius: '12px',
                           marginBottom: '12px',
                         }}
                       >
@@ -1326,8 +1474,8 @@ const MintRequestsPanel: React.FC = () => {
                               background:
                                 (transferType[request._id] || 'requester') === 'requester'
                                   ? 'rgba(34, 197, 94, 0.2)'
-                                  : 'rgba(255, 255, 255, 0.05)',
-                              border: `1px solid ${(transferType[request._id] || 'requester') === 'requester' ? '#22c55e' : '#333'}`,
+                                  : '#0a0a0c',
+                              border: `1px solid ${(transferType[request._id] || 'requester') === 'requester' ? '#22c55e' : 'rgba(185, 145, 255, 0.1)'}`,
                               borderRadius: '6px',
                               color:
                                 (transferType[request._id] || 'requester') === 'requester'
@@ -1355,8 +1503,8 @@ const MintRequestsPanel: React.FC = () => {
                               background:
                                 transferType[request._id] === 'vendor'
                                   ? 'rgba(59, 130, 246, 0.2)'
-                                  : 'rgba(255, 255, 255, 0.05)',
-                              border: `1px solid ${transferType[request._id] === 'vendor' ? '#3b82f6' : '#333'}`,
+                                  : '#0a0a0c',
+                              border: `1px solid ${transferType[request._id] === 'vendor' ? '#3b82f6' : 'rgba(185, 145, 255, 0.1)'}`,
                               borderRadius: '6px',
                               color: transferType[request._id] === 'vendor' ? '#3b82f6' : '#aaa',
                               cursor: 'pointer',
@@ -1378,8 +1526,8 @@ const MintRequestsPanel: React.FC = () => {
                               background:
                                 transferType[request._id] === 'custom'
                                   ? 'rgba(245, 158, 11, 0.2)'
-                                  : 'rgba(255, 255, 255, 0.05)',
-                              border: `1px solid ${transferType[request._id] === 'custom' ? '#f59e0b' : '#333'}`,
+                                  : '#0a0a0c',
+                              border: `1px solid ${transferType[request._id] === 'custom' ? '#f59e0b' : 'rgba(185, 145, 255, 0.1)'}`,
                               borderRadius: '6px',
                               color: transferType[request._id] === 'custom' ? '#f59e0b' : '#aaa',
                               cursor: 'pointer',
@@ -1401,8 +1549,8 @@ const MintRequestsPanel: React.FC = () => {
                               background:
                                 transferType[request._id] === 'admin'
                                   ? 'rgba(200, 161, 255, 0.2)'
-                                  : 'rgba(255, 255, 255, 0.05)',
-                              border: `1px solid ${transferType[request._id] === 'admin' ? '#c8a1ff' : '#333'}`,
+                                  : '#0a0a0c',
+                              border: `1px solid ${transferType[request._id] === 'admin' ? '#c8a1ff' : 'rgba(185, 145, 255, 0.1)'}`,
                               borderRadius: '6px',
                               color: transferType[request._id] === 'admin' ? '#c8a1ff' : '#aaa',
                               cursor: 'pointer',
@@ -1428,9 +1576,9 @@ const MintRequestsPanel: React.FC = () => {
                             style={{
                               width: '100%',
                               padding: '10px 12px',
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid #333',
-                              borderRadius: '6px',
+                              background: 'rgba(10, 10, 14, 0.7)',
+                              border: '1px solid rgba(185, 145, 255, 0.15)',
+                              borderRadius: '10px',
                               color: '#fff',
                               fontSize: '0.85rem',
                               cursor: 'pointer',
@@ -1460,9 +1608,9 @@ const MintRequestsPanel: React.FC = () => {
                             style={{
                               width: '100%',
                               padding: '10px 12px',
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid #333',
-                              borderRadius: '6px',
+                              background: 'rgba(10, 10, 14, 0.7)',
+                              border: '1px solid rgba(185, 145, 255, 0.15)',
+                              borderRadius: '10px',
                               color: '#fff',
                               fontSize: '0.85rem',
                               fontFamily: 'monospace',
@@ -1476,10 +1624,11 @@ const MintRequestsPanel: React.FC = () => {
                         disabled={processing === request._id}
                         style={{
                           padding: '14px 20px',
-                          background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: '#fff',
+                          background:
+                            'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.15) 100%)',
+                          border: '1px solid rgba(34, 197, 94, 0.4)',
+                          borderRadius: '12px',
+                          color: '#86efac',
                           fontSize: '1rem',
                           fontWeight: 600,
                           cursor: processing === request._id ? 'wait' : 'pointer',
@@ -1489,6 +1638,7 @@ const MintRequestsPanel: React.FC = () => {
                           gap: '8px',
                           opacity: processing === request._id ? 0.6 : 1,
                           width: '100%',
+                          transition: 'all 0.25s ease',
                         }}
                       >
                         <HiOutlineSparkles />
@@ -1514,6 +1664,215 @@ const MintRequestsPanel: React.FC = () => {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal?.open && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(8px)',
+          }}
+          onClick={closeModal}
+        >
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '440px',
+              background: 'rgba(10, 10, 14, 0.85)',
+              backdropFilter: 'blur(48px)',
+              WebkitBackdropFilter: 'blur(48px)',
+              border: '1px solid rgba(185, 145, 255, 0.2)',
+              borderRadius: '16px',
+              padding: '28px',
+              boxShadow: '0 24px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(185, 145, 255, 0.08)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Title */}
+            <h3
+              style={{
+                margin: '0 0 8px 0',
+                fontSize: '1.1rem',
+                fontWeight: 700,
+                color: '#fff',
+                letterSpacing: '0.3px',
+              }}
+            >
+              {confirmModal.title}
+            </h3>
+
+            {/* Subtitle / asset name */}
+            <p
+              style={{
+                margin: '0 0 20px 0',
+                fontSize: '0.85rem',
+                color: 'rgba(255, 255, 255, 0.5)',
+              }}
+            >
+              {confirmModal.message}
+            </p>
+
+            {/* Steps list */}
+            {confirmModal.steps && (
+              <div
+                style={{
+                  background: 'rgba(185, 145, 255, 0.04)',
+                  border: '1px solid rgba(185, 145, 255, 0.1)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginBottom: '20px',
+                }}
+              >
+                {confirmModal.steps.map((step, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      marginBottom: i < confirmModal.steps!.length - 1 ? '10px' : 0,
+                      fontSize: '0.85rem',
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        background: 'rgba(185, 145, 255, 0.12)',
+                        border: '1px solid rgba(185, 145, 255, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: '#c8a1ff',
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    {step}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Reject reason input */}
+            {confirmModal.rejectReason && (
+              <div style={{ marginBottom: '20px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Reason for rejection (required)
+                </label>
+                <textarea
+                  value={rejectReasonInput}
+                  onChange={(e) => setRejectReasonInput(e.target.value)}
+                  placeholder="Explain why this request is being rejected..."
+                  rows={3}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: '#0f0f12',
+                    border: '1px solid rgba(185, 145, 255, 0.12)',
+                    borderRadius: '10px',
+                    color: '#fff',
+                    fontSize: '0.85rem',
+                    resize: 'vertical',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Wallet signing notice for mint actions */}
+            {confirmModal.title.includes('Mint') && (
+              <p
+                style={{
+                  margin: '0 0 20px 0',
+                  fontSize: '0.78rem',
+                  color: 'rgba(200, 161, 255, 0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <HiOutlineShieldCheck style={{ flexShrink: 0 }} />
+                Your wallet will be prompted to sign the transaction.
+              </p>
+            )}
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={closeModal}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '10px',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!confirmModal.requestId) return;
+                  if (confirmModal.rejectReason) {
+                    if (!rejectReasonInput.trim()) {
+                      toast.error('Please provide a reason for rejection');
+                      return;
+                    }
+                    executeReview(confirmModal.requestId, 'reject', rejectReasonInput.trim());
+                  } else if (confirmModal.title === 'Approve + Mint NFT') {
+                    executeApproveAndMint(confirmModal.requestId);
+                  } else if (confirmModal.title === 'Mint NFT') {
+                    executeMint(confirmModal.requestId);
+                  } else {
+                    executeReview(confirmModal.requestId, 'approve');
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: confirmModal.confirmColor,
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {confirmModal.confirmLabel}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

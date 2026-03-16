@@ -184,7 +184,6 @@ const PLACEHOLDER_BUYER = new PublicKey('11111111111111111111111111111111');
 // ------------------------------------------------
 const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: string, wallet: any) => {
   try {
-    console.log('[updateNFTMarketStatus] Connecting to Solana endpoint...');
     const connection = new Connection(
       process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
     );
@@ -192,15 +191,11 @@ const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: strin
     const { Metaplex, walletAdapterIdentity } = await import('@metaplex-foundation/js');
     const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
 
-    console.log('[updateNFTMarketStatus] Fetching on-chain NFT for mint:', mintAddress);
     const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mintAddress) });
-    console.log('[updateNFTMarketStatus] Retrieved NFT data:', nft);
 
-    console.log('[updateNFTMarketStatus] Fetching current metadata JSON from:', nft.uri);
     const res = await fetch(nft.uri);
     if (!res.ok) throw new Error('Failed to fetch current metadata');
     const metadata = await res.json();
-    console.log('[updateNFTMarketStatus] Current metadata JSON:', metadata);
 
     if (!metadata.attributes || !Array.isArray(metadata.attributes)) {
       metadata.attributes = [];
@@ -208,40 +203,22 @@ const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: strin
     let updated = false;
     metadata.attributes = metadata.attributes.map((attr: any) => {
       if (attr.trait_type === 'Market Status') {
-        console.log(
-          '[updateNFTMarketStatus] Changing Market Status from',
-          attr.value,
-          'to',
-          newMarketStatus
-        );
         updated = true;
         return { ...attr, value: newMarketStatus };
       }
       return attr;
     });
     if (!updated) {
-      console.log("[updateNFTMarketStatus] 'Market Status' not found. Adding it...");
       metadata.attributes.push({ trait_type: 'Market Status', value: newMarketStatus });
     }
 
     metadata.updatedAt = new Date().toISOString();
-    console.log('[updateNFTMarketStatus] Final metadata JSON with updatedAt:', metadata);
 
-    console.log('[updateNFTMarketStatus] Uploading updated metadata JSON to Pinata...');
     const newUri = await uploadToPinata(metadata, metadata.name || 'Updated NFT Metadata');
-    console.log('[updateNFTMarketStatus] New metadata URI:', newUri);
 
     const newName = nft.name.endsWith('(Active)') ? nft.name : nft.name + ' (Active)';
-    console.log('[updateNFTMarketStatus] New name to update:', newName);
 
-    console.log(
-      '[updateNFTMarketStatus] Sending updateNftMetadata transaction with {uri, name}...'
-    );
     await updateNftMetadata(wallet as any, mintAddress, { uri: newUri, name: newName } as any);
-    console.log(
-      '[updateNFTMarketStatus] On-chain NFT metadata update complete. Market Status set to:',
-      newMarketStatus
-    );
   } catch (error) {
     console.error('[updateNFTMarketStatus] Failed to update NFT market status:', error);
   }
@@ -307,6 +284,9 @@ const AdminDashboard: React.FC = () => {
     }[]
   >([]);
   const [adminsFetched, setAdminsFetched] = useState(false);
+  const [pendingMintRequests, setPendingMintRequests] = useState<number>(0);
+  const [pendingDelistRequests, setPendingDelistRequests] = useState<number>(0);
+  const [pendingVendorApprovals, setPendingVendorApprovals] = useState<number>(0);
 
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
 
@@ -323,7 +303,6 @@ const AdminDashboard: React.FC = () => {
   const addLog = (action: string, tx: string, message: string) => {
     const timestamp = new Date().toLocaleString();
     const newLog: LogEntry = { timestamp, action, tx, message };
-    console.log(`[${timestamp}] ${action}: ${message} (tx: ${tx})`);
     setLogs((prev) => [...prev, newLog]);
   };
 
@@ -340,7 +319,6 @@ const AdminDashboard: React.FC = () => {
         return await fetchFunc();
       } catch (error: any) {
         if (error?.message?.includes('Too many requests') && attempt < retries - 1) {
-          console.warn(`Rate limited. Retrying in ${delayMs * (attempt + 1)} ms...`);
           await new Promise((res) => setTimeout(res, delayMs * (attempt + 1)));
         } else {
           throw error;
@@ -360,8 +338,6 @@ const AdminDashboard: React.FC = () => {
       const configAccount = await fetchWithRetry(() =>
         (program.account as any).escrowConfig.fetch(escrowConfigPda)
       );
-      console.log('[fetchConfigAndAdmins] Fetched escrow config:', configAccount);
-
       // New config structure
       const authority = configAccount.authority?.toBase58?.() || null;
       const treasury = configAccount.treasury?.toBase58?.() || null;
@@ -378,14 +354,7 @@ const AdminDashboard: React.FC = () => {
         setCurrentEscrowConfig(treasury);
         setLuxhubWallet(treasury);
         setNewPaused(paused);
-        console.log('[fetchConfigAndAdmins] Config loaded:', {
-          authority,
-          treasury,
-          feeBps,
-          paused,
-        });
       } else {
-        console.warn('[fetchConfigAndAdmins] Escrow config not initialized', configAccount);
         setCurrentEscrowConfig('Not initialized');
         setOnChainConfig(null);
       }
@@ -426,7 +395,6 @@ const AdminDashboard: React.FC = () => {
                   attributes: [],
                 };
           } catch (err) {
-            console.warn('[fetchActiveEscrowsByMint] Failed metadata fetch', mintB, err);
             metadata = {
               name: 'Unfetched NFT',
               description: 'Error fetching metadata',
@@ -447,7 +415,7 @@ const AdminDashboard: React.FC = () => {
             const vault = await getAssociatedTokenAddress(new PublicKey(mintB), escrowPda, true);
             vaultATA = vault.toBase58();
           } catch (e) {
-            console.warn('[fetchActiveEscrowsByMint] Vault ATA generation failed', e);
+            // Vault ATA generation failed - continue without vault address
           }
 
           return {
@@ -468,7 +436,6 @@ const AdminDashboard: React.FC = () => {
       );
 
       setActiveEscrows(enriched.filter(Boolean));
-      console.log('[fetchActiveEscrowsByMint] Enriched:', enriched);
     } catch (err) {
       console.error('[fetchActiveEscrowsByMint] Error:', err);
     }
@@ -523,6 +490,37 @@ const AdminDashboard: React.FC = () => {
     } catch (err) {
       console.error('Error fetching authorized admins:', err);
       setAdminsFetched(true); // Mark as fetched even on error
+    }
+  };
+
+  const fetchPendingCounts = async () => {
+    const walletAddr = wallet.publicKey?.toBase58();
+    if (!walletAddr) return;
+    const headers: Record<string, string> = { 'x-wallet-address': walletAddr };
+
+    try {
+      const [mintRes, delistRes, vendorRes] = await Promise.all([
+        fetch('/api/admin/mint-requests?status=pending&limit=1&offset=0', { headers }),
+        fetch('/api/admin/delist-requests?status=pending', { headers }),
+        fetch(`/api/vendor/pending?adminWallet=${walletAddr}`, { headers }),
+      ]);
+
+      if (mintRes.ok) {
+        const data = await mintRes.json();
+        setPendingMintRequests(data.total || 0);
+      }
+      if (delistRes.ok) {
+        const data = await delistRes.json();
+        setPendingDelistRequests(
+          data.counts?.pending ?? (Array.isArray(data.requests) ? data.requests.length : 0)
+        );
+      }
+      if (vendorRes.ok) {
+        const data = await vendorRes.json();
+        setPendingVendorApprovals(Array.isArray(data.vendors) ? data.vendors.length : 0);
+      }
+    } catch (err) {
+      console.error('[fetchPendingCounts] Error:', err);
     }
   };
 
@@ -734,6 +732,7 @@ const AdminDashboard: React.FC = () => {
       fetchSquadsProposals(squadsFilter),
       fetchSquadsMultisigInfo(),
       fetchAuthorizedAdmins(),
+      fetchPendingCounts(),
     ]);
     setLoading(false);
   };
@@ -767,7 +766,6 @@ const AdminDashboard: React.FC = () => {
     if (authorizedAdmins.length > 0) {
       const isUserAdmin = authorizedAdmins.some((admin) => admin.walletAddress === walletAddress);
       setIsAdmin(isUserAdmin);
-      console.log('[Admin Check] Is user admin (from VaultConfig)?', isUserAdmin);
       return;
     }
 
@@ -775,19 +773,16 @@ const AdminDashboard: React.FC = () => {
     const superAdminWallets = process.env.NEXT_PUBLIC_SUPER_ADMIN_WALLETS?.split(',') || [];
     if (superAdminWallets.includes(walletAddress)) {
       setIsAdmin(true);
-      console.log('[Admin Check] Is user super admin (from env)?', true);
       return;
     }
 
     // If admins have been fetched but list is empty, user is not an admin
     if (adminsFetched) {
       setIsAdmin(false);
-      console.log('[Admin Check] No authorized admins found, access denied');
       return;
     }
 
     // If authorizedAdmins hasn't loaded yet but wallet is connected, wait
-    console.log('[Admin Check] Waiting for authorizedAdmins to load...');
   }, [wallet.publicKey, authorizedAdmins, adminsFetched]);
 
   // ------------------------------------------------
@@ -805,14 +800,6 @@ const AdminDashboard: React.FC = () => {
       );
       // Treasury vault PDA (where 3% fees go)
       const squadsAuthority = new PublicKey(luxhubWallet);
-
-      console.log(
-        '[initializeEscrowConfig] Initializing config with:',
-        '\n  Squads Multisig:',
-        squadsMultisig.toBase58(),
-        '\n  Treasury Vault:',
-        squadsAuthority.toBase58()
-      );
 
       const tx = await program.methods
         .initializeConfig(squadsMultisig, squadsAuthority)
@@ -853,18 +840,6 @@ const AdminDashboard: React.FC = () => {
       const feeBpsUpdate = updates?.newFeeBps !== undefined ? updates.newFeeBps : null;
       const pausedUpdate = updates?.newPaused !== undefined ? updates.newPaused : null;
 
-      console.log(
-        '[updateOnChainConfig] Updating config with:',
-        '\n  New Authority:',
-        newAuthorityPk?.toBase58() || '(unchanged)',
-        '\n  New Treasury:',
-        newTreasuryPk?.toBase58() || '(unchanged)',
-        '\n  New Fee BPS:',
-        feeBpsUpdate ?? '(unchanged)',
-        '\n  New Paused:',
-        pausedUpdate ?? '(unchanged)'
-      );
-
       const tx = await program.methods
         .updateConfig(newAuthorityPk, newTreasuryPk, feeBpsUpdate, pausedUpdate)
         .accounts({
@@ -898,7 +873,6 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     try {
-      console.log('[updateEscrowConfig] Updating treasury wallet to:', newLuxhubWallet);
       const res = await fetch('/api/vault/config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -927,7 +901,6 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     try {
-      console.log('[addAdmin] Adding new admin:', newAdmin);
       const res = await fetch('/api/vault/admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -961,7 +934,6 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     try {
-      console.log('[removeAdmin] Removing admin:', removeAdminAddr);
       const res = await fetch('/api/vault/admins', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -1141,8 +1113,6 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
       setStatus('Creating cancellation proposal via Squads...');
-      console.log('[cancelEscrow] Cancelling escrow with seed:', escrow.seed);
-
       const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
       const [escrowPda] = PublicKey.findProgramAddressSync(
         [Buffer.from('state'), seedBuffer],
@@ -1211,7 +1181,6 @@ const AdminDashboard: React.FC = () => {
   // Vendor-owned NFTs: need vendor signature (different flow)
   // ------------------------------------------------
   const handleApproveSale = async (req: SaleRequest) => {
-    console.log('[handleApproveSale] Sale request data:', req);
     if (!req.seller) {
       console.error('[handleApproveSale] Missing seller:', req);
       setStatus('Error: Missing seller field');
@@ -1250,8 +1219,6 @@ const AdminDashboard: React.FC = () => {
         [Buffer.from('state'), seedBuffer],
         program.programId
       );
-      console.log('[handleApproveSale] Escrow PDA:', escrowPda.toBase58());
-
       const escrowInfo = await connection.getAccountInfo(escrowPda);
       if (escrowInfo !== null) {
         // Already initialized
@@ -1549,6 +1516,68 @@ const AdminDashboard: React.FC = () => {
               )}
             </div>
 
+            {/* Pending Notifications */}
+            {(saleRequests.length > 0 ||
+              pendingMintRequests > 0 ||
+              pendingDelistRequests > 0 ||
+              pendingVendorApprovals > 0 ||
+              squadsProposals.filter((p) => p.status === 'active').length > 0) && (
+              <div className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>
+                    <HiOutlineExclamation className="icon" style={{ color: 'var(--accent)' }} />
+                    Needs Attention
+                  </h2>
+                </div>
+                <div className={styles.quickActions}>
+                  {pendingMintRequests > 0 && (
+                    <button onClick={() => setTabIndex(16)} className={styles.quickActionCard}>
+                      <HiOutlineCube />
+                      <span>Mint Requests</span>
+                      <span className={styles.quickActionBadge}>{pendingMintRequests}</span>
+                    </button>
+                  )}
+                  {saleRequests.length > 0 && (
+                    <button onClick={() => setTabIndex(5)} className={styles.quickActionCard}>
+                      <HiOutlineClipboardList />
+                      <span>Sale Requests</span>
+                      <span className={styles.quickActionBadge}>{saleRequests.length}</span>
+                    </button>
+                  )}
+                  {pendingVendorApprovals > 0 && (
+                    <button onClick={() => setTabIndex(8)} className={styles.quickActionCard}>
+                      <HiOutlineUserGroup />
+                      <span>Vendor Approvals</span>
+                      <span className={styles.quickActionBadge}>{pendingVendorApprovals}</span>
+                    </button>
+                  )}
+                  {pendingDelistRequests > 0 && (
+                    <button onClick={() => setTabIndex(15)} className={styles.quickActionCard}>
+                      <HiOutlineExclamation />
+                      <span>Delist Requests</span>
+                      <span className={styles.quickActionBadge}>{pendingDelistRequests}</span>
+                    </button>
+                  )}
+                  {squadsProposals.filter((p) => p.status === 'active').length > 0 && (
+                    <button onClick={() => setTabIndex(9)} className={styles.quickActionCard}>
+                      <HiOutlineShieldCheck />
+                      <span>Squads Proposals</span>
+                      <span className={styles.quickActionBadge}>
+                        {squadsProposals.filter((p) => p.status === 'active').length}
+                      </span>
+                    </button>
+                  )}
+                  {activeEscrows.length > 0 && (
+                    <button onClick={() => setTabIndex(2)} className={styles.quickActionCard}>
+                      <HiOutlineLockClosed />
+                      <span>Active Escrows</span>
+                      <span className={styles.quickActionBadge}>{activeEscrows.length}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Quick Actions */}
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
@@ -1558,38 +1587,46 @@ const AdminDashboard: React.FC = () => {
                 </h2>
               </div>
               <div className={styles.quickActions}>
+                <button onClick={() => setTabIndex(16)} className={styles.quickActionCard}>
+                  <HiOutlineCube />
+                  <span>Mint Requests</span>
+                  {pendingMintRequests > 0 && (
+                    <span className={styles.quickActionBadge}>{pendingMintRequests}</span>
+                  )}
+                </button>
                 <button onClick={() => setTabIndex(5)} className={styles.quickActionCard}>
                   <HiOutlineClipboardList />
-                  <span>Review Sales</span>
+                  <span>Sale Requests</span>
                   {saleRequests.length > 0 && (
                     <span className={styles.quickActionBadge}>{saleRequests.length}</span>
                   )}
                 </button>
                 <button onClick={() => setTabIndex(2)} className={styles.quickActionCard}>
                   <HiOutlineLockClosed />
-                  <span>Manage Escrows</span>
+                  <span>Escrows</span>
                   {activeEscrows.length > 0 && (
                     <span className={styles.quickActionBadge}>{activeEscrows.length}</span>
                   )}
                 </button>
-                <button onClick={() => setTabIndex(9)} className={styles.quickActionCard}>
-                  <HiOutlineShieldCheck />
-                  <span>Squads Proposals</span>
-                  {squadsProposals.length > 0 && (
-                    <span className={styles.quickActionBadge}>{squadsProposals.length}</span>
-                  )}
-                </button>
                 <button onClick={() => setTabIndex(8)} className={styles.quickActionCard}>
                   <HiOutlineUserGroup />
-                  <span>Vendor Approvals</span>
+                  <span>Vendors</span>
+                  {pendingVendorApprovals > 0 && (
+                    <span className={styles.quickActionBadge}>{pendingVendorApprovals}</span>
+                  )}
                 </button>
-                <button onClick={() => setTabIndex(3)} className={styles.quickActionCard}>
-                  <HiOutlineCash />
-                  <span>Transactions</span>
+                <button onClick={() => setTabIndex(10)} className={styles.quickActionCard}>
+                  <HiOutlineTruck />
+                  <span>Shipments</span>
                 </button>
-                <button onClick={() => setTabIndex(0)} className={styles.quickActionCard}>
-                  <HiOutlineCog />
-                  <span>Configuration</span>
+                <button onClick={() => setTabIndex(9)} className={styles.quickActionCard}>
+                  <HiOutlineShieldCheck />
+                  <span>Multisig</span>
+                  {squadsProposals.filter((p) => p.status === 'active').length > 0 && (
+                    <span className={styles.quickActionBadge}>
+                      {squadsProposals.filter((p) => p.status === 'active').length}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -2431,9 +2468,9 @@ const AdminDashboard: React.FC = () => {
   ];
 
   const nftNavItems = [
-    { id: 16, label: 'Mint Requests', icon: HiOutlineCube },
+    { id: 16, label: 'Mint Requests', icon: HiOutlineCube, badge: pendingMintRequests },
     { id: 12, label: 'Vault Inventory', icon: HiOutlineDatabase },
-    { id: 15, label: 'Delist Requests', icon: HiOutlineExclamation },
+    { id: 15, label: 'Delist Requests', icon: HiOutlineExclamation, badge: pendingDelistRequests },
     { id: 14, label: 'Asset Cleanup', icon: HiOutlineTrash },
     { id: 6, label: 'Metadata Editor', icon: HiOutlineDocumentText },
     { id: 7, label: 'Change Requests', icon: HiOutlineCollection },
@@ -2442,36 +2479,10 @@ const AdminDashboard: React.FC = () => {
   const securityNavItems = [
     { id: 13, label: 'Platform Settings', icon: HiOutlineCog },
     { id: 9, label: 'Squads Multisig', icon: HiOutlineShieldCheck, badge: squadsProposals.length },
-    { id: 8, label: 'Vendor Approvals', icon: HiOutlineUserGroup },
+    { id: 8, label: 'Vendor Approvals', icon: HiOutlineUserGroup, badge: pendingVendorApprovals },
     { id: 3, label: 'Transactions', icon: HiOutlineCash },
     { id: 0, label: 'Escrow Config', icon: HiOutlineDatabase },
   ];
-
-  // Page titles for each tab
-  const pageTitles: Record<number, { title: string; subtitle: string }> = {
-    1: { title: 'Dashboard Overview', subtitle: 'Key metrics, recent activity, and quick actions' },
-    5: { title: 'Sale Requests', subtitle: 'Review and approve marketplace listing requests' },
-    2: { title: 'Active Escrows', subtitle: 'Manage on-chain escrow accounts and deliveries' },
-    10: { title: 'Shipment Verification', subtitle: 'Verify delivery proofs and shipment status' },
-    11: { title: 'Pool Custody', subtitle: 'Manage fractional ownership pool custody' },
-    12: { title: 'Vault Inventory', subtitle: 'View and manage NFTs held in the LuxHub vault' },
-    6: { title: 'NFT Metadata Editor', subtitle: 'Edit NFT metadata and attributes' },
-    7: { title: 'Metadata Change Requests', subtitle: 'Review pending metadata update requests' },
-    14: { title: 'Asset Cleanup', subtitle: 'Remove failed mints and clean up test data' },
-    15: { title: 'Delist Requests', subtitle: 'Review and process vendor delist requests' },
-    16: { title: 'Mint Requests', subtitle: 'Review and approve vendor NFT mint requests' },
-    13: {
-      title: 'Platform Settings',
-      subtitle: 'Configure multisig, wallets, fees, and feature flags',
-    },
-    9: { title: 'Squads Multisig', subtitle: 'Manage treasury proposals and multisig approvals' },
-    8: { title: 'Vendor Approvals', subtitle: 'Review and approve vendor applications' },
-    3: { title: 'Transaction History', subtitle: 'View all platform transactions and activity' },
-    0: {
-      title: 'Escrow Configuration',
-      subtitle: 'Manage on-chain escrow config and admin permissions',
-    },
-  };
 
   // Render sidebar nav item
   const renderNavItem = (item: { id: number; label: string; icon: any; badge?: number }) => {
@@ -2558,19 +2569,6 @@ const AdminDashboard: React.FC = () => {
 
       {/* Main Content Area */}
       <main className={styles.mainContent}>
-        <header className={styles.contentHeader}>
-          <div className={styles.pageTitle}>
-            <h1>{pageTitles[tabIndex]?.title || 'Dashboard'}</h1>
-            <p>{pageTitles[tabIndex]?.subtitle || ''}</p>
-          </div>
-          <div className={styles.headerActions}>
-            <button className={styles.refreshBtn} onClick={refreshData} disabled={loading}>
-              <HiOutlineRefresh className={loading ? styles.spinning : ''} />
-              {loading ? 'Refreshing...' : 'Refresh'}
-            </button>
-          </div>
-        </header>
-
         <div className={styles.contentBody}>
           {/* Quick Stats Overview */}
           {tabIndex === 5 && (

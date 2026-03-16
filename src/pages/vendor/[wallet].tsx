@@ -103,6 +103,7 @@ const VendorProfilePage = () => {
   >('all');
   const [burnedNfts, setBurnedNfts] = useState<NFT[]>([]);
   const [pooledAssets, setPooledAssets] = useState<any[]>([]);
+  const [pooledAssetIds, setPooledAssetIds] = useState<Set<string>>(new Set());
   const [poolsLoading, setPoolsLoading] = useState(false);
   const [convertingNft, setConvertingNft] = useState<NFT | null>(null);
   const [stats, setStats] = useState<ProfileStats>({
@@ -230,6 +231,23 @@ const VendorProfilePage = () => {
     };
 
     fetchNFTs();
+
+    // Eagerly fetch pooled asset IDs so we can hide the "Convert to Pool" button
+    const fetchPooledIds = async () => {
+      try {
+        const res = await fetch(`/api/pool/list?vendorWallet=${profile.wallet}`);
+        const data = await res.json();
+        if (data.success && data.pools) {
+          const ids = new Set<string>(
+            data.pools.map((p: any) => p.asset?._id || p.assetId).filter(Boolean)
+          );
+          setPooledAssetIds(ids);
+        }
+      } catch {
+        // Non-critical — button just stays visible
+      }
+    };
+    fetchPooledIds();
   }, [profile]);
 
   // Fetch burned NFTs only when burned tab is selected (lazy load)
@@ -1173,7 +1191,7 @@ const VendorProfilePage = () => {
               <div className={styles.emptyState}>
                 <FiPieChart className={styles.emptyIcon} />
                 <h3>No pools yet</h3>
-                <p>Convert listed assets to fractional ownership pools</p>
+                <p>Convert listed assets to tokenized pools</p>
               </div>
             )
           ) : filteredNFTs.length > 0 ? (
@@ -1299,10 +1317,11 @@ const VendorProfilePage = () => {
                         </button>
                       )}
 
-                      {/* Convert to Pool button for own listed or pending NFTs */}
+                      {/* Convert to Pool button — only for listed/pending NFTs not already pooled */}
                       {isOwnProfile &&
                         (nft.status === 'listed' || nft.status === 'pending') &&
-                        nft._id && (
+                        nft._id &&
+                        !pooledAssetIds.has(nft._id) && (
                           <button
                             className={styles.convertToPoolBtn}
                             onClick={(e) => {
@@ -1464,8 +1483,10 @@ const VendorProfilePage = () => {
           }}
           onClose={() => setConvertingNft(null)}
           onSuccess={() => {
-            // Remove from local nftData and reset
-            setNftData((prev) => prev.filter((n) => n._id !== convertingNft._id));
+            // Mark asset as pooled so button hides immediately
+            if (convertingNft._id) {
+              setPooledAssetIds((prev) => new Set(prev).add(convertingNft._id!));
+            }
             setConvertingNft(null);
             // Reset pooled assets so they re-fetch next time tab is opened
             setPooledAssets([]);

@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const { mintRequestId } = req.body;
+  const { mintRequestId, mintAddress: preGeneratedMint } = req.body;
 
   if (!mintRequestId) {
     return res.status(400).json({ error: 'mintRequestId is required' });
@@ -158,7 +158,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       symbol: 'LUXHUB',
       description: mintRequest.description || `${mintRequest.brand} ${mintRequest.model}`,
       image: imageUrl,
-      external_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/nft/`,
+      external_url: preGeneratedMint
+        ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/nft/${preGeneratedMint}`
+        : `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/nft`,
       seller_fee_basis_points: 500, // 5% royalty
       attributes: [
         { trait_type: 'Brand', value: mintRequest.brand },
@@ -225,7 +227,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         minted_at: new Date().toISOString(),
         reference_number: mintRequest.referenceNumber,
         price_usd: mintRequest.priceUSD,
-        verification_url: `https://luxhub.gold/verify?mint=`,
+        verification_url: preGeneratedMint
+          ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/nft/${preGeneratedMint}`
+          : `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/nft`,
       },
     };
 

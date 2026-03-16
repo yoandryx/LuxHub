@@ -2592,7 +2592,7 @@
 
 .poolCard {
   position: relative;
-  background: #0a0a0c;
+  background: rgba(10, 10, 14, 0.7);
   backdrop-filter: blur(48px);
   -webkit-backdrop-filter: blur(48px);
   border: none;
@@ -2870,7 +2870,7 @@
 
 .custodyCard {
   position: relative;
-  background: #0a0a0c;
+  background: rgba(10, 10, 14, 0.7);
   backdrop-filter: blur(48px);
   -webkit-backdrop-filter: blur(48px);
   border: none;
