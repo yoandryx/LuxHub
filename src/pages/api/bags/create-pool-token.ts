@@ -91,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       body: JSON.stringify({
         name: finalTokenName,
         symbol: finalTokenSymbol,
-        description: `Fractional ownership of authenticated ${assetModel}. Pool ID: ${poolId}`,
+        description: `Tokenized pool for authenticated ${assetModel}. Trade anytime on secondary markets. Pool ID: ${poolId}`,
         image: assetImage,
         twitter: 'https://x.com/LuxHubStudio',
         website: process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold',
@@ -99,8 +99,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         attributes: [
           { trait_type: 'Pool ID', value: poolId },
           { trait_type: 'Asset Model', value: assetModel },
-          { trait_type: 'Total Shares', value: pool.totalShares.toString() },
-          { trait_type: 'Share Price USD', value: pool.sharePriceUSD?.toFixed(2) || '0' },
+          { trait_type: 'Total Supply', value: '1,000,000,000' },
+          { trait_type: 'Target Amount', value: `$${pool.targetAmountUSD?.toFixed(2) || '0'}` },
         ],
       }),
     });
@@ -141,7 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
       // Creator fee for LuxHub (vested per Bags new model)
       launchPayload.creatorFeeBps = 100; // 1% creator fee (vesting)
-      launchPayload.holderDividendBps = pool.holderDividendBps || 100; // 1% holder dividends
+      launchPayload.holderDividendBps = pool.holderDividendBps || 100; // 1% holder distributions
     }
 
     const launchResponse = await fetch(`${BAGS_API_BASE}/token/create-token-launch-transaction`, {
@@ -238,11 +238,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? [
             'Sign and send the transaction to complete token creation',
             'Pool shares will be represented as SPL tokens',
-            'Investors can trade shares on secondary markets',
+            'Participants can trade tokens on secondary markets',
           ]
         : [
             'Sign and send the transaction to launch bonding curve',
-            'Investors buy tokens which mints new supply dynamically',
+            'Participants buy tokens which mints new supply dynamically',
             'Price increases as more tokens are minted (bonding curve)',
             'When target market cap is reached, token graduates to DEX',
             'Top 100 holders become Squad DAO members for governance',

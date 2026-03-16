@@ -146,20 +146,46 @@ async function handleTradeExecuted(event: BagsTradeEvent): Promise<void> {
       // Update pool stats
       const tradeAmountUSD = priceUSD ? parseFloat(outputAmount) * priceUSD : 0;
 
+      // Update pool stats + recent trades feed
+      const tradeEntry = {
+        wallet: traderWallet.slice(0, 4) + '...' + traderWallet.slice(-4),
+        type: tradeType,
+        amount: parseFloat(outputAmount),
+        amountUSD: tradeAmountUSD,
+        timestamp: new Date(event.timestamp * 1000),
+        txSignature: signature,
+      };
+
+      // Calculate fee allocations (3% total split)
+      const feeUSD = tradeAmountUSD * 0.03;
+      const holderFeeUSD = feeUSD * (1 / 3); // ~1% of trade
+      const vendorFeeUSD = feeUSD * (1 / 6); // ~0.5% of trade
+      const tradeRewardUSD = feeUSD * (1 / 6); // ~0.5% of trade
+
       await Pool.findByIdAndUpdate(pool._id, {
         $inc: {
           totalTrades: 1,
           totalVolumeUSD: tradeAmountUSD,
+          accumulatedTradingFees: feeUSD,
+          accumulatedHolderFees: holderFeeUSD,
+          accumulatedVendorFees: vendorFeeUSD,
+          accumulatedTradeRewards: tradeRewardUSD,
         },
         $set: {
           lastTradeAt: new Date(event.timestamp * 1000),
           lastPriceUSD: priceUSD,
         },
+        $push: {
+          recentTrades: {
+            $each: [tradeEntry],
+            $slice: -5, // Keep only the last 5 trades
+          },
+        },
       });
 
       // Record transaction
       await Transaction.create({
-        type: tradeType === 'buy' ? 'investment' : 'pool_distribution',
+        type: tradeType === 'buy' ? 'contribution' : 'pool_distribution',
         pool: pool._id,
         fromWallet: traderWallet,
         amountUSD: tradeAmountUSD,
@@ -444,7 +470,7 @@ async function handleLiquidityEvent(event: BagsLiquidityEvent): Promise<void> {
 
       // Record transaction
       await Transaction.create({
-        type: isAdd ? 'investment' : 'pool_distribution',
+        type: isAdd ? 'contribution' : 'pool_distribution',
         pool: pool._id,
         fromWallet: providerWallet,
         amountUSD: parseFloat(amount),
@@ -484,7 +510,7 @@ async function handleHolderDividend(event: BagsHolderDividendEvent): Promise<voi
       });
 
       console.log(
-        `[bags-webhook] Holder dividend distributed: ${totalAmount} to ${recipients} holders, pool: ${pool._id}`
+        `[bags-webhook] Holder distribution completed: ${totalAmount} to ${recipients} holders, pool: ${pool._id}`
       );
     }
   } catch (error) {

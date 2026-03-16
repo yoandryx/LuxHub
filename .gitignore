@@ -178,6 +178,11 @@ playground-*.mongodb.js
 *.p12
 *.pfx
 
+# Simulation artifacts
+scripts/.test-wallets.json
+scripts/.master-keypair.json
+scripts/.simulation-results.json
+
 # Large 3D model files (use optimized versions only)
 # RolexSub.glb is 19MB - only the 2MB optimized version should be committed
 public/3Dmodels/RolexSub.glb

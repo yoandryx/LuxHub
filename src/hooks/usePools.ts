@@ -102,6 +102,25 @@ export interface Pool {
   totalTrades?: number;
   totalVolumeUSD?: number;
   lastPriceUSD?: number;
+  // Watch verification
+  watchVerificationStatus?: string;
+  // Recent trades for card feed
+  recentTrades?: Array<{
+    wallet: string;
+    type: 'buy' | 'sell';
+    amount: number;
+    amountUSD: number;
+    timestamp: string;
+    txSignature?: string;
+  }>;
+  // Fee allocations
+  accumulatedTradingFees?: number;
+  accumulatedHolderFees?: number;
+  accumulatedVendorFees?: number;
+  // Bonding curve
+  bondingCurveActive?: boolean;
+  currentBondingPrice?: number;
+  graduated?: boolean;
 }
 
 interface PoolListResponse {

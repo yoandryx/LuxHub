@@ -27,13 +27,13 @@ const PoolSchema = new Schema(
     participants: [
       {
         user: { type: Schema.Types.ObjectId, ref: 'User' },
-        wallet: { type: String }, // Investor wallet address
+        wallet: { type: String }, // Participant wallet address
         shares: Number,
         ownershipPercent: Number,
         investedUSD: Number,
         projectedReturnUSD: Number,
         investedAt: Date,
-        txSignature: String, // Investment transaction
+        txSignature: String, // Contribution transaction
       },
     ],
 
@@ -91,7 +91,7 @@ const PoolSchema = new Schema(
     // ========== SQUADS INTEGRATION (NEW) ==========
     squadsProposalIndex: { type: String }, // For pool creation/conversion
     squadsVendorPaymentIndex: { type: String }, // For vendor payment
-    squadsDistributionIndex: { type: String }, // For investor distribution
+    squadsDistributionIndex: { type: String }, // For participant distribution
 
     // ========== BAGS API INTEGRATION ==========
     bagsTokenMint: { type: String }, // Pool share token mint via Bags
@@ -112,6 +112,18 @@ const PoolSchema = new Schema(
     lastUpdatedAt: { type: Date },
     totalLiquidityEvents: { type: Number, default: 0 },
     lastLiquidityEventAt: { type: Date },
+
+    // Recent trades (last 5, for card UI live feed)
+    recentTrades: [
+      {
+        wallet: { type: String },
+        type: { type: String, enum: ['buy', 'sell'] },
+        amount: { type: Number }, // token amount
+        amountUSD: { type: Number },
+        timestamp: { type: Date },
+        txSignature: { type: String },
+      },
+    ],
 
     // Bags graduation (bonding curve completed)
     graduated: { type: Boolean, default: false },
@@ -220,6 +232,19 @@ const PoolSchema = new Schema(
     windDownClaimDeadline: { type: Date },
     accumulatedTradingFees: { type: Number, default: 0 },
 
+    // ========== FEE SPLIT CONFIGURATION ==========
+    // 3% total fee split (tracked off-chain, distributed from treasury)
+    feeAllocations: {
+      platformBps: { type: Number, default: 100 }, // 1% platform ops
+      holderBps: { type: Number, default: 100 }, // 1% redistributed to holders
+      vendorBps: { type: Number, default: 50 }, // 0.5% vendor reward
+      tradeRewardBps: { type: Number, default: 50 }, // 0.5% trading rebates
+    },
+    accumulatedHolderFees: { type: Number, default: 0 },
+    accumulatedVendorFees: { type: Number, default: 0 },
+    accumulatedTradeRewards: { type: Number, default: 0 },
+    lastFeeDistributionAt: { type: Date },
+
     // ========== SECURITY & ADMIN ==========
     securityConfirmedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     marketPostedAt: Date,
@@ -228,11 +253,39 @@ const PoolSchema = new Schema(
     fractionalPda: String,
     burnReason: String,
 
+    // ========== WATCH VERIFICATION LIFECYCLE ==========
+    watchVerificationStatus: {
+      type: String,
+      enum: [
+        'verified', // Watch tracked and verified in custody or with known owner
+        'owner_changed', // Watch sold, new owner being verified
+        'unresponsive', // Owner not responding to verification requests
+        'grace_period', // 30-day warning before unverified
+        'unverified', // Verification lapsed, NFT may be burned
+        'burned', // NFT burned, token no longer represents a watch
+      ],
+      default: 'verified',
+    },
+    watchVerificationLastChecked: { type: Date },
+    watchVerificationGraceDeadline: { type: Date },
+    watchCurrentOwnerWallet: { type: String },
+    watchOwnerHistory: [
+      {
+        wallet: { type: String },
+        acquiredAt: { type: Date },
+        acquiredPrice: { type: Number },
+        verifiedAt: { type: Date },
+      },
+    ],
+    nftBurnedAt: { type: Date },
+    nftBurnTxSignature: { type: String },
+    nftBurnReason: { type: String },
+
     // ========== STATUS ==========
     status: {
       type: String,
       enum: [
-        'open', // Accepting investments
+        'open', // Accepting contributions
         'filled', // Target reached, awaiting vendor payment
         'funded', // Vendor paid, awaiting custody
         'custody', // Vendor shipping to LuxHub
@@ -247,6 +300,7 @@ const PoolSchema = new Schema(
         'failed', // Transaction failed
         'dead', // Pool abandoned
         'burned', // Pool burned/cancelled
+        'canceled', // Pool canceled before vendor payment
       ],
       default: 'open',
       index: true,
@@ -267,6 +321,7 @@ PoolSchema.index({ graduated: 1 }); // Find graduated pools
 PoolSchema.index({ squadMultisigPda: 1 }); // Squad lookup
 PoolSchema.index({ 'squadMembers.wallet': 1 }); // Find pools by member wallet
 PoolSchema.index({ windDownStatus: 1 }); // Wind-down tracking
+PoolSchema.index({ watchVerificationStatus: 1 }); // Verification tracking
 
 // ========== PRE-SAVE HOOKS ==========
 PoolSchema.pre('save', function (next) {
@@ -274,9 +329,9 @@ PoolSchema.pre('save', function (next) {
   if (this.isModified('participants') && this.totalShares > 0) {
     this.participants.forEach((p) => {
       const shares = p.shares ?? 0;
-      const invested = p.investedUSD ?? 0;
+      const contributed = p.investedUSD ?? 0;
       p.ownershipPercent = (shares / this.totalShares) * 100;
-      p.projectedReturnUSD = invested * (this.projectedROI || 1);
+      p.projectedReturnUSD = contributed * (this.projectedROI || 1);
     });
 
     // Update fundsInEscrow when participants change
@@ -321,7 +376,7 @@ PoolSchema.pre('save', function (next) {
   // Calculate distribution amounts on resale
   if (this.isModified('resaleSoldPriceUSD') && this.resaleSoldPriceUSD) {
     this.distributionRoyalty = this.resaleSoldPriceUSD * 0.03; // 3% royalty
-    this.distributionAmount = this.resaleSoldPriceUSD * 0.97; // 97% to investors
+    this.distributionAmount = this.resaleSoldPriceUSD * 0.97; // 97% to participants
   }
 
   next();

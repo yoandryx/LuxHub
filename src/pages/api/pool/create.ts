@@ -17,26 +17,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await dbConnect();
 
-    const {
-      assetId,
-      targetAmountUSD,
-      totalShares,
-      sharePriceUSD,
-      minBuyInUSD,
-      maxInvestors,
-      projectedROI,
-      tokenName,
-      tokenSymbol,
-      liquidityModel,
-      ammEnabled,
-      ammLiquidityPercent,
-      bondingCurveType,
-    } = req.body;
+    const { assetId, targetAmountUSD, minBuyInUSD, maxInvestors, projectedROI } = req.body;
 
     // Validation
-    if (!assetId || !targetAmountUSD || !totalShares || !sharePriceUSD) {
+    if (!assetId || !targetAmountUSD) {
       return res.status(400).json({
-        error: 'Missing required fields: assetId, targetAmountUSD, totalShares, sharePriceUSD',
+        error: 'Missing required fields: assetId, targetAmountUSD',
       });
     }
 
@@ -62,7 +48,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Check if pool already exists for this asset
-    const existingPool = await Pool.findOne({ asset: assetId, status: { $ne: 'closed' } });
+    const existingPool = await Pool.findOne({
+      selectedAssetId: assetId,
+      status: { $ne: 'closed' },
+    });
     if (existingPool) {
       return res.status(409).json({
         error: 'Pool already exists for this asset',
@@ -74,32 +63,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const poolCount = await Pool.countDocuments();
     const poolNumber = `LUX-${(poolCount + 1).toString().padStart(5, '0')}`;
 
+    // 1B supply (Bags platform standard)
+    const BAGS_TOTAL_SUPPLY = 1_000_000_000;
+    const calculatedSharePrice = targetAmountUSD / BAGS_TOTAL_SUPPLY;
+
     // Create pool
     const pool = new Pool({
       poolNumber,
-      asset: assetId,
-      vendor: vendor._id,
+      selectedAssetId: assetId,
+      vendorId: vendor._id,
       vendorWallet: wallet,
+      sourceType: 'dealer',
       targetAmountUSD,
-      totalShares,
-      sharePriceUSD,
-      minBuyInUSD: minBuyInUSD || sharePriceUSD,
-      maxInvestors: maxInvestors || 100,
+      totalShares: BAGS_TOTAL_SUPPLY,
+      sharePriceUSD: calculatedSharePrice,
+      minBuyInUSD: minBuyInUSD || 1.5,
+      maxInvestors: maxInvestors || 10000,
       projectedROI: projectedROI || 1.2,
       status: 'open',
       sharesSold: 0,
       participants: [],
-      tokenName: tokenName || `${asset.brand || 'LuxHub'} Pool Token`,
-      tokenSymbol: tokenSymbol || 'LPT',
-      liquidityModel: liquidityModel || 'amm',
-      ammEnabled: ammEnabled !== false,
-      ammLiquidityPercent: ammLiquidityPercent || 80,
+      liquidityModel: 'amm',
+      ammEnabled: true,
+      ammLiquidityPercent: 30,
       bondingCurveActive: true,
-      bondingCurveType: bondingCurveType || 'exponential',
-      currentBondingPrice: sharePriceUSD,
+      bondingCurveType: 'exponential',
+      initialBondingPrice: calculatedSharePrice,
+      currentBondingPrice: calculatedSharePrice,
       reserveBalance: 0,
       tokensMinted: 0,
       tokensCirculating: 0,
+      watchVerificationStatus: 'verified',
     });
 
     await pool.save();

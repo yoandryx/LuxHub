@@ -42,11 +42,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       query.status = status;
     }
 
-    const mintRequests = await MintRequest.find(query)
+    const rawRequests = await MintRequest.find(query)
       .sort({ createdAt: -1 })
       .skip(Number(offset))
       .limit(Number(limit))
-      .select('-imageBase64'); // Exclude large base64 data from list view
+      .select('-imageBase64') // Exclude large base64 data from list view
+      .lean();
+
+    // Add imageUrl for requests that only have base64 images stored
+    const mintRequests = (rawRequests as any[]).map((r) => ({
+      ...r,
+      imageUrl:
+        r.imageUrl || `/api/vendor/mint-request-image?id=${r._id}&wallet=${requestingWallet}`,
+    }));
 
     const total = await MintRequest.countDocuments(query);
 

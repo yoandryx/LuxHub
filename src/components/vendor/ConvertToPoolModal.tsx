@@ -1,5 +1,5 @@
 // src/components/vendor/ConvertToPoolModal.tsx
-// Modal for vendors to convert an asset/escrow listing into a fractional ownership pool
+// Modal for vendors to convert an asset/escrow listing into a tokenized pool
 import React, { useState, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import styles from '../../styles/ConvertToPoolModal.module.css';
@@ -21,34 +21,17 @@ interface ConvertToPoolModalProps {
   onSuccess?: () => void;
 }
 
-type LiquidityModel = 'p2p' | 'amm' | 'hybrid';
-
 const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose, onSuccess }) => {
   const wallet = useWallet();
-  const [totalShares, setTotalShares] = useState(100);
-  const [minBuyInUSD, setMinBuyInUSD] = useState(50);
-  const [maxInvestors, setMaxInvestors] = useState(100);
-  const [liquidityModel, setLiquidityModel] = useState<LiquidityModel>('p2p');
-  const [ammLiquidityPercent, setAmmLiquidityPercent] = useState(30);
+  const [targetAmount, setTargetAmount] = useState(asset.priceUSD || 0);
   const [submitting, setSubmitting] = useState(false);
 
-  const targetAmount = asset.priceUSD || 0;
-
   const summary = useMemo(() => {
-    const sharePrice = totalShares > 0 ? targetAmount / totalShares : 0;
     const luxhubFee = targetAmount * 0.03;
-    let vendorPercent = 97;
-    let ammAmount = 0;
+    const vendorPayment = targetAmount * 0.97;
 
-    if (liquidityModel === 'amm' || liquidityModel === 'hybrid') {
-      vendorPercent = 100 - ammLiquidityPercent - 3;
-      ammAmount = targetAmount * (ammLiquidityPercent / 100);
-    }
-
-    const vendorPayment = targetAmount * (vendorPercent / 100);
-
-    return { sharePrice, luxhubFee, vendorPercent, vendorPayment, ammAmount };
-  }, [targetAmount, totalShares, liquidityModel, ammLiquidityPercent]);
+    return { luxhubFee, vendorPayment };
+  }, [targetAmount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,13 +41,8 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
       return;
     }
 
-    if (totalShares <= 0) {
-      toast.error('Total shares must be positive');
-      return;
-    }
-
-    if (minBuyInUSD <= 0) {
-      toast.error('Minimum buy-in must be positive');
+    if (targetAmount <= 0) {
+      toast.error('Target price must be positive');
       return;
     }
 
@@ -79,24 +57,13 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
         body = {
           escrowPda: asset.escrowPda,
           vendorWallet: wallet.publicKey.toBase58(),
-          totalShares,
-          minBuyInUSD,
-          maxInvestors,
-          liquidityModel,
-          ammLiquidityPercent: liquidityModel !== 'p2p' ? ammLiquidityPercent : 0,
+          targetAmountUSD: targetAmount,
         };
       } else {
         endpoint = '/api/pool/create';
         body = {
           assetId: asset._id,
-          vendorWallet: wallet.publicKey.toBase58(),
           targetAmountUSD: targetAmount,
-          totalShares,
-          sharePriceUSD: summary.sharePrice,
-          minBuyInUSD,
-          maxInvestors,
-          liquidityModel,
-          ammLiquidityPercent: liquidityModel !== 'p2p' ? ammLiquidityPercent : 0,
         };
       }
 
@@ -109,7 +76,7 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
       const data = await res.json();
 
       if (data.success) {
-        toast.success('Pool created! Investors can now buy shares.');
+        toast.success('Pool created! Participants can now join.');
         onSuccess?.();
         onClose();
       } else {
@@ -133,7 +100,7 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
         <div className={styles.header}>
           <FiPieChart className={styles.headerIcon} />
           <h2>Convert to Pool</h2>
-          <p>Create a fractional ownership pool for this asset</p>
+          <p>Create a tokenized pool for this asset</p>
         </div>
 
         <div className={styles.assetInfo}>
@@ -148,110 +115,44 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Configuration Grid */}
-          <div className={styles.configGrid}>
-            <div className={styles.field}>
-              <label>Total Shares</label>
-              <input
-                type="number"
-                value={totalShares}
-                onChange={(e) => setTotalShares(Math.max(1, parseInt(e.target.value) || 1))}
-                min={1}
-              />
-            </div>
-            <div className={styles.field}>
-              <label>Min Buy-in (USD)</label>
-              <input
-                type="number"
-                value={minBuyInUSD}
-                onChange={(e) => setMinBuyInUSD(Math.max(1, parseFloat(e.target.value) || 1))}
-                min={1}
-                step="0.01"
-              />
-            </div>
-            <div className={styles.field}>
-              <label>Max Investors</label>
-              <input
-                type="number"
-                value={maxInvestors}
-                onChange={(e) => setMaxInvestors(Math.max(1, parseInt(e.target.value) || 1))}
-                min={1}
-              />
-            </div>
-          </div>
-
-          {/* Liquidity Model */}
+          {/* Pool Target Value */}
           <div className={styles.field}>
-            <label>Liquidity Model</label>
-            <div className={styles.liquidityToggle}>
-              <button
-                type="button"
-                className={`${styles.liquidityBtn} ${liquidityModel === 'p2p' ? styles.selected : ''}`}
-                onClick={() => setLiquidityModel('p2p')}
-              >
-                <strong>P2P</strong>
-                <span>Peer-to-peer trading</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.liquidityBtn} ${liquidityModel === 'amm' ? styles.selected : ''}`}
-                onClick={() => setLiquidityModel('amm')}
-              >
-                <strong>AMM</strong>
-                <span>Auto market maker</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.liquidityBtn} ${liquidityModel === 'hybrid' ? styles.selected : ''}`}
-                onClick={() => setLiquidityModel('hybrid')}
-              >
-                <strong>Hybrid</strong>
-                <span>P2P + AMM liquidity</span>
-              </button>
-            </div>
+            <label>Set Your Pool Target (USD)</label>
+            <input
+              type="number"
+              value={targetAmount}
+              onChange={(e) => setTargetAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+              min={1}
+              step="0.01"
+              placeholder="How much do you want to raise?"
+            />
+            <span className={styles.fieldHint}>
+              This is how much you want to raise for your watch. You can price above market value —
+              the premium is your opportunity for listing it.
+            </span>
           </div>
 
-          {/* AMM Liquidity % - only for AMM/Hybrid */}
-          {(liquidityModel === 'amm' || liquidityModel === 'hybrid') && (
-            <div className={styles.field}>
-              <label>AMM Liquidity: {ammLiquidityPercent}%</label>
-              <input
-                type="range"
-                className={styles.rangeSlider}
-                min={10}
-                max={50}
-                value={ammLiquidityPercent}
-                onChange={(e) => setAmmLiquidityPercent(parseInt(e.target.value))}
-              />
-              <div className={styles.rangeLabels}>
-                <span>10%</span>
-                <span>50%</span>
-              </div>
-            </div>
-          )}
+          {/* Info Blurb */}
+          <div className={styles.summaryPanel}>
+            <h4>How it works</h4>
+            <p className={styles.infoBlurb}>
+              Your watch gets tokenized into 1 billion tokens. Anyone can buy in starting at $1.50.
+              As traders buy tokens, the price rises along a bonding curve until your target is
+              reached. You receive 97% when the pool fills — then ship the watch to LuxHub custody.
+              The token keeps trading and generates ongoing fees for you and holders.
+            </p>
+          </div>
 
           {/* Financial Summary */}
           <div className={styles.summaryPanel}>
-            <h4>Financial Summary</h4>
+            <h4>Pool Summary</h4>
             <div className={styles.summaryGrid}>
               <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Target Amount</span>
+                <span className={styles.summaryLabel}>Pool Target</span>
                 <span className={styles.summaryValue}>${targetAmount.toLocaleString()}</span>
               </div>
               <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Share Price</span>
-                <span className={styles.summaryValue}>
-                  $
-                  {summary.sharePrice.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>
-                  Vendor Payment ({summary.vendorPercent}%)
-                </span>
+                <span className={styles.summaryLabel}>You Receive (97%)</span>
                 <span className={styles.summaryValueAccent}>
                   $
                   {summary.vendorPayment.toLocaleString(undefined, {
@@ -270,20 +171,6 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
                   })}
                 </span>
               </div>
-              {summary.ammAmount > 0 && (
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>
-                    AMM Liquidity ({ammLiquidityPercent}%)
-                  </span>
-                  <span className={styles.summaryValue}>
-                    $
-                    {summary.ammAmount.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -308,8 +195,8 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
         </form>
 
         <p className={styles.note}>
-          Once created, investors can purchase shares. Funds are held in escrow until the pool fills
-          and custody is verified.
+          Once created, participants can contribute to the pool. Funds are held in escrow until the
+          pool fills and custody is verified.
         </p>
       </div>
     </div>

@@ -1011,7 +1011,7 @@ const VendorDashboard = () => {
                         >
                           <NFTGridCard
                             title={request.title || `${request.brand} ${request.model}`}
-                            image={request.imageBase64 || request.imageUrl}
+                            image={request.imageUrl}
                             price={request.priceUSD || 0}
                             priceLabel="USD"
                             brand={request.brand}
@@ -1089,7 +1089,7 @@ const VendorDashboard = () => {
                           selectedRequest.title ||
                           `${selectedRequest.brand} ${selectedRequest.model}`,
                         description: selectedRequest.description || '',
-                        image: selectedRequest.imageBase64 || selectedRequest.imageUrl || '',
+                        image: selectedRequest.imageUrl || '',
                         priceSol: selectedRequest.priceUSD || 0,
                         attributes: [
                           { trait_type: 'Brand', value: selectedRequest.brand },

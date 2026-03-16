@@ -17,6 +17,7 @@
     "test:coverage": "jest --config jest.config.cjs --coverage",
     "test:anchor": "cd Solana-Anchor && anchor test",
     "env:check": "node scripts/validate-env.js",
+    "lint:compliance": "node scripts/lint-sec-language.cjs",
     "build:all": "npm run build && cd Solana-Anchor && anchor build",
     "analyze": "ANALYZE=true next build --webpack",
     "prepare": "husky"
@@ -24,7 +25,8 @@
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
       "eslint --fix --max-warnings 1000",
-      "prettier --write"
+      "prettier --write",
+      "node scripts/lint-sec-language.cjs"
     ],
     "src/**/*.css": [
       "prettier --write"

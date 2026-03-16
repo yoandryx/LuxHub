@@ -82,8 +82,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const defaultFeeClaimers = [
       {
         wallet: LUXHUB_TREASURY,
-        basisPoints: 300, // 3%
-        label: 'LuxHub Treasury',
+        basisPoints: 300, // 3% total (split: 1% platform, 1% holders, 0.5% vendor, 0.5% trade rewards)
+        label: 'LuxHub Treasury (split internally)',
       },
     ];
 
@@ -190,7 +190,7 @@ export async function configureFeeShareInternal(
     return { success: false, error: 'Missing BAGS_API_KEY or LUXHUB_WALLET' };
   }
 
-  const feeClaimers = [{ wallet: treasury, basisPoints: 300 }]; // 3% to LuxHub
+  const feeClaimers = [{ wallet: treasury, basisPoints: 300 }]; // 3% to LuxHub (split internally: 1% ops, 1% holders, 0.5% vendor, 0.5% trade rewards)
 
   try {
     const feeShareResponse = await fetch(
