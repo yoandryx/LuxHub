@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Check pool status
     if (pool.status !== 'open') {
       return res.status(400).json({
-        error: `Pool is not open for investment. Current status: ${pool.status}`,
+        error: `Pool is not open for contributions. Current status: ${pool.status}`,
       });
     }
 
@@ -79,14 +79,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Check minimum buy-in
     if (investedUSD < pool.minBuyInUSD) {
       return res.status(400).json({
-        error: `Investment below minimum. Minimum: $${pool.minBuyInUSD}, Provided: $${investedUSD}`,
+        error: `Contribution below minimum. Minimum: $${pool.minBuyInUSD}, Provided: $${investedUSD}`,
         minBuyInUSD: pool.minBuyInUSD,
       });
     }
 
     // Verify investment amount matches shares
     const expectedAmount = shares * pool.sharePriceUSD;
-    const tolerance = 0.01; // 1 cent tolerance for rounding
+    const tolerance = expectedAmount * 0.01; // 1% tolerance for rounding/price fluctuation
     if (Math.abs(investedUSD - expectedAmount) > tolerance) {
       return res.status(400).json({
         error: `Investment amount mismatch. Expected: $${expectedAmount.toFixed(2)} for ${shares} shares at $${pool.sharePriceUSD}/share`,
@@ -153,7 +153,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       success: true,
-      investment: {
+      contribution: {
         shares,
         investedUSD,
         txSignature,
@@ -176,13 +176,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       message:
         pool.status === 'filled'
-          ? 'Investment successful! Pool is now filled. Vendor payment will be processed.'
-          : 'Investment successful!',
+          ? 'Contribution successful! Pool is now filled. Vendor payment will be processed.'
+          : 'Contribution successful!',
     });
   } catch (error: any) {
     console.error('[/api/pool/invest] Error:', error);
     return res.status(500).json({
-      error: 'Failed to process investment',
+      error: 'Failed to process contribution',
       details: error?.message || 'Unknown error',
     });
   }

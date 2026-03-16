@@ -19,6 +19,24 @@ const POOL_STATUS_MAP: Record<string, { label: string; color: string; glow: stri
 
 const DEFAULT_STATUS = { label: 'Unknown', color: '#c8a1ff', glow: 'rgba(200, 161, 255, 0.3)' };
 
+const fmtTokens = (n: number) => {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+  return n.toLocaleString();
+};
+
+const fmtTimeAgoShort = (ts: string) => {
+  const diff = Date.now() - new Date(ts).getTime();
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return `${secs}s`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
+};
+
 interface Pool {
   _id: string;
   poolNumber?: string;
@@ -29,8 +47,10 @@ interface Pool {
     priceUSD?: number;
     description?: string;
     serial?: string;
+    imageUrl?: string;
     imageIpfsUrls?: string[];
     images?: string[];
+    arweaveTxId?: string;
   };
   vendor?: {
     businessName?: string;
@@ -55,6 +75,18 @@ interface Pool {
   createdAt?: string;
   bagsTokenMint?: string;
   bagsFeeShareConfigId?: string;
+  totalTrades?: number;
+  totalVolumeUSD?: number;
+  currentBondingPrice?: number;
+  lastPriceUSD?: number;
+  recentTrades?: Array<{
+    wallet: string;
+    type: 'buy' | 'sell';
+    amount: number;
+    amountUSD: number;
+    timestamp: string;
+    txSignature?: string;
+  }>;
 }
 
 interface PoolCardProps {
@@ -69,8 +101,17 @@ const PoolCard: React.FC<PoolCardProps> = memo(({ pool, onClick }) => {
   );
 
   const sharesRemaining = pool.totalShares - pool.sharesSold;
-  const assetImage =
-    pool.asset?.imageIpfsUrls?.[0] || pool.asset?.images?.[0] || '/images/placeholder-watch.png';
+  const rawImg =
+    pool.asset?.imageUrl ||
+    pool.asset?.images?.[0] ||
+    pool.asset?.imageIpfsUrls?.[0] ||
+    pool.asset?.arweaveTxId ||
+    '';
+  const assetImage = rawImg
+    ? rawImg.startsWith('http')
+      ? rawImg
+      : `https://gateway.irys.xyz/${rawImg}`
+    : '/images/placeholder-watch.png';
   const assetModel = pool.asset?.model || 'Luxury Watch';
   const assetBrand = pool.asset?.brand || '';
 
@@ -193,10 +234,48 @@ const PoolCard: React.FC<PoolCardProps> = memo(({ pool, onClick }) => {
           </div>
         </div>
 
+        {/* Live Trade Feed — DEX Screener style */}
+        {pool.recentTrades && pool.recentTrades.length > 0 && (
+          <div className={styles.tradeFeed}>
+            <div className={styles.tradeFeedHeader}>
+              <span className={styles.tradeFeedLive}>
+                <span className={styles.liveDot} />
+                Trades
+              </span>
+              {(pool.totalVolumeUSD || 0) > 0 && (
+                <span className={styles.tradeFeedVol}>
+                  Vol $
+                  {pool.totalVolumeUSD! >= 1000
+                    ? `${(pool.totalVolumeUSD! / 1000).toFixed(1)}K`
+                    : pool.totalVolumeUSD!.toFixed(0)}
+                </span>
+              )}
+            </div>
+            <div className={styles.tradeFeedList}>
+              {pool.recentTrades.slice(-3).map((trade, i) => (
+                <div
+                  key={trade.txSignature || i}
+                  className={trade.type === 'sell' ? styles.tradeSell : styles.tradeBuy}
+                >
+                  <span className={trade.type === 'sell' ? styles.dotSell : styles.dotBuy} />
+                  <span className={styles.tradeWallet}>{trade.wallet}</span>
+                  <span className={styles.tradeTime}>{fmtTimeAgoShort(trade.timestamp)}</span>
+                  <span
+                    className={trade.type === 'sell' ? styles.tradeAmtSell : styles.tradeAmtBuy}
+                  >
+                    {trade.type === 'sell' ? '-' : '+'}
+                    {fmtTokens(trade.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* CTA */}
         {pool.status === 'open' && sharesRemaining > 0 ? (
           <button className={styles.ctaButton}>
-            <span>Invest Now</span>
+            <span>Contribute Now</span>
             <span className={styles.ctaShares}>{sharesRemaining} shares left</span>
           </button>
         ) : (

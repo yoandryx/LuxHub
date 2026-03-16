@@ -113,24 +113,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Create fee share config via Bags API
-    const feeShareResponse = await fetch(
-      `${BAGS_API_BASE}/fee-share/create-fee-share-config-v2-transaction`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': bagsApiKey,
-        },
-        body: JSON.stringify({
-          mint: pool.bagsTokenMint,
-          payer: adminWallet,
-          feeClaimers: finalFeeClaimers.map((f) => ({
-            wallet: f.wallet,
-            basisPoints: f.basisPoints,
-          })),
-        }),
-      }
-    );
+    const feeShareResponse = await fetch(`${BAGS_API_BASE}/fee-share/config/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': bagsApiKey,
+      },
+      body: JSON.stringify({
+        mint: pool.bagsTokenMint,
+        payer: adminWallet,
+        feeClaimers: finalFeeClaimers.map((f) => ({
+          wallet: f.wallet,
+          basisPoints: f.basisPoints,
+        })),
+      }),
+    });
 
     if (!feeShareResponse.ok) {
       const errorData = await feeShareResponse.json().catch(() => ({}));
@@ -193,21 +190,18 @@ export async function configureFeeShareInternal(
   const feeClaimers = [{ wallet: treasury, basisPoints: 300 }]; // 3% to LuxHub (split internally: 1% ops, 1% holders, 0.5% vendor, 0.5% trade rewards)
 
   try {
-    const feeShareResponse = await fetch(
-      `${BAGS_API_BASE}/fee-share/create-fee-share-config-v2-transaction`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': bagsApiKey,
-        },
-        body: JSON.stringify({
-          mint: tokenMint,
-          payer: adminWallet,
-          feeClaimers,
-        }),
-      }
-    );
+    const feeShareResponse = await fetch(`${BAGS_API_BASE}/fee-share/config/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': bagsApiKey,
+      },
+      body: JSON.stringify({
+        mint: tokenMint,
+        payer: adminWallet,
+        feeClaimers,
+      }),
+    });
 
     if (!feeShareResponse.ok) {
       const errorData = await feeShareResponse.json().catch(() => ({}));

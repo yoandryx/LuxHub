@@ -66,46 +66,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Step 1: Get quote from Bags bonding curve
-    const quoteResponse = await fetch(`${BAGS_API_BASE}/bonding-curve/quote`, {
-      method: 'POST',
+    // Step 1: Get quote from Bags trade API (GET with query params)
+    const quoteUrl = new URL(`${BAGS_API_BASE}/trade/quote`);
+    quoteUrl.searchParams.set('inputMint', inputMint);
+    quoteUrl.searchParams.set('outputMint', pool.bagsTokenMint);
+    quoteUrl.searchParams.set('amount', inputAmount);
+    quoteUrl.searchParams.set('slippageBps', String(slippageBps));
+
+    const quoteResponse = await fetch(quoteUrl.toString(), {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'x-api-key': bagsApiKey,
       },
-      body: JSON.stringify({
-        tokenMint: pool.bagsTokenMint,
-        inputMint,
-        inputAmount,
-        tradeType: 'buy',
-        slippageBps,
-      }),
     });
 
     if (!quoteResponse.ok) {
       const errorData = await quoteResponse.json().catch(() => ({}));
       return res.status(500).json({
-        error: 'Failed to get quote from Bags bonding curve',
+        error: 'Failed to get quote from Bags trade API',
         details: errorData,
       });
     }
 
-    const quote = await quoteResponse.json();
+    const quoteResult = await quoteResponse.json();
+    const quote = quoteResult.response || quoteResult;
 
     // Step 2: Build swap transaction
-    const swapResponse = await fetch(`${BAGS_API_BASE}/bonding-curve/swap`, {
+    const swapResponse = await fetch(`${BAGS_API_BASE}/trade/swap`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': bagsApiKey,
       },
       body: JSON.stringify({
-        tokenMint: pool.bagsTokenMint,
-        buyer: buyerWallet,
-        inputMint,
-        inputAmount,
-        minOutputAmount: quote.minOutputAmount,
-        slippageBps,
+        quoteResponse: quote,
+        userPublicKey: buyerWallet,
       }),
     });
 
@@ -118,6 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const swapResult = await swapResponse.json();
+    const swapData = swapResult.response || swapResult;
 
     return res.status(200).json({
       success: true,
@@ -125,18 +121,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         inputMint,
         inputAmount,
         outputMint: pool.bagsTokenMint,
-        outputAmount: quote.outputAmount,
-        minOutputAmount: quote.minOutputAmount,
-        pricePerToken: quote.pricePerToken,
-        priceImpact: quote.priceImpact,
-        newPrice: quote.newPrice,
-        fees: {
-          creatorFee: quote.creatorFee,
-          holderDividend: quote.holderDividend,
-          platformFee: quote.platformFee,
-        },
+        outputAmount: quote.outAmount,
+        minOutputAmount: quote.minOutAmount,
+        priceImpact: quote.priceImpactPct,
+        slippageBps: quote.slippageBps,
+        routePlan: quote.routePlan,
       },
-      transaction: swapResult.transaction,
+      transaction: swapData.swapTransaction,
       pool: {
         _id: pool._id,
         bagsTokenMint: pool.bagsTokenMint,

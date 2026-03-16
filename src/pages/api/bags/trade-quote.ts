@@ -101,14 +101,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const quoteResult = await quoteResponse.json();
+    const quoteJson = await quoteResponse.json();
+    const quoteResult = quoteJson.response || quoteJson;
 
     // Calculate effective price and fees
     const inputAmount = parseFloat(amount);
-    const outputAmount = parseFloat(quoteResult.outAmount || quoteResult.expectedOutput || '0');
+    const outputAmount = parseFloat(quoteResult.outAmount || '0');
     const effectivePrice = inputAmount > 0 ? outputAmount / inputAmount : 0;
-    const platformFee = quoteResult.platformFee || 0;
-    const priceImpact = quoteResult.priceImpact || quoteResult.priceImpactPct || 0;
+    const priceImpact = quoteResult.priceImpactPct || 0;
 
     res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=10');
     return res.status(200).json({
@@ -117,13 +117,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         inputMint: finalInputMint,
         outputMint: finalOutputMint,
         inputAmount: amount,
-        outputAmount: quoteResult.outAmount || quoteResult.expectedOutput,
+        outputAmount: quoteResult.outAmount,
+        minOutputAmount: quoteResult.minOutAmount,
         effectivePrice,
         priceImpact: `${priceImpact}%`,
-        platformFee,
-        slippageBps,
-        route: quoteResult.route || quoteResult.routePlan,
-        expiresAt: quoteResult.expiresAt,
+        slippageBps: quoteResult.slippageBps,
+        route: quoteResult.routePlan,
+        requestId: quoteResult.requestId,
       },
       raw: quoteResult,
       message: 'Trade quote retrieved successfully',

@@ -1,9 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { usePrivy } from '@privy-io/react-auth';
+import { useWallets } from '@privy-io/react-auth/solana';
+import {
+  PublicKey,
+  Connection,
+  Transaction,
+  VersionedTransaction,
+  LAMPORTS_PER_SOL,
+} from '@solana/web3.js';
+import { HiOutlineX } from 'react-icons/hi';
+import {
+  FiTrendingUp,
+  FiTarget,
+  FiDollarSign,
+  FiUsers,
+  FiShield,
+  FiLoader,
+  FiAlertTriangle,
+  FiCheckCircle,
+  FiBarChart2,
+  FiImage,
+} from 'react-icons/fi';
 import BagsPoolTrading from './BagsPoolTrading';
+import TvChart, { generatePriceHistory } from './TvChart';
 import { GovernanceDashboard } from '../governance';
 import { usePoolStatus } from '../../hooks/usePools';
+import { usePriceDisplay } from './PriceDisplay';
+import { resolveAssetImage, handleImageError } from '../../utils/imageUtils';
 import styles from '../../styles/PoolDetail.module.css';
 
 interface Pool {
@@ -16,12 +41,12 @@ interface Pool {
     priceUSD?: number;
     description?: string;
     serial?: string;
+    imageUrl?: string;
     imageIpfsUrls?: string[];
     images?: string[];
+    arweaveTxId?: string;
   };
-  vendor?: {
-    businessName?: string;
-  };
+  vendor?: { businessName?: string };
   vendorWallet?: string;
   status: string;
   totalShares: number;
@@ -40,41 +65,35 @@ interface Pool {
   custodyStatus?: string;
   resaleListingPriceUSD?: number;
   createdAt?: string;
-  // Wind-down
   windDownStatus?: string;
-  windDownAnnouncedAt?: string;
   windDownDeadline?: string;
-  windDownSnapshotAt?: string;
+  windDownClaimDeadline?: string;
   windDownSnapshotHolders?: Array<{
     wallet: string;
     balance: number;
     ownershipPercent: number;
     choice: string;
-    choiceMadeAt?: string;
-    rolloverPoolId?: string;
-    cashOutAmount?: number;
   }>;
-  windDownClaimDeadline?: string;
-  accumulatedTradingFees?: number;
-  // Bags integration
   bagsTokenMint?: string;
   tokenStatus?: string;
   liquidityModel?: string;
   ammEnabled?: boolean;
-  ammLiquidityPercent?: number;
-  // Squad DAO governance
   graduated?: boolean;
   squadMultisigPda?: string;
-  squadVaultPda?: string;
-  squadThreshold?: number;
-  squadMembers?: Array<{
+  fundsInEscrow?: number;
+  currentBondingPrice?: number;
+  bondingCurveActive?: boolean;
+  totalVolumeUSD?: number;
+  lastPriceUSD?: number;
+  totalTrades?: number;
+  recentTrades?: Array<{
     wallet: string;
-    tokenBalance: number;
-    ownershipPercent: number;
-    joinedAt: string;
-    permissions: number;
+    type: 'buy' | 'sell';
+    amount: number;
+    amountUSD: number;
+    timestamp: string;
+    txSignature?: string;
   }>;
-  squadCreatedAt?: string;
 }
 
 interface PoolDetailProps {
@@ -83,437 +102,686 @@ interface PoolDetailProps {
   onInvestmentComplete?: () => void;
 }
 
+const fmt = (n: number) => {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+  return n.toLocaleString();
+};
+
 const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComplete }) => {
-  const { publicKey, connected } = useWallet();
-  const [shares, setShares] = useState(1);
+  const wallet = useWallet();
+  const { authenticated } = usePrivy();
+  const { wallets: privyWallets } = useWallets();
+  const privyAddr = privyWallets?.[0]?.address;
+  const publicKey = useMemo(
+    () => wallet.publicKey || (privyAddr ? new PublicKey(privyAddr) : null),
+    [wallet.publicKey, privyAddr]
+  );
+  const connected = wallet.connected || (authenticated && !!privyAddr);
+
+  // Unified send: prefer wallet adapter, fallback to Privy
+  const sendTx = async (tx: Transaction, connection: Connection): Promise<string> => {
+    if (wallet.connected && wallet.sendTransaction) {
+      return wallet.sendTransaction(tx, connection);
+    }
+    // Privy wallet fallback
+    const privyWallet = privyWallets?.[0];
+    if (privyWallet) {
+      const { blockhash } = await connection.getLatestBlockhash();
+      tx.recentBlockhash = blockhash;
+      tx.feePayer = publicKey!;
+      const signed = await (privyWallet as any).signTransaction(tx);
+      const sig = await connection.sendRawTransaction(signed.serialize());
+      return sig;
+    }
+    throw new Error('No wallet available to sign');
+  };
+
+  const { solPriceInUSD } = usePriceDisplay();
+  const [solAmount, setSolAmount] = useState('');
+  const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
+  const [chartView, setChartView] = useState<'candle' | 'line' | 'area' | 'image'>('candle');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'invest' | 'trade' | 'governance'>('invest');
+  const [activeTab, setActiveTab] = useState<'buy' | 'trade' | 'governance'>('buy');
 
-  // Use SWR for real-time pool status updates
   const { poolStatus, mutate: refreshStatus } = usePoolStatus(pool._id);
+  const p: Pool = { ...pool, ...(poolStatus || {}) };
 
-  // Merge pool prop with real-time status
-  const poolData: Pool = {
-    ...pool,
-    ...(poolStatus || {}),
-  };
+  // Prices
+  const curPriceUSD = p.currentBondingPrice || p.lastPriceUSD || p.sharePriceUSD;
+  const curPriceSol = curPriceUSD / solPriceInUSD;
+  const solIn = parseFloat(solAmount) || 0;
+  const usdEquiv = solIn * solPriceInUSD;
+  const tokensOut = curPriceSol > 0 ? Math.floor(solIn / curPriceSol) : 0;
+  const available = p.totalShares - p.sharesSold;
+  const raisedUSD = p.fundsInEscrow ?? p.sharesSold * p.sharePriceUSD;
+  const raisedSol = raisedUSD / solPriceInUSD;
+  const targetSol = p.targetAmountUSD / solPriceInUSD;
+  const pct = p.targetAmountUSD > 0 ? Math.min((raisedUSD / p.targetAmountUSD) * 100, 100) : 0;
+  const ownPct = p.totalShares > 0 ? (tokensOut / p.totalShares) * 100 : 0;
+  const minSol = p.minBuyInUSD / solPriceInUSD;
 
-  const availableShares = poolData.totalShares - poolData.sharesSold;
-  const investmentAmount = shares * poolData.sharePriceUSD;
-  const projectedReturn = investmentAmount * poolData.projectedROI;
-  const ownershipPercent = (shares / poolData.totalShares) * 100;
+  // Sell
+  const sellTkns = parseFloat(solAmount) || 0;
+  const sellSol = sellTkns * curPriceSol;
+  const sellUsd = sellSol * solPriceInUSD;
 
-  // Check if user already invested
-  const userInvestment = poolData.participants?.find((p) => p.wallet === publicKey?.toBase58());
-  const userShares = userInvestment?.shares || 0;
+  const userPos = p.participants?.find((x) => x.wallet === publicKey?.toBase58());
+  const userTkns = userPos?.shares || 0;
+  const hasToken = !!p.bagsTokenMint;
+  const canTrade = hasToken && p.status !== 'open';
+  const hasGov = p.graduated && !!p.squadMultisigPda;
+  const holders = new Set(p.participants?.map((x) => x.wallet) || []).size;
 
-  // Determine if trading is available
-  const hasToken = !!poolData.bagsTokenMint;
-  const canTrade = hasToken && poolData.status !== 'open';
-  const hasGovernance = poolData.graduated && !!poolData.squadMultisigPda;
-
-  // Auto-switch tab based on pool status
   useEffect(() => {
-    if (hasGovernance) {
-      setActiveTab('governance');
-    } else if (poolData.status !== 'open' && hasToken) {
-      setActiveTab('trade');
-    }
-  }, [poolData.status, hasToken, hasGovernance]);
+    if (hasGov) setActiveTab('governance');
+    else if (p.status !== 'open' && hasToken) setActiveTab('trade');
+    else setActiveTab('buy');
+  }, [p.status, hasToken, hasGov]);
 
-  const handleInvest = async () => {
-    if (!connected || !publicKey) {
-      setError('Please connect your wallet to invest');
-      return;
-    }
+  const assetImage = resolveAssetImage(p.asset);
+  const priceHistory = useMemo(() => generatePriceHistory(curPriceUSD, 80), [curPriceUSD]);
 
-    if (shares < 1 || shares > availableShares) {
-      setError(`Please select between 1 and ${availableShares} shares`);
-      return;
-    }
+  const statusMap: Record<string, { label: string; color: string }> = {
+    open: { label: 'Live', color: '#4ade80' },
+    filled: { label: 'Filled', color: '#fbbf24' },
+    funded: { label: 'Funded', color: '#60a5fa' },
+    custody: { label: 'Custody', color: '#f472b6' },
+    active: { label: 'Active', color: '#a78bfa' },
+    graduated: { label: 'DAO', color: '#c8a1ff' },
+    listed: { label: 'Listed', color: '#fb923c' },
+    sold: { label: 'Sold', color: '#4ade80' },
+    distributed: { label: 'Done', color: '#94a3b8' },
+    winding_down: { label: 'Wind Down', color: '#f59e0b' },
+    closed: { label: 'Closed', color: '#64748b' },
+  };
+  const st = statusMap[p.status] || { label: p.status, color: '#c8a1ff' };
 
-    if (investmentAmount < poolData.minBuyInUSD) {
-      setError(`Minimum investment is $${poolData.minBuyInUSD}`);
-      return;
-    }
+  const handleBuy = async () => {
+    if (!connected || !publicKey) return setError('Connect your wallet');
+    if (solIn <= 0) return setError('Enter SOL amount');
+    if (usdEquiv < p.minBuyInUSD) return setError(`Min ~${minSol.toFixed(4)} SOL`);
 
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch('/api/pool/invest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          poolId: pool._id,
-          investorWallet: publicKey.toBase58(),
-          shares,
-          investedUSD: investmentAmount,
-        }),
-      });
+      const connection = new Connection(
+        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
+      );
 
-      const data = await response.json();
+      if (p.bagsTokenMint && !p.graduated) {
+        // ── Real Bags bonding curve buy ──
+        // SOL mint address on Solana
+        const SOL_MINT = 'So11111111111111111111111111111111111111112';
+        const lamports = Math.round(solIn * LAMPORTS_PER_SOL).toString();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process investment');
+        // 1. Get quote + swap transaction from Bags API
+        const buyRes = await fetch('/api/pool/buy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            poolId: pool._id,
+            buyerWallet: publicKey.toBase58(),
+            inputMint: SOL_MINT,
+            inputAmount: lamports,
+            slippageBps: 200, // 2% slippage
+          }),
+        });
+        const buyData = await buyRes.json();
+        if (!buyRes.ok) throw new Error(buyData.error || 'Failed to get swap transaction');
+
+        // 2. Deserialize and sign the transaction from Bags
+        const txBuf = Buffer.from(buyData.transaction, 'base64');
+        let sig: string;
+        try {
+          // Try VersionedTransaction first (Bags typically returns these)
+          const vtx = VersionedTransaction.deserialize(txBuf);
+          if (wallet.connected && wallet.signTransaction) {
+            const signed = await wallet.signTransaction(vtx as any);
+            sig = await connection.sendRawTransaction((signed as any).serialize());
+          } else {
+            const privyWallet = privyWallets?.[0];
+            if (!privyWallet) throw new Error('No wallet available');
+            const signed = await (privyWallet as any).signTransaction(vtx);
+            sig = await connection.sendRawTransaction(signed.serialize());
+          }
+        } catch {
+          // Fallback to legacy Transaction
+          const tx = Transaction.from(txBuf);
+          sig = await sendTx(tx, connection);
+        }
+
+        await connection.confirmTransaction(sig, 'confirmed');
+        setSuccess(true);
+        // Pool stats update via Bags webhook automatically
+      } else {
+        // ── Fallback: direct SOL transfer for pools without Bags token ──
+        const treasury = new PublicKey(
+          process.env.NEXT_PUBLIC_LUXHUB_WALLET || p.vendorWallet || ''
+        );
+        const tx = new Transaction().add(
+          (await import('@solana/web3.js')).SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: treasury,
+            lamports: Math.round(solIn * LAMPORTS_PER_SOL),
+          })
+        );
+        const sig = await sendTx(tx, connection);
+        await connection.confirmTransaction(sig, 'confirmed');
+
+        // Record in MongoDB for non-Bags pools
+        const investRes = await fetch('/api/pool/invest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            poolId: pool._id,
+            investorWallet: publicKey.toBase58(),
+            shares: tokensOut,
+            investedUSD: usdEquiv,
+            txSignature: sig,
+          }),
+        });
+        const investData = await investRes.json();
+        if (!investRes.ok) throw new Error(investData.error || 'Failed');
+        setSuccess(true);
       }
 
-      setSuccess(true);
       onInvestmentComplete?.();
-
-      // Refresh pool data via SWR
       refreshStatus();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message?.includes('User rejected') ? 'Cancelled' : err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTradeComplete = () => {
-    refreshStatus();
-    onInvestmentComplete?.();
-  };
+  const handleSell = async () => {
+    if (!connected || !publicKey) return setError('Connect your wallet');
+    if (sellTkns <= 0) return setError('Enter token amount');
+    if (sellTkns > userTkns) return setError(`You only have ${fmt(userTkns)} tokens`);
 
-  const getStatusInfo = (status: string) => {
-    const statusMap: Record<string, { label: string; color: string; description: string }> = {
-      open: { label: 'Open', color: '#00ff88', description: 'Accepting investments' },
-      filled: {
-        label: 'Filled',
-        color: '#ffd700',
-        description: 'Target reached, pending vendor payment',
-      },
-      funded: { label: 'Funded', color: '#00bfff', description: 'Vendor paid, awaiting shipment' },
-      custody: { label: 'In Custody', color: '#ff69b4', description: 'Asset shipped to LuxHub' },
-      active: { label: 'Active', color: '#9370db', description: 'LuxHub holds asset securely' },
-      graduated: {
-        label: 'Graduated',
-        color: '#c8a1ff',
-        description: 'DAO governance active - token holders vote on asset decisions',
-      },
-      listed: { label: 'Listed', color: '#ff8c00', description: 'Listed for resale' },
-      sold: { label: 'Sold', color: '#32cd32', description: 'Asset sold, pending distribution' },
-      distributed: {
-        label: 'Distributed',
-        color: '#c0c0c0',
-        description: 'Proceeds distributed to investors',
-      },
-      winding_down: {
-        label: 'Winding Down',
-        color: '#f59e0b',
-        description: 'Pool is in the wind-down process',
-      },
-      closed: { label: 'Closed', color: '#808080', description: 'Pool finalized' },
-    };
-    return statusMap[status] || { label: status, color: '#c8a1ff', description: '' };
-  };
+    setLoading(true);
+    setError(null);
+    try {
+      const connection = new Connection(
+        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
+      );
 
-  const statusInfo = getStatusInfo(poolData.status);
-  const assetImage =
-    poolData.asset?.imageIpfsUrls?.[0] ||
-    poolData.asset?.images?.[0] ||
-    '/images/placeholder-watch.png';
+      if (p.bagsTokenMint && !p.graduated) {
+        // ── Real Bags bonding curve sell ──
+        const sellRes = await fetch('/api/pool/sell', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            poolId: pool._id,
+            sellerWallet: publicKey.toBase58(),
+            tokenAmount: sellTkns,
+            slippageBps: 200, // 2% slippage
+          }),
+        });
+        const sellData = await sellRes.json();
+        if (!sellRes.ok) throw new Error(sellData.error || 'Sell failed');
+
+        // If Bags returned a transaction to sign
+        if (sellData.transaction) {
+          const txBuf = Buffer.from(sellData.transaction, 'base64');
+          let sig: string;
+          try {
+            const vtx = VersionedTransaction.deserialize(txBuf);
+            if (wallet.connected && wallet.signTransaction) {
+              const signed = await wallet.signTransaction(vtx as any);
+              sig = await connection.sendRawTransaction((signed as any).serialize());
+            } else {
+              const privyWallet = privyWallets?.[0];
+              if (!privyWallet) throw new Error('No wallet available');
+              const signed = await (privyWallet as any).signTransaction(vtx);
+              sig = await connection.sendRawTransaction(signed.serialize());
+            }
+          } catch {
+            const tx = Transaction.from(txBuf);
+            sig = await sendTx(tx, connection);
+          }
+          await connection.confirmTransaction(sig, 'confirmed');
+        }
+
+        setSuccess(true);
+      } else {
+        // ── Fallback for non-Bags pools ──
+        const sellRes = await fetch('/api/pool/sell', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            poolId: pool._id,
+            sellerWallet: publicKey.toBase58(),
+            tokenAmount: sellTkns,
+            minSolOutput: sellUsd * 0.97 * 0.98, // 3% fee + 2% slippage
+          }),
+        });
+        const sellData = await sellRes.json();
+        if (!sellRes.ok) throw new Error(sellData.error || 'Sell failed');
+        setSuccess(true);
+      }
+
+      onInvestmentComplete?.();
+      refreshStatus();
+    } catch (err: any) {
+      setError(err.message?.includes('User rejected') ? 'Cancelled' : err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.closeButton} onClick={onClose}>
-          ×
-        </button>
+      <div className={styles.page} onClick={(e) => e.stopPropagation()}>
+        {/* ── Top Bar ── */}
+        <div className={styles.topBar}>
+          <div className={styles.topLeft}>
+            <div className={styles.assetThumb} style={{ position: 'relative' }}>
+              <Image
+                src={assetImage}
+                alt=""
+                fill
+                style={{ objectFit: 'cover' }}
+                unoptimized
+                onError={handleImageError}
+              />
+            </div>
+            <div>
+              <div className={styles.topTitle}>
+                {p.asset?.brand && <span className={styles.topBrand}>{p.asset.brand}</span>}
+                <span>{p.asset?.model || 'Luxury Watch'}</span>
+              </div>
+              <div className={styles.topMeta}>
+                <span className={styles.topPool}>#{p.poolNumber || p._id.slice(-6)}</span>
+                <span
+                  className={styles.topStatus}
+                  style={{ '--sc': st.color } as React.CSSProperties}
+                >
+                  {st.label}
+                </span>
+                <span className={styles.topPrice}>{curPriceSol.toFixed(6)} SOL</span>
+                <span className={styles.topUsd}>${curPriceUSD.toFixed(6)}</span>
+              </div>
+            </div>
+          </div>
+          <div className={styles.topRight}>
+            <div className={styles.topStat}>
+              <span className={styles.topStatLabel}>Raised</span>
+              <span className={styles.topStatVal}>{raisedSol.toFixed(2)} SOL</span>
+            </div>
+            <div className={styles.topStat}>
+              <span className={styles.topStatLabel}>Target</span>
+              <span className={styles.topStatVal}>{targetSol.toFixed(2)} SOL</span>
+            </div>
+            <div className={styles.topStat}>
+              <span className={styles.topStatLabel}>Holders</span>
+              <span className={styles.topStatVal}>{holders}</span>
+            </div>
+            <div className={styles.topStat}>
+              <span className={styles.topStatLabel}>Vol</span>
+              <span className={styles.topStatVal}>
+                $
+                {p.totalVolumeUSD
+                  ? p.totalVolumeUSD >= 1000
+                    ? `${(p.totalVolumeUSD / 1000).toFixed(1)}K`
+                    : p.totalVolumeUSD.toFixed(0)
+                  : '0'}
+              </span>
+            </div>
+            <button className={styles.closeBtn} onClick={onClose}>
+              <HiOutlineX />
+            </button>
+          </div>
+        </div>
 
-        <div className={styles.content}>
-          {/* Left: Asset Image */}
-          <div className={styles.imageSection} style={{ position: 'relative' }}>
-            <Image
-              src={assetImage}
-              alt={poolData.asset?.model || 'Asset'}
-              className={styles.assetImage}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              style={{ objectFit: 'cover' }}
-              unoptimized
-            />
-            <div className={styles.statusBadge} style={{ backgroundColor: statusInfo.color }}>
-              {statusInfo.label}
+        {/* ── Main Grid: Chart + Sidebar ── */}
+        <div className={styles.mainGrid}>
+          {/* Chart Area */}
+          <div className={styles.chartArea}>
+            {/* Progress bar across top of chart */}
+            <div className={styles.chartProgress}>
+              <div className={styles.chartProgressFill} style={{ width: `${pct}%` }} />
+              <span className={styles.chartProgressLabel}>{pct.toFixed(1)}% funded</span>
+            </div>
+            <div className={styles.chartContainer}>
+              {chartView === 'image' ? (
+                <div className={styles.chartImage}>
+                  <Image
+                    src={assetImage}
+                    alt=""
+                    fill
+                    style={{ objectFit: 'contain' }}
+                    unoptimized
+                    onError={handleImageError}
+                  />
+                </div>
+              ) : (
+                <TvChart
+                  data={priceHistory}
+                  interactive
+                  chartType={
+                    chartView === 'candle' ? 'candlestick' : chartView === 'line' ? 'line' : 'area'
+                  }
+                />
+              )}
+            </div>
+            <div className={styles.chartControls}>
+              {(['candle', 'line', 'area', 'image'] as const).map((v) => (
+                <button
+                  key={v}
+                  className={`${styles.chartCtrl} ${chartView === v ? styles.chartCtrlActive : ''}`}
+                  onClick={() => setChartView(v)}
+                >
+                  {v === 'candle' ? (
+                    <FiBarChart2 size={12} />
+                  ) : v === 'image' ? (
+                    <FiImage size={12} />
+                  ) : null}
+                  {v === 'candle'
+                    ? 'Candles'
+                    : v === 'line'
+                      ? 'Line'
+                      : v === 'area'
+                        ? 'Area'
+                        : 'Image'}
+                </button>
+              ))}
+            </div>
+
+            {/* Trade Feed — below chart */}
+            <div className={styles.tradeFeed}>
+              <span className={styles.tradeFeedLive}>
+                <span className={styles.liveDot} /> Recent Trades
+              </span>
+              <div className={styles.tradeFeedList}>
+                {p.recentTrades && p.recentTrades.length > 0 ? (
+                  p.recentTrades.slice(-6).map((t, i) => (
+                    <div
+                      key={t.txSignature || i}
+                      className={t.type === 'sell' ? styles.tradeFeedSell : styles.tradeFeedBuy}
+                    >
+                      <span
+                        className={t.type === 'sell' ? styles.tradeDotSell : styles.tradeDotBuy}
+                      />
+                      <span className={styles.tradeWallet}>
+                        {t.wallet.slice(0, 4)}...{t.wallet.slice(-4)}
+                      </span>
+                      <span className={styles.tradeType}>
+                        {t.type === 'buy' ? 'bought' : 'sold'}
+                      </span>
+                      <span
+                        className={
+                          t.type === 'sell' ? styles.tradeAmountSell : styles.tradeAmountBuy
+                        }
+                      >
+                        {t.type === 'sell' ? '-' : '+'}
+                        {fmt(t.amount)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <span className={styles.tradeFeedEmpty}>No trades yet</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right: Details & Investment */}
-          <div className={styles.detailsSection}>
-            <div className={styles.header}>
-              <span className={styles.poolId}>
-                Pool #{poolData.poolNumber || poolData._id.slice(-6)}
-              </span>
-              <h2 className={styles.assetTitle}>{poolData.asset?.model || 'Luxury Watch'}</h2>
-              {poolData.asset?.brand && (
-                <span className={styles.brand}>{poolData.asset.brand}</span>
+          {/* ── Right Sidebar: Trading Tools ── */}
+          <div className={styles.sidebar}>
+            {/* Tabs */}
+            <div className={styles.tabs}>
+              <button
+                className={`${styles.tab} ${activeTab === 'buy' ? styles.tabActive : ''}`}
+                onClick={() => setActiveTab('buy')}
+              >
+                Buy / Sell
+              </button>
+              {hasToken && (
+                <button
+                  className={`${styles.tab} ${activeTab === 'trade' ? styles.tabActive : ''}`}
+                  onClick={() => setActiveTab('trade')}
+                >
+                  Trade
+                </button>
+              )}
+              {hasGov && (
+                <button
+                  className={`${styles.tab} ${activeTab === 'governance' ? styles.tabActive : ''}`}
+                  onClick={() => setActiveTab('governance')}
+                >
+                  DAO
+                </button>
               )}
             </div>
 
-            {/* Status Description */}
-            <p className={styles.statusDescription}>{statusInfo.description}</p>
+            {/* Buy/Sell Panel */}
+            {activeTab === 'buy' && (
+              <div className={styles.tradePanel}>
+                {/* Toggle */}
+                <div className={styles.buySellToggle}>
+                  <button
+                    className={`${styles.buySellBtn} ${tradeMode === 'buy' ? styles.buySellBuy : ''}`}
+                    onClick={() => {
+                      setTradeMode('buy');
+                      setSolAmount('');
+                    }}
+                  >
+                    Buy
+                  </button>
+                  <button
+                    className={`${styles.buySellBtn} ${tradeMode === 'sell' ? styles.buySellSell : ''}`}
+                    onClick={() => {
+                      setTradeMode('sell');
+                      setSolAmount('');
+                    }}
+                  >
+                    Sell
+                  </button>
+                </div>
 
-            {/* Progress */}
-            <div className={styles.progressSection}>
-              <div className={styles.progressHeader}>
-                <span>Funding Progress</span>
-                <span>{((poolData.sharesSold / poolData.totalShares) * 100).toFixed(1)}%</span>
+                {tradeMode === 'buy' ? (
+                  <>
+                    <div className={styles.inputPanel}>
+                      <div className={styles.inputRow}>
+                        <span className={styles.inputLabel}>You pay</span>
+                        <div className={styles.inputField}>
+                          <input
+                            type="number"
+                            value={solAmount}
+                            onChange={(e) => setSolAmount(e.target.value)}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            className={styles.numInput}
+                          />
+                          <span className={styles.inputBadge}>SOL</span>
+                        </div>
+                      </div>
+                      <span className={styles.inputSub}>≈ ${usdEquiv.toFixed(2)} USD</span>
+                    </div>
+                    <div className={styles.quickRow}>
+                      {[0.1, 0.5, 1, 5].map((a) => (
+                        <button
+                          key={a}
+                          className={styles.quickBtn}
+                          onClick={() => setSolAmount(String(a))}
+                        >
+                          {a} SOL
+                        </button>
+                      ))}
+                    </div>
+                    <div className={styles.receivePanel}>
+                      <div className={styles.receiveRow}>
+                        <span>You get</span>
+                        <span className={styles.receiveVal}>{fmt(tokensOut)} tokens</span>
+                      </div>
+                      <div className={styles.receiveRow}>
+                        <span>Ownership</span>
+                        <span>{ownPct.toFixed(4)}%</span>
+                      </div>
+                      <div className={styles.receiveRow}>
+                        <span>Price</span>
+                        <span>{curPriceSol.toFixed(8)} SOL</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.inputPanel}>
+                      <div className={styles.inputRow}>
+                        <span className={styles.inputLabel}>You sell</span>
+                        <div className={styles.inputField}>
+                          <input
+                            type="number"
+                            value={solAmount}
+                            onChange={(e) => setSolAmount(e.target.value)}
+                            placeholder="0"
+                            step="1"
+                            min="0"
+                            className={styles.numInput}
+                          />
+                          <span className={styles.inputBadge}>TOKENS</span>
+                        </div>
+                      </div>
+                      <span className={styles.inputSub}>
+                        ≈ {sellSol.toFixed(4)} SOL (${sellUsd.toFixed(2)})
+                        {userTkns > 0 && ` · Hold: ${fmt(userTkns)}`}
+                      </span>
+                    </div>
+                    <div className={styles.quickRow}>
+                      {[25, 50, 75, 100].map((pc) => (
+                        <button
+                          key={pc}
+                          className={styles.quickBtn}
+                          onClick={() => setSolAmount(String(Math.floor((userTkns * pc) / 100)))}
+                          disabled={userTkns <= 0}
+                        >
+                          {pc === 100 ? 'MAX' : `${pc}%`}
+                        </button>
+                      ))}
+                    </div>
+                    <div className={styles.receivePanel}>
+                      <div className={styles.receiveRow}>
+                        <span>You get</span>
+                        <span className={styles.receiveValGreen}>{sellSol.toFixed(4)} SOL</span>
+                      </div>
+                      <div className={styles.receiveRow}>
+                        <span>Remaining</span>
+                        <span>{fmt(Math.max(0, userTkns - sellTkns))}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {error && (
+                  <div className={styles.errorMsg}>
+                    <FiAlertTriangle /> {error}
+                  </div>
+                )}
+                {success && (
+                  <div className={styles.successMsg}>
+                    <FiCheckCircle />{' '}
+                    {tradeMode === 'buy' ? `Bought ${fmt(tokensOut)}` : `Sold ${fmt(sellTkns)}`}{' '}
+                    tokens
+                  </div>
+                )}
+
+                {tradeMode === 'buy' ? (
+                  <button
+                    className={styles.buyBtn}
+                    onClick={handleBuy}
+                    disabled={loading || !connected || success || solIn <= 0}
+                  >
+                    {loading ? (
+                      <>
+                        <FiLoader className={styles.spinner} /> Processing...
+                      </>
+                    ) : !connected ? (
+                      'Connect Wallet'
+                    ) : solIn <= 0 ? (
+                      'Enter Amount'
+                    ) : (
+                      `Buy ${fmt(tokensOut)} Tokens`
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    className={styles.sellBtn}
+                    onClick={handleSell}
+                    disabled={
+                      loading || !connected || success || sellTkns <= 0 || sellTkns > userTkns
+                    }
+                  >
+                    {loading ? (
+                      <>
+                        <FiLoader className={styles.spinner} /> Processing...
+                      </>
+                    ) : !connected ? (
+                      'Connect Wallet'
+                    ) : sellTkns <= 0 ? (
+                      'Enter Amount'
+                    ) : (
+                      `Sell for ${sellSol.toFixed(4)} SOL`
+                    )}
+                  </button>
+                )}
+
+                <div className={styles.escrowNotice}>
+                  <FiShield className={styles.escrowIcon} />
+                  <span>
+                    {tradeMode === 'buy'
+                      ? 'On-chain escrow. Exit before pool fills.'
+                      : 'Tokens burned via bonding curve.'}
+                  </span>
+                </div>
               </div>
-              <div className={styles.progressBar}>
-                <div
-                  className={styles.progressFill}
-                  style={{
-                    width: `${Math.min((poolData.sharesSold / poolData.totalShares) * 100, 100)}%`,
+            )}
+
+            {activeTab === 'trade' && (
+              <div className={styles.tradePanel}>
+                <BagsPoolTrading
+                  pool={p}
+                  userShares={userTkns}
+                  onTradeComplete={() => {
+                    refreshStatus();
+                    onInvestmentComplete?.();
                   }}
                 />
               </div>
-              <div className={styles.progressMeta}>
-                <span>
-                  {poolData.sharesSold} / {poolData.totalShares} shares sold
-                </span>
-                <span>
-                  ${(poolData.sharesSold * poolData.sharePriceUSD).toLocaleString()} raised
-                </span>
-              </div>
-            </div>
-
-            {/* Key Metrics */}
-            <div className={styles.metricsGrid}>
-              <div className={styles.metric}>
-                <span className={styles.metricLabel}>Target Amount</span>
-                <span className={styles.metricValue}>
-                  ${poolData.targetAmountUSD.toLocaleString()}
-                </span>
-              </div>
-              <div className={styles.metric}>
-                <span className={styles.metricLabel}>Share Price</span>
-                <span className={styles.metricValue}>
-                  ${poolData.sharePriceUSD.toLocaleString()}
-                </span>
-              </div>
-              <div className={styles.metric}>
-                <span className={styles.metricLabel}>Min Investment</span>
-                <span className={styles.metricValue}>${poolData.minBuyInUSD.toLocaleString()}</span>
-              </div>
-              <div className={styles.metric}>
-                <span className={styles.metricLabel}>Projected ROI</span>
-                <span className={styles.metricValue} style={{ color: '#00ff88' }}>
-                  {((poolData.projectedROI - 1) * 100).toFixed(0)}%
-                </span>
-              </div>
-            </div>
-
-            {/* User's Current Investment */}
-            {userInvestment && (
-              <div className={styles.userInvestment}>
-                <h4>Your Investment</h4>
-                <div className={styles.userStats}>
-                  <div>
-                    <span>Shares Owned</span>
-                    <strong>{userInvestment.shares}</strong>
-                  </div>
-                  <div>
-                    <span>Ownership</span>
-                    <strong>{userInvestment.ownershipPercent.toFixed(2)}%</strong>
-                  </div>
-                  <div>
-                    <span>Invested</span>
-                    <strong>${userInvestment.investedUSD.toLocaleString()}</strong>
-                  </div>
-                </div>
-              </div>
             )}
 
-            {/* Wind-Down Status */}
-            {(poolData.status === 'winding_down' ||
-              (poolData.windDownStatus && poolData.windDownStatus !== 'none')) && (
-              <div className={styles.windDownSection}>
-                <h3 className={styles.windDownTitle}>Pool Wind-Down</h3>
-
-                {poolData.windDownStatus === 'announced' && pool.windDownDeadline && (
-                  <div className={styles.windDownInfo}>
-                    <p className={styles.windDownMessage}>
-                      This pool is winding down. Trading remains active until the deadline.
-                    </p>
-                    <div className={styles.windDownDeadline}>
-                      <span>Deadline:</span>
-                      <strong>{new Date(pool.windDownDeadline).toLocaleDateString()}</strong>
-                    </div>
-                  </div>
-                )}
-
-                {poolData.windDownStatus === 'snapshot_taken' && (
-                  <div className={styles.windDownInfo}>
-                    <p className={styles.windDownMessage}>
-                      Snapshot taken. Holders can now choose to cash out or rollover.
-                    </p>
-                    {poolData.windDownClaimDeadline && (
-                      <div className={styles.windDownDeadline}>
-                        <span>Claim by:</span>
-                        <strong>
-                          {new Date(poolData.windDownClaimDeadline).toLocaleDateString()}
-                        </strong>
-                      </div>
-                    )}
-                    <div className={styles.windDownHolders}>
-                      <span>
-                        {poolData.windDownSnapshotHolders?.filter((h) => h.choice !== 'pending')
-                          .length || 0}
-                      </span>
-                      <span>
-                        {' '}
-                        / {poolData.windDownSnapshotHolders?.length || 0} holders have chosen
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {poolData.windDownStatus === 'distributing' && (
-                  <div className={styles.windDownInfo}>
-                    <p className={styles.windDownMessage}>
-                      Distribution in progress. All holders have made their choices.
-                    </p>
-                  </div>
-                )}
-
-                {poolData.windDownStatus === 'completed' && (
-                  <div className={styles.windDownInfo}>
-                    <p className={styles.windDownMessage}>
-                      Wind-down complete. All proceeds have been distributed.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Tabs for Invest/Trade/Governance */}
-            {(poolData.status === 'open' || canTrade || hasGovernance) && (
-              <div className={styles.actionTabs}>
-                <button
-                  className={`${styles.actionTab} ${activeTab === 'invest' ? styles.activeTab : ''}`}
-                  onClick={() => setActiveTab('invest')}
-                  disabled={poolData.status !== 'open'}
-                >
-                  Invest
-                </button>
-                <button
-                  className={`${styles.actionTab} ${activeTab === 'trade' ? styles.activeTab : ''}`}
-                  onClick={() => setActiveTab('trade')}
-                  disabled={!hasToken}
-                >
-                  Trade {!hasToken && '🔒'}
-                </button>
-                <button
-                  className={`${styles.actionTab} ${activeTab === 'governance' ? styles.activeTab : ''}`}
-                  onClick={() => setActiveTab('governance')}
-                  disabled={!hasGovernance}
-                >
-                  Governance {hasGovernance ? '🏛️' : '🔒'}
-                </button>
-              </div>
-            )}
-
-            {/* Investment Form */}
-            {activeTab === 'invest' && poolData.status === 'open' && availableShares > 0 && (
-              <div className={styles.investmentForm}>
-                <h4>Buy Shares</h4>
-
-                <div className={styles.sharesInput}>
-                  <button
-                    className={styles.shareBtn}
-                    onClick={() => setShares(Math.max(1, shares - 1))}
-                    disabled={shares <= 1}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    value={shares}
-                    onChange={(e) =>
-                      setShares(
-                        Math.min(availableShares, Math.max(1, parseInt(e.target.value) || 1))
-                      )
-                    }
-                    min={1}
-                    max={availableShares}
-                    className={styles.shareInput}
-                  />
-                  <button
-                    className={styles.shareBtn}
-                    onClick={() => setShares(Math.min(availableShares, shares + 1))}
-                    disabled={shares >= availableShares}
-                  >
-                    +
-                  </button>
-                </div>
-
-                <div className={styles.investmentSummary}>
-                  <div className={styles.summaryRow}>
-                    <span>Investment Amount</span>
-                    <span>${investmentAmount.toLocaleString()}</span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span>Ownership %</span>
-                    <span>{ownershipPercent.toFixed(2)}%</span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span>Projected Return</span>
-                    <span style={{ color: '#00ff88' }}>${projectedReturn.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {error && <p className={styles.error}>{error}</p>}
-                {success && (
-                  <p className={styles.success}>
-                    Investment successful! You now own {shares} shares.
-                  </p>
-                )}
-
-                <button
-                  className={styles.investButton}
-                  onClick={handleInvest}
-                  disabled={loading || !connected || success}
-                >
-                  {loading
-                    ? 'Processing...'
-                    : !connected
-                      ? 'Connect Wallet'
-                      : `Invest $${investmentAmount.toLocaleString()}`}
-                </button>
-              </div>
-            )}
-
-            {/* Trading Section - Powered by Bags */}
-            {activeTab === 'trade' && (
-              <div className={styles.tradingSection}>
-                <BagsPoolTrading
-                  pool={poolData}
-                  userShares={userShares}
-                  onTradeComplete={handleTradeComplete}
-                />
-              </div>
-            )}
-
-            {/* Governance Section - Squad DAO */}
-            {activeTab === 'governance' && hasGovernance && (
-              <div className={styles.tradingSection}>
+            {activeTab === 'governance' && hasGov && (
+              <div className={styles.tradePanel}>
                 <GovernanceDashboard
-                  pool={poolData}
+                  pool={p}
                   onProposalCreated={refreshStatus}
                   onVoteComplete={refreshStatus}
                 />
               </div>
             )}
 
-            {/* Pool Closed Message - only show if no trading or governance available */}
-            {poolData.status !== 'open' && !canTrade && !hasGovernance && (
-              <div className={styles.closedMessage}>
-                <p>This pool is no longer accepting investments.</p>
-                {poolData.resaleListingPriceUSD && (
-                  <p>Listed for resale at: ${poolData.resaleListingPriceUSD.toLocaleString()}</p>
-                )}
+            {/* Your Position */}
+            {userPos && (
+              <div className={styles.positionBar}>
+                <span className={styles.positionTitle}>Your Position</span>
+                <div className={styles.positionStats}>
+                  <div>
+                    <span>{fmt(userPos.shares)}</span>
+                    <small>tokens</small>
+                  </div>
+                  <div>
+                    <span>{userPos.ownershipPercent.toFixed(2)}%</span>
+                    <small>ownership</small>
+                  </div>
+                  <div>
+                    <span>${userPos.investedUSD.toLocaleString()}</span>
+                    <small>spent</small>
+                  </div>
+                </div>
               </div>
             )}
           </div>

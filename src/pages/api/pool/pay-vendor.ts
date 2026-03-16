@@ -85,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           requiredCustodyStatus: allowedCustodyStatuses,
           escrowProtection: true,
           message:
-            'Funds are held in escrow until LuxHub verifies receipt of the physical asset. This protects investors from vendor fraud.',
+            'Funds are held in escrow until LuxHub verifies receipt of the physical asset. This protects participants from vendor fraud.',
           nextSteps: [
             '1. Vendor must ship asset to LuxHub',
             '2. LuxHub receives and photographs asset',
@@ -260,48 +260,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
 
-// Create AMM liquidity pool via Bags API after vendor payment
+// NOTE: Bags API does not have a /liquidity/create-pool endpoint.
+// AMM liquidity pools are created automatically when a token graduates from bonding curve.
+// This function is a no-op stub retained for interface compatibility.
 async function createAmmLiquidityPool(
   pool: any,
-  liquidityAmountUSD: number
+  _liquidityAmountUSD: number
 ): Promise<{ success: boolean; poolAddress?: string; error?: string }> {
-  const bagsApiKey = process.env.BAGS_API_KEY;
-  if (!bagsApiKey) {
-    return { success: false, error: 'BAGS_API_KEY not configured' };
-  }
   if (!pool.bagsTokenMint) {
     return { success: false, error: 'Pool has no Bags token mint' };
   }
-
-  try {
-    const response = await fetch(`${BAGS_API_BASE}/liquidity/create-pool`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': bagsApiKey,
-      },
-      body: JSON.stringify({
-        tokenMint: pool.bagsTokenMint,
-        quoteToken: 'USDC',
-        initialLiquidityUSD: liquidityAmountUSD,
-        poolType: 'concentrated', // concentrated liquidity for better capital efficiency
-        feeTier: 300, // 3% fee tier matching LuxHub royalty
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: JSON.stringify(errorData) };
-    }
-
-    const result = await response.json();
-    return {
-      success: true,
-      poolAddress: result.poolAddress || result.pool,
-    };
-  } catch (error: any) {
-    return { success: false, error: error?.message || 'Unknown error' };
-  }
+  // Liquidity pools are created automatically upon bonding curve graduation via Bags.
+  // No manual API call needed.
+  console.warn(
+    '[createAmmLiquidityPool] No-op: Bags API does not support manual liquidity pool creation. ' +
+      'Pools are created automatically on graduation.'
+  );
+  return {
+    success: false,
+    error:
+      'Bags API does not support manual liquidity pool creation. Pools graduate automatically.',
+  };
 }
 
 // Build real Squads multi-transfer proposal for vendor payment

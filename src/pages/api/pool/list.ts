@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const pools = await Pool.find(query)
       .populate({
         path: 'selectedAssetId',
-        select: 'model brand priceUSD imageIpfsUrls images description serial',
+        select: 'model brand priceUSD imageUrl imageIpfsUrls images arweaveTxId description serial',
       })
       .populate({
         path: 'vendorId',
@@ -62,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Transform pools for frontend
     const transformedPools = pools.map((pool: any) => ({
       _id: pool._id,
-      poolNumber: pool._id.toString().slice(-6).toUpperCase(),
+      poolNumber: pool.poolNumber || pool._id.toString().slice(-6).toUpperCase(),
       escrowPda: pool.escrowPda,
 
       // Asset info
@@ -74,8 +74,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             priceUSD: pool.selectedAssetId.priceUSD,
             description: pool.selectedAssetId.description,
             serial: pool.selectedAssetId.serial,
+            imageUrl: pool.selectedAssetId.imageUrl,
             imageIpfsUrls: pool.selectedAssetId.imageIpfsUrls,
             images: pool.selectedAssetId.images,
+            arweaveTxId: pool.selectedAssetId.arweaveTxId,
           }
         : null,
 
@@ -123,6 +125,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ammLiquidityPercent: pool.ammLiquidityPercent,
       vendorPaymentPercent: pool.vendorPaymentPercent,
       fundsInEscrow: pool.fundsInEscrow || 0,
+
+      // Trading data
+      currentBondingPrice: pool.currentBondingPrice,
+      lastPriceUSD: pool.lastPriceUSD,
+      totalTrades: pool.totalTrades || 0,
+      totalVolumeUSD: pool.totalVolumeUSD || 0,
+      recentTrades: (pool.recentTrades || []).slice(-5).map((t: any) => ({
+        wallet: t.wallet ? `${t.wallet.slice(0, 4)}...${t.wallet.slice(-4)}` : '????',
+        type: t.type,
+        amount: t.amount,
+        amountUSD: t.amountUSD,
+        timestamp: t.timestamp,
+        txSignature: t.txSignature,
+      })),
+      graduated: pool.graduated || false,
+      squadMultisigPda: pool.squadMultisigPda,
 
       // Timestamps
       createdAt: pool.createdAt,

@@ -6,7 +6,7 @@ const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed. Use GET.' });
   }
 
   try {
@@ -25,12 +25,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Get partner stats from Bags API
-    const statsResponse = await fetch(`${BAGS_API_BASE}/partner/stats?wallet=${partnerWallet}`, {
-      method: 'GET',
+    // Get partner stats from Bags API (POST /partner/claim-stats)
+    const statsResponse = await fetch(`${BAGS_API_BASE}/partner/claim-stats`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'x-api-key': bagsApiKey,
       },
+      body: JSON.stringify({ wallet: partnerWallet }),
     });
 
     if (!statsResponse.ok) {
@@ -43,16 +45,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const statsResult = await statsResponse.json();
 
-    // Get claimable fees
-    const claimableResponse = await fetch(
-      `${BAGS_API_BASE}/partner/claimable?wallet=${partnerWallet}`,
-      {
-        method: 'GET',
-        headers: {
-          'x-api-key': bagsApiKey,
-        },
-      }
-    );
+    // Get claimable fees (POST /partner/claim-txs)
+    const claimableResponse = await fetch(`${BAGS_API_BASE}/partner/claim-txs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': bagsApiKey,
+      },
+      body: JSON.stringify({ wallet: partnerWallet }),
+    });
 
     let claimableResult = null;
     if (claimableResponse.ok) {

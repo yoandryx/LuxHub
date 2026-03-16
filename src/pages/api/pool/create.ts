@@ -3,9 +3,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
-import { Vendor } from '../../../lib/models/Vendor';
+import VendorProfile from '../../../lib/models/VendorProfile';
 import { Asset } from '../../../lib/models/Assets';
+import { Escrow } from '../../../lib/models/Escrow';
 import { withWalletValidation, AuthenticatedRequest } from '@/lib/middleware/walletAuth';
+import { createPoolTokenInternal } from '../bags/create-pool-token';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -26,12 +28,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    // Verify caller is an approved vendor
-    const vendor = await Vendor.findOne({ wallet });
-    if (!vendor) {
+    // Verify caller is an approved vendor (VendorProfile has wallet + approved fields)
+    const vendorProfile = await VendorProfile.findOne({ wallet });
+    if (!vendorProfile) {
       return res.status(403).json({ error: 'Only registered vendors can create pools' });
     }
-    if (vendor.status !== 'approved') {
+    if (!vendorProfile.approved) {
       return res.status(403).json({ error: 'Vendor must be approved to create pools' });
     }
 
@@ -40,7 +42,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
-    if (String(asset.vendor) !== String(vendor._id)) {
+    // Check ownership by wallet address (nftOwnerWallet) since Asset.vendor may reference old Vendor model
+    if (asset.nftOwnerWallet && asset.nftOwnerWallet !== wallet) {
       return res.status(403).json({ error: 'Asset does not belong to this vendor' });
     }
     if (!asset.nftMint) {
@@ -71,7 +74,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const pool = new Pool({
       poolNumber,
       selectedAssetId: assetId,
-      vendorId: vendor._id,
+      vendorId: vendorProfile._id,
       vendorWallet: wallet,
       sourceType: 'dealer',
       targetAmountUSD,
@@ -98,23 +101,70 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     await pool.save();
 
+    // Update asset status to reflect pool conversion
+    asset.status = 'pooled';
+    await asset.save();
+
+    // Update escrow if one exists for this asset
+    await Escrow.updateMany(
+      { asset: assetId, status: { $in: ['initiated', 'listed'] } },
+      { $set: { convertedToPool: true, poolId: pool._id, status: 'converted' } }
+    );
+
     console.log('[POOL-CREATE] Pool created:', poolNumber, 'by vendor:', wallet);
+
+    // ── Auto-mint Bags bonding curve token ──
+    // Non-blocking: pool is created even if Bags API fails
+    let tokenResult: { success: boolean; mint?: string; transaction?: string; error?: string } = {
+      success: false,
+      error: 'Not attempted',
+    };
+
+    try {
+      tokenResult = await createPoolTokenInternal(pool._id.toString(), wallet);
+      if (tokenResult.success) {
+        console.log('[POOL-CREATE] Bags token minted:', tokenResult.mint);
+      } else {
+        console.warn('[POOL-CREATE] Bags token mint failed:', tokenResult.error);
+      }
+    } catch (tokenErr: any) {
+      console.warn('[POOL-CREATE] Bags token mint error:', tokenErr.message);
+      tokenResult = { success: false, error: tokenErr.message };
+    }
+
+    // Reload pool to include token data
+    const updatedPool = await Pool.findById(pool._id);
 
     return res.status(201).json({
       success: true,
       pool: {
-        _id: pool._id,
-        poolNumber: pool.poolNumber,
+        _id: updatedPool?._id || pool._id,
+        poolNumber: updatedPool?.poolNumber || pool.poolNumber,
         asset: assetId,
-        targetAmountUSD: pool.targetAmountUSD,
-        totalShares: pool.totalShares,
-        sharePriceUSD: pool.sharePriceUSD,
-        status: pool.status,
-        bondingCurveActive: pool.bondingCurveActive,
-        bondingCurveType: pool.bondingCurveType,
-        liquidityModel: pool.liquidityModel,
-        ammEnabled: pool.ammEnabled,
+        targetAmountUSD: updatedPool?.targetAmountUSD || pool.targetAmountUSD,
+        totalShares: updatedPool?.totalShares || pool.totalShares,
+        sharePriceUSD: updatedPool?.sharePriceUSD || pool.sharePriceUSD,
+        status: updatedPool?.status || pool.status,
+        bondingCurveActive: updatedPool?.bondingCurveActive ?? pool.bondingCurveActive,
+        bondingCurveType: updatedPool?.bondingCurveType || pool.bondingCurveType,
+        liquidityModel: updatedPool?.liquidityModel || pool.liquidityModel,
+        ammEnabled: updatedPool?.ammEnabled ?? pool.ammEnabled,
+        // Token info (auto-minted)
+        bagsTokenMint: updatedPool?.bagsTokenMint || null,
+        tokenStatus: updatedPool?.tokenStatus || 'pending',
       },
+      token: tokenResult.success
+        ? {
+            mint: tokenResult.mint,
+            transaction: tokenResult.transaction,
+            message: 'Token created on Bags bonding curve. Transaction needs signing to finalize.',
+          }
+        : {
+            minted: false,
+            error: tokenResult.error,
+            message:
+              'Pool created but token mint failed. Admin can retry via /api/bags/create-pool-token.',
+          },
     });
   } catch (error: any) {
     console.error('[POOL-CREATE] Error:', error.message);

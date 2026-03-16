@@ -45,6 +45,14 @@ const ALLOW = [
   /sharePrice/,                  // backend field name (API key)
   /lint-sec-language/,           // this script itself
   /eslint-disable/,              // eslint directives
+  /console\.(log|warn|error)/,   // console output (not user-facing)
+  /investedUSD/,                 // backend field name
+  /investedAt/,                  // backend field name
+  /investorWallet/,              // backend field name
+  /onInvestmentComplete/,        // callback prop name
+  /holderDividend/,              // Bags API field name
+  /totalDividendsDistributed/,   // Bags webhook field name
+  /accumulatedHolderFees/,       // backend tracking field
 ];
 
 // ── File discovery ──────────────────────────────────────────────
@@ -53,8 +61,8 @@ const SCAN_GLOBS = [
   'src/components/**/*.{tsx,ts}',
 ];
 
-// Files that are NOT user-facing (API routes, models, utils)
-const SKIP_DIRS = ['/api/', '/lib/', '/utils/', '/context/', '/hooks/', '/idl/'];
+// Files that are NOT user-facing (API routes, models, utils, scripts, tasks)
+const SKIP_DIRS = ['/api/', '/lib/', '/utils/', '/context/', '/hooks/', '/idl/', '/scripts/', '/tasks/'];
 
 function getFiles(args) {
   if (args.length) return args.filter((f) => fs.existsSync(f));

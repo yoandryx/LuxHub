@@ -168,7 +168,7 @@ const BagsPage: React.FC = () => {
                   <div className={styles.flowIcon}>💱</div>
                   <h3>3. Secondary Trading</h3>
                   <p>
-                    Investors buy/sell shares on open market via <strong>Bags Trade API</strong>.
+                    Participants buy/sell tokens on open market via <strong>Bags Trade API</strong>.
                     Instant liquidity.
                   </p>
                 </div>
@@ -189,7 +189,7 @@ const BagsPage: React.FC = () => {
                 <div className={styles.apiCard}>
                   <div className={styles.apiHeader}>
                     <span className={styles.apiMethod}>POST</span>
-                    <code>/token/create-token-info</code>
+                    <code>/token-launch/create-info</code>
                   </div>
                   <p>Creates token metadata with asset details, pool info, and LuxHub branding.</p>
                   <span className={styles.apiUse}>Used when: Admin creates pool token</span>
@@ -197,15 +197,15 @@ const BagsPage: React.FC = () => {
                 <div className={styles.apiCard}>
                   <div className={styles.apiHeader}>
                     <span className={styles.apiMethod}>POST</span>
-                    <code>/token/create-token-launch-transaction</code>
+                    <code>/token-launch/launch</code>
                   </div>
-                  <p>Mints SPL tokens representing fractional ownership shares.</p>
+                  <p>Mints SPL tokens representing tokenized pool positions.</p>
                   <span className={styles.apiUse}>Used when: Finalizing pool tokenization</span>
                 </div>
                 <div className={styles.apiCard}>
                   <div className={styles.apiHeader}>
                     <span className={styles.apiMethod}>POST</span>
-                    <code>/fee-share/create-fee-share-config</code>
+                    <code>/fee-share/config/create</code>
                   </div>
                   <p>Configures automatic 3% fee routing to LuxHub treasury.</p>
                   <span className={styles.apiUse}>Used when: Enabling secondary trading</span>
@@ -228,8 +228,8 @@ const BagsPage: React.FC = () => {
                 </div>
                 <div className={styles.apiCard}>
                   <div className={styles.apiHeader}>
-                    <span className={styles.apiMethod}>GET</span>
-                    <code>/partner/stats</code>
+                    <span className={styles.apiMethod}>POST</span>
+                    <code>/partner/claim-stats</code>
                   </div>
                   <p>Retrieves earnings, transaction counts, and claimable fees.</p>
                   <span className={styles.apiUse}>Used when: Viewing partner dashboard</span>
@@ -242,9 +242,8 @@ const BagsPage: React.FC = () => {
             <section className={styles.tokenomicsSection}>
               <h2 className={styles.sectionTitle}>RWA Tokenomics Model</h2>
               <p className={styles.sectionIntro}>
-                Each pool creates a fixed-supply token representing fractional ownership of a
-                verified luxury asset. This is Real World Asset (RWA) tokenization with built-in
-                liquidity.
+                Each pool creates a fixed-supply token representing tokenized access to a verified
+                luxury asset. This is Real World Asset (RWA) tokenization with built-in liquidity.
               </p>
 
               {/* Tokenomics Diagram */}
@@ -379,7 +378,7 @@ const BagsPage: React.FC = () => {
         <section className={styles.ctaSection}>
           <div className={styles.ctaContent}>
             <h2 className={styles.sectionTitle}>Ready to Own Luxury?</h2>
-            <p>Start investing in fractional luxury assets powered by Bags.</p>
+            <p>Start participating in tokenized luxury assets powered by Bags.</p>
             <div className={styles.ctaButtons}>
               <Link href="/pools" className={styles.ctaPrimary}>
                 Browse Pools

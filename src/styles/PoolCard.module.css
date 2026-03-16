@@ -386,6 +386,144 @@
   flex-shrink: 0;
 }
 
+/* ===== LIVE TRADE FEED ===== */
+.tradeFeed {
+  padding: 8px 10px;
+  background: rgba(10, 10, 15, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tradeFeedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.tradeFeedLive {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.56rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--positive);
+}
+
+.liveDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--positive);
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+  }
+  50% {
+    opacity: 0.4;
+    box-shadow: 0 0 2px rgba(74, 222, 128, 0.3);
+  }
+}
+
+.tradeFeedVol {
+  font-size: 0.54rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tradeFeedList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tradeBuy,
+.tradeSell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 0.58rem;
+  animation: tradeSlideIn 0.3s ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.tradeBuy {
+  background: rgba(74, 222, 128, 0.04);
+  border: 1px solid rgba(74, 222, 128, 0.08);
+}
+
+.tradeSell {
+  background: rgba(248, 113, 113, 0.04);
+  border: 1px solid rgba(248, 113, 113, 0.08);
+}
+
+@keyframes tradeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.dotBuy,
+.dotSell {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotBuy {
+  background: var(--positive);
+}
+.dotSell {
+  background: #f87171;
+}
+
+.tradeWallet {
+  color: var(--text-muted);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.52rem;
+  min-width: 0;
+}
+
+.tradeTime {
+  color: var(--text-muted);
+  font-size: 0.48rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.tradeAmtBuy,
+.tradeAmtSell {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 0.56rem;
+  flex-shrink: 0;
+}
+
+.tradeAmtBuy {
+  color: var(--positive);
+}
+.tradeAmtSell {
+  color: #f87171;
+}
+
 /* ===== CTA BUTTONS ===== */
 .ctaButton {
   width: 100%;

@@ -3,6 +3,9 @@ import { Schema, model, models } from 'mongoose';
 
 const PoolSchema = new Schema(
   {
+    // ========== POOL IDENTIFIER ==========
+    poolNumber: { type: String }, // e.g., "LUX-00001"
+
     // ========== ASSET REFERENCE ==========
     selectedAssetId: { type: Schema.Types.ObjectId, ref: 'Asset', required: true },
     escrowId: { type: Schema.Types.ObjectId, ref: 'Escrow' }, // Source escrow if converted

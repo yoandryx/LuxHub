@@ -69,8 +69,10 @@ export interface Pool {
     priceUSD?: number;
     description?: string;
     serial?: string;
+    imageUrl?: string;
     imageIpfsUrls?: string[];
     images?: string[];
+    arweaveTxId?: string;
   };
   vendor?: {
     businessName?: string;

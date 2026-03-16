@@ -44,33 +44,25 @@ async function createPoolToken(
     const poolSuffix = pool._id.toString().slice(-6).toUpperCase();
     const symbol = `LUX-${poolSuffix}`;
 
-    // Build token metadata
-    const tokenInfo = {
-      name: `LuxHub Pool: ${asset?.model || 'Luxury Asset'}`,
-      symbol,
-      description: `Fractional ownership of ${asset?.brand || ''} ${asset?.model || 'luxury asset'} via LuxHub. Fixed supply: ${pool.totalShares} shares.`,
-      image: asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '',
-      totalSupply: pool.totalShares,
-      decimals: 0, // Whole shares only
-      // Metadata for RWA tracking
-      attributes: {
-        poolId: pool._id.toString(),
-        assetBrand: asset?.brand || '',
-        assetModel: asset?.model || '',
-        targetValueUSD: pool.targetAmountUSD,
-        sharePriceUSD: pool.sharePriceUSD,
-        createdAt: new Date().toISOString(),
-      },
-    };
+    // Build token metadata via multipart/form-data
+    const imageUrl = asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
+    const description = `Tokenized pool for ${asset?.brand || ''} ${asset?.model || 'luxury asset'} via LuxHub. Pool ID: ${pool._id.toString()}`;
 
-    // Call Bags Token Launch API
-    const response = await fetch('https://api.bags.fm/api/v1/token/create-token-info', {
+    const formData = new FormData();
+    formData.append('name', `LuxHub Pool: ${asset?.model || 'Luxury Asset'}`);
+    formData.append('symbol', symbol);
+    formData.append('description', description);
+    formData.append('imageUrl', imageUrl);
+    formData.append('twitter', 'https://x.com/LuxHubStudio');
+    formData.append('website', process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold');
+
+    // Call Bags Token Launch API (create-info)
+    const response = await fetch('https://public-api-v2.bags.fm/api/v1/token-launch/create-info', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'x-api-key': BAGS_API_KEY,
       },
-      body: JSON.stringify(tokenInfo),
+      body: formData,
     });
 
     const data = await response.json();
@@ -80,11 +72,13 @@ async function createPoolToken(
       return { success: false, error: data.error || 'Token creation failed' };
     }
 
-    // Note: In production, you'd also call create-token-launch-transaction
+    const infoData = data.response || data;
+
+    // Note: In production, you'd also call /token-launch/launch
     // and have an admin sign to actually mint the tokens
     return {
       success: true,
-      mint: data.mint || data.tokenMint || `mock-mint-${poolSuffix}`,
+      mint: infoData.tokenMint || `mock-mint-${poolSuffix}`,
     };
   } catch (error: any) {
     console.error('[Bags] Token creation error:', error);
@@ -342,8 +336,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         luxhubFee: `3% ($${(targetAmountUSD * 0.03).toLocaleString()})`,
       },
       nextSteps: [
-        '1. Pool is now open for investments',
-        '2. Investors buy shares → funds held in escrow',
+        '1. Pool is now open for contributions',
+        '2. Participants buy tokens → funds held in escrow',
         '3. Pool fills 100% → status: "filled"',
         '4. Vendor ships watch to LuxHub',
         '5. LuxHub verifies custody → vendor paid, tokens unlocked',

@@ -109,7 +109,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const quoteResult = await quoteResponse.json();
+    const quoteJson = await quoteResponse.json();
+    const quoteData = quoteJson.response || quoteJson;
 
     // Step 2: Build swap transaction
     const swapResponse = await fetch(`${BAGS_API_BASE}/trade/swap`, {
@@ -119,10 +120,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'x-api-key': bagsApiKey,
       },
       body: JSON.stringify({
-        quote: quoteResult,
+        quoteResponse: quoteData,
         userPublicKey: userWallet,
-        wrapAndUnwrapSol: true, // Auto-handle SOL wrapping
-        computeUnitPriceMicroLamports: 'auto', // Auto-set compute price
       }),
     });
 
@@ -134,7 +133,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const swapResult = await swapResponse.json();
+    const swapJson = await swapResponse.json();
+    const swapData = swapJson.response || swapJson;
 
     return res.status(200).json({
       success: true,
@@ -142,18 +142,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         inputMint: finalInputMint,
         outputMint: finalOutputMint,
         inputAmount: amount,
-        expectedOutput: quoteResult.outAmount || quoteResult.expectedOutput,
-        priceImpact: quoteResult.priceImpact,
+        expectedOutput: quoteData.outAmount,
+        priceImpact: quoteData.priceImpactPct,
         slippageBps,
       },
       pool: poolInfo,
       transaction: {
         // The serialized transaction for the user to sign
-        serialized: swapResult.swapTransaction || swapResult.transaction,
-        // Versioned transaction if applicable
-        isVersioned: swapResult.isVersionedTransaction,
+        serialized: swapData.swapTransaction,
         // Last valid block height for the transaction
-        lastValidBlockHeight: swapResult.lastValidBlockHeight,
+        lastValidBlockHeight: swapData.lastValidBlockHeight,
       },
       message: 'Swap transaction built successfully. Sign and send to execute.',
       instructions: [
