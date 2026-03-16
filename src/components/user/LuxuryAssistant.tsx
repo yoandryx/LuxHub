@@ -159,7 +159,7 @@ type PageType =
   | 'marketplace'
   | 'pools'
   | 'nft-detail'
-  | 'seller-dashboard'
+  | 'vendor-dashboard'
   | 'admin-dashboard'
   | 'my-offers'
   | 'create-nft'
@@ -172,7 +172,8 @@ const getPageType = (pathname: string): PageType => {
   if (pathname === '/watchMarket' || pathname === '/marketplace') return 'marketplace';
   if (pathname.startsWith('/pools') || pathname === '/bagsPoolsPage') return 'pools';
   if (pathname.startsWith('/nft/') || pathname.startsWith('/asset/')) return 'nft-detail';
-  if (pathname === '/sellerDashboard' || pathname === '/vendorDashboard') return 'seller-dashboard';
+  if (pathname === '/vendor/vendorDashboard' || pathname === '/vendorDashboard')
+    return 'vendor-dashboard';
   if (pathname === '/adminDashboard' || pathname === '/admin') return 'admin-dashboard';
   if (pathname === '/myOffers' || pathname === '/offers') return 'my-offers';
   if (pathname === '/createNFT' || pathname === '/mint') return 'create-nft';
@@ -187,7 +188,7 @@ const getPageLabel = (pageType: PageType): string => {
     marketplace: 'Marketplace',
     pools: 'Pools',
     'nft-detail': 'Item Details',
-    'seller-dashboard': 'Seller Dashboard',
+    'vendor-dashboard': 'Seller Dashboard',
     'admin-dashboard': 'Admin Dashboard',
     'my-offers': 'My Offers',
     'create-nft': 'Create NFT',
@@ -211,16 +212,19 @@ const pageQuickActions: Record<PageType, QuickAction[]> = {
     { label: 'Price Check', prompt: 'How can I tell if an item is priced fairly?' },
   ],
   pools: [
-    { label: 'How Pools Work', prompt: 'How do fractional ownership pools work on LuxHub?' },
-    { label: 'ROI Explained', prompt: 'How is ROI calculated for pools? When do I get paid?' },
-    { label: 'Pool Risks', prompt: 'What are the risks of investing in a pool?' },
+    { label: 'How Pools Work', prompt: 'How do tokenized pools work on LuxHub?' },
+    {
+      label: 'Returns Explained',
+      prompt: 'How are estimated returns calculated for pools? When do I get proceeds?',
+    },
+    { label: 'Pool Risks', prompt: 'What are the risks of participating in a pool?' },
   ],
   'nft-detail': [
     { label: 'Fair Price?', prompt: 'How can I tell if this item is priced fairly?' },
     { label: 'Make Offer', prompt: 'What should I consider before making an offer?' },
     { label: 'Verify Auth', prompt: 'How is the authenticity of this item verified?' },
   ],
-  'seller-dashboard': [
+  'vendor-dashboard': [
     { label: 'View Offers', prompt: 'How do I see and respond to offers on my listings?' },
     { label: 'Pricing Tips', prompt: 'Any tips for pricing my luxury items competitively?' },
     { label: 'Ship Item', prompt: 'How do I update tracking info after a sale?' },
@@ -266,7 +270,7 @@ const roleQuickActions: Record<UserContext['role'], QuickAction[]> = {
   ],
   buyer: [
     { label: 'Make Offer', prompt: 'How do I make an offer on an item?' },
-    { label: 'Pool Investing', prompt: 'How do fractional ownership pools work?' },
+    { label: 'Join a Pool', prompt: 'How do tokenized pools work?' },
     { label: 'Track Order', prompt: 'How can I track my purchase shipment?' },
   ],
   vendor: [
@@ -318,7 +322,7 @@ const LuxuryAssistant = () => {
     if (currentPage === 'admin-dashboard' && userContext.role === 'admin') {
       return pageActions;
     }
-    if (currentPage === 'seller-dashboard' && userContext.role === 'vendor') {
+    if (currentPage === 'vendor-dashboard' && userContext.role === 'vendor') {
       return pageActions;
     }
 

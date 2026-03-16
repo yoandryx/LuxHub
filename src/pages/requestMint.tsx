@@ -121,8 +121,8 @@ const RequestMint = () => {
         <h2>Request Admin Mint</h2>
         <p>
           Submit your watch details for admin review. For the full form with all options, visit the{' '}
-          <a href="/sellerDashboard" style={{ color: '#c8a1ff' }}>
-            Seller Dashboard
+          <a href="/vendor/vendorDashboard" style={{ color: '#c8a1ff' }}>
+            Vendor Dashboard
           </a>
           .
         </p>

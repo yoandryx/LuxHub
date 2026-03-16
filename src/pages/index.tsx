@@ -432,7 +432,7 @@ export default function IndexTest() {
                 Browse Marketplace
                 <FaArrowRight />
               </Link>
-              <Link href="/sellerDashboard" className={styles.secondaryBtn}>
+              <Link href="/vendor/apply" className={styles.secondaryBtn}>
                 Become a Dealer
               </Link>
             </div>
