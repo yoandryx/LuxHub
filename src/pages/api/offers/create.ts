@@ -5,7 +5,10 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { Offer } from '../../../lib/models/Offer';
 import { User } from '../../../lib/models/User';
+import { Vendor } from '../../../lib/models/Vendor';
 import { Asset } from '../../../lib/models/Assets';
+import { Transaction } from '../../../lib/models/Transaction';
+import { notifyOfferReceived } from '../../../lib/services/notificationService';
 
 interface ShippingAddress {
   fullName: string;
@@ -88,42 +91,75 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       escrow = await Escrow.findOne({ nftMint: mintAddress, deleted: false }).populate('seller');
     }
 
-    // Calculate offerAmount in lamports if not provided (use SOL price ~$150)
-    const solPrice = 150;
+    // Fetch live SOL price for lamport conversion
+    let solPrice = 100;
+    try {
+      const priceRes = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/price/sol`
+      );
+      if (priceRes.ok) {
+        const pd = await priceRes.json();
+        if (pd?.solana?.usd > 0) solPrice = pd.solana.usd;
+      }
+    } catch {
+      /* ignore */
+    }
     const offerAmount = rawOfferAmount || Math.floor((offerPriceUSD / solPrice) * 1e9);
-    if (!escrow) {
-      return res.status(404).json({ error: 'Escrow not found' });
+
+    // If no escrow found, check if this is a "holding" NFT open to offers
+    let ownerWallet: string | undefined;
+    let assetForOffer: any = null;
+    if (!escrow && mintAddress) {
+      assetForOffer = await Asset.findOne({ nftMint: mintAddress, deleted: false });
+      if (!assetForOffer) {
+        return res.status(404).json({ error: 'Asset not found' });
+      }
+      if (!assetForOffer.openToOffers) {
+        return res.status(400).json({ error: 'This holder is not accepting offers on this asset' });
+      }
+      ownerWallet = assetForOffer.vendorWallet || assetForOffer.currentOwner;
+      if (!ownerWallet) {
+        return res.status(400).json({ error: 'Cannot determine asset owner' });
+      }
+      if (ownerWallet === buyerWallet) {
+        return res.status(400).json({ error: 'You cannot make an offer on your own asset' });
+      }
+    } else if (!escrow) {
+      return res.status(404).json({ error: 'Listing not found' });
     }
 
-    // Check if escrow is accepting offers
-    if (!escrow.acceptingOffers && escrow.saleMode !== 'accepting_offers') {
-      return res.status(400).json({
-        error: 'This listing is not accepting offers. Sale mode: ' + escrow.saleMode,
-      });
-    }
+    // Validate escrow state (only if escrow exists — skip for holding offers)
+    if (escrow) {
+      if (!escrow.acceptingOffers && escrow.saleMode !== 'accepting_offers') {
+        return res.status(400).json({
+          error: 'This listing is not accepting offers',
+        });
+      }
 
-    // Check if escrow is in a valid state for offers
-    const allowedStatuses = ['initiated', 'listed'];
-    if (!allowedStatuses.includes(escrow.status)) {
-      return res.status(400).json({
-        error: `Cannot make offers when escrow status is '${escrow.status}'`,
-      });
-    }
+      const allowedStatuses = ['initiated', 'listed'];
+      if (!allowedStatuses.includes(escrow.status)) {
+        return res.status(400).json({
+          error: `Cannot make offers when status is '${escrow.status}'`,
+        });
+      }
 
-    // Check minimum offer if set
-    if (escrow.minimumOffer && offerAmount < escrow.minimumOffer) {
-      return res.status(400).json({
-        error: `Offer must be at least ${escrow.minimumOffer} lamports (${escrow.minimumOfferUSD} USD)`,
-        minimumOffer: escrow.minimumOffer,
-        minimumOfferUSD: escrow.minimumOfferUSD,
-      });
-    }
+      // Platform minimum: 50% of listing price (prevents spam lowballs)
+      const platformMinUSD = (escrow.listingPriceUSD || 0) * 0.5;
+      const effectiveMinUSD = Math.max(platformMinUSD, escrow.minimumOfferUSD || 0);
 
-    // Prevent buyer from being seller
-    if (escrow.sellerWallet === buyerWallet) {
-      return res.status(400).json({
-        error: 'Seller cannot make an offer on their own listing',
-      });
+      if (offerPriceUSD < effectiveMinUSD) {
+        return res.status(400).json({
+          error: `Minimum offer is $${effectiveMinUSD.toLocaleString()} (50% of listing price)`,
+          minimumOfferUSD: effectiveMinUSD,
+          listingPriceUSD: escrow.listingPriceUSD,
+        });
+      }
+
+      if (escrow.sellerWallet === buyerWallet) {
+        return res.status(400).json({
+          error: 'Seller cannot make an offer on their own listing',
+        });
+      }
     }
 
     // Get or create buyer user (using upsert for efficiency)
@@ -133,23 +169,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { upsert: true, new: true }
     );
 
-    // Get the actual escrowPda from the found escrow
-    const actualEscrowPda = escrow.escrowPda;
+    // Determine escrowPda and asset — handles both listed and holding offers
+    const actualEscrowPda = escrow?.escrowPda || `holding-${mintAddress}-${Date.now()}`;
+    const vendorWallet = escrow?.sellerWallet || ownerWallet;
+
+    // Resolve vendor ID — try populated seller, then lookup by wallet
+    let toVendorId = escrow?.seller?._id || escrow?.seller || null;
+    if (!toVendorId && vendorWallet) {
+      const vendorUser = await User.findOne({ wallet: vendorWallet });
+      if (vendorUser) {
+        const vendorDoc = await Vendor.findOne({ user: vendorUser._id });
+        if (vendorDoc) toVendorId = vendorDoc._id;
+      }
+    }
 
     // Run independent queries in parallel
     const [existingOffer, asset] = await Promise.all([
       Offer.findOne({
-        escrowPda: actualEscrowPda,
-        buyerWallet,
+        $or: [
+          { escrowPda: actualEscrowPda, buyerWallet },
+          ...(mintAddress ? [{ mintAddress, buyerWallet }] : []),
+        ],
         status: { $in: ['pending', 'countered'] },
         deleted: false,
       }),
-      Asset.findById(escrow.asset),
+      escrow ? Asset.findById(escrow.asset) : Promise.resolve(assetForOffer),
     ]);
 
     if (existingOffer) {
       return res.status(400).json({
-        error: 'You already have a pending offer on this listing',
+        error: 'You already have a pending offer on this asset',
         existingOfferId: existingOffer._id,
         existingOfferAmount: existingOffer.offerPriceUSD,
       });
@@ -163,13 +212,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Create the offer with shipping address
     const offer = new Offer({
-      asset: escrow.asset,
-      escrowId: escrow._id,
+      asset: escrow?.asset || assetForOffer?._id,
+      escrowId: escrow?._id,
       escrowPda: actualEscrowPda,
+      mintAddress: mintAddress || escrow?.nftMint,
+      offerType: escrow ? 'listing' : 'holding', // Track whether this is a listed or holding offer
       fromUser: buyerUser._id,
       buyerWallet,
-      toVendor: escrow.seller?._id,
-      vendorWallet: escrow.sellerWallet,
+      toVendor: toVendorId,
+      vendorWallet,
       offerAmount,
       offerPriceUSD,
       offerCurrency,
@@ -206,12 +257,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }).sort({ offerAmount: -1 }),
     ]);
 
-    await Escrow.findByIdAndUpdate(escrow._id, {
-      $set: {
-        activeOfferCount: pendingOfferCount,
-        highestOffer: highestOffer?.offerAmount,
-      },
-    });
+    // Update escrow offer tracking (only if escrow exists)
+    if (escrow) {
+      await Escrow.findByIdAndUpdate(escrow._id, {
+        $set: {
+          activeOfferCount: pendingOfferCount,
+          highestOffer: highestOffer?.offerAmount,
+        },
+      });
+    }
+
+    // Record transaction for the offer
+    Transaction.create({
+      type: 'offer_acceptance',
+      escrow: escrow?._id,
+      asset: escrow?.asset || assetForOffer?._id,
+      fromWallet: buyerWallet,
+      toWallet: vendorWallet,
+      amountUSD: offerPriceUSD,
+      status: 'pending',
+    }).catch((err: any) => console.error('[offers/create] Transaction.create error:', err));
+
+    // Notify owner/vendor of new offer (non-blocking)
+    const assetTitle = asset?.model || 'Luxury Asset';
+    if (vendorWallet) {
+      notifyOfferReceived({
+        vendorWallet,
+        buyerWallet,
+        offerId: offer._id.toString(),
+        escrowId: escrow?._id?.toString() || assetForOffer?._id?.toString() || '',
+        assetTitle,
+        offerAmountUSD: offerPriceUSD,
+      }).catch((err: any) => console.error('[offers/create] notifyOfferReceived error:', err));
+    }
 
     return res.status(200).json({
       success: true,

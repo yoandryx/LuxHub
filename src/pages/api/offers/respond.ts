@@ -6,6 +6,13 @@ import { Escrow } from '../../../lib/models/Escrow';
 import { Offer } from '../../../lib/models/Offer';
 import { Vendor } from '../../../lib/models/Vendor';
 import { User } from '../../../lib/models/User';
+import { Asset } from '../../../lib/models/Assets';
+import { Transaction } from '../../../lib/models/Transaction';
+import {
+  notifyOfferAccepted,
+  notifyOfferRejected,
+  notifyOfferCountered,
+} from '../../../lib/services/notificationService';
 
 interface RespondOfferRequest {
   offerId: string;
@@ -97,6 +104,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Not authorized to respond to this offer' });
     }
 
+    // Fetch asset title for notifications
+    const asset = escrow.asset ? await Asset.findById(escrow.asset) : null;
+    const assetTitle = asset?.model || 'Luxury Asset';
+
     // Handle each action
     switch (action) {
       case 'accept': {
@@ -120,21 +131,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         });
 
-        // Reject all other pending offers on this escrow
-        await Offer.updateMany(
-          {
-            escrowPda: escrow.escrowPda,
-            _id: { $ne: offerId },
-            status: { $in: ['pending', 'countered'] },
-          },
-          {
-            $set: {
-              status: 'auto_rejected',
-              autoRejectedReason: 'Another offer was accepted',
-              respondedAt: new Date(),
-            },
-          }
-        );
+        // Other offers stay active — they only close when:
+        // 1. Buyer deposits funds (deal closes, others auto-rejected in purchase endpoint)
+        // 2. Accepted offer expires (24h timeout, escrow reverts to listed)
+        // 3. Buyer withdraws the accepted offer
+
+        // Set payment deadline on the accepted offer (24 hours)
+        const paymentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await Offer.findByIdAndUpdate(offerId, {
+          $set: { paymentDeadline },
+        });
+
+        // Record transaction for accepted offer
+        Transaction.create({
+          type: 'offer_acceptance',
+          escrow: escrow._id,
+          asset: escrow.asset,
+          fromWallet: offer.buyerWallet,
+          toWallet: vendorWallet,
+          amountUSD: offer.offerPriceUSD,
+          status: 'success',
+        }).catch((err: any) => console.error('[offers/respond] Transaction.create error:', err));
+
+        // Notify buyer that their offer was accepted (non-blocking)
+        notifyOfferAccepted({
+          buyerWallet: offer.buyerWallet,
+          offerId: offer._id.toString(),
+          escrowId: escrow._id.toString(),
+          escrowPda: escrow.escrowPda,
+          assetTitle,
+          acceptedAmountUSD: offer.offerPriceUSD,
+        }).catch((err: any) => console.error('[offers/respond] notifyOfferAccepted error:', err));
 
         return res.status(200).json({
           success: true,
@@ -186,6 +213,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         });
 
+        // Notify buyer that their offer was rejected (non-blocking)
+        notifyOfferRejected({
+          buyerWallet: offer.buyerWallet,
+          offerId: offer._id.toString(),
+          escrowId: escrow._id.toString(),
+          assetTitle,
+          reason: rejectionReason,
+        }).catch((err: any) => console.error('[offers/respond] notifyOfferRejected error:', err));
+
         return res.status(200).json({
           success: true,
           action: 'rejected',
@@ -199,8 +235,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       case 'counter': {
-        // Calculate counterAmount in lamports if not provided (use SOL price ~$150)
-        const solPrice = 150;
+        // Calculate counterAmount in lamports if not provided
+        // Fetch live SOL price from our API (Pyth oracle)
+        let solPrice = 100; // fallback
+        try {
+          const priceRes = await fetch(
+            `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/price/sol`
+          );
+          if (priceRes.ok) {
+            const priceData = await priceRes.json();
+            if (priceData?.solana?.usd > 0) solPrice = priceData.solana.usd;
+          }
+        } catch {
+          /* ignore */
+        }
         const calculatedCounterAmount =
           counterAmount || Math.floor((counterAmountUSD! / solPrice) * 1e9);
 
@@ -224,6 +272,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             counterOffers: counterOffer,
           },
         });
+
+        // Record transaction for counter offer
+        Transaction.create({
+          type: 'negotiation_settlement',
+          escrow: escrow._id,
+          asset: escrow.asset,
+          fromWallet: vendorWallet,
+          toWallet: offer.buyerWallet,
+          amountUSD: counterAmountUSD,
+          status: 'pending',
+        }).catch((err: any) => console.error('[offers/respond] Transaction.create error:', err));
+
+        // Notify buyer of counter offer (non-blocking)
+        notifyOfferCountered({
+          buyerWallet: offer.buyerWallet,
+          offerId: offer._id.toString(),
+          escrowId: escrow._id.toString(),
+          escrowPda: escrow.escrowPda,
+          assetTitle,
+          counterAmountUSD: counterAmountUSD!,
+        }).catch((err: any) => console.error('[offers/respond] notifyOfferCountered error:', err));
 
         return res.status(200).json({
           success: true,

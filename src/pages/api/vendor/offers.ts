@@ -21,18 +21,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Find the vendor by wallet (through User relationship)
     const user = await User.findOne({ wallet }).lean<LeanDocument>();
-    if (!user) {
-      return res.status(200).json({ offers: [] });
+    const vendor = user ? await Vendor.findOne({ user: user._id }).lean<LeanDocument>() : null;
+
+    // Build query — match by Vendor._id OR vendorWallet string for reliability
+    const orConditions: any[] = [{ vendorWallet: wallet }];
+    if (vendor) {
+      orConditions.push({ toVendor: vendor._id });
     }
 
-    const vendor = await Vendor.findOne({ user: user._id }).lean<LeanDocument>();
-    if (!vendor) {
-      return res.status(200).json({ offers: [] });
-    }
-
-    // Build query
     const query: any = {
-      toVendor: vendor._id,
+      $or: orConditions,
       deleted: { $ne: true },
     };
 
@@ -41,25 +39,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       query.status = status;
     }
 
+    console.log('[vendor/offers] Query:', JSON.stringify(query));
+    console.log('[vendor/offers] Wallet:', wallet, 'Vendor:', vendor?._id);
+
     // Fetch offers where this vendor is the receiver
     const offerDocs = await Offer.find(query)
       .populate({
         path: 'asset',
-        select: 'model priceUSD images imageIpfsUrls',
+        select: 'model brand title priceUSD imageUrl images imageIpfsUrls',
       })
       .populate({
         path: 'fromUser',
         select: 'wallet username',
       })
-      .sort({ createdAt: -1 })
+      .sort({ offerPriceUSD: -1, createdAt: -1 })
       .lean();
+
+    console.log('[vendor/offers] Found:', offerDocs.length, 'offers');
 
     // Transform offers for frontend
     const offers = (offerDocs as any[]).map((offer: any) => ({
       _id: offer._id,
       assetId: offer.asset?._id,
-      assetTitle: offer.asset?.model || 'Asset',
-      assetImage: offer.asset?.imageIpfsUrls?.[0] || offer.asset?.images?.[0],
+      assetTitle: offer.asset?.title || offer.asset?.model || 'Asset',
+      assetBrand: offer.asset?.brand || '',
+      assetImage:
+        offer.asset?.imageUrl || offer.asset?.imageIpfsUrls?.[0] || offer.asset?.images?.[0],
       listPrice: offer.asset?.priceUSD || 0,
       listPriceUSD: offer.asset?.priceUSD || 0,
       offerAmount: offer.offerAmount,

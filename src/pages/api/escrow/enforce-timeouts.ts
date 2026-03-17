@@ -4,6 +4,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
+import { Offer } from '../../../lib/models/Offer';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
 
 // Timeout thresholds
@@ -33,7 +34,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
     const now = new Date();
-    const results = { cancelled: 0, flagged: 0, escalated: 0 };
+    const results = { cancelled: 0, flagged: 0, escalated: 0, expiredOffers: 0 };
+
+    // 0. Expire accepted offers past payment deadline (24h) — revert escrow to listed
+    const expiredAcceptedOffers = await Offer.find({
+      status: 'accepted',
+      paymentDeadline: { $lt: now },
+      deleted: false,
+    });
+
+    for (const offer of expiredAcceptedOffers) {
+      await Offer.findByIdAndUpdate(offer._id, {
+        $set: {
+          status: 'expired',
+          autoRejectedReason: 'Buyer did not pay within 24 hours of acceptance',
+          respondedAt: now,
+        },
+      });
+
+      // Revert escrow back to listed if it was waiting for this buyer's payment
+      if (offer.escrowPda) {
+        await Escrow.findOneAndUpdate(
+          {
+            escrowPda: offer.escrowPda,
+            status: 'offer_accepted',
+            acceptedOfferId: offer._id,
+          },
+          {
+            $set: {
+              status: 'listed',
+              acceptedOfferId: null,
+            },
+          }
+        );
+      }
+      results.expiredOffers++;
+    }
 
     // 1. Auto-cancel funded escrows that haven't been shipped in FUNDED_TIMEOUT_DAYS
     const fundedCutoff = new Date(now.getTime() - FUNDED_TIMEOUT_DAYS * 24 * 60 * 60 * 1000);
@@ -90,7 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         shippedTimeoutDays: SHIPPED_TIMEOUT_DAYS,
         disputeSlaDays: DISPUTE_SLA_DAYS,
       },
-      message: `Processed: ${results.cancelled} cancelled, ${results.flagged} flagged, ${results.escalated} escalated`,
+      message: `Processed: ${results.expiredOffers} expired offers, ${results.cancelled} cancelled, ${results.flagged} flagged, ${results.escalated} escalated`,
     });
   } catch (error: any) {
     console.error('[enforce-timeouts] Error:', error);

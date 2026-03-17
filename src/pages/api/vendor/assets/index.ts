@@ -49,23 +49,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Transform assets for frontend (include all relevant fields)
     const formattedAssets = assets.map((asset: any) => ({
       _id: asset._id,
-      title: asset.model,
+      title: asset.title || asset.model,
       model: asset.model,
       brand:
-        asset.metaplexMetadata?.attributes?.find((a: any) => a.trait_type === 'Brand')?.value || '',
+        asset.brand ||
+        asset.metaplexMetadata?.attributes?.find((a: any) => a.trait_type === 'Brand')?.value ||
+        '',
       reference: asset.serial,
       serialNumber: asset.serial,
       description: asset.description,
       priceUSD: asset.priceUSD,
       currentValueUSD: asset.currentValueUSD,
+      imageUrl: asset.imageUrl, // Primary display image
       images: asset.images,
       imageIpfsUrls: asset.imageIpfsUrls,
-      imageBase64s: asset.imageBase64s, // For pending assets with base64 images
+      imageBase64s: asset.imageBase64s,
       metadataIpfsUrl: asset.metadataIpfsUrl,
       nftMint: asset.nftMint,
       status: asset.status,
       luxScore: asset.luxScore,
       poolEligible: asset.poolEligible,
+      material: asset.material,
+      dialColor: asset.dialColor,
+      caseSize: asset.caseSize,
+      movement: asset.movement,
+      productionYear: asset.productionYear,
+      condition: asset.condition,
       createdAt: asset.createdAt,
       updatedAt: asset.updatedAt,
     }));

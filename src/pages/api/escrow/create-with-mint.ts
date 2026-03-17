@@ -105,10 +105,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Escrow already exists for this NFT' });
     }
 
-    // Find vendor profile (depends on vendorUser)
-    const vendor = await Vendor.findOne({ user: vendorUser._id });
+    // Find or auto-create vendor profile
+    let vendor = await Vendor.findOne({ user: vendorUser._id });
     if (!vendor) {
-      return res.status(404).json({ error: 'Vendor profile not found for this wallet' });
+      vendor = await Vendor.create({
+        user: vendorUser._id,
+        wallet: vendorWallet,
+        businessName: asset?.brand ? `${asset.brand} Dealer` : `Vendor ${vendorWallet.slice(0, 6)}`,
+        verified: false,
+        approved: true,
+        onboardingStep: 'complete',
+      });
+      await User.findByIdAndUpdate(vendorUser._id, { role: 'vendor' });
+      console.log('[create-with-mint] Auto-created vendor record for', vendorWallet);
     }
 
     const connection = new Connection(rpc, 'confirmed');

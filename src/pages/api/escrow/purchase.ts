@@ -7,6 +7,8 @@ import { Escrow } from '../../../lib/models/Escrow';
 import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
 import { notifyNewOrder, notifyUser } from '../../../lib/services/notificationService';
+import { Transaction } from '../../../lib/models/Transaction';
+import { Offer } from '../../../lib/models/Offer';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
 import { verifyTransactionForWallet } from '../../../lib/services/txVerification';
 
@@ -89,8 +91,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(404).json({ error: 'Listing not found' });
     }
 
-    // Check escrow status - must be listed or initiated
-    const allowedStatuses = ['initiated', 'listed'];
+    // Check escrow status - must be listed, initiated, or offer_accepted (buyer paying after acceptance)
+    const allowedStatuses = ['initiated', 'listed', 'offer_accepted'];
     if (!allowedStatuses.includes(escrow.status)) {
       return res.status(400).json({
         error: `Cannot purchase. Current status: ${escrow.status}`,
@@ -173,6 +175,38 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       },
       { new: true }
     );
+
+    // Record purchase transaction
+    Transaction.create({
+      type: 'sale',
+      escrow: updatedEscrow._id,
+      asset: updatedEscrow.asset,
+      fromWallet: buyerWallet,
+      toWallet: updatedEscrow.escrowPda,
+      amountUSD: updatedEscrow.listingPriceUSD || 0,
+      txSignature: txSignature || undefined,
+      status: 'success',
+    }).catch((err: any) => console.error('[/api/escrow/purchase] Transaction record error:', err));
+
+    // Close all other pending/countered offers on this escrow — deal is done
+    try {
+      await Offer.updateMany(
+        {
+          escrowPda: updatedEscrow.escrowPda,
+          status: { $in: ['pending', 'countered'] },
+          buyerWallet: { $ne: buyerWallet }, // Don't touch the buyer's own accepted offer
+        },
+        {
+          $set: {
+            status: 'auto_rejected',
+            autoRejectedReason: 'Item has been purchased by another buyer',
+            respondedAt: new Date(),
+          },
+        }
+      );
+    } catch (err) {
+      console.error('[/api/escrow/purchase] Offer cleanup error:', err);
+    }
 
     // Send notifications
     try {

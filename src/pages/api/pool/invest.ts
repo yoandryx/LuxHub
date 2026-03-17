@@ -5,6 +5,7 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 import { User } from '../../../lib/models/User';
 import { verifyTransactionForWallet } from '../../../lib/services/txVerification';
+import { notifyUser } from '../../../lib/services/notificationService';
 
 interface InvestRequest {
   poolId: string;
@@ -150,6 +151,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Get updated participant info
     const updatedParticipant = pool.participants.find((p: any) => p.wallet === investorWallet);
+
+    // Notify the contributor
+    try {
+      await notifyUser({
+        userWallet: investorWallet,
+        type: 'pool_investment',
+        title: 'Pool Contribution Confirmed',
+        message: `Your $${investedUSD.toLocaleString()} contribution to the pool has been confirmed. You now own ${updatedParticipant?.ownershipPercent?.toFixed(2)}% of the pool.`,
+        metadata: { poolId: pool._id.toString(), actionUrl: '/pools' },
+      });
+    } catch {
+      /* non-blocking */
+    }
+
+    // If pool just filled, notify the vendor
+    if (pool.status === 'filled' && pool.vendorWallet) {
+      try {
+        await notifyUser({
+          userWallet: pool.vendorWallet,
+          type: 'pool_investment',
+          title: 'Pool Fully Funded',
+          message: `Your pool has reached its target of $${pool.targetAmountUSD?.toLocaleString()}. Please prepare to ship the asset to LuxHub custody.`,
+          metadata: { poolId: pool._id.toString(), actionUrl: '/vendor/vendorDashboard' },
+        });
+      } catch {
+        /* non-blocking */
+      }
+    }
 
     return res.status(200).json({
       success: true,

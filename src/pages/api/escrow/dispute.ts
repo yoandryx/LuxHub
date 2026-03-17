@@ -130,10 +130,10 @@ async function handleCreate(req: NextApiRequest, res: NextApiResponse, data: Dis
     for (const adminWallet of adminWallets.slice(0, 3)) {
       await notifyUser({
         userWallet: adminWallet,
-        type: 'system' as any,
-        title: 'New Dispute',
+        type: 'shipment_submitted',
+        title: 'New Dispute Opened',
         message: `Buyer ${buyerWallet.slice(0, 8)}... opened a dispute: ${reason}`,
-        metadata: { escrowId: escrow._id.toString() },
+        metadata: { escrowId: escrow._id.toString(), actionUrl: '/adminDashboard' },
       }).catch(() => {});
     }
   } catch {
@@ -191,10 +191,10 @@ async function handleResolve(req: NextApiRequest, res: NextApiResponse, data: Re
   try {
     await notifyUser({
       userWallet: escrow.buyerWallet,
-      type: 'system' as any,
+      type: 'order_refunded',
       title: 'Dispute Resolved',
       message: `Your dispute has been resolved: ${resolution}. ${adminNotes}`,
-      metadata: { escrowId },
+      metadata: { escrowId, actionUrl: '/orders' },
     }).catch(() => {});
   } catch {
     /* non-blocking */

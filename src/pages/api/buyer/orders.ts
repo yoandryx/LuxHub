@@ -45,8 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const filter: Record<string, any> = {
       buyerWallet: wallet,
       deleted: { $ne: true },
-      // Only show orders that have been funded (buyer has paid)
-      status: { $in: ['funded', 'shipped', 'delivered', 'released'] },
+      // Show orders from offer_accepted onwards (buyer can see accepted offers + funded orders)
+      status: { $in: ['offer_accepted', 'funded', 'shipped', 'delivered', 'released'] },
     };
 
     // Optional additional status filter
@@ -115,6 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Calculate stats
     const stats = {
       total: orders.length,
+      awaitingPayment: orders.filter((o: any) => o.status === 'offer_accepted').length,
       awaitingShipment: orders.filter((o: any) => o.status === 'funded').length,
       inTransit: orders.filter((o: any) => o.status === 'shipped').length,
       delivered: orders.filter((o: any) => o.status === 'delivered').length,

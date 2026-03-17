@@ -5,8 +5,10 @@ const OfferSchema = new Schema(
   {
     // ========== ASSET & ESCROW REFERENCES ==========
     asset: { type: Schema.Types.ObjectId, ref: 'Asset', required: true },
-    escrowId: { type: Schema.Types.ObjectId, ref: 'Escrow' }, // Link to escrow
-    escrowPda: { type: String, index: true }, // On-chain PDA for quick lookup
+    escrowId: { type: Schema.Types.ObjectId, ref: 'Escrow' }, // Link to escrow (null for holding offers)
+    escrowPda: { type: String, index: true }, // On-chain PDA or "holding-{mint}-{ts}" for non-listed
+    mintAddress: { type: String, index: true }, // NFT mint address (for holding offers)
+    offerType: { type: String, enum: ['listing', 'holding'], default: 'listing' }, // listing = on escrow, holding = on non-listed NFT
 
     // ========== PARTICIPANTS ==========
     fromUser: { type: Schema.Types.ObjectId, ref: 'User' }, // Buyer making offer
@@ -81,6 +83,7 @@ const OfferSchema = new Schema(
 
     // ========== EXPIRATION (OPTIONAL) ==========
     expiresAt: { type: Date }, // Optional expiration for time-limited offers
+    paymentDeadline: { type: Date }, // Deadline for buyer to pay after vendor accepts (24h)
 
     deleted: { type: Boolean, default: false },
   },

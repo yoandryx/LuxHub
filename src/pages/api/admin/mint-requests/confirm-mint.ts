@@ -139,9 +139,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('[CONFIRM-MINT] Transfer success:', transferSuccess);
     console.log('[CONFIRM-MINT] Actual NFT owner:', actualOwner);
 
-    // Find vendor by the actual owner wallet (could be requester, selected vendor, or admin)
-    const ownerUser = await User.findOne({ wallet: actualOwner });
-    const ownerVendor = ownerUser ? await Vendor.findOne({ user: ownerUser._id }) : null;
+    // Find or create user for the actual owner
+    const ownerUser = await User.findOneAndUpdate(
+      { wallet: actualOwner },
+      { $setOnInsert: { wallet: actualOwner, role: 'vendor' } },
+      { upsert: true, new: true }
+    );
+
+    // Find or auto-create vendor record for the owner
+    let ownerVendor = await Vendor.findOne({ user: ownerUser._id });
+    if (!ownerVendor) {
+      // Auto-create a basic vendor record so they can access the dashboard
+      ownerVendor = await Vendor.create({
+        user: ownerUser._id,
+        wallet: actualOwner,
+        businessName: mintRequest.brand
+          ? `${mintRequest.brand} Dealer`
+          : `Vendor ${actualOwner.slice(0, 6)}`,
+        verified: false,
+        approved: true, // Auto-approve since admin is creating the listing
+        onboardingStep: 'complete',
+      });
+      // Update user role to vendor
+      await User.findByIdAndUpdate(ownerUser._id, { role: 'vendor' });
+      console.log('[CONFIRM-MINT] Auto-created vendor record for', actualOwner);
+    }
 
     // Also find the original requester's vendor for reference
     const requesterUser = await User.findOne({ wallet: mintRequest.wallet });

@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       filter.status = statusArray.length > 1 ? { $in: statusArray } : statusArray[0];
     } else {
       // Default: show escrows available for purchase
-      filter.status = { $in: ['initiated', 'listed'] };
+      filter.status = { $in: ['initiated', 'listed', 'offer_accepted'] };
     }
 
     // Filter by sale mode
