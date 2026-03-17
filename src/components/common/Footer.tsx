@@ -16,7 +16,7 @@ export default function Footer() {
           </div>
           <p className={styles.brandTagline}>
             The premier decentralized marketplace for authenticated luxury timepieces. NFT-backed
-            provenance, secure escrow, and fractional ownership on Solana.
+            provenance, secure escrow, and tokenized pools on Solana.
           </p>
           <div className={styles.socialIcons}>
             <a
@@ -59,7 +59,7 @@ export default function Footer() {
           <h4>Marketplace</h4>
           <Link href="/">Home</Link>
           <Link href="/marketplace">Browse Watches</Link>
-          <Link href="/pools">Fractional Pools</Link>
+          <Link href="/pools">Pools</Link>
           <Link href="/learnMore">How It Works</Link>
           <Link href="/security">Security & Trust</Link>
         </div>
@@ -97,8 +97,8 @@ export default function Footer() {
             © {new Date().getFullYear()} <span>LuxHub</span>. All rights reserved.
           </p>
           <div className={styles.bottomLinks}>
-            <Link href="/learnMore#terms">Terms of Service</Link>
-            <Link href="/learnMore#privacy">Privacy Policy</Link>
+            <Link href="/terms">Terms of Service</Link>
+            <Link href="/terms#privacy">Privacy Policy</Link>
           </div>
         </div>
       </div>

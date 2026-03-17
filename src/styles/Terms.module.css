@@ -1,0 +1,150 @@
+/* ========================================
+   LUXHUB TERMS OF SERVICE
+   Chrome glass theme
+   ======================================== */
+
+.page {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.25);
+  --accent-border: rgba(200, 161, 255, 0.15);
+  --surface: rgba(8, 8, 10, 0.82);
+  --text: #fff;
+  --text-dim: rgba(255, 255, 255, 0.48);
+  --text-secondary: rgba(255, 255, 255, 0.72);
+
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.ambientBg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(200, 161, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(138, 43, 226, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.main {
+  position: relative;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 80px 24px 80px;
+  z-index: 1;
+}
+
+/* ========== HEADER ========== */
+
+.header {
+  margin-bottom: 48px;
+}
+
+.backLink {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 14px;
+  text-decoration: none;
+  margin-bottom: 24px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.backLink:hover {
+  opacity: 1;
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px;
+}
+
+.lastUpdated {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ========== CONTENT ========== */
+
+.content {
+  background: var(--surface);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: 1px solid var(--accent-border);
+  border-radius: 16px;
+  padding: 48px 40px;
+}
+
+.section {
+  margin-bottom: 36px;
+  padding-bottom: 36px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.section h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+
+.section p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+
+.section p:last-child {
+  margin-bottom: 0;
+}
+
+.section ul {
+  margin: 8px 0 12px;
+  padding-left: 20px;
+}
+
+.section li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.link {
+  color: var(--accent);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.link:hover {
+  opacity: 0.8;
+}
+
+/* ========== RESPONSIVE ========== */
+
+@media (max-width: 640px) {
+  .main {
+    padding: 70px 16px 60px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .content {
+    padding: 32px 20px;
+  }
+}

@@ -21,9 +21,8 @@
 <p align="center">
   <a href="https://luxhub.gold">Website</a> &middot;
   <a href="#features">Features</a> &middot;
-  <a href="#getting-started">Getting Started</a> &middot;
-  <a href="#security">Security</a> &middot;
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="#access">Access</a> &middot;
+  <a href="#security">Security</a>
 </p>
 
 ---
@@ -62,8 +61,8 @@ The $350B+ luxury resale market lacks trustless infrastructure. Buyers can't ver
 | **$1.50 Minimum** | Accessible entry point via 1B token supply per pool |
 | **Bonding Curve** | Fair price discovery during funding phase via Bags |
 | **Secondary Trading** | Trade pool tokens on Bags DEX after graduation |
-| **Resale Distribution** | 97% of watch resale proceeds distributed to token holders |
-| **3% Fee Routing** | Automatic split — 1% platform, 1% holders, 0.5% vendor, 0.5% rewards |
+| **Resale Distribution** | Watch resale proceeds distributed to token holders |
+| **Automatic Fee Routing** | On-chain fee-share config splits fees to stakeholders |
 
 ### Admin & Vendor Tools
 
@@ -89,7 +88,7 @@ The $350B+ luxury resale market lacks trustless infrastructure. Buyers can't ver
 ```
 LuxHub/
 ├── src/
-│   ├── pages/                    # 31 pages + 177 API endpoints
+│   ├── pages/                    # 20+ pages + 51 API endpoints
 │   │   ├── api/
 │   │   │   ├── bags/             # Bags tokenization (5 endpoints)
 │   │   │   ├── pool/             # Pool management (20 endpoints)
@@ -131,7 +130,7 @@ LuxHub/
 <table>
 <tr>
 <td><strong>Frontend</strong></td>
-<td>Next.js 16 &middot; React 19 &middot; TypeScript 5.8 &middot; CSS Modules &middot; Framer Motion &middot; React Three Fiber &middot; SWR &middot; Radix UI</td>
+<td>Next.js 14 &middot; React 18 &middot; TypeScript 5.8 &middot; CSS Modules &middot; Framer Motion &middot; React Three Fiber &middot; SWR &middot; Radix UI</td>
 </tr>
 <tr>
 <td><strong>Blockchain</strong></td>
@@ -199,59 +198,12 @@ OPEN → FILLED → FUNDED → CUSTODY → ACTIVE → LISTED → SOLD → DISTRI
 
 ---
 
-## Getting Started
+## Access
 
-### Prerequisites
+LuxHub is not open for public contributions at this time. If you're interested in partnering, integrating, or joining the team, reach out:
 
-- **Node.js** 20.x or later
-- **MongoDB** (local or Atlas)
-- **Solana CLI** + **Anchor CLI** (for smart contract development)
-- A Solana wallet (Phantom or Solflare)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yoandryx/LuxHub.git
-cd LuxHub
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Fill in your values — see .env.example for documentation
-
-# Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to view the app.
-
-### Anchor Program
-
-```bash
-cd Solana-Anchor
-anchor build         # Compile Rust programs
-anchor test          # Run tests
-anchor deploy        # Deploy to configured cluster
-```
-
-### Available Scripts
-
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Start dev server |
-| `npm run build` | Production build |
-| `npm run typecheck` | TypeScript type checking |
-| `npm run lint` | ESLint check |
-| `npm run lint:fix` | ESLint auto-fix |
-| `npm run format` | Prettier format |
-| `npm test` | Run Jest tests |
-| `npm run test:coverage` | Tests with coverage report |
-| `npm run test:anchor` | Run Anchor/Rust tests |
-| `npm run env:check` | Validate environment variables |
-| `npm run analyze` | Bundle size analysis |
+- **Email:** [support@luxhub.gold](mailto:support@luxhub.gold)
+- **Twitter/X:** [@LuxhubStudio](https://x.com/LuxhubStudio)
 
 ---
 
@@ -337,15 +289,13 @@ LuxHub uses 18 Mongoose schemas covering the full marketplace lifecycle:
 ## Partners
 
 <p align="center">
-  <a href="https://solana.com"><img src="public/images/solana-logo.png" alt="Solana" height="40" /></a>
+  <a href="https://bags.fm"><img src="public/images/bags-icon.png" alt="Bags" height="40" /></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://squads.xyz"><img src="public/images/Squads-logo.png" alt="Squads Protocol" height="40" /></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://helius.dev"><img src="public/images/helius-logo.svg" alt="Helius" height="40" /></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.metaplex.com"><img src="public/images/metaplex-logo.svg" alt="Metaplex" height="40" /></a>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://bags.fm"><img src="public/images/bags-logo.svg" alt="Bags" height="40" /></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.privy.io"><img src="public/images/Privy_Brandmark_White.png" alt="Privy" height="40" /></a>
 </p>
@@ -355,8 +305,15 @@ LuxHub uses 18 Mongoose schemas covering the full marketplace lifecycle:
 ## Connect
 
 - **Website:** [luxhub.gold](https://luxhub.gold)
-- **Twitter/X:** [@luxhubdotfun](https://x.com/luxhubdotfun)
+- **Email:** [support@luxhub.gold](mailto:support@luxhub.gold)
+- **Twitter/X:** [@LuxhubStudio](https://x.com/LuxhubStudio)
 - **GitHub:** [yoandryx/LuxHub](https://github.com/yoandryx/LuxHub)
+
+---
+
+## Disclaimer
+
+This software is provided "as is" with no warranty. Use at your own risk — LuxHub is not responsible for any loss of funds or digital assets. Nothing on this platform constitutes financial advice or an offer of securities. See our [Terms of Service](https://luxhub.gold/terms) for full details.
 
 ---
 

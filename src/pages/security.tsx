@@ -76,8 +76,8 @@ const SecurityPage = () => {
                 </div>
                 <h3>3. Funds Release</h3>
                 <p>
-                  After delivery confirmation, Squads multisig executes the release: 95% to vendor,
-                  5% to LuxHub treasury.
+                  After delivery confirmation, Squads multisig executes the release — funds are
+                  distributed to the vendor and platform automatically.
                 </p>
               </div>
             </div>
@@ -289,6 +289,13 @@ const SecurityPage = () => {
                 View Pools
               </Link>
             </div>
+            <p style={{ marginTop: '24px', fontSize: '13px', opacity: 0.4 }}>
+              By using LuxHub you agree to our{' '}
+              <Link href="/terms" style={{ color: '#c8a1ff' }}>
+                Terms of Service
+              </Link>
+              .
+            </p>
           </div>
         </main>
       </div>
