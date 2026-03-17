@@ -185,7 +185,7 @@ async function _handler(req: NextApiRequest, res: NextApiResponse) {
       try {
         poolDistribution = await triggerPoolDistribution(escrow);
         if (!poolDistribution?.success) {
-          console.warn('[confirm-delivery] Pool distribution returned failure:', poolDistribution);
+          // Pool distribution returned failure
         }
       } catch (poolError) {
         console.error('[confirm-delivery] Pool distribution trigger error:', poolError);
@@ -476,10 +476,6 @@ async function triggerPoolDistribution(
       })),
     },
   });
-
-  console.log(
-    `[confirm-delivery] Auto-distribution triggered for pool ${pool._id}: $${resalePriceUSD} resale, ${distributions.length} holders, squads=${squadsResult.success}`
-  );
 
   return {
     success: squadsResult.success,

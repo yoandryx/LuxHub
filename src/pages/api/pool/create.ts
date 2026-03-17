@@ -111,8 +111,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       { $set: { convertedToPool: true, poolId: pool._id, status: 'converted' } }
     );
 
-    console.log('[POOL-CREATE] Pool created:', poolNumber, 'by vendor:', wallet);
-
     // ── Auto-mint Bags bonding curve token ──
     // Non-blocking: pool is created even if Bags API fails
     let tokenResult: { success: boolean; mint?: string; transaction?: string; error?: string } = {
@@ -122,13 +120,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     try {
       tokenResult = await createPoolTokenInternal(pool._id.toString(), wallet);
-      if (tokenResult.success) {
-        console.log('[POOL-CREATE] Bags token minted:', tokenResult.mint);
-      } else {
-        console.warn('[POOL-CREATE] Bags token mint failed:', tokenResult.error);
+      if (!tokenResult.success) {
+        // Bags token mint failed, pool still created
       }
     } catch (tokenErr: any) {
-      console.warn('[POOL-CREATE] Bags token mint error:', tokenErr.message);
       tokenResult = { success: false, error: tokenErr.message };
     }
 

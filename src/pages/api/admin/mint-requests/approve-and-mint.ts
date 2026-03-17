@@ -68,14 +68,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const adminConfig = getAdminConfig();
     const adminKeypair = adminConfig.getAdminKeypair();
 
-    // Debug logging
-    console.log('🔑 Admin keypair check:', {
-      hasAdminSecret: !!process.env.ADMIN_SECRET,
-      adminSecretLength: process.env.ADMIN_SECRET?.length,
-      keypairLoaded: !!adminKeypair,
-      publicKey: adminKeypair?.publicKey?.toBase58() || 'N/A',
-    });
-
     if (!adminKeypair) {
       return res.status(500).json({
         error: 'Admin keypair not configured',
@@ -107,15 +99,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           buffer = Buffer.from(base64Data, 'base64');
           contentType =
             mintRequest.imageBase64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/png';
-          console.log('📦 Processing base64 image...');
         } else if (
           mintRequest.imageUrl &&
           (mintRequest.imageUrl.startsWith('http://') ||
             mintRequest.imageUrl.startsWith('https://'))
         ) {
           // External URL (e.g., Dropbox) - fetch and upload to permanent storage
-          console.log(`📥 Fetching external image: ${mintRequest.imageUrl}`);
-
           // Convert Dropbox share links to direct download links
           let fetchUrl = mintRequest.imageUrl;
           if (fetchUrl.includes('dropbox.com')) {
@@ -132,7 +121,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (!fetchUrl.includes('dl=1')) {
               fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'dl=1';
             }
-            console.log(`🔄 Converted Dropbox URL: ${fetchUrl}`);
           }
 
           const response = await fetch(fetchUrl, {
@@ -158,7 +146,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             throw new Error('Image URL returned HTML - check if the image is publicly accessible');
           }
 
-          console.log(`✅ Fetched image (${buffer.length} bytes, ${contentType})`);
         } else {
           return res.status(400).json({ error: 'No valid image source available' });
         }
@@ -171,7 +158,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         imageUrl = imageResult.gateway;
         imageTxId = imageResult.irysTxId || imageResult.ipfsHash;
 
-        console.log(`✅ Image uploaded via ${imageResult.provider}: ${imageUrl}`);
       } catch (error) {
         console.error('Failed to upload image:', error);
         return res.status(500).json({
@@ -185,36 +171,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!imageUrl) {
       return res.status(400).json({ error: 'No image available for minting' });
     }
-
-    // Log all attributes for debugging
-    console.log('📋 Mint Request from MongoDB:', {
-      _id: mintRequest._id,
-      title: mintRequest.title,
-      brand: mintRequest.brand,
-      model: mintRequest.model,
-      referenceNumber: mintRequest.referenceNumber,
-      priceUSD: mintRequest.priceUSD,
-      material: mintRequest.material,
-      productionYear: mintRequest.productionYear,
-      movement: mintRequest.movement,
-      caseSize: mintRequest.caseSize,
-      waterResistance: mintRequest.waterResistance,
-      dialColor: mintRequest.dialColor,
-      condition: mintRequest.condition,
-      boxPapers: mintRequest.boxPapers,
-      limitedEdition: mintRequest.limitedEdition,
-      country: mintRequest.country,
-      certificate: mintRequest.certificate,
-      warrantyInfo: mintRequest.warrantyInfo,
-      provenance: mintRequest.provenance,
-      features: mintRequest.features,
-      releaseDate: mintRequest.releaseDate,
-      imageBase64: mintRequest.imageBase64
-        ? `(${mintRequest.imageBase64.length} chars)`
-        : '(empty)',
-      imageUrl: mintRequest.imageUrl || '(empty)',
-      imageCid: mintRequest.imageCid || '(empty)',
-    });
 
     // Step 2: Create NFT metadata
     const metadata = {
@@ -270,16 +226,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     };
 
-    // Log the metadata being created
-    console.log('📝 NFT Metadata to upload:', JSON.stringify(metadata, null, 2));
-    console.log('📊 Attributes count:', metadata.attributes.length);
-
     // Step 3: Upload metadata to storage (Irys/Pinata based on STORAGE_PROVIDER)
     let metadataUri: string;
     try {
       const metadataResult = await uploadMetadata(metadata, mintRequest.title);
       metadataUri = metadataResult.gateway;
-      console.log(`✅ Metadata uploaded via ${metadataResult.provider}: ${metadataUri}`);
     } catch (error) {
       console.error('Failed to upload metadata:', error);
       return res.status(500).json({
@@ -403,8 +354,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ],
       },
     });
-
-    console.log(`✅ Asset created and auto-listed: ${asset._id}`);
 
     return res.status(200).json({
       message: 'NFT minted and transferred to vendor successfully',

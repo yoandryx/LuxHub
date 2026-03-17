@@ -32,7 +32,7 @@ async function checkSquadsMembership(wallet: string): Promise<{
       return await response.json();
     }
   } catch (error) {
-    console.warn('Could not check Squads membership:', error);
+    // Could not check Squads membership
   }
   return { isMember: false, canMint: false, squadsConfigured: false };
 }
@@ -114,15 +114,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get admin keypair for minting
     const adminKeypair = adminConfig.getAdminKeypair();
 
-    console.log('🔑 Mint authorization:', {
-      mintingAdmin: requestingWallet.slice(0, 8) + '...',
-      isEnvAdmin,
-      isEnvSuperAdmin,
-      hasDbPermission: !!dbAdmin?.permissions?.canApproveMints,
-      squadsConfigured: squadsCheck.squadsConfigured,
-      isSquadsMember: squadsCheck.isMember,
-    });
-
     if (!adminKeypair) {
       return res.status(500).json({
         error: 'Admin keypair not configured',
@@ -148,14 +139,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           buffer = Buffer.from(base64Data, 'base64');
           contentType =
             mintRequest.imageBase64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/png';
-          console.log('📦 Processing base64 image...');
         } else if (
           mintRequest.imageUrl &&
           (mintRequest.imageUrl.startsWith('http://') ||
             mintRequest.imageUrl.startsWith('https://'))
         ) {
-          console.log(`📥 Fetching external image: ${mintRequest.imageUrl}`);
-
           let fetchUrl = mintRequest.imageUrl;
           if (fetchUrl.includes('dropbox.com')) {
             fetchUrl = fetchUrl
@@ -165,7 +153,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (!fetchUrl.includes('dl=1')) {
               fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'dl=1';
             }
-            console.log(`🔄 Converted Dropbox URL: ${fetchUrl}`);
           }
 
           const response = await fetch(fetchUrl, {
@@ -185,7 +172,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             throw new Error('Image URL returned HTML - check if the image is publicly accessible');
           }
 
-          console.log(`✅ Fetched image (${buffer.length} bytes, ${contentType})`);
         } else {
           return res.status(400).json({ error: 'No valid image source available' });
         }
@@ -196,7 +182,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         imageUrl = imageResult.gateway;
         imageTxId = imageResult.irysTxId || imageResult.ipfsHash;
-        console.log(`✅ Image uploaded via ${imageResult.provider}: ${imageUrl}`);
       } catch (error) {
         console.error('Failed to upload image:', error);
         return res.status(500).json({
@@ -261,14 +246,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     };
 
-    console.log('📝 Creating NFT metadata...');
-
     // Step 3: Upload metadata
     let metadataUri: string;
     try {
       const metadataResult = await uploadMetadata(metadata, mintRequest.title);
       metadataUri = metadataResult.gateway;
-      console.log(`✅ Metadata uploaded via ${metadataResult.provider}: ${metadataUri}`);
     } catch (error) {
       console.error('Failed to upload metadata:', error);
       return res.status(500).json({ error: 'Failed to upload metadata' });
@@ -292,7 +274,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let mintAddress: string;
 
     try {
-      console.log(`🔨 Minting NFT: ${mintRequest.title}`);
       await createAsset(umi, {
         asset: assetSigner,
         name: mintRequest.title,
@@ -300,7 +281,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }).sendAndConfirm(umi);
 
       mintAddress = assetSigner.publicKey.toString();
-      console.log(`✅ NFT minted: ${mintAddress}`);
     } catch (error) {
       console.error('Failed to mint NFT:', error);
       return res.status(500).json({ error: 'Failed to mint NFT on-chain' });
@@ -315,7 +295,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         newOwner: umiPublicKey(mintRequest.wallet),
       }).sendAndConfirm(umi);
       transferSuccess = true;
-      console.log(`✅ NFT transferred to vendor: ${mintRequest.wallet.slice(0, 8)}...`);
     } catch (error) {
       console.error('Failed to transfer NFT to vendor:', error);
       // NFT minted but not transferred - continue to save records
@@ -387,8 +366,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ],
       },
     });
-
-    console.log(`✅ Asset created and auto-listed: ${asset._id}`);
 
     return res.status(200).json({
       message: 'NFT minted and transferred to vendor successfully',

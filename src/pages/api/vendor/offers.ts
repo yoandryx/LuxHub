@@ -39,9 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       query.status = status;
     }
 
-    console.log('[vendor/offers] Query:', JSON.stringify(query));
-    console.log('[vendor/offers] Wallet:', wallet, 'Vendor:', vendor?._id);
-
     // Fetch offers where this vendor is the receiver
     const offerDocs = await Offer.find(query)
       .populate({
@@ -54,8 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
       .sort({ offerPriceUSD: -1, createdAt: -1 })
       .lean();
-
-    console.log('[vendor/offers] Found:', offerDocs.length, 'offers');
 
     // Transform offers for frontend
     const offers = (offerDocs as any[]).map((offer: any) => ({

@@ -51,18 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     transferSuccess,
   } = req.body;
 
-  console.log('========================================');
-  console.log('[CONFIRM-MINT] Received confirmation request');
-  console.log('========================================');
-  console.log('[CONFIRM-MINT] Mint Request ID:', mintRequestId);
-  console.log('[CONFIRM-MINT] Mint Address:', mintAddress);
-  console.log('[CONFIRM-MINT] Signature:', signature);
-  console.log('[CONFIRM-MINT] Transfer to Vendor:', transferToVendor);
-  console.log('[CONFIRM-MINT] Transfer Destination:', transferDestination);
-  console.log('[CONFIRM-MINT] Transfer Destination Type:', transferDestinationType);
-  console.log('[CONFIRM-MINT] Transfer Success:', transferSuccess);
-  console.log('[CONFIRM-MINT] Admin Wallet:', signerWallet);
-
   if (!mintRequestId || !mintAddress) {
     console.error('[CONFIRM-MINT] ❌ Missing required fields');
     return res.status(400).json({ error: 'mintRequestId and mintAddress are required' });
@@ -85,10 +73,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const accountInfo = await connection.getAccountInfo(new PublicKey(mintAddress));
         if (accountInfo) {
           onChainVerified = true;
-          console.log('[CONFIRM-MINT] ✅ Mint verified on-chain');
           break;
         }
-        console.log(`[CONFIRM-MINT] Attempt ${attempt + 1}: Mint not found yet, waiting...`);
         await new Promise((r) => setTimeout(r, 2000)); // Wait 2 seconds between retries
       } catch (e) {
         console.error('[CONFIRM-MINT] RPC error:', e);
@@ -96,9 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (!onChainVerified) {
-      console.log(
-        '[CONFIRM-MINT] ⚠️ Could not verify on-chain, proceeding anyway (RPC may be slow)'
-      );
+      // Could not verify on-chain, proceeding anyway (RPC may be slow)
     }
 
     // Get image/metadata info from pending mint or existing fields
@@ -135,9 +119,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Determine actual NFT owner based on transfer destination
     const actualOwner = transferSuccess && transferDestination ? transferDestination : signerWallet;
-    console.log('[CONFIRM-MINT] Transfer destination:', transferDestination);
-    console.log('[CONFIRM-MINT] Transfer success:', transferSuccess);
-    console.log('[CONFIRM-MINT] Actual NFT owner:', actualOwner);
 
     // Find or create user for the actual owner
     const ownerUser = await User.findOneAndUpdate(
@@ -162,7 +143,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       // Update user role to vendor
       await User.findByIdAndUpdate(ownerUser._id, { role: 'vendor' });
-      console.log('[CONFIRM-MINT] Auto-created vendor record for', actualOwner);
     }
 
     // Also find the original requester's vendor for reference
@@ -249,19 +229,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    console.log('========================================');
-    console.log('[CONFIRM-MINT] Asset created successfully');
-    console.log('========================================');
-    console.log('[CONFIRM-MINT] Asset ID:', asset._id);
-    console.log('[CONFIRM-MINT] Mint Address:', mintAddress);
-    console.log('[CONFIRM-MINT] Title:', mintRequest.title);
-    console.log('[CONFIRM-MINT] Price USD:', mintRequest.priceUSD);
-    console.log('[CONFIRM-MINT] Owner Vendor:', ownerVendor?.businessName || 'N/A');
-    console.log('[CONFIRM-MINT] Requester Wallet:', mintRequest.wallet);
-    console.log('[CONFIRM-MINT] NFT Owner Wallet:', actualOwner);
-    console.log('[CONFIRM-MINT] Transfer Destination Type:', transferDestinationType);
-    console.log('[CONFIRM-MINT] Transfer Completed:', transferSuccess);
-
     // Calculate listing price in lamports (1 SOL = 1e9 lamports)
     // Use a rough SOL price estimate or fetch from API
     const solPrice = 150; // Approximate SOL price in USD
@@ -290,18 +257,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Update asset with escrow reference
     asset.escrowId = escrow._id;
     await asset.save();
-
-    console.log('========================================');
-    console.log('[CONFIRM-MINT] Escrow created for marketplace listing');
-    console.log('========================================');
-    console.log('[CONFIRM-MINT] Escrow ID:', escrow._id);
-    console.log('[CONFIRM-MINT] Sale Mode:', escrow.saleMode);
-    console.log('[CONFIRM-MINT] Listing Price (lamports):', listingPriceLamports);
-    console.log('[CONFIRM-MINT] Listing Price USD:', mintRequest.priceUSD);
-    console.log('[CONFIRM-MINT] Accepting Offers:', escrow.acceptingOffers);
-    console.log('[CONFIRM-MINT] Min Offer USD:', escrow.minimumOfferUSD);
-    console.log('[CONFIRM-MINT] Status:', escrow.status);
-    console.log('[CONFIRM-MINT] ✅ NFT should now appear on /watchMarket');
 
     // Determine transfer status message
     let transferMessage = 'NFT minted and listed on marketplace';

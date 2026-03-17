@@ -62,19 +62,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Vendor wallet address missing from request' });
     }
 
-    console.log('========================================');
-    console.log('[PREPARE-MINT] Starting metadata preparation');
-    console.log('========================================');
-    console.log('[PREPARE-MINT] Request ID:', mintRequestId);
-    console.log('[PREPARE-MINT] Admin Wallet:', signerWallet);
-    console.log('[PREPARE-MINT] Title:', mintRequest.title);
-    console.log('[PREPARE-MINT] Brand:', mintRequest.brand);
-    console.log('[PREPARE-MINT] Model:', mintRequest.model);
-    console.log('[PREPARE-MINT] Price USD:', mintRequest.priceUSD);
-    console.log('[PREPARE-MINT] Vendor Wallet:', mintRequest.wallet);
-    console.log('[PREPARE-MINT] Image URL:', mintRequest.imageUrl || '(base64)');
-    console.log('[PREPARE-MINT] Image CID:', mintRequest.imageCid || '(not yet uploaded)');
-
     // Step 1: Upload image if needed
     let imageUrl = mintRequest.imageCid
       ? getStorageConfig().provider === 'irys'
@@ -93,13 +80,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           buffer = Buffer.from(base64Data, 'base64');
           contentType =
             mintRequest.imageBase64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/png';
-          console.log('📦 Processing base64 image...');
         } else if (
           mintRequest.imageUrl &&
           (mintRequest.imageUrl.startsWith('http://') ||
             mintRequest.imageUrl.startsWith('https://'))
         ) {
-          console.log(`📥 Fetching external image: ${mintRequest.imageUrl}`);
           let fetchUrl = mintRequest.imageUrl;
           if (fetchUrl.includes('dropbox.com')) {
             fetchUrl = fetchUrl
@@ -127,7 +112,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (contentType.includes('text/html')) {
             throw new Error('Image URL returned HTML - not publicly accessible');
           }
-          console.log(`✅ Fetched image (${buffer.length} bytes)`);
         } else {
           return res.status(400).json({ error: 'No valid image source available' });
         }
@@ -138,7 +122,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         imageUrl = imageResult.gateway;
         imageTxId = imageResult.irysTxId || imageResult.ipfsHash;
-        console.log(`✅ Image uploaded: ${imageUrl}`);
       } catch (error) {
         console.error('Failed to upload image:', error);
         return res.status(500).json({
@@ -240,7 +223,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const metadataResult = await uploadMetadata(metadata, mintRequest.title);
       metadataUri = metadataResult.gateway;
-      console.log(`✅ Metadata uploaded: ${metadataUri}`);
     } catch (error) {
       console.error('Failed to upload metadata:', error);
       return res.status(500).json({ error: 'Failed to upload metadata' });
@@ -255,8 +237,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       preparedBy: signerWallet,
     };
     await mintRequest.save();
-
-    console.log(`✅ Metadata prepared for minting: ${mintRequest.title}`);
 
     // Return metadata URI for client-side minting with UMI
     return res.status(200).json({

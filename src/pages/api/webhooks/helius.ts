@@ -184,7 +184,6 @@ async function classifyDeposit(
  */
 async function handleTreasuryDeposit(event: HeliusEvent): Promise<void> {
   if (!TREASURY_WALLET) {
-    console.warn('[helius-webhook] TREASURY_WALLET not configured, skipping deposit tracking');
     return;
   }
 
@@ -201,7 +200,6 @@ async function handleTreasuryDeposit(event: HeliusEvent): Promise<void> {
       // Check if we've already recorded this deposit
       const existing = await TreasuryDeposit.findOne({ txSignature: event.signature });
       if (existing) {
-        console.log(`[helius-webhook] Treasury deposit already recorded: ${event.signature}`);
         continue;
       }
 
@@ -223,10 +221,6 @@ async function handleTreasuryDeposit(event: HeliusEvent): Promise<void> {
         heliusEventType: event.type,
         description: event.description,
       });
-
-      console.log(
-        `[helius-webhook] Treasury deposit recorded: ${amount / 1e9} SOL from ${fromUserAccount} (${classification.depositType})`
-      );
 
       // If this is an escrow fee, update the related escrow
       if (classification.escrowId) {
@@ -276,9 +270,7 @@ async function handleNftTransfer(event: HeliusEvent): Promise<void> {
       );
 
       if (result) {
-        console.log(
-          `[helius-webhook] NFT transfer recorded: ${mint} from ${fromUserAccount} to ${toUserAccount}`
-        );
+        // NFT transfer recorded
       }
     } catch (error) {
       errorMonitor.captureException(error as Error, {
@@ -353,9 +345,6 @@ async function handleNftSale(event: HeliusEvent): Promise<void> {
         });
       }
 
-      console.log(
-        `[helius-webhook] NFT sale recorded: ${mint}, buyer: ${buyer}, amount: ${saleAmount / 1e9} SOL`
-      );
     } catch (error) {
       errorMonitor.captureException(error as Error, {
         endpoint: '/api/webhooks/helius',
@@ -401,9 +390,7 @@ async function handleNftListing(event: HeliusEvent): Promise<void> {
       );
 
       if (escrow) {
-        console.log(
-          `[helius-webhook] NFT listing recorded: ${mint}, seller: ${seller}, price: ${listingPrice ? listingPrice / 1e9 : 'unknown'} SOL`
-        );
+        // NFT listing recorded
       }
     } catch (error) {
       errorMonitor.captureException(error as Error, {
@@ -449,7 +436,6 @@ async function handleNftCancelListing(event: HeliusEvent): Promise<void> {
         }
       );
 
-      console.log(`[helius-webhook] NFT listing cancelled: ${mint}`);
     } catch (error) {
       errorMonitor.captureException(error as Error, {
         endpoint: '/api/webhooks/helius',
@@ -484,8 +470,6 @@ async function handleNftMint(event: HeliusEvent): Promise<void> {
       );
 
       if (result) {
-        console.log(`[helius-webhook] NFT mint recorded: ${mint}`);
-
         // Record mint transaction
         await Transaction.create({
           type: 'mint',
@@ -530,22 +514,17 @@ async function handleAccountUpdate(event: HeliusEvent): Promise<void> {
           newStatus = 'funded';
           updateData.fundedAt = new Date(event.timestamp * 1000);
           updateData.fundedAmount = nativeBalanceChange;
-          console.log(
-            `[helius-webhook] Escrow funded: ${account}, amount: ${nativeBalanceChange / 1e9} SOL`
-          );
         }
 
         // Negative balance change = funds released
         if (nativeBalanceChange < 0 && escrow.status === 'funded') {
           newStatus = 'released';
           updateData.releasedAt = new Date(event.timestamp * 1000);
-          console.log(`[helius-webhook] Escrow released: ${account}`);
         }
 
         updateData.status = newStatus;
         await Escrow.findByIdAndUpdate(escrow._id, { $set: updateData });
 
-        console.log(`[helius-webhook] Escrow account updated: ${account}, status: ${newStatus}`);
       }
     } catch (error) {
       errorMonitor.captureException(error as Error, {
@@ -583,8 +562,6 @@ async function handleTokenBurn(event: HeliusEvent): Promise<void> {
       );
 
       if (result) {
-        console.log(`[helius-webhook] NFT burn recorded: ${mint}`);
-
         // Record burn transaction
         await Transaction.create({
           type: 'burn',
@@ -640,7 +617,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (secret) {
     const payload = JSON.stringify(req.body);
     if (!verifyHeliusSignature(payload, signature, secret)) {
-      console.warn('[helius-webhook] Invalid signature received');
       return res.status(401).json({ success: false, error: 'Invalid signature' });
     }
   } else if (process.env.NODE_ENV === 'production') {
@@ -652,8 +628,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     await dbConnect();
 
     const events: HeliusEvent[] = Array.isArray(req.body) ? req.body : [req.body];
-
-    console.log(`[helius-webhook] Received ${events.length} event(s)`);
 
     // Process events in parallel with error handling
     const results = await Promise.allSettled(
@@ -689,11 +663,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             await handleTransfer(event);
             break;
           case 'SWAP':
-            // Log swaps but don't process (not relevant to marketplace)
-            console.log(`[helius-webhook] Swap event received: ${event.signature}`);
+            // Swaps not relevant to marketplace
             break;
           default:
-            console.log(`[helius-webhook] Unhandled event type: ${event.type}`);
+            break;
         }
       })
     );
@@ -703,8 +676,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const failed = results.filter((r) => r.status === 'rejected').length;
 
     if (failed > 0) {
-      console.warn(`[helius-webhook] ${failed}/${events.length} events failed to process`);
-      // Log failed events for debugging
       results.forEach((r, i) => {
         if (r.status === 'rejected') {
           console.error(`[helius-webhook] Event ${i} failed:`, r.reason);

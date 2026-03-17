@@ -61,26 +61,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   }
 
   try {
-    // Log storage configuration
     const storageConfig = getStorageConfig();
-    console.log('[STORAGE-API] Upload request received');
-    console.log('[STORAGE-API] Type:', type);
-    console.log('[STORAGE-API] Name:', name);
-    console.log('[STORAGE-API] Provider config:', storageConfig.provider);
-    console.log('[STORAGE-API] Irys configured:', storageConfig.irysConfigured);
-    console.log('[STORAGE-API] Pinata configured:', storageConfig.pinataConfigured);
-    console.log('[STORAGE-API] Force provider:', forceProvider || 'none (using default)');
 
     if (type === 'metadata') {
       // Upload JSON metadata
-      console.log('[STORAGE-API] Uploading metadata...');
       const result = await uploadMetadata(data as object, name, {
         forceProvider,
       });
-
-      console.log('[STORAGE-API] Metadata upload successful');
-      console.log('[STORAGE-API] Gateway URL:', result.gateway);
-      console.log('[STORAGE-API] Provider used:', result.provider);
 
       return res.status(200).json({
         success: true,
@@ -92,8 +79,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       });
     } else {
       // Upload image (base64 encoded)
-      console.log('[STORAGE-API] Uploading image...');
-
       // Convert base64 to Buffer
       const base64Data = (data as string).replace(/^data:image\/\w+;base64,/, '');
       const imageBuffer = Buffer.from(base64Data, 'base64');
@@ -102,10 +87,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         forceProvider,
         fileName: name,
       });
-
-      console.log('[STORAGE-API] Image upload successful');
-      console.log('[STORAGE-API] Gateway URL:', result.gateway);
-      console.log('[STORAGE-API] Provider used:', result.provider);
 
       return res.status(200).json({
         success: true,
