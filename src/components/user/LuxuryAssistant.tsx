@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/router';
 import { useWallet } from '@solana/wallet-adapter-react';
 import styles from '../../styles/LuxuryAssistant.module.css';
+import Link from 'next/link';
 import {
   FaArrowUp,
   FaTimes,
@@ -12,6 +13,29 @@ import {
   FaShieldAlt,
   FaWallet,
 } from 'react-icons/fa';
+
+// Map page names (as Lux references them in bold) to routes
+const pageRouteMap: Record<string, string> = {
+  marketplace: '/marketplace',
+  pools: '/pools',
+  'my offers': '/myOffers',
+  orders: '/orders',
+  'my orders': '/orders',
+  'vendor dashboard': '/vendor/vendorDashboard',
+  'admin dashboard': '/adminDashboard',
+  'create nft': '/createNFT',
+  mint: '/createNFT',
+  'become a dealer': '/vendor/apply',
+  'vendor apply': '/vendor/apply',
+  profile: '/profile',
+  'learn more': '/learnMore',
+  'how it works': '/learnMore',
+  security: '/security',
+  'security & trust': '/security',
+  terms: '/terms',
+  'terms of service': '/terms',
+  notifications: '/notifications',
+};
 
 interface Message {
   id: string;
@@ -67,10 +91,27 @@ function renderMarkdown(text: string): React.ReactNode {
       const candidates: { index: number; length: number; node: React.ReactNode }[] = [];
 
       if (boldMatch && boldMatch.index !== undefined) {
+        const boldText = boldMatch[1];
+        const route = pageRouteMap[boldText.toLowerCase()];
         candidates.push({
           index: boldMatch.index,
           length: boldMatch[0].length,
-          node: <strong key={key++}>{boldMatch[1]}</strong>,
+          node: route ? (
+            <Link
+              key={key++}
+              href={route}
+              style={{
+                color: '#c8a1ff',
+                fontWeight: 600,
+                textDecoration: 'none',
+                borderBottom: '1px solid rgba(200,161,255,0.3)',
+              }}
+            >
+              {boldText}
+            </Link>
+          ) : (
+            <strong key={key++}>{boldText}</strong>
+          ),
         });
       }
       if (codeMatch && codeMatch.index !== undefined) {
@@ -188,7 +229,7 @@ const getPageLabel = (pageType: PageType): string => {
     marketplace: 'Marketplace',
     pools: 'Pools',
     'nft-detail': 'Item Details',
-    'vendor-dashboard': 'Seller Dashboard',
+    'vendor-dashboard': 'Vendor Dashboard',
     'admin-dashboard': 'Admin Dashboard',
     'my-offers': 'My Offers',
     'create-nft': 'Create NFT',
@@ -214,8 +255,8 @@ const pageQuickActions: Record<PageType, QuickAction[]> = {
   pools: [
     { label: 'How Pools Work', prompt: 'How do tokenized pools work on LuxHub?' },
     {
-      label: 'Returns Explained',
-      prompt: 'How are estimated returns calculated for pools? When do I get proceeds?',
+      label: 'Proceeds',
+      prompt: 'How do distributions work when a watch sells?',
     },
     { label: 'Pool Risks', prompt: 'What are the risks of participating in a pool?' },
   ],
@@ -270,7 +311,7 @@ const roleQuickActions: Record<UserContext['role'], QuickAction[]> = {
   ],
   buyer: [
     { label: 'Make Offer', prompt: 'How do I make an offer on an item?' },
-    { label: 'Join a Pool', prompt: 'How do tokenized pools work?' },
+    { label: 'Join a Pool', prompt: 'How do I participate in a pool?' },
     { label: 'Track Order', prompt: 'How can I track my purchase shipment?' },
   ],
   vendor: [
@@ -482,8 +523,8 @@ const LuxuryAssistant = () => {
           <div className={styles.header}>
             <div className={styles.headerLeft}>
               <div className={styles.headerText}>
-                <span className={styles.headerTitle}>Luxury</span>
-                <span className={styles.headerSubtitle}>AI Concierge</span>
+                <span className={styles.headerTitle}>Lux</span>
+                <span className={styles.headerSubtitle}>Your Agent</span>
               </div>
             </div>
             <div className={styles.headerRight}>
@@ -517,11 +558,11 @@ const LuxuryAssistant = () => {
           <div className={styles.messagesContainer}>
             {messages.length === 0 && (
               <div className={styles.welcomeMessage}>
-                <h3>Welcome to LuxHub</h3>
+                <h3>Lux</h3>
                 <p>
                   {userContext.role === 'guest'
-                    ? 'Connect your wallet to unlock personalized assistance.'
-                    : `How can I help you with ${pageLabel}?`}
+                    ? 'Your personal LuxHub agent. Connect a wallet to get started.'
+                    : `What do you need?`}
                 </p>
               </div>
             )}
@@ -584,9 +625,9 @@ const LuxuryAssistant = () => {
 
           {/* Footer */}
           <div className={styles.footer}>
-            <span>Powered by Claude</span>
+            <span>Lux Agent</span>
             <span className={styles.footerDot}>·</span>
-            <span>LuxHub AI</span>
+            <span>LuxHub</span>
           </div>
         </div>
       )}

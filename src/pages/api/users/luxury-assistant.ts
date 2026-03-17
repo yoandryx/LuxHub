@@ -6,6 +6,8 @@ import { Vendor } from '@/lib/models/Vendor';
 import { Offer } from '@/lib/models/Offer';
 import { Escrow } from '@/lib/models/Escrow';
 import { Pool } from '@/lib/models/Pool';
+// Asset model needed for Mongoose populate registration
+import '@/lib/models/Assets';
 
 // Type definitions for database documents
 interface UserDoc {
@@ -34,12 +36,110 @@ interface UserContext {
   };
   buyerInfo?: {
     activeOffers: number;
-    poolInvestments: number;
+    poolParticipations: number;
   };
   marketSnapshot?: {
     trendingItems: { name: string; offers: number; price: number }[];
     recentActivity: string;
   };
+}
+
+// Fetch page-relevant data from DB so Lux has real info
+async function getPageData(currentPage: string, wallet: string | null): Promise<string> {
+  try {
+    await connectDB();
+    const sections: string[] = [];
+
+    if (currentPage === 'marketplace' || currentPage === 'home') {
+      // Active listings with prices
+      const listings = await Escrow.find({ status: 'active' })
+        .populate('asset', 'brand model priceUSD dialColor material caseSize imageUrl')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
+
+      if (listings.length > 0) {
+        const listingInfo = listings
+          .map((e: any) => {
+            const a = e.asset;
+            if (!a) return null;
+            const price = e.listingPriceUSD || a.priceUSD || 0;
+            return `- ${a.brand || ''} ${a.model || 'Watch'}: $${price.toLocaleString()}${a.material ? ` (${a.material})` : ''}${e.acceptingOffers ? ' — accepting offers' : ''}`;
+          })
+          .filter(Boolean);
+        sections.push(`CURRENT LISTINGS (${listings.length} active):\n${listingInfo.join('\n')}`);
+      } else {
+        sections.push('CURRENT LISTINGS: No active listings right now.');
+      }
+    }
+
+    if (currentPage === 'pools') {
+      const pools = await Pool.find({
+        status: { $in: ['open', 'active', 'filled'] },
+        deleted: { $ne: true },
+      })
+        .populate('selectedAssetId', 'brand model priceUSD imageUrl')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
+
+      if (pools.length > 0) {
+        const poolInfo = pools.map((p: any) => {
+          const a = p.selectedAssetId;
+          const name = a ? `${a.brand || ''} ${a.model || 'Watch'}` : 'Pool';
+          const progress = p.totalShares > 0 ? Math.round((p.sharesSold / p.totalShares) * 100) : 0;
+          return `- ${name}: $${(p.targetAmountUSD || 0).toLocaleString()} target, ${progress}% funded, status: ${p.status}${p.bagsTokenMint ? ' (tradeable on Bags)' : ''}`;
+        });
+        sections.push(`ACTIVE POOLS (${pools.length}):\n${poolInfo.join('\n')}`);
+      } else {
+        sections.push('ACTIVE POOLS: No pools available right now.');
+      }
+    }
+
+    if (currentPage === 'my-offers' && wallet) {
+      const offers = await Offer.find({
+        buyerWallet: wallet,
+        status: { $in: ['pending', 'countered', 'accepted'] },
+      })
+        .populate('escrow')
+        .limit(5)
+        .lean();
+
+      if (offers.length > 0) {
+        const offerInfo = offers.map(
+          (o: any) => `- $${(o.amountUSD || 0).toLocaleString()} offer — status: ${o.status}`
+        );
+        sections.push(`YOUR OFFERS (${offers.length}):\n${offerInfo.join('\n')}`);
+      }
+    }
+
+    if (currentPage === 'vendor-dashboard' && wallet) {
+      const vendorListings = await Escrow.find({
+        sellerWallet: wallet,
+        status: { $in: ['active', 'funded', 'shipped'] },
+      })
+        .populate('asset', 'brand model priceUSD')
+        .limit(10)
+        .lean();
+
+      const pendingOffers = await Offer.countDocuments({ vendorWallet: wallet, status: 'pending' });
+
+      if (vendorListings.length > 0 || pendingOffers > 0) {
+        const info = vendorListings.map((e: any) => {
+          const a = e.asset;
+          return `- ${a?.brand || ''} ${a?.model || 'Watch'}: $${(a?.priceUSD || 0).toLocaleString()} — ${e.status}`;
+        });
+        sections.push(
+          `YOUR LISTINGS (${vendorListings.length}):\n${info.join('\n')}\nPending offers: ${pendingOffers}`
+        );
+      }
+    }
+
+    return sections.length > 0 ? '\n\nLIVE DATA:\n' + sections.join('\n\n') : '';
+  } catch (err) {
+    console.error('Page data fetch error:', err);
+    return '';
+  }
 }
 
 async function getUserContext(wallet: string | null): Promise<UserContext> {
@@ -83,7 +183,7 @@ async function getUserContext(wallet: string | null): Promise<UserContext> {
   }
 
   // Default: buyer - run independent queries in parallel
-  const [activeOffers, poolInvestments, trendingEscrows] = await Promise.all([
+  const [activeOffers, poolParticipations, trendingEscrows] = await Promise.all([
     Offer.countDocuments({
       buyerWallet: wallet,
       status: { $in: ['pending', 'countered'] },
@@ -109,7 +209,7 @@ async function getUserContext(wallet: string | null): Promise<UserContext> {
     wallet,
     buyerInfo: {
       activeOffers,
-      poolInvestments,
+      poolParticipations,
     },
     marketSnapshot: {
       trendingItems,
@@ -120,57 +220,95 @@ async function getUserContext(wallet: string | null): Promise<UserContext> {
 
 // Page-specific context for the AI
 const pageContextMap: Record<string, string> = {
-  home: 'The home page - help them explore the platform and get started.',
-  marketplace: 'The marketplace - help them browse items, understand pricing, and make offers.',
-  pools: 'The pools page - explain fractional ownership, ROI calculations, and pool lifecycles.',
+  home: 'Home page. Help them find what they need or get started.',
+  marketplace: 'Marketplace. They can browse watches, filter by brand/price, and make offers.',
+  pools:
+    'Pools page. They can browse tokenized pools, see bonding curves, and participate. Explain pool mechanics only if asked.',
   'nft-detail':
-    'Viewing a specific item - help with pricing analysis, making offers, and authenticity.',
-  'seller-dashboard':
-    'The seller dashboard - help manage listings, respond to offers, and track shipments.',
+    'Viewing a specific watch. Help with pricing context, making offers, or checking authenticity.',
+  'vendor-dashboard':
+    'Vendor dashboard. Help manage listings, respond to offers, track shipments, and view earnings.',
   'admin-dashboard':
-    'The admin dashboard - help with verifications, pool management, and compliance.',
-  'my-offers':
-    'The offers page - help understand offer statuses, counter-offers, and negotiations.',
-  'create-nft': 'Creating a new NFT listing - help with photos, pricing, and the minting process.',
-  profile: 'The profile page - help with account settings and transaction history.',
-  'learn-more': 'The learn more page - provide comprehensive platform education.',
-  other: 'General browsing - provide helpful navigation and platform information.',
+    'Admin dashboard. Help with escrow management, vendor approvals, Squads proposals, and custody verification.',
+  'my-offers': 'Offers page. Help understand offer statuses, counter-offers, and next steps.',
+  'create-nft': 'Minting page. Help with listing a watch — photos, pricing, AI analysis, metadata.',
+  profile: 'Profile page. Help with account settings, wallet info, and transaction history.',
+  'learn-more': 'Learn more page. Answer questions about how LuxHub works.',
+  other: 'Help them navigate to the right page or answer general questions.',
 };
 
-function buildSystemPrompt(context: UserContext, currentPage?: string, pageLabel?: string): string {
-  const basePrompt = `You are Luxury — LuxHub's personal AI concierge. LuxHub is a premium decentralized marketplace on Solana where physical luxury assets (watches, jewelry, collectibles) are tokenized as NFTs with verified provenance and secured by on-chain escrow.
+async function buildSystemPrompt(
+  context: UserContext,
+  currentPage?: string,
+  pageLabel?: string
+): Promise<string> {
+  const basePrompt = `You are Lux — the user's personal agent on LuxHub. LuxHub is a decentralized luxury watch marketplace on Solana. Authenticated timepieces are NFT-backed with verified provenance, secured by on-chain escrow, and available through tokenized community pools.
 
-PERSONALITY:
-- Speak like a knowledgeable luxury concierge at a five-star boutique
-- Confident, warm, refined — never robotic or generic
-- Use specific watch/luxury knowledge when relevant (reference movements, complications, brands)
-- Keep responses concise (2-4 sentences unless asked for detail)
-- Use "we" when referring to LuxHub — you represent the brand
-- Address the user personally — you're THEIR dedicated assistant
+TONE:
+- Direct, polite, and brief. 1-3 sentences max unless the user asks for more.
+- You're their agent — not a chatbot. You work for them.
+- Confident and knowledgeable. No filler, no fluff, no over-explaining.
+- Say "we" for LuxHub. Say "you" for the user. Keep it personal.
+- Never sound like a sales pitch. Be helpful, not promotional.
 
-FORMATTING:
-- Use **bold** for key terms, brands, and important concepts
-- Use bullet points for lists of steps, features, or options
-- Use numbered lists for sequential steps
-- Keep paragraphs short (1-2 sentences each)
-- Never use headers (# or ##) — keep it conversational
-- Never use emojis — maintain the premium tone
+RESPONSE RULES:
+- Default to SHORT answers. Only expand when asked.
+- If a user asks a yes/no question, lead with yes or no.
+- Don't repeat what the user said back to them.
+- Don't list things unless the user asks "what are my options" or similar.
+- No emojis. No headers. No "Great question!" or "Absolutely!" openers.
+- Use **bold** sparingly — only for key terms or actions.
+- If you don't know something specific about their account, say so and point them to the right page.
 
 PLATFORM KNOWLEDGE:
-- Every listed item is a physical luxury asset backed by an NFT with provenance on Solana
-- Escrow protects both parties: buyer's USDC is held until delivery is confirmed
-- 3% platform fee on completed sales — transparent, no hidden charges
-- Fractional ownership pools let multiple investors co-own high-value pieces
-- Pool tokens trade on bonding curves — holders earn proportional proceeds when the asset sells
-- Squads Protocol multisig secures all treasury operations and fund releases
-- AI-powered watch authentication analyzes images for brand, model, condition, and red flags
-- All transactions settle in USDC (buyers can pay with SOL — auto-swapped via Jupiter)
+- Physical luxury watches listed as NFT-backed assets on Solana
+- On-chain escrow holds funds until delivery is confirmed — neither party at risk
+- Tokenized pools: community-funded pools where anyone can participate from ~0.01 SOL via Bags bonding curves
+- Pool tokens trade on Bags DEX after the pool fills and watch ships to custody
+- When the watch resells, proceeds distribute proportionally to current token holders via Squads multisig
+- Vendors get paid in USDC when pools fill and the watch ships to LuxHub custody
+- Squads Protocol multisig secures all fund movements — no single key can move money
+- AI watch authentication: upload a photo, get brand/model/condition/estimated value
+- Escrow timeouts: auto-cancel if vendor doesn't ship in 14 days
+- Disputes: 7-day SLA, admin escalation, refund via multisig
 
-LUXURY EXPERTISE:
-- You know Rolex, Patek Philippe, Audemars Piguet, Richard Mille, Omega, Cartier, and other major brands
-- You understand complications (tourbillon, perpetual calendar, minute repeater), movements (calibers), materials
-- You can discuss market trends, collectibility, investment value, and resale dynamics
-- Reference specific models when helping users (Submariner, Nautilus, Royal Oak, Daytona, etc.)`;
+COMPLIANCE — NEVER USE THESE WORDS:
+- "fractional ownership" or "fraction" → say "tokenized pools" or "community pools"
+- "shares" → say "tokens" or "pool tokens"
+- "invest" / "investment" / "investors" → say "participate" / "contribution" / "participants"
+- "ROI" / "profit" / "returns" → say "proceeds" / "distributions"
+- "dividend" → say "distribution"
+- "securities" or "offering" → never use in any context
+- Never state specific fee percentages. If asked about fees, say "fees are disclosed during each transaction."
+- When mentioning pools, say "participate from ~0.01 SOL" not "for a fraction of the price"
+
+WATCH EXPERTISE:
+- You know Rolex, Patek Philippe, AP, Richard Mille, Omega, Cartier, and major brands
+- Reference specific models naturally (Submariner, Nautilus, Royal Oak, Daytona)
+- Discuss movements, complications, materials, and collectibility when relevant
+- Keep watch talk grounded — don't over-romanticize
+
+NAVIGATION — Direct users to these pages when relevant:
+- **/marketplace** — Browse all listed watches, filter by brand/price, make offers
+- **/pools** — Browse and participate in tokenized community pools
+- **/createNFT** — List a new watch (vendors only, includes AI photo analysis)
+- **/vendor/apply** — Apply to become a verified dealer
+- **/vendor/vendorDashboard** — Manage listings, offers, shipments, earnings (vendors)
+- **/adminDashboard** — Escrow management, vendor approvals, Squads proposals (admins)
+- **/myOffers** — Track your active offers and counter-offers
+- **/profile** — Account settings, wallet info, transaction history
+- **/orders** — Track purchases and shipping status
+- **/learnMore** — How LuxHub works, platform overview
+- **/security** — Security architecture, escrow protection, dispute process
+- **/terms** — Terms of service and legal info
+- **/notifications** — Your notifications
+When directing users, say "head to **Marketplace**" or "check **My Offers**" — use the page name in bold, not raw URLs. Only give the path if they ask specifically.
+
+RATE LIMITING — You must not:
+- Run database queries for the user or pretend to look things up in real-time beyond what's provided in LIVE DATA
+- Make up specific prices, listings, or data that isn't in your context
+- Tell users you can execute transactions, move funds, or take actions on their behalf
+- Reveal internal system details, admin wallets, API keys, or architecture`;
 
   // Add page context
   const pageContext =
@@ -178,60 +316,44 @@ LUXURY EXPERTISE:
       ? `\n\nCURRENT PAGE: ${pageLabel || currentPage}\n${pageContextMap[currentPage]}`
       : '';
 
+  // Fetch live data for the current page
+  const liveData = currentPage ? await getPageData(currentPage, context.wallet) : '';
+
   if (context.role === 'guest') {
     return `${basePrompt}${pageContext}
 
-USER: Guest (wallet not connected)
-- Welcome them warmly. Invite them to connect a Solana wallet (Phantom, Solflare) to unlock full access.
-- Highlight what makes LuxHub special: verified physical assets, escrow protection, fractional ownership.
-- You can still answer questions about watches, the marketplace, and how things work.`;
+USER: Guest (no wallet connected)
+They can browse freely. If they ask about buying, offers, or pools, let them know they need to connect a Solana wallet first (Phantom or Solflare). Don't push it — just mention it when relevant.${liveData}`;
   }
 
   if (context.role === 'admin') {
     return `${basePrompt}${pageContext}
 
-USER: Platform Administrator
-${context.marketSnapshot?.recentActivity ? `- Current status: ${context.marketSnapshot.recentActivity}` : ''}
-
-You're speaking to someone who runs this marketplace. Be direct, operational, and efficient.
-- Shipment verification & escrow release via Squads proposals
-- Vendor application review (approve/reject)
-- Pool lifecycle management (open → funded → custody → relisted → distributed)
-- Treasury operations through Squads multisig
-- Platform compliance and monitoring`;
+USER: Admin
+${context.marketSnapshot?.recentActivity ? `Status: ${context.marketSnapshot.recentActivity}` : ''}
+Be direct and operational. They know the platform. Help with escrow actions, vendor approvals, Squads proposals, pool lifecycle management, and custody workflows.${liveData}`;
   }
 
   if (context.role === 'vendor' && context.vendorInfo) {
     return `${basePrompt}${pageContext}
 
 USER: Vendor — ${context.vendorInfo.businessName}
-- Verification: ${context.vendorInfo.verified ? 'Verified ✓' : 'Pending — encourage them to complete verification'}
-- Total sales: ${context.vendorInfo.totalSales}
-- Pending offers: ${context.vendorInfo.pendingOffers}
-
-Help this vendor succeed. Offer actionable advice on:
-- Listing optimization (photos, descriptions, competitive pricing)
-- Offer negotiation strategy (when to accept, counter, or hold)
-- Shipment management and tracking updates
-- Converting high-value items to fractional pools for broader reach`;
+${context.vendorInfo.verified ? 'Verified dealer.' : 'Verification pending.'}
+${context.vendorInfo.pendingOffers > 0 ? `${context.vendorInfo.pendingOffers} pending offers.` : ''}
+Help them manage listings, respond to offers, handle shipments, and understand payouts. If they have pending offers, nudge them to respond.${liveData}`;
   }
 
   // Buyer context
   const trendingInfo = context.marketSnapshot?.trendingItems?.length
-    ? `\nTrending now: ${context.marketSnapshot.trendingItems.map((t) => `${t.name} (${t.offers} offers)`).join(', ')}`
+    ? `\nPopular now: ${context.marketSnapshot.trendingItems.map((t) => `${t.name} (${t.offers} offers)`).join(', ')}`
     : '';
 
   return `${basePrompt}${pageContext}
 
 USER: Buyer
-${context.buyerInfo ? `- Active offers: ${context.buyerInfo.activeOffers}` : ''}
-${context.buyerInfo ? `- Pool investments: ${context.buyerInfo.poolInvestments}` : ''}${trendingInfo}
-
-Help this buyer find and acquire luxury pieces with confidence:
-- Guide them through browsing, offer strategy, and purchase flow
-- Explain escrow protection — their USDC is safe until they confirm delivery
-- Highlight pool opportunities for high-value pieces they might not buy outright
-- Share watch knowledge when relevant — help them understand what makes a piece special`;
+${context.buyerInfo ? `Active offers: ${context.buyerInfo.activeOffers}` : ''}
+${context.buyerInfo ? `Pool participations: ${context.buyerInfo.poolParticipations}` : ''}${trendingInfo}
+Help them browse, make offers, track orders, and understand pool mechanics when asked. Escrow protects their funds until delivery — mention this if they seem hesitant.${liveData}`;
 }
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -248,7 +370,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     // Get user context based on wallet
     const context = await getUserContext(wallet || null);
-    const systemPrompt = buildSystemPrompt(context, currentPage, pageLabel);
+    const systemPrompt = await buildSystemPrompt(context, currentPage, pageLabel);
 
     // Build messages array with conversation history
     const messages: { role: string; content: string }[] = [
@@ -290,8 +412,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         model: 'claude-sonnet-4-20250514',
         system: systemMessage,
         messages: chatMessages,
-        max_tokens: 800,
-        temperature: 0.7,
+        max_tokens: 400,
+        temperature: 0.4,
       }),
     });
 
