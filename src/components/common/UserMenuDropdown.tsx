@@ -134,7 +134,7 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
       roles: ['user', 'vendor', 'admin'],
     },
     {
-      href: '/my-orders',
+      href: '/orders',
       label: 'My Orders',
       icon: <FaShoppingBag />,
       roles: ['user', 'vendor', 'admin'],
@@ -279,7 +279,7 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
               </div>
               <p className={styles.connectTitle}>Welcome to LuxHub</p>
               <p className={styles.connectText}>
-                Connect your wallet to browse, buy, and invest in luxury assets.
+                Connect your wallet to browse, buy, and participate in luxury assets.
               </p>
               <button className={styles.connectButton} onClick={handleConnect}>
                 <FaWallet />

@@ -467,7 +467,7 @@ export async function notifyNewOrder(params: {
       escrowId,
       escrowPda,
       amountUSD,
-      actionUrl: `${appUrl}/vendor/orders`,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
     },
   });
 }
@@ -562,7 +562,7 @@ export async function notifyShipmentVerified(params: {
     metadata: {
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/vendor/orders`,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
     },
   });
 }
@@ -588,7 +588,7 @@ export async function notifyShipmentRejected(params: {
     metadata: {
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/vendor/orders`,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
     },
   });
 }
@@ -628,7 +628,7 @@ export async function notifyDeliveryConfirmed(params: {
     metadata: {
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/vendor/orders`,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
     },
   });
 }
@@ -656,7 +656,7 @@ export async function notifyOfferReceived(params: {
       offerId,
       escrowId,
       amountUSD: offerAmountUSD,
-      actionUrl: `${appUrl}/vendor/offers`,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
     },
   });
 }
@@ -685,7 +685,7 @@ export async function notifyOfferAccepted(params: {
       escrowId,
       escrowPda,
       amountUSD: acceptedAmountUSD,
-      actionUrl: `${appUrl}/marketplace/${escrowPda}`,
+      actionUrl: `${appUrl}/marketplace?pay=${escrowPda}`,
     },
   });
 }
@@ -742,7 +742,7 @@ export async function notifyOfferCountered(params: {
       escrowId,
       escrowPda,
       amountUSD: counterAmountUSD,
-      actionUrl: `${appUrl}/offers`,
+      actionUrl: `${appUrl}/orders`,
     },
   });
 }
@@ -829,7 +829,7 @@ export async function notifyOrderRefunded(params: {
       escrowId,
       escrowPda,
       amountUSD,
-      actionUrl: `${appUrl}/vendor/orders`,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
     },
   });
 }

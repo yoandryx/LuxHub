@@ -14,6 +14,17 @@ import {
 } from '../../utils/walletHelper';
 import styles from '../../styles/WalletGuide.module.css';
 
+// Privy hook wrapper — returns null if Privy context isn't available
+function usePrivySafe(): { login: () => void; authenticated: boolean } | null {
+  try {
+    const { usePrivy } = require('@privy-io/react-auth');
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return usePrivy();
+  } catch {
+    return null;
+  }
+}
+
 interface WalletGuideProps {
   onConnected?: (publicKey: string) => void;
   compact?: boolean;
@@ -31,6 +42,9 @@ const WalletGuide: React.FC<WalletGuideProps> = ({
   const [hasWallet, setHasWallet] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
 
+  // Use Privy if available, fallback to wallet adapter modal
+  const privy = usePrivySafe();
+
   useEffect(() => {
     // Detect wallets on mount (client-side only)
     setWallets(getDetectedWallets());
@@ -44,7 +58,12 @@ const WalletGuide: React.FC<WalletGuideProps> = ({
   }, [connected, publicKey, onConnected]);
 
   const handleConnect = () => {
-    setVisible(true);
+    // Privy first, wallet adapter as fallback
+    if (privy && !privy.authenticated) {
+      privy.login();
+    } else {
+      setVisible(true);
+    }
   };
 
   const steps = getWalletOnboardingSteps();

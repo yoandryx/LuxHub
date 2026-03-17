@@ -299,7 +299,7 @@ export default function WalletNavbarSimple() {
                 >
                   <FaUser /> My Profile
                 </button>
-                <button onClick={() => navigateTo('/my-orders')} className={styles.menuItem}>
+                <button onClick={() => navigateTo('/orders')} className={styles.menuItem}>
                   <FaClipboardList /> My Orders
                 </button>
 

@@ -338,14 +338,12 @@ const VendorDashboard = () => {
   // Offer action handlers
   const handleAcceptOffer = async (offer: any) => {
     if (!publicKey) return;
-    if (
-      !confirm(
-        `Accept this offer of $${offer.offerPriceUSD?.toLocaleString() || offer.offerAmount?.toLocaleString()}?`
-      )
-    )
-      return;
 
     setOfferActionLoading(true);
+    toast(
+      `Accepting offer of $${offer.offerPriceUSD?.toLocaleString() || offer.offerAmount?.toLocaleString()}...`,
+      { icon: '⏳' }
+    );
     try {
       const res = await fetch('/api/offers/respond', {
         method: 'POST',

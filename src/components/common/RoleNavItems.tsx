@@ -38,10 +38,10 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/pools',
-    label: 'Investment Pools',
+    label: 'Pools',
     icon: <FaChartLine />,
     roles: ['user', 'vendor', 'admin'],
-    description: 'Fractional ownership',
+    description: 'Tokenized pools',
     category: 'explore',
   },
   {
@@ -70,7 +70,7 @@ const NAV_ITEMS: NavItem[] = [
     category: 'user',
   },
   {
-    href: '/my-orders',
+    href: '/orders',
     label: 'My Orders',
     icon: <FaShoppingBag />,
     roles: ['user', 'vendor', 'admin'],

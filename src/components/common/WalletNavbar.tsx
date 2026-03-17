@@ -405,12 +405,18 @@ export default function WalletNavbar() {
       setBalance(0);
       return;
     }
-    const connection = new Connection(endpoint, 'confirmed');
+    const connection = new Connection(endpoint, {
+      commitment: 'confirmed',
+      confirmTransactionInitialTimeout: 10000,
+    });
     try {
-      const bal = await connection.getBalance(activePublicKey);
+      const bal = await Promise.race([
+        connection.getBalance(activePublicKey),
+        new Promise<number>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
+      ]);
       setBalance(bal / 1e9);
-    } catch (err) {
-      console.error('[WalletNavbar] Balance error:', err);
+    } catch {
+      // Silently fallback — RPC may be temporarily unavailable
       setBalance(0);
     }
   }, [activePublicKey]);
@@ -661,7 +667,7 @@ export default function WalletNavbar() {
                 >
                   <FaUser /> My Profile
                 </button>
-                <button onClick={() => navigateTo('/my-orders')} className={styles.menuItem}>
+                <button onClick={() => navigateTo('/orders')} className={styles.menuItem}>
                   <FaClipboardList /> My Orders
                 </button>
 

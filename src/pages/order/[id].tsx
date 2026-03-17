@@ -152,7 +152,7 @@ export default function OrderStatusPage() {
         <div style={{ textAlign: 'center', color: '#666' }}>
           <h2 style={{ color: '#fff' }}>Order Not Found</h2>
           <p>This order doesn&apos;t exist or has been removed.</p>
-          <Link href="/my-orders" style={{ color: '#c8a1ff', textDecoration: 'none' }}>
+          <Link href="/orders" style={{ color: '#c8a1ff', textDecoration: 'none' }}>
             <FaArrowLeft /> Back to My Orders
           </Link>
         </div>
@@ -173,7 +173,7 @@ export default function OrderStatusPage() {
       <div className={styles.container}>
         {/* Back Link */}
         <Link
-          href="/my-orders"
+          href="/orders"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
