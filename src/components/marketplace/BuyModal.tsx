@@ -12,7 +12,7 @@ import {
 } from '@solana/spl-token';
 import { FaShoppingCart, FaShippingFast, FaCheckCircle, FaLock, FaWallet } from 'react-icons/fa';
 import { HiOutlineX } from 'react-icons/hi';
-import { LuSparkles } from 'react-icons/lu';
+import { SiSolana } from 'react-icons/si';
 import { FiSave, FiEdit2 } from 'react-icons/fi';
 import { getProgram } from '../../utils/programUtils';
 import { resolveImageUrl, handleImageError, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
@@ -511,7 +511,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                   onClick={() => setPaymentToken('SOL')}
                 >
                   <span className={styles.tokenIcon}>
-                    <LuSparkles />
+                    <SiSolana />
                   </span>
                   SOL
                 </button>
@@ -525,8 +525,8 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                 <span className={styles.priceValue}>${priceUSD.toLocaleString()} USDC</span>
               </div>
               <div className={styles.priceRow}>
-                <span>Platform Fee ({platformFeePercent}%)</span>
-                <span className={styles.feeNote}>Deducted at delivery confirmation</span>
+                <span>Platform Fee</span>
+                <span className={styles.feeNote}>Included, deducted at delivery</span>
               </div>
 
               {paymentToken === 'SOL' && (
@@ -552,7 +552,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                   ) : (
                     <>
                       <span className={styles.totalSol}>
-                        <LuSparkles />{' '}
+                        <SiSolana />{' '}
                         {quoteLoading
                           ? '...'
                           : jupiterQuote
@@ -878,8 +878,8 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                 <strong>Escrow Protected</strong>
                 <span>
                   Your ${priceUSD.toLocaleString()} USDC is held in escrow until you confirm
-                  delivery. Vendor receives 97% after confirmation. If rejected, funds are returned
-                  to you automatically.
+                  delivery. Funds are released to the vendor after confirmation. If rejected, funds
+                  are returned to you automatically.
                 </span>
               </div>
             </div>
@@ -974,7 +974,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                   <li>Vendor will prepare and ship your item</li>
                   <li>You&apos;ll receive tracking information via email</li>
                   <li>Confirm delivery once you receive the item</li>
-                  <li>Vendor receives 97% USDC after your confirmation</li>
+                  <li>Vendor receives payment after your confirmation</li>
                   <li>If rejected, your USDC is returned automatically</li>
                 </ul>
               </div>

@@ -3,6 +3,7 @@
 // Steps: Offer Details → Shipping Address → Confirm & Submit
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { SiSolana } from 'react-icons/si';
 import { resolveImageUrl, handleImageError, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 import SavedAddressSelector, { SavedAddress } from '../common/SavedAddressSelector';
 import styles from '../../styles/MakeOfferModal.module.css';
@@ -84,6 +85,7 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
 
   // Offer state
   const [offerAmount, setOfferAmount] = useState('');
+  const [currency, setCurrency] = useState<'USD' | 'SOL'>('USD');
   const [message, setMessage] = useState('');
   const [expiresInHours, setExpiresInHours] = useState('24');
 
@@ -99,14 +101,30 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const amount = parseFloat(offerAmount) || 0;
-  const listPrice = escrow.listingPriceUSD;
-  const difference = listPrice > 0 ? ((amount - listPrice) / listPrice) * 100 : 0;
-  const isOfferValid = amount > 0 && (!escrow.minimumOfferUSD || amount >= escrow.minimumOfferUSD);
+  const rawAmount = parseFloat(offerAmount) || 0;
+  const effectiveSolPrice = solPrice || 0;
 
-  // SOL conversion display
-  const effectiveSolPrice = solPrice || 150;
-  const offerInSol = amount > 0 ? (amount / effectiveSolPrice).toFixed(4) : '0';
+  // Calculate USD amount regardless of input currency
+  const amountUSD = currency === 'USD' ? rawAmount : rawAmount * effectiveSolPrice;
+  const amountSOL =
+    currency === 'SOL' ? rawAmount : effectiveSolPrice > 0 ? rawAmount / effectiveSolPrice : 0;
+
+  const listPrice = escrow.listingPriceUSD;
+  const difference = listPrice > 0 ? ((amountUSD - listPrice) / listPrice) * 100 : 0;
+  // Platform minimum: 50% of listing price or vendor-set minimum, whichever is higher
+  const platformMinUSD = listPrice * 0.5;
+  const effectiveMinUSD = Math.max(platformMinUSD, escrow.minimumOfferUSD || 0);
+  const isOfferValid = amountUSD >= effectiveMinUSD;
+
+  // Display conversion in the other currency
+  const conversionDisplay =
+    currency === 'USD'
+      ? amountSOL > 0
+        ? `${amountSOL.toFixed(4)} SOL`
+        : '---'
+      : amountUSD > 0
+        ? `$${amountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : '---';
 
   // Shipping validation
   const isNewAddressValid =
@@ -177,8 +195,8 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
     try {
       const shippingAddress = getShippingAddress();
 
-      // Calculate lamports from USD using actual SOL price
-      const offerAmountLamports = Math.floor((amount / effectiveSolPrice) * 1e9);
+      // Calculate lamports from USD amount
+      const offerAmountLamports = Math.floor(amountSOL * 1e9);
 
       const response = await fetch('/api/offers/create', {
         method: 'POST',
@@ -187,7 +205,7 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
           escrowPda: escrow.escrowPda,
           buyerWallet: publicKey.toBase58(),
           offerAmount: offerAmountLamports,
-          offerPriceUSD: amount,
+          offerPriceUSD: amountUSD,
           offerCurrency: 'SOL',
           message: message.trim() || undefined,
           expiresInHours: parseInt(expiresInHours) || 24,
@@ -277,25 +295,27 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
           <span className={stepIndex >= 2 ? styles.stepLabelActive : ''}>Confirm</span>
         </div>
 
-        {/* Asset Preview */}
-        <div className={styles.assetPreview}>
-          <img
-            src={resolveImageUrl(escrow.asset?.imageUrl) || PLACEHOLDER_IMAGE}
-            alt={escrow.asset?.model || 'Watch'}
-            className={styles.assetImage}
-            onError={handleImageError}
-          />
-          <div className={styles.assetInfo}>
-            <h3 className={styles.assetModel}>{escrow.asset?.model || 'Luxury Watch'}</h3>
-            {escrow.vendor?.businessName && (
-              <span className={styles.vendorName}>by {escrow.vendor.businessName}</span>
-            )}
-            <div className={styles.listPrice}>
-              <span className={styles.listPriceLabel}>List Price</span>
-              <span className={styles.listPriceValue}>${listPrice.toLocaleString()}</span>
+        {/* Asset Preview — only show on offer step */}
+        {step === 'offer' && (
+          <div className={styles.assetPreview}>
+            <img
+              src={resolveImageUrl(escrow.asset?.imageUrl) || PLACEHOLDER_IMAGE}
+              alt={escrow.asset?.model || 'Watch'}
+              className={styles.assetImage}
+              onError={handleImageError}
+            />
+            <div className={styles.assetInfo}>
+              <h3 className={styles.assetModel}>{escrow.asset?.model || 'Luxury Watch'}</h3>
+              {escrow.vendor?.businessName && (
+                <span className={styles.vendorName}>by {escrow.vendor.businessName}</span>
+              )}
+              <div className={styles.listPrice}>
+                <span className={styles.listPriceLabel}>List Price</span>
+                <span className={styles.listPriceValue}>${listPrice.toLocaleString()}</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {success ? (
           <div className={styles.successMessage}>
@@ -309,9 +329,35 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
             {step === 'offer' && (
               <>
                 <div className={styles.inputSection}>
-                  <label className={styles.inputLabel}>Your Offer (USD)</label>
+                  <div className={styles.labelRow}>
+                    <label className={styles.inputLabel}>Your Offer</label>
+                    <div className={styles.currencyToggle}>
+                      <button
+                        className={`${styles.currencyBtn} ${currency === 'USD' ? styles.currencyActive : ''}`}
+                        onClick={() => {
+                          setOfferAmount('');
+                          setCurrency('USD');
+                        }}
+                        type="button"
+                      >
+                        USD
+                      </button>
+                      <button
+                        className={`${styles.currencyBtn} ${currency === 'SOL' ? styles.currencyActive : ''}`}
+                        onClick={() => {
+                          setOfferAmount('');
+                          setCurrency('SOL');
+                        }}
+                        type="button"
+                      >
+                        SOL
+                      </button>
+                    </div>
+                  </div>
                   <div className={styles.amountInputWrapper}>
-                    <span className={styles.currencySymbol}>$</span>
+                    <span className={styles.currencySymbol}>
+                      {currency === 'USD' ? '$' : <SiSolana size={18} />}
+                    </span>
                     <input
                       type="number"
                       className={styles.amountInput}
@@ -319,20 +365,24 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                       value={offerAmount}
                       onChange={(e) => setOfferAmount(e.target.value)}
                       min="0"
-                      step="0.01"
+                      step={currency === 'USD' ? '0.01' : '0.0001'}
                     />
                   </div>
-                  {amount > 0 && (
+                  {rawAmount > 0 && (
                     <span className={styles.solConversion}>
-                      ≈ {offerInSol} SOL {solPrice ? `@ $${solPrice.toLocaleString()}/SOL` : ''}
+                      ≈ {conversionDisplay}{' '}
+                      {effectiveSolPrice ? `@ $${effectiveSolPrice.toLocaleString()}/SOL` : ''}
                     </span>
                   )}
-                  {escrow.minimumOfferUSD && (
-                    <span className={styles.minimumNote}>
-                      Minimum: ${escrow.minimumOfferUSD.toLocaleString()}
+                  <span className={styles.minimumNote}>
+                    Minimum offer: ${effectiveMinUSD.toLocaleString()} (50% of list price)
+                  </span>
+                  {amountUSD > 0 && amountUSD < effectiveMinUSD && (
+                    <span className={styles.minimumNote} style={{ color: '#ef5350' }}>
+                      Offer too low — must be at least ${effectiveMinUSD.toLocaleString()}
                     </span>
                   )}
-                  {amount > 0 && (
+                  {rawAmount > 0 && (
                     <div
                       className={`${styles.diffIndicator} ${difference < 0 ? styles.below : styles.above}`}
                     >
@@ -417,24 +467,35 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                           placeholder="John Doe"
                         />
                       </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.inputLabel}>Phone</label>
+                        <input
+                          className={styles.formInput}
+                          value={shipping.phone}
+                          onChange={(e) => handleShippingChange('phone', e.target.value)}
+                          placeholder="+1 (555) 123-4567"
+                        />
+                      </div>
                     </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.inputLabel}>Street Address *</label>
-                      <input
-                        className={styles.formInput}
-                        value={shipping.street1}
-                        onChange={(e) => handleShippingChange('street1', e.target.value)}
-                        placeholder="123 Main St"
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.inputLabel}>Apt / Suite / Unit</label>
-                      <input
-                        className={styles.formInput}
-                        value={shipping.street2}
-                        onChange={(e) => handleShippingChange('street2', e.target.value)}
-                        placeholder="Apt 4B"
-                      />
+                    <div className={styles.formRow}>
+                      <div className={styles.formGroup} style={{ flex: 3 }}>
+                        <label className={styles.inputLabel}>Street Address *</label>
+                        <input
+                          className={styles.formInput}
+                          value={shipping.street1}
+                          onChange={(e) => handleShippingChange('street1', e.target.value)}
+                          placeholder="123 Main St"
+                        />
+                      </div>
+                      <div className={styles.formGroup} style={{ flex: 1 }}>
+                        <label className={styles.inputLabel}>Apt/Unit</label>
+                        <input
+                          className={styles.formInput}
+                          value={shipping.street2}
+                          onChange={(e) => handleShippingChange('street2', e.target.value)}
+                          placeholder="4B"
+                        />
+                      </div>
                     </div>
                     <div className={styles.formRow}>
                       <div className={styles.formGroup}>
@@ -446,7 +507,7 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                           placeholder="New York"
                         />
                       </div>
-                      <div className={styles.formGroup}>
+                      <div className={styles.formGroup} style={{ flex: '0 0 80px' }}>
                         <label className={styles.inputLabel}>State *</label>
                         <input
                           className={styles.formInput}
@@ -455,10 +516,8 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                           placeholder="NY"
                         />
                       </div>
-                    </div>
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label className={styles.inputLabel}>Postal Code *</label>
+                      <div className={styles.formGroup} style={{ flex: '0 0 100px' }}>
+                        <label className={styles.inputLabel}>Zip *</label>
                         <input
                           className={styles.formInput}
                           value={shipping.postalCode}
@@ -466,6 +525,8 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                           placeholder="10001"
                         />
                       </div>
+                    </div>
+                    <div className={styles.formRow}>
                       <div className={styles.formGroup}>
                         <label className={styles.inputLabel}>Country *</label>
                         <select
@@ -480,17 +541,6 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                           ))}
                         </select>
                       </div>
-                    </div>
-                    <div className={styles.formRow}>
-                      <div className={styles.formGroup}>
-                        <label className={styles.inputLabel}>Phone</label>
-                        <input
-                          className={styles.formInput}
-                          value={shipping.phone}
-                          onChange={(e) => handleShippingChange('phone', e.target.value)}
-                          placeholder="+1 (555) 123-4567"
-                        />
-                      </div>
                       <div className={styles.formGroup}>
                         <label className={styles.inputLabel}>Email</label>
                         <input
@@ -504,14 +554,13 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.inputLabel}>Delivery Instructions</label>
-                      <textarea
-                        className={styles.messageInput}
+                      <input
+                        className={styles.formInput}
                         value={shipping.deliveryInstructions}
                         onChange={(e) =>
                           handleShippingChange('deliveryInstructions', e.target.value)
                         }
                         placeholder="Ring doorbell, leave at concierge, etc."
-                        rows={2}
                       />
                     </div>
 
@@ -523,15 +572,15 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                           checked={saveNewAddress}
                           onChange={(e) => setSaveNewAddress(e.target.checked)}
                         />
-                        <span>Save this address for future purchases</span>
+                        <span>Save this address</span>
                       </label>
                       {saveNewAddress && (
                         <input
                           className={styles.formInput}
                           value={addressLabel}
                           onChange={(e) => setAddressLabel(e.target.value)}
-                          placeholder="Label (e.g., Home, Office)"
-                          style={{ marginTop: 8, maxWidth: 200 }}
+                          placeholder="Label (Home, Office)"
+                          style={{ marginTop: 6, maxWidth: 180 }}
                         />
                       )}
                     </div>
@@ -561,11 +610,17 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                 <div className={styles.summary}>
                   <div className={styles.summaryRow}>
                     <span>Your Offer</span>
-                    <span className={styles.summaryValue}>${amount.toLocaleString()}</span>
+                    <span className={styles.summaryValue}>
+                      $
+                      {amountUSD.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
                   </div>
                   <div className={styles.summaryRow}>
                     <span>SOL Equivalent</span>
-                    <span>{offerInSol} SOL</span>
+                    <span>{amountSOL.toFixed(4)} SOL</span>
                   </div>
                   <div className={styles.summaryRow}>
                     <span>List Price</span>
@@ -574,7 +629,7 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                   <div className={styles.summaryRow}>
                     <span>Difference</span>
                     <span className={difference < 0 ? styles.negative : styles.positive}>
-                      {difference < 0 ? '' : '+'}${Math.abs(amount - listPrice).toLocaleString()}
+                      {difference < 0 ? '' : '+'}${Math.abs(amountUSD - listPrice).toLocaleString()}
                     </span>
                   </div>
                   <div className={styles.summaryRow}>
@@ -620,7 +675,9 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                     Back
                   </button>
                   <button className={styles.submitButton} onClick={handleSubmit} disabled={loading}>
-                    {loading ? 'Submitting...' : `Submit Offer - $${amount.toLocaleString()}`}
+                    {loading
+                      ? 'Submitting...'
+                      : `Submit Offer - $${amountUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
                   </button>
                 </div>
               </>
