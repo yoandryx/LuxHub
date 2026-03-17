@@ -8,7 +8,8 @@ import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
 import AdminRole from '../../../lib/models/AdminRole';
-import { notifyUser } from '../../../lib/services/notificationService';
+import { notifyDeliveryConfirmed } from '../../../lib/services/notificationService';
+import { Transaction } from '../../../lib/models/Transaction';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
 
 interface ConfirmDeliveryRequest {
@@ -151,22 +152,30 @@ async function _handler(req: NextApiRequest, res: NextApiResponse) {
       console.error('[confirm-delivery] Squads proposal error:', squadsError);
     }
 
-    // Notify vendor that delivery was confirmed
-    try {
-      if (escrow.sellerWallet) {
-        await notifyUser({
-          userWallet: escrow.sellerWallet,
-          type: 'order_delivered',
-          title: 'Delivery Confirmed',
-          message: `Delivery for "${assetTitle}" has been confirmed. Fund release is in progress.`,
-          metadata: {
-            escrowId: updatedEscrow._id.toString(),
-            escrowPda: updatedEscrow.escrowPda,
-          },
-        });
-      }
-    } catch (notifyError) {
-      console.error('[confirm-delivery] Notification error:', notifyError);
+    // Record fund-release transaction
+    Transaction.create({
+      type: 'sale',
+      escrow: updatedEscrow._id,
+      asset: escrow.asset?._id || escrow.asset,
+      fromWallet: updatedEscrow.escrowPda,
+      toWallet: updatedEscrow.sellerWallet,
+      amountUSD: updatedEscrow.listingPriceUSD || 0,
+      vendorEarningsUSD: (updatedEscrow.listingPriceUSD || 0) * 0.97,
+      luxhubRoyaltyUSD: (updatedEscrow.listingPriceUSD || 0) * 0.03,
+      status: 'success',
+    }).catch((err: any) => console.error('[confirm-delivery] Transaction record error:', err));
+
+    // Notify both buyer and vendor that delivery was confirmed
+    if (escrow.buyerWallet && escrow.sellerWallet) {
+      notifyDeliveryConfirmed({
+        buyerWallet: escrow.buyerWallet,
+        vendorWallet: escrow.sellerWallet,
+        escrowId: updatedEscrow._id.toString(),
+        escrowPda: updatedEscrow.escrowPda,
+        assetTitle,
+      }).catch((notifyError: any) =>
+        console.error('[confirm-delivery] Notification error:', notifyError)
+      );
     }
 
     // Auto-trigger pool distribution if this escrow is linked to a pool
@@ -227,7 +236,7 @@ async function _handler(req: NextApiRequest, res: NextApiResponse) {
         ? [
             'Squads confirm_delivery proposal created',
             'Multisig members must approve the proposal',
-            'Execute proposal to release USDC (95% seller, 5% treasury)',
+            'Execute proposal to release USDC (97% seller, 3% treasury)',
             'NFT transferred to buyer automatically',
           ]
         : [

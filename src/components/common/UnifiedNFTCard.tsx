@@ -34,6 +34,7 @@ export interface UnifiedNFTCardProps {
   price?: number;
   priceLabel?: string; // e.g., "SOL" or "USD"
   priceUSD?: number; // Fixed USD price of the watch
+  subtitle?: string; // Secondary price line (e.g., "1.05 SOL")
 
   // Identity
   mintAddress?: string;
@@ -102,6 +103,7 @@ const UnifiedNFTCard = memo(
     price,
     priceLabel = 'USD',
     priceUSD,
+    subtitle,
     mintAddress,
     owner,
     brand,
@@ -251,7 +253,10 @@ const UnifiedNFTCard = memo(
                 </span>
                 <span className={styles.priceLabel}>{priceLabel === 'USD' ? '' : priceLabel}</span>
               </div>
-              {priceUSD !== undefined && priceLabel !== 'USD' && priceLabel !== 'usd' && (
+              {subtitle && (
+                <span className={styles.priceUSD}>{subtitle}</span>
+              )}
+              {!subtitle && priceUSD !== undefined && priceLabel !== 'USD' && priceLabel !== 'usd' && (
                 <span className={styles.priceUSD}>${priceUSD.toLocaleString()}</span>
               )}
             </div>

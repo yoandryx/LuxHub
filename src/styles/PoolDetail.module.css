@@ -107,8 +107,9 @@
 .topMeta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: 2px;
+  flex-wrap: wrap;
 }
 
 .topPool {
@@ -143,8 +144,10 @@
 .topRight {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .topStat {

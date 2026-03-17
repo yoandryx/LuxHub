@@ -135,6 +135,12 @@ anchor deploy        # Deploy to configured cluster
 - `NEXT_PUBLIC_LUXHUB_WALLET` - Treasury wallet address
 - `ANTHROPIC_API_KEY` - Claude API key for AI watch analysis feature
 
+**Bags API (Token Launch & Fee Share):**
+- `BAGS_API_KEY` - Bags API key (get from dev.bags.fm)
+- `BAGS_WEBHOOK_SECRET` - HMAC secret for Bags webhook signature verification
+- `BAGS_PARTNER_WALLET` - Wallet for partner fee earnings (defaults to LUXHUB_WALLET)
+- `BAGS_PARTNER_CONFIG_PDA` - Partner config PDA (created via /api/bags/create-partner-config)
+
 **Security Environment Variables:**
 - `PII_ENCRYPTION_KEY` - 64-char hex key for AES-256-GCM encryption (generate with `generateEncryptionKey()`)
 - `ADMIN_WALLETS` - Comma-separated list of admin wallet addresses
@@ -311,7 +317,7 @@ Detailed documentation is organized in `.claude/docs/`:
 | Partner | Status | Integration |
 |---------|--------|-------------|
 | **Squads Protocol** | Active | Multisig treasury/pool vaults for institutional-grade security |
-| **Backpack (Bags API)** | Planned | Wallet linking, session management, xNFT support |
+| **Bags (bags.fm)** | Active | Token launch API, fee-share config, bonding curves, trading, partner fees |
 | **Helius** | Active | RPC infrastructure, DAS API (asset indexing), webhooks |
 | **Pinata** | Active | IPFS gateway for NFT metadata and asset storage |
 

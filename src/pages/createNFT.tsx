@@ -558,9 +558,11 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       console.log('[MINT] Sending createAsset transaction...');
 
       const txStartTime = Date.now();
+      // On-chain name max 32 chars — use brand + model if available, truncate title as fallback
+      const onChainName = (brand && model ? `${brand} ${model}` : title).slice(0, 32);
       await createAsset(umi, {
         asset: assetSigner,
-        name: title,
+        name: onChainName,
         uri: metadataUri,
         owner: nftOwner, // Set owner to vault PDA for vault mints
       }).sendAndConfirm(umi);

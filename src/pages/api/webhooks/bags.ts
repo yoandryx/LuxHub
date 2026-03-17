@@ -156,17 +156,28 @@ async function handleTradeExecuted(event: BagsTradeEvent): Promise<void> {
         txSignature: signature,
       };
 
-      // Calculate fee allocations (3% total split)
-      const feeUSD = tradeAmountUSD * 0.03;
-      const holderFeeUSD = feeUSD * (1 / 3); // ~1% of trade
-      const vendorFeeUSD = feeUSD * (1 / 6); // ~0.5% of trade
-      const tradeRewardUSD = feeUSD * (1 / 6); // ~0.5% of trade
+      // Calculate fee allocations
+      // Bags creator fee = 1% of trade volume (split on-chain via fee-share config)
+      // Partner fee = additional ~0.25% (25% of Bags platform fee)
+      // We track the creator fee portion here for internal analytics
+      const creatorFeeUSD = tradeAmountUSD * 0.01; // 1% creator fee
+      // Internal split of creator fee (based on pool's fee-share claimers):
+      // Default: 83.33% treasury (8333 BPS) + 16.67% vendor (1667 BPS)
+      const treasuryShare = pool.feeShareClaimers?.find(
+        (c: any) => c.label === 'LuxHub Treasury'
+      );
+      const vendorShare = pool.feeShareClaimers?.find((c: any) => c.label === 'Vendor');
+      const treasuryBps = treasuryShare?.basisPoints || 10000;
+      const vendorBps = vendorShare?.basisPoints || 0;
+      const holderFeeUSD = creatorFeeUSD * (treasuryBps / 10000) * 0.5; // Half of treasury share → holder rewards
+      const vendorFeeUSD = creatorFeeUSD * (vendorBps / 10000); // Vendor's on-chain share
+      const tradeRewardUSD = creatorFeeUSD * (treasuryBps / 10000) * 0.5; // Other half → trade rewards
 
       await Pool.findByIdAndUpdate(pool._id, {
         $inc: {
           totalTrades: 1,
           totalVolumeUSD: tradeAmountUSD,
-          accumulatedTradingFees: feeUSD,
+          accumulatedTradingFees: creatorFeeUSD,
           accumulatedHolderFees: holderFeeUSD,
           accumulatedVendorFees: vendorFeeUSD,
           accumulatedTradeRewards: tradeRewardUSD,
@@ -494,7 +505,7 @@ async function handleLiquidityEvent(event: BagsLiquidityEvent): Promise<void> {
  * Handle holder dividend distribution events
  */
 async function handleHolderDividend(event: BagsHolderDividendEvent): Promise<void> {
-  const { tokenMint, totalAmount, recipients, signature } = event;
+  const { tokenMint, totalAmount, recipients } = event;
 
   try {
     const pool = await Pool.findOne({ bagsTokenMint: tokenMint });
@@ -525,8 +536,7 @@ async function handleHolderDividend(event: BagsHolderDividendEvent): Promise<voi
  * Handle creator fee vested events (Bags new vesting model)
  */
 async function handleCreatorFeeVested(event: BagsCreatorFeeVestedEvent): Promise<void> {
-  const { tokenMint, creatorWallet, vestingTokens, vestingStartAt, vestingEndAt, vestingType } =
-    event;
+  const { tokenMint, vestingTokens, vestingStartAt, vestingEndAt, vestingType } = event;
 
   try {
     const pool = await Pool.findOne({ bagsTokenMint: tokenMint });

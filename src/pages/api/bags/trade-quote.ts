@@ -84,7 +84,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     quoteUrl.searchParams.set('inputMint', finalInputMint);
     quoteUrl.searchParams.set('outputMint', finalOutputMint);
     quoteUrl.searchParams.set('amount', amount);
-    quoteUrl.searchParams.set('slippageBps', slippageBps);
+    // Bags supports slippageMode: 'auto' (default) or 'manual' (requires slippageBps)
+    if (slippageBps && slippageBps !== '100') {
+      quoteUrl.searchParams.set('slippageMode', 'manual');
+      quoteUrl.searchParams.set('slippageBps', slippageBps);
+    }
 
     const quoteResponse = await fetch(quoteUrl.toString(), {
       method: 'GET',

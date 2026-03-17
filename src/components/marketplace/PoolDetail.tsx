@@ -20,8 +20,6 @@ import {
   FiLoader,
   FiAlertTriangle,
   FiCheckCircle,
-  FiBarChart2,
-  FiImage,
 } from 'react-icons/fi';
 import BagsPoolTrading from './BagsPoolTrading';
 import TvChart, { generatePriceHistory } from './TvChart';
@@ -109,6 +107,36 @@ const fmt = (n: number) => {
   return n.toLocaleString();
 };
 
+/**
+ * Format micro-prices like DexScreener: $0.0₅29 instead of $0.0000029
+ * Shows subscript zero count for prices < $0.001
+ */
+const fmtPrice = (price: number, prefix = '$'): string => {
+  if (price <= 0) return `${prefix}0`;
+  if (price >= 1) return `${prefix}${price.toFixed(2)}`;
+  if (price >= 0.001) return `${prefix}${price.toFixed(6)}`;
+
+  // Count leading zeros after "0."
+  const str = price.toFixed(20);
+  const afterDot = str.split('.')[1] || '';
+  let zeros = 0;
+  for (const ch of afterDot) {
+    if (ch === '0') zeros++;
+    else break;
+  }
+  const sigFigs = afterDot.slice(zeros, zeros + 4);
+  // Unicode subscript digits
+  const subscriptMap: Record<string, string> = {
+    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+    '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+  };
+  const sub = zeros.toString().split('').map(d => subscriptMap[d] || d).join('');
+  return `${prefix}0.0${sub}${sigFigs}`;
+};
+
+/** Format SOL micro-prices */
+const fmtSol = (price: number): string => fmtPrice(price, '') + ' SOL';
+
 const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComplete }) => {
   const wallet = useWallet();
   const { authenticated } = usePrivy();
@@ -141,7 +169,7 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
   const { solPriceInUSD } = usePriceDisplay();
   const [solAmount, setSolAmount] = useState('');
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
-  const [chartView, setChartView] = useState<'candle' | 'line' | 'area' | 'image'>('candle');
+  const [chartView] = useState<'candle' | 'line' | 'area'>('candle');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -183,7 +211,26 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
   }, [p.status, hasToken, hasGov]);
 
   const assetImage = resolveAssetImage(p.asset);
-  const priceHistory = useMemo(() => generatePriceHistory(curPriceUSD, 80), [curPriceUSD]);
+  // Fetch real price data from DexScreener when token is live
+  const [priceHistory, setPriceHistory] = useState<number[]>([]);
+  const [dexScreenerData, setDexScreenerData] = useState<any>(null);
+  useEffect(() => {
+    if (p.bagsTokenMint) {
+      fetch(`/api/bags/price-history?mint=${p.bagsTokenMint}&points=80`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.success) {
+            setPriceHistory(data.priceHistory);
+            setDexScreenerData(data.dexScreener);
+          } else {
+            setPriceHistory(generatePriceHistory(curPriceUSD, 80));
+          }
+        })
+        .catch(() => setPriceHistory(generatePriceHistory(curPriceUSD, 80)));
+    } else {
+      setPriceHistory(generatePriceHistory(curPriceUSD, 80));
+    }
+  }, [p.bagsTokenMint, curPriceUSD]);
 
   const statusMap: Record<string, { label: string; color: string }> = {
     open: { label: 'Live', color: '#4ade80' },
@@ -403,34 +450,85 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
                 >
                   {st.label}
                 </span>
-                <span className={styles.topPrice}>{curPriceSol.toFixed(6)} SOL</span>
-                <span className={styles.topUsd}>${curPriceUSD.toFixed(6)}</span>
+                {/* Live price from DexScreener if available, otherwise from DB */}
+                {(() => {
+                  const livePrice = dexScreenerData?.priceUsd
+                    ? parseFloat(dexScreenerData.priceUsd)
+                    : null;
+                  const liveNative = dexScreenerData?.priceNative
+                    ? parseFloat(dexScreenerData.priceNative)
+                    : null;
+                  const displayPriceSol = liveNative || curPriceSol;
+                  const displayPriceUsd = livePrice || curPriceUSD;
+                  const change24h = dexScreenerData?.priceChange?.h24;
+                  const isUp = change24h !== undefined && change24h >= 0;
+                  return (
+                    <>
+                      <span className={styles.topPrice}>{fmtSol(displayPriceSol)}</span>
+                      <span className={styles.topUsd}>{fmtPrice(displayPriceUsd)}</span>
+                      {change24h !== undefined && change24h !== null && (
+                        <span
+                          style={{
+                            color: isUp ? '#26a69a' : '#ef5350',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {isUp ? '+' : ''}{change24h.toFixed(2)}%
+                        </span>
+                      )}
+                      {dexScreenerData && (
+                        <span style={{ fontSize: '9px', color: '#6b7280' }}>LIVE</span>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
           <div className={styles.topRight}>
+            {/* Market cap — from DexScreener or calculated */}
             <div className={styles.topStat}>
-              <span className={styles.topStatLabel}>Raised</span>
-              <span className={styles.topStatVal}>{raisedSol.toFixed(2)} SOL</span>
+              <span className={styles.topStatLabel}>MCap</span>
+              <span className={styles.topStatVal}>
+                {(() => {
+                  const price = dexScreenerData?.priceUsd
+                    ? parseFloat(dexScreenerData.priceUsd)
+                    : curPriceUSD;
+                  const mcap = price * (p.totalShares || 1_000_000_000);
+                  if (mcap >= 1_000_000) return `$${(mcap / 1_000_000).toFixed(2)}M`;
+                  if (mcap >= 1_000) return `$${(mcap / 1_000).toFixed(1)}K`;
+                  return `$${mcap.toFixed(0)}`;
+                })()}
+              </span>
             </div>
             <div className={styles.topStat}>
-              <span className={styles.topStatLabel}>Target</span>
-              <span className={styles.topStatVal}>{targetSol.toFixed(2)} SOL</span>
+              <span className={styles.topStatLabel}>Vol 24h</span>
+              <span className={styles.topStatVal}>
+                $
+                {(() => {
+                  const vol = dexScreenerData?.volume24h || p.totalVolumeUSD || 0;
+                  if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
+                  if (vol >= 1_000) return `${(vol / 1_000).toFixed(1)}K`;
+                  return vol.toFixed(0);
+                })()}
+              </span>
+            </div>
+            <div className={styles.topStat}>
+              <span className={styles.topStatLabel}>Txns 24h</span>
+              <span className={styles.topStatVal}>
+                {dexScreenerData?.txns24h
+                  ? `${dexScreenerData.txns24h.buys + dexScreenerData.txns24h.sells}`
+                  : p.totalTrades || 0}
+              </span>
             </div>
             <div className={styles.topStat}>
               <span className={styles.topStatLabel}>Holders</span>
               <span className={styles.topStatVal}>{holders}</span>
             </div>
             <div className={styles.topStat}>
-              <span className={styles.topStatLabel}>Vol</span>
-              <span className={styles.topStatVal}>
-                $
-                {p.totalVolumeUSD
-                  ? p.totalVolumeUSD >= 1000
-                    ? `${(p.totalVolumeUSD / 1000).toFixed(1)}K`
-                    : p.totalVolumeUSD.toFixed(0)
-                  : '0'}
-              </span>
+              <span className={styles.topStatLabel}>Target</span>
+              <span className={styles.topStatVal}>{targetSol.toFixed(1)} SOL</span>
             </div>
             <button className={styles.closeBtn} onClick={onClose}>
               <HiOutlineX />
@@ -448,49 +546,18 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
               <span className={styles.chartProgressLabel}>{pct.toFixed(1)}% funded</span>
             </div>
             <div className={styles.chartContainer}>
-              {chartView === 'image' ? (
-                <div className={styles.chartImage}>
-                  <Image
-                    src={assetImage}
-                    alt=""
-                    fill
-                    style={{ objectFit: 'contain' }}
-                    unoptimized
-                    onError={handleImageError}
-                  />
-                </div>
-              ) : (
-                <TvChart
-                  data={priceHistory}
-                  interactive
-                  chartType={
-                    chartView === 'candle' ? 'candlestick' : chartView === 'line' ? 'line' : 'area'
-                  }
-                />
-              )}
+              <TvChart
+                data={priceHistory}
+                interactive
+                showTimeframes
+                showToolbar
+                totalSupply={p.totalShares || 1_000_000_000}
+                chartType={
+                  chartView === 'candle' ? 'candlestick' : chartView === 'line' ? 'line' : 'area'
+                }
+              />
             </div>
-            <div className={styles.chartControls}>
-              {(['candle', 'line', 'area', 'image'] as const).map((v) => (
-                <button
-                  key={v}
-                  className={`${styles.chartCtrl} ${chartView === v ? styles.chartCtrlActive : ''}`}
-                  onClick={() => setChartView(v)}
-                >
-                  {v === 'candle' ? (
-                    <FiBarChart2 size={12} />
-                  ) : v === 'image' ? (
-                    <FiImage size={12} />
-                  ) : null}
-                  {v === 'candle'
-                    ? 'Candles'
-                    : v === 'line'
-                      ? 'Line'
-                      : v === 'area'
-                        ? 'Area'
-                        : 'Image'}
-                </button>
-              ))}
-            </div>
+            {/* Chart controls now built into TvChart toolbar — no external buttons needed */}
 
             {/* Trade Feed — below chart */}
             <div className={styles.tradeFeed}>

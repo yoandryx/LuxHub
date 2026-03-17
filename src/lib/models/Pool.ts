@@ -98,13 +98,20 @@ const PoolSchema = new Schema(
 
     // ========== BAGS API INTEGRATION ==========
     bagsTokenMint: { type: String }, // Pool share token mint via Bags
-    bagsFeeShareConfigId: { type: String }, // Bags fee share config ID
+    bagsFeeShareConfigId: { type: String }, // Legacy — use meteoraConfigKey instead
+    meteoraConfigKey: { type: String }, // Meteora DBC pool config key from fee-share/config response
+    feeShareAuthority: { type: String }, // Fee share authority PDA from fee-share/config response
+    bagsTokenMetadataUrl: { type: String }, // IPFS metadata URL from Bags create-token-info
     bagsTokenCreatedAt: { type: Date },
     bagsPoolAddress: { type: String }, // Bags AMM pool address
     bagsPoolCreatedAt: { type: Date },
     bagsTokenName: { type: String },
     bagsTokenSymbol: { type: String },
     bagsTotalSupply: { type: String },
+    bagsTokenStatus: {
+      type: String,
+      enum: ['PRE_LAUNCH', 'PRE_GRAD', 'MIGRATING', 'MIGRATED'],
+    },
 
     // Bags trading stats (updated via webhooks)
     totalTrades: { type: Number, default: 0 },
@@ -236,10 +243,19 @@ const PoolSchema = new Schema(
     accumulatedTradingFees: { type: Number, default: 0 },
 
     // ========== FEE SPLIT CONFIGURATION ==========
-    // 3% total fee split (tracked off-chain, distributed from treasury)
+    // Bags creator fee = 1% of all trade volume, split via fee-share/config (10,000 BPS = 100%)
+    // These track the on-chain fee-share claimers array for this pool's token
+    feeShareClaimers: [
+      {
+        wallet: { type: String },
+        basisPoints: { type: Number }, // Out of 10,000 total
+        label: { type: String }, // e.g., 'treasury', 'vendor'
+      },
+    ],
+    // Internal tracking of accumulated fees (updated via webhooks)
     feeAllocations: {
-      platformBps: { type: Number, default: 100 }, // 1% platform ops
-      holderBps: { type: Number, default: 100 }, // 1% redistributed to holders
+      platformBps: { type: Number, default: 100 }, // 1% of trade volume to platform
+      holderBps: { type: Number, default: 100 }, // 1% redistributed to holders (future)
       vendorBps: { type: Number, default: 50 }, // 0.5% vendor reward
       tradeRewardBps: { type: Number, default: 50 }, // 0.5% trading rebates
     },
@@ -320,6 +336,7 @@ PoolSchema.index({ vendorWallet: 1 }); // Vendor's pools
 PoolSchema.index({ custodyStatus: 1 }); // Custody tracking
 PoolSchema.index({ distributionStatus: 1 }); // Distribution tracking
 PoolSchema.index({ bagsTokenMint: 1 }); // Bags token lookup
+PoolSchema.index({ meteoraConfigKey: 1 }); // Meteora config lookup
 PoolSchema.index({ graduated: 1 }); // Find graduated pools
 PoolSchema.index({ squadMultisigPda: 1 }); // Squad lookup
 PoolSchema.index({ 'squadMembers.wallet': 1 }); // Find pools by member wallet

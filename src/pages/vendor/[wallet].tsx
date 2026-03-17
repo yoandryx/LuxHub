@@ -1421,6 +1421,22 @@ const VendorProfilePage = () => {
                 }}
                 priceSol={selectedNFT.priceSol}
                 owner={selectedNFT.currentOwner}
+                buyerWallet={wallet.publicKey?.toBase58()}
+                status={selectedNFT.marketStatus === 'listed' ? 'listed' : 'verified'}
+                acceptingOffers={true}
+                onBuy={() => {
+                  setShowDetailCard(false);
+                  // Redirect to marketplace listing for purchase
+                  if (selectedNFT.escrowPda) {
+                    window.location.href = `/marketplace?pay=${selectedNFT.escrowPda}`;
+                  }
+                }}
+                onOffer={() => {
+                  setShowDetailCard(false);
+                  if (selectedNFT.escrowPda) {
+                    window.location.href = `/marketplace?offer=${selectedNFT.escrowPda}`;
+                  }
+                }}
                 onClose={() => {
                   setSelectedNFT(null);
                   setShowDetailCard(false);

@@ -7,7 +7,7 @@ import Head from 'next/head';
 import Image from 'next/image';
 
 import { useWallet } from '@solana/wallet-adapter-react';
-import { FiTrendingUp, FiRefreshCw, FiBarChart2, FiImage } from 'react-icons/fi';
+import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage } from 'react-icons/fi';
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
 import PoolDetail from '../components/marketplace/PoolDetail';
 import styles from '../styles/PoolsNew.module.css';
@@ -253,6 +253,8 @@ const TvChart = memo(
     data: number[];
     chartType?: ChartType;
     interactive?: boolean;
+    showTimeframes?: boolean;
+    showToolbar?: boolean;
   }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
@@ -396,14 +398,41 @@ const TvChart = memo(
 );
 TvChart.displayName = 'TvChart';
 
-// Generate simulated price history from a starting price
+// Generate simulated price history (fallback when no real data available)
 function generatePriceHistory(basePrice: number, points: number = 30): number[] {
   const prices: number[] = [basePrice];
   for (let i = 1; i < points; i++) {
-    const change = (Math.random() - 0.42) * basePrice * 0.04; // slight upward bias
+    const change = (Math.random() - 0.42) * basePrice * 0.04;
     prices.push(Math.max(basePrice * 0.7, prices[i - 1] + change));
   }
   return prices;
+}
+
+// Hook to fetch real price data — falls back to synthetic if no token launched
+function usePoolPriceHistory(pool: { _id?: string; bagsTokenMint?: string; sharePriceUSD?: number }, points = 30) {
+  const [prices, setPrices] = React.useState<number[]>([]);
+  const [dexData, setDexData] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    if (!pool.bagsTokenMint) {
+      setPrices(generatePriceHistory(pool.sharePriceUSD || 0.01, points));
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/bags/price-history?mint=${pool.bagsTokenMint}&points=${points}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.success) return;
+        setPrices(data.priceHistory);
+        setDexData(data.dexScreener);
+      })
+      .catch(() => {
+        if (!cancelled) setPrices(generatePriceHistory(pool.sharePriceUSD || 0.01, points));
+      });
+    return () => { cancelled = true; };
+  }, [pool.bagsTokenMint, pool.sharePriceUSD, points]);
+
+  return { prices, dexData, hasRealData: !!pool.bagsTokenMint && prices.length > 0 };
 }
 
 // ─── Pool Card ──────────────────────────────────────────────────
@@ -419,14 +448,90 @@ const PoolCard = memo(
   }) => {
     const [localToggle, setLocalToggle] = useState<boolean | null>(null);
     const showChart = localToggle !== null ? localToggle : globalChartMode;
+    const [selectedSol, setSelectedSol] = useState<string | null>(null);
+    const [tradeStatus, setTradeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [tradeMsg, setTradeMsg] = useState('');
+    const { publicKey, signTransaction } = useWallet();
 
     // Reset local override when global mode changes
     useEffect(() => {
       setLocalToggle(null);
     }, [globalChartMode]);
-    const priceHistory = useMemo(
-      () => generatePriceHistory(pool.sharePriceUSD),
-      [pool.sharePriceUSD]
+    const { prices: priceHistory, dexData } = usePoolPriceHistory(pool);
+
+    const executeQuickTrade = useCallback(
+      async (side: 'buy' | 'sell') => {
+        if (!publicKey || !signTransaction) {
+          setTradeStatus('error');
+          setTradeMsg('Connect wallet');
+          setTimeout(() => setTradeStatus('idle'), 2000);
+          return;
+        }
+        if (!pool.bagsTokenMint) {
+          setTradeStatus('error');
+          setTradeMsg('Token not launched');
+          setTimeout(() => setTradeStatus('idle'), 2000);
+          return;
+        }
+        const solAmount = selectedSol || '0.1';
+        const lamports = Math.round(parseFloat(solAmount) * 1e9);
+        const SOL_MINT = 'So11111111111111111111111111111111111111112';
+        const inputMint = side === 'buy' ? SOL_MINT : pool.bagsTokenMint;
+        const outputMint = side === 'buy' ? pool.bagsTokenMint : SOL_MINT;
+        // For sells, we need the token amount — use lamports as placeholder, user should use modal for precise sells
+        const amount = side === 'buy' ? lamports.toString() : lamports.toString();
+
+        setTradeStatus('loading');
+        setTradeMsg(side === 'buy' ? `Buying ${solAmount} SOL...` : `Selling...`);
+
+        try {
+          // 1. Get quote
+          const quoteRes = await fetch(
+            `/api/bags/trade-quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}`
+          );
+          if (!quoteRes.ok) throw new Error('Quote failed');
+          const quoteData = await quoteRes.json();
+
+          // 2. Build swap tx
+          const swapRes = await fetch('/api/bags/execute-trade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              inputMint,
+              outputMint,
+              amount: amount,
+              userWallet: publicKey.toString(),
+            }),
+          });
+          if (!swapRes.ok) throw new Error('Swap build failed');
+          const swapData = await swapRes.json();
+
+          // 3. Sign with wallet
+          const { VersionedTransaction } = await import('@solana/web3.js');
+          const bs58 = (await import('bs58')).default;
+          const txBytes = bs58.decode(swapData.transaction.serialized);
+          const tx = VersionedTransaction.deserialize(txBytes);
+          const signed = await signTransaction(tx);
+
+          // 4. Send
+          const { Connection } = await import('@solana/web3.js');
+          const connection = new Connection(
+            process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.mainnet-beta.solana.com'
+          );
+          const sig = await connection.sendRawTransaction(signed.serialize(), {
+            skipPreflight: false,
+          });
+
+          setTradeStatus('success');
+          setTradeMsg(side === 'buy' ? `Bought! ✓` : `Sold! ✓`);
+          setTimeout(() => setTradeStatus('idle'), 3000);
+        } catch (err: any) {
+          setTradeStatus('error');
+          setTradeMsg(err?.message?.slice(0, 30) || 'Trade failed');
+          setTimeout(() => setTradeStatus('idle'), 3000);
+        }
+      },
+      [publicKey, signTransaction, pool.bagsTokenMint, selectedSol]
     );
 
     const percentFilled = useMemo(
@@ -454,7 +559,11 @@ const PoolCard = memo(
     const brand = pool.asset?.brand || '';
     const model = pool.asset?.model || 'Luxury Watch';
     const tokensLeft = pool.totalShares - pool.sharesSold;
-    const roiPercent = ((pool.projectedROI - 1) * 100).toFixed(0);
+    // Use real price change from DexScreener when available, fallback to projectedROI
+    const realPriceChange = dexData?.priceChange?.h24;
+    const hasRealChange = realPriceChange !== undefined && realPriceChange !== null;
+    const changePercent = hasRealChange ? realPriceChange : (pool.projectedROI - 1) * 100;
+    const changeIsPositive = changePercent >= 0;
     const isHot = pool.status === 'open' && percentFilled > 60;
     const isTradeable = !!pool.bagsTokenMint && pool.tokenStatus === 'unlocked';
     const statusClass = STATUS_STYLE[pool.status] || 'statusDefault';
@@ -492,9 +601,14 @@ const PoolCard = memo(
             style={{ objectFit: 'cover' }}
             unoptimized
           />
-          {showChart && (
+          {showChart && priceHistory.length > 1 && (
             <div className={styles.cardChart}>
-              <TvChart data={priceHistory} interactive={showChart && globalChartMode} />
+              <TvChart
+                data={priceHistory}
+                interactive={globalChartMode}
+                showTimeframes={false}
+                showToolbar={false}
+              />
             </div>
           )}
           <button
@@ -524,10 +638,14 @@ const PoolCard = memo(
           {brand && <div className={styles.cardBrand}>{brand}</div>}
           <div className={styles.cardTitleRow}>
             <span className={styles.cardTitle}>{model}</span>
-            {pool.projectedROI > 1 && (
-              <span className={styles.cardRoi}>
-                <FiTrendingUp size={11} />
-                {roiPercent}%
+            {(hasRealChange || pool.projectedROI > 1) && changePercent !== 0 && (
+              <span
+                className={styles.cardRoi}
+                style={hasRealChange ? { color: changeIsPositive ? '#26a69a' : '#ef5350' } : undefined}
+              >
+                {changeIsPositive ? <FiTrendingUp size={11} /> : <FiTrendingDown size={11} />}
+                {changeIsPositive ? '+' : ''}{changePercent.toFixed(1)}%
+                {hasRealChange && <span style={{ fontSize: '9px', opacity: 0.6, marginLeft: '2px' }}>24h</span>}
               </span>
             )}
           </div>
@@ -537,20 +655,51 @@ const PoolCard = memo(
             onClick={(e) => e.stopPropagation()}
             data-tour="card-trade"
           >
-            {(pool.status === 'open' && tokensLeft > 0) || isTradeable ? (
+            {pool.bagsTokenMint && ((pool.status === 'open' && tokensLeft > 0) || isTradeable) ? (
               <>
+                {tradeStatus !== 'idle' && (
+                  <div
+                    className={styles.cardTradeStatus}
+                    style={{
+                      color:
+                        tradeStatus === 'success'
+                          ? '#26a69a'
+                          : tradeStatus === 'error'
+                            ? '#ef5350'
+                            : '#c8a1ff',
+                    }}
+                  >
+                    {tradeStatus === 'loading' && (
+                      <span className={styles.cardTradeSpinner} />
+                    )}
+                    {tradeMsg}
+                  </div>
+                )}
                 <div className={styles.cardTradeAmounts}>
                   {['0.1', '0.5', '1', '5'].map((sol) => (
-                    <button key={sol} className={styles.cardTradeChip} onClick={onClick}>
+                    <button
+                      key={sol}
+                      className={`${styles.cardTradeChip} ${selectedSol === sol ? styles.cardTradeChipActive : ''}`}
+                      onClick={() => setSelectedSol(selectedSol === sol ? null : sol)}
+                    >
                       {sol} SOL
                     </button>
                   ))}
                 </div>
                 <div className={styles.cardTradeActions}>
-                  <button className={styles.cardBuyBtn} onClick={onClick}>
-                    Buy
+                  <button
+                    className={styles.cardBuyBtn}
+                    disabled={tradeStatus === 'loading'}
+                    onClick={() => executeQuickTrade('buy')}
+                  >
+                    Buy{selectedSol ? ` ${selectedSol}` : ''}
                   </button>
-                  <button className={styles.cardSellBtn} onClick={onClick}>
+                  <button
+                    className={styles.cardSellBtn}
+                    disabled={tradeStatus === 'loading'}
+                    onClick={onClick}
+                    title="Open detail to sell tokens"
+                  >
                     Sell
                   </button>
                 </div>
@@ -619,12 +768,26 @@ const PoolCard = memo(
 
           <div className={styles.cardStats}>
             <div className={styles.cardStat}>
-              <span className={styles.cardStatLabel}>{pool.lastPriceUSD ? 'Price' : 'Entry'}</span>
+              <span className={styles.cardStatLabel}>
+                {dexData ? 'Price' : pool.lastPriceUSD ? 'Price' : 'Entry'}
+              </span>
               <span className={styles.cardStatValue}>
-                $
-                {pool.lastPriceUSD
-                  ? pool.lastPriceUSD.toFixed(6)
-                  : pool.sharePriceUSD.toLocaleString()}
+                {(() => {
+                  const price = dexData?.priceUsd
+                    ? parseFloat(dexData.priceUsd)
+                    : pool.lastPriceUSD || pool.sharePriceUSD;
+                  if (price >= 1) return `$${price.toFixed(2)}`;
+                  if (price >= 0.001) return `$${price.toFixed(6)}`;
+                  // Subscript zero notation for micro-prices
+                  const str = price.toFixed(20).split('.')[1] || '';
+                  let zeros = 0;
+                  for (const ch of str) { if (ch === '0') zeros++; else break; }
+                  const sig = str.slice(zeros, zeros + 3);
+                  const sub = zeros.toString().split('').map(d =>
+                    '\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089'[parseInt(d)] || d
+                  ).join('');
+                  return `$0.0${sub}${sig}`;
+                })()}
               </span>
             </div>
             <div className={styles.cardStat}>
@@ -635,11 +798,12 @@ const PoolCard = memo(
               <span className={styles.cardStatLabel}>Vol</span>
               <span className={styles.cardStatValue}>
                 $
-                {pool.totalVolumeUSD
-                  ? pool.totalVolumeUSD >= 1000
-                    ? `${(pool.totalVolumeUSD / 1000).toFixed(1)}K`
-                    : pool.totalVolumeUSD.toFixed(0)
-                  : '0'}
+                {(() => {
+                  const vol = dexData?.volume24h || pool.totalVolumeUSD || 0;
+                  if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
+                  if (vol >= 1000) return `${(vol / 1000).toFixed(1)}K`;
+                  return vol > 0 ? vol.toFixed(0) : '0';
+                })()}
               </span>
             </div>
           </div>

@@ -311,6 +311,57 @@ export function usePartnerStats(config?: SWRConfiguration) {
 }
 
 // ============================================
+// Price History Hook (real data from DexScreener)
+// ============================================
+interface PriceHistoryResponse {
+  success: boolean;
+  tokenMint: string;
+  currentPrice: number;
+  priceHistory: number[];
+  dexScreener: {
+    pairAddress: string;
+    priceUsd: string;
+    priceNative: string;
+    volume24h: number;
+    priceChange: { m5?: number; h1?: number; h6?: number; h24?: number };
+    txns24h: { buys: number; sells: number };
+    url: string;
+    createdAt: number;
+  } | null;
+  source: 'dexscreener' | 'synthetic';
+}
+
+export function usePriceHistory(
+  poolId: string | null,
+  mint: string | null,
+  points: number = 80,
+  config?: SWRConfiguration
+) {
+  const key = poolId
+    ? `/api/bags/price-history?poolId=${poolId}&points=${points}`
+    : mint
+      ? `/api/bags/price-history?mint=${mint}&points=${points}`
+      : null;
+
+  const { data, error, isLoading, mutate } = useSWR<PriceHistoryResponse>(key, fetcher, {
+    refreshInterval: 30000, // Refresh every 30s
+    revalidateOnFocus: false,
+    dedupingInterval: 10000,
+    ...config,
+  });
+
+  return {
+    priceHistory: data?.priceHistory || [],
+    currentPrice: data?.currentPrice || 0,
+    dexScreener: data?.dexScreener || null,
+    source: data?.source || 'synthetic',
+    isLoading,
+    isError: !!error,
+    mutate,
+  };
+}
+
+// ============================================
 // User Portfolio Hook
 // ============================================
 interface UserPosition {
@@ -335,13 +386,24 @@ interface UserPortfolioResponse {
 }
 
 export function useUserPortfolio(walletAddress: string | null, config?: SWRConfiguration) {
+  // Silently return empty if endpoint doesn't exist yet
+  const silentFetcher = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return { positions: [], totalInvested: 0, totalCurrentValue: 0, totalPnL: 0, totalPnLPercent: 0 };
+      return res.json();
+    } catch {
+      return { positions: [], totalInvested: 0, totalCurrentValue: 0, totalPnL: 0, totalPnLPercent: 0 };
+    }
+  };
+
   const { data, error, isLoading, mutate } = useSWR<UserPortfolioResponse>(
     walletAddress ? `/api/user/portfolio?wallet=${walletAddress}` : null,
-    fetcher,
+    silentFetcher,
     {
-      refreshInterval: 30000,
-      revalidateOnFocus: true,
-      dedupingInterval: 10000,
+      refreshInterval: 60000, // Less frequent since endpoint may not exist
+      revalidateOnFocus: false,
+      dedupingInterval: 30000,
       ...config,
     }
   );

@@ -153,10 +153,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Step 2: Create and upload metadata (matching createNFT.tsx format)
+    // On-chain name has 32 char max — use brand + model, full title goes in description
+    const shortName = `${mintRequest.brand || ''} ${mintRequest.model || ''}`.trim().slice(0, 32)
+      || mintRequest.title.slice(0, 32);
     const metadata = {
-      name: mintRequest.title,
+      name: shortName,
       symbol: 'LUXHUB',
-      description: mintRequest.description || `${mintRequest.brand} ${mintRequest.model}`,
+      description: mintRequest.description || mintRequest.title || `${mintRequest.brand} ${mintRequest.model}`,
       image: imageUrl,
       external_url: preGeneratedMint
         ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/nft/${preGeneratedMint}`

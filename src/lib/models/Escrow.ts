@@ -25,7 +25,7 @@ const EscrowSchema = new Schema(
     listingPriceUSD: { type: Number }, // Price in USD for display
     minimumOffer: { type: Number }, // For accepting_offers mode (lamports)
     minimumOfferUSD: { type: Number }, // Min offer in USD
-    acceptingOffers: { type: Boolean, default: false }, // Toggle for offer mode
+    acceptingOffers: { type: Boolean, default: true }, // All listings accept offers by default
 
     // ========== BUYER SHIPPING ADDRESS (NEW) ==========
     buyerShippingAddress: {

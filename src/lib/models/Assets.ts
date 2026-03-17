@@ -66,6 +66,7 @@ const AssetSchema = new Schema(
     },
     statusBeforeFreeze: { type: String }, // Store previous status when frozen
     poolEligible: { type: Boolean, default: false },
+    openToOffers: { type: Boolean, default: true }, // Holders can receive offers even when not listed
     deleted: { type: Boolean, default: false },
     escrowPda: { type: String, index: true },
 

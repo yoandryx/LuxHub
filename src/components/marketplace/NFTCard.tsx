@@ -94,13 +94,16 @@ const NFTCard = memo(({ nft, onClick, onQuickBuy, onOffer, acceptingOffers }: NF
     return usdAttr ? parseFloat(usdAttr.replace(/[^0-9.]/g, '')) : (nft as any).priceUSD;
   }, [nft.attributes]);
 
+  // Show USD as primary if available, SOL as secondary
+  const hasUsdPrice = priceUSD !== undefined && priceUSD > 0;
+
   return (
     <UnifiedNFTCard
       title={nft.title || 'Untitled NFT'}
       image={resolvedImage}
-      price={price}
-      priceLabel="SOL"
-      priceUSD={priceUSD}
+      price={hasUsdPrice ? priceUSD : price}
+      priceLabel={hasUsdPrice ? 'USD' : 'SOL'}
+      subtitle={hasUsdPrice && price > 0 ? `${price.toFixed(2)} SOL` : undefined}
       owner={owner}
       brand={brand}
       material={material}

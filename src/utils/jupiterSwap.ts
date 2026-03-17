@@ -10,8 +10,8 @@ import {
 export const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 export const SOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
 
-const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6/quote';
-const JUPITER_SWAP_API = 'https://quote-api.jup.ag/v6/swap';
+const JUPITER_QUOTE_API = 'https://public.jupiterapi.com/quote';
+const JUPITER_SWAP_API = 'https://public.jupiterapi.com/swap';
 
 // USDC has 6 decimals
 export const USDC_DECIMALS = 6;

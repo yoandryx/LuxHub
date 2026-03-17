@@ -5,6 +5,8 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { Vendor } from '../../../lib/models/Vendor';
 import { User } from '../../../lib/models/User';
+import { Asset } from '../../../lib/models/Assets';
+import { notifyOrderShipped } from '../../../lib/services/notificationService';
 
 interface SubmitShipmentRequest {
   escrowPda: string;
@@ -127,6 +129,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       { new: true }
     );
+
+    // Notify buyer that their order has shipped
+    if (escrow.buyerWallet) {
+      const asset = await Asset.findById(escrow.asset);
+      const assetTitle = asset?.title || asset?.model || 'Luxury item';
+      const trackingLink = getTrackingLink(normalizedCarrier, trackingNumber);
+
+      notifyOrderShipped({
+        buyerWallet: escrow.buyerWallet,
+        escrowId: escrow._id.toString(),
+        escrowPda: escrow.escrowPda,
+        assetTitle,
+        trackingNumber,
+        trackingCarrier: normalizedCarrier,
+        trackingUrl: trackingLink || undefined,
+      }).catch((err: any) =>
+        console.error('[/api/escrow/submit-shipment] Notification error:', err)
+      );
+    }
 
     return res.status(200).json({
       success: true,

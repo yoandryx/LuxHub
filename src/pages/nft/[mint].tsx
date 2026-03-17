@@ -53,7 +53,13 @@ const NftPage: React.FC = () => {
 
       <div style={styles.page}>
         <div style={styles.cardWrapper}>
-          <NftDetailCard mintAddress={mint} onClose={() => router.push('/marketplace')} />
+          <NftDetailCard
+            mintAddress={mint}
+            acceptingOffers={true}
+            onBuy={() => router.push(`/marketplace?pay=${mint}`)}
+            onOffer={() => router.push(`/marketplace?offer=${mint}`)}
+            onClose={() => router.push('/marketplace')}
+          />
         </div>
       </div>
     </>

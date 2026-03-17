@@ -1,5 +1,17 @@
 // src/pages/api/bags/create-pool-token.ts
-// Create pool share token via Bags Token Launch API
+// Create pool share token via Bags Token Launch API v2
+//
+// TWO-PHASE FLOW (fee share must be confirmed on-chain before launch tx):
+//
+//   Phase 1 (step=setup, default):
+//     1. POST /token-launch/create-token-info  → get tokenMint + tokenMetadata
+//     2. POST /fee-share/config                → get meteoraConfigKey + txs to sign
+//     → Returns fee share transactions. Client signs + sends + waits for confirmation.
+//
+//   Phase 2 (step=launch, after fee share confirmed):
+//     3. POST /token-launch/create-launch-transaction → uses confirmed configKey
+//     → Returns launch transaction. Client signs + sends → bonding curve live.
+//
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
@@ -11,10 +23,8 @@ interface CreatePoolTokenRequest {
   adminWallet: string;
   tokenName?: string;
   tokenSymbol?: string;
-  // Bonding curve configuration
-  launchType?: 'fixed_supply' | 'bonding_curve';
-  bondingCurveType?: 'linear' | 'exponential' | 'sqrt';
-  initialPriceUSD?: number;
+  initialBuyLamports?: number; // Optional initial buy on launch (in lamports)
+  step?: 'setup' | 'launch'; // Phase 1 or Phase 2
 }
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
@@ -30,12 +40,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       adminWallet,
       tokenName,
       tokenSymbol,
-      launchType = 'bonding_curve',
-      bondingCurveType = 'exponential',
-      initialPriceUSD,
+      initialBuyLamports = 0,
+      step = 'setup',
     } = req.body as CreatePoolTokenRequest;
 
-    // Validation
     if (!poolId || !adminWallet) {
       return res.status(400).json({
         error: 'Missing required fields: poolId, adminWallet',
@@ -44,30 +52,112 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const bagsApiKey = process.env.BAGS_API_KEY;
     if (!bagsApiKey) {
-      return res.status(500).json({
-        error: 'BAGS_API_KEY not configured',
-      });
+      return res.status(500).json({ error: 'BAGS_API_KEY not configured' });
     }
 
     await dbConnect();
 
-    // Verify admin privileges
+    // Verify admin
     const adminConfig = getAdminConfig();
     if (!adminConfig.isAdmin(adminWallet)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Find the pool
     const pool = await Pool.findById(poolId).populate('selectedAssetId');
     if (!pool || pool.deleted) {
       return res.status(404).json({ error: 'Pool not found' });
     }
 
-    // Check if token already exists
+    // ──────────────────────────────────────────────────────────────
+    // PHASE 2: Create launch transaction (fee share already on-chain)
+    // ──────────────────────────────────────────────────────────────
+    if (step === 'launch') {
+      if (!pool.bagsTokenMint || !pool.meteoraConfigKey) {
+        return res.status(400).json({
+          error: 'Pool missing token mint or config key. Run step=setup first.',
+          hasMint: !!pool.bagsTokenMint,
+          hasConfigKey: !!pool.meteoraConfigKey,
+        });
+      }
+
+      // Find the metadata URL from the token info
+      // We stored it during Phase 1 or we can reconstruct
+      const metadataUrl =
+        pool.bagsTokenMetadataUrl ||
+        `https://ipfs.io/ipfs/${pool.bagsTokenMint}`; // Fallback
+
+      const launchResponse = await fetch(
+        `${BAGS_API_BASE}/token-launch/create-launch-transaction`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': bagsApiKey,
+          },
+          body: JSON.stringify({
+            ipfs: metadataUrl,
+            tokenMint: pool.bagsTokenMint,
+            wallet: adminWallet,
+            initialBuyLamports,
+            configKey: pool.meteoraConfigKey,
+          }),
+        }
+      );
+
+      if (!launchResponse.ok) {
+        const errorData = await launchResponse.json().catch(() => ({}));
+        return res.status(500).json({
+          error: 'Launch transaction failed. Ensure fee share config is confirmed on-chain.',
+          details: errorData,
+          tokenMint: pool.bagsTokenMint,
+          meteoraConfigKey: pool.meteoraConfigKey,
+          hint: 'If you just signed fee share txs, wait a few seconds for confirmation before retrying.',
+        });
+      }
+
+      const launchResult = await launchResponse.json();
+      const launchTx = launchResult.response || launchResult;
+
+      // Update pool status
+      await Pool.findByIdAndUpdate(poolId, {
+        $set: {
+          tokenStatus: 'minted',
+          bondingCurveActive: true,
+          bondingCurveType: 'exponential',
+          initialBondingPrice: pool.sharePriceUSD || 0.01,
+          currentBondingPrice: pool.sharePriceUSD || 0.01,
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        phase: 2,
+        pool: {
+          _id: pool._id,
+          bagsTokenMint: pool.bagsTokenMint,
+          meteoraConfigKey: pool.meteoraConfigKey,
+        },
+        transactions: [
+          {
+            step: 'launch',
+            description: 'Token launch transaction — creates bonding curve',
+            transaction: typeof launchTx === 'string' ? launchTx : launchTx.transaction,
+            blockhash: typeof launchTx === 'string' ? undefined : launchTx.blockhash,
+          },
+        ],
+        transactionCount: 1,
+        message: 'Phase 2 ready: Sign the launch transaction to activate the bonding curve.',
+      });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // PHASE 1: Create token info + fee share config
+    // ──────────────────────────────────────────────────────────────
     if (pool.bagsTokenMint) {
       return res.status(400).json({
-        error: 'Pool already has a token mint',
+        error: 'Pool already has a token mint. Use step=launch to get the launch transaction.',
         bagsTokenMint: pool.bagsTokenMint,
+        meteoraConfigKey: pool.meteoraConfigKey,
       });
     }
 
@@ -77,156 +167,130 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const assetImage = asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
 
     // Generate token name and symbol
-    const poolNumber = pool._id.toString().slice(-6).toUpperCase();
+    const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
     const finalTokenName = tokenName || `LuxHub Pool #${poolNumber} - ${assetModel}`;
-    const finalTokenSymbol = tokenSymbol || `LUX-${poolNumber}`;
+    const finalTokenSymbol = tokenSymbol || `LUX-${poolNumber.replace('LUX-', '')}`;
 
-    // Step 1: Create token info via Bags API (multipart/form-data)
+    // ──────────────────────────────────────────────────────────────
+    // STEP 1: Create token info + metadata via Bags API
+    // ──────────────────────────────────────────────────────────────
     const formData = new FormData();
-    formData.append('name', finalTokenName);
-    formData.append('symbol', finalTokenSymbol);
+    formData.append('name', finalTokenName.slice(0, 32)); // Max 32 chars
+    formData.append('symbol', finalTokenSymbol.slice(0, 10)); // Max 10 chars
     formData.append(
       'description',
-      `Tokenized pool for authenticated ${assetModel}. Trade anytime on secondary markets. Pool ID: ${poolId}`
+      `Tokenized pool for authenticated ${assetModel}. Trade on secondary markets. Pool ID: ${poolId}`.slice(
+        0,
+        1000
+      )
     );
-    formData.append('imageUrl', assetImage);
+    if (assetImage) {
+      formData.append('imageUrl', assetImage);
+    }
     formData.append('twitter', 'https://x.com/LuxHubStudio');
     formData.append('website', process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold');
 
     const tokenInfoResponse = await fetch(`${BAGS_API_BASE}/token-launch/create-token-info`, {
       method: 'POST',
-      headers: {
-        'x-api-key': bagsApiKey,
-      },
+      headers: { 'x-api-key': bagsApiKey },
       body: formData,
     });
 
     if (!tokenInfoResponse.ok) {
       const errorData = await tokenInfoResponse.json().catch(() => ({}));
       return res.status(500).json({
-        error: 'Failed to create token info via Bags API',
+        error: 'Step 1 failed: Could not create token info via Bags API',
         details: errorData,
       });
     }
 
     const tokenInfoResult = await tokenInfoResponse.json();
     const tokenInfoData = tokenInfoResult.response || tokenInfoResult;
+    const tokenMintAddress = tokenInfoData.tokenMint;
+    const tokenMetadataUrl = tokenInfoData.tokenMetadata;
 
-    // Step 2: Create token launch transaction
-    // Determine launch configuration based on launchType
-    const isFixedSupply = launchType === 'fixed_supply';
-
-    const launchPayload: Record<string, unknown> = {
-      ipfs: tokenInfoData.tokenMetadata, // IPFS URL from create-info response
-      tokenMint: tokenInfoData.tokenMint, // Token mint from create-info response
-      wallet: adminWallet,
-      initialBuyLamports: 0, // No initial buy by default
-      configKey: isFixedSupply ? 'fixed' : 'bonding_curve',
-    };
-
-    const launchResponse = await fetch(`${BAGS_API_BASE}/token-launch/create-launch-transaction`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': bagsApiKey,
-      },
-      body: JSON.stringify(launchPayload),
-    });
-
-    if (!launchResponse.ok) {
-      const errorData = await launchResponse.json().catch(() => ({}));
+    if (!tokenMintAddress || !tokenMetadataUrl) {
       return res.status(500).json({
-        error: 'Failed to create token launch transaction via Bags API',
-        details: errorData,
+        error: 'Step 1 incomplete: Bags did not return tokenMint or tokenMetadata',
+        data: tokenInfoData,
       });
     }
 
-    const launchResult = await launchResponse.json();
-    const launchData = launchResult.response || launchResult;
+    // Save token mint + metadata URL immediately so we don't lose them if later steps fail
+    await Pool.findByIdAndUpdate(poolId, {
+      $set: {
+        bagsTokenMint: tokenMintAddress,
+        bagsTokenMetadataUrl: tokenMetadataUrl,
+        bagsTokenCreatedAt: new Date(),
+        fractionalMint: tokenMintAddress,
+        bagsTokenName: finalTokenName,
+        bagsTokenSymbol: finalTokenSymbol,
+        tokenStatus: 'pending', // Not yet launched — needs signing
+      },
+    });
 
-    // The token mint comes from the create-info step
-    const tokenMintAddress = tokenInfoData.tokenMint;
-    const calculatedInitialPrice = initialPriceUSD || pool.sharePriceUSD || 0.01;
+    // ──────────────────────────────────────────────────────────────
+    // STEP 2: Configure fee share → get meteoraConfigKey
+    // ──────────────────────────────────────────────────────────────
+    const feeShareResult = await configureFeeShareInternal(
+      poolId,
+      tokenMintAddress,
+      adminWallet,
+      pool.vendorWallet // Include vendor in fee split if available
+    );
 
-    // Update pool with Bags token info and bonding curve config
-    const poolUpdate: Record<string, unknown> = {
-      bagsTokenMint: tokenMintAddress,
-      bagsTokenCreatedAt: new Date(),
-      fractionalMint: tokenMintAddress,
-      bondingCurveActive: !isFixedSupply,
-      bondingCurveType: isFixedSupply ? undefined : bondingCurveType,
-      initialBondingPrice: isFixedSupply ? undefined : calculatedInitialPrice,
-      currentBondingPrice: isFixedSupply ? undefined : calculatedInitialPrice,
-      tokenStatus: 'minted',
-    };
-
-    await Pool.findByIdAndUpdate(poolId, { $set: poolUpdate });
-
-    // Auto-configure fee share (3% to LuxHub treasury) immediately after token creation
-    const tokenMint = tokenMintAddress;
-    let feeShareResult = null;
-    try {
-      feeShareResult = await configureFeeShareInternal(poolId, tokenMint, adminWallet);
-      if (!feeShareResult.success) {
-        console.warn('[create-pool-token] Fee share auto-config failed:', feeShareResult.error);
-      }
-    } catch (feeErr) {
-      console.warn('[create-pool-token] Fee share auto-config error:', feeErr);
+    if (!feeShareResult.success || !feeShareResult.meteoraConfigKey) {
+      console.error('[create-pool-token] Fee share config failed:', feeShareResult.error);
+      return res.status(500).json({
+        error: 'Step 2 failed: Could not configure fee share',
+        details: feeShareResult.error,
+        note: 'Token info was created (mint saved). You can retry fee share via /api/bags/configure-fee-share, then launch manually.',
+        tokenMint: tokenMintAddress,
+      });
     }
 
+    const meteoraConfigKey = feeShareResult.meteoraConfigKey;
+    const feeShareTransactions = feeShareResult.transactions || [];
+
+    // ──────────────────────────────────────────────────────────────
+    // PHASE 1 RESPONSE: Return fee share transactions to sign
+    // Client must sign + send + confirm these BEFORE requesting Phase 2
+    // ──────────────────────────────────────────────────────────────
     return res.status(200).json({
       success: true,
+      phase: 1,
       token: {
         name: finalTokenName,
         symbol: finalTokenSymbol,
         mint: tokenMintAddress,
-        tokenInfoId: tokenInfoData.tokenMint,
-        launchType: isFixedSupply ? 'fixed_supply' : 'bonding_curve',
-        ...(isFixedSupply
-          ? { totalSupply: pool.totalShares }
-          : {
-              bondingCurve: {
-                type: bondingCurveType,
-                initialPrice: calculatedInitialPrice,
-                targetMarketCap: pool.targetAmountUSD,
-              },
-            }),
+        metadataUrl: tokenMetadataUrl,
+      },
+      feeShare: {
+        meteoraConfigKey,
+        feeShareAuthority: feeShareResult.feeShareAuthority,
+        needsCreation: feeShareTransactions.length > 0,
       },
       pool: {
         _id: pool._id,
         bagsTokenMint: tokenMintAddress,
-        bondingCurveActive: !isFixedSupply,
+        meteoraConfigKey,
       },
-      feeShare: feeShareResult?.success
-        ? {
-            configured: true,
-            configId: feeShareResult.configId,
-            feePercent: '3%',
-            transaction: feeShareResult.transaction,
-          }
-        : {
-            configured: false,
-            error:
-              feeShareResult?.error ||
-              'Fee share not configured — run /api/bags/configure-fee-share manually',
-          },
-      transaction: launchData, // base58 serialized tx string from launch response
-      message: isFixedSupply
-        ? 'Pool share token created via Bags (fixed supply). Transaction ready for signing.'
-        : 'Pool bonding curve token created via Bags. Transaction ready for signing.',
-      nextSteps: isFixedSupply
-        ? [
-            'Sign and send the transaction to complete token creation',
-            'Pool shares will be represented as SPL tokens',
-            'Participants can trade tokens on secondary markets',
-          ]
-        : [
-            'Sign and send the transaction to launch bonding curve',
-            'Participants buy tokens which mints new supply dynamically',
-            'Price increases as more tokens are minted (bonding curve)',
-            'When target market cap is reached, token graduates to DEX',
-            'Top 100 holders become Squad DAO members for governance',
-          ],
+      transactions: feeShareTransactions.map((tx: any, i: number) => ({
+        step: `fee-share-${i + 1}`,
+        description: `Fee share config transaction ${i + 1}/${feeShareTransactions.length}`,
+        ...tx,
+      })),
+      transactionCount: feeShareTransactions.length,
+      message:
+        feeShareTransactions.length > 0
+          ? `Phase 1 ready: Sign ${feeShareTransactions.length} fee share transaction(s), confirm on-chain, then call again with step=launch.`
+          : 'Fee share config already on-chain. Call again with step=launch to get the launch transaction.',
+      nextStep: {
+        method: 'POST',
+        url: '/api/bags/create-pool-token',
+        body: { poolId, adminWallet, step: 'launch', initialBuyLamports },
+        when: 'After ALL fee share transactions are confirmed on-chain',
+      },
     });
   } catch (error: any) {
     console.error('[/api/bags/create-pool-token] Error:', error);
@@ -239,13 +303,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 /**
  * Internal function to create a Bags token for a pool.
- * Called automatically during pool creation — no admin auth needed (already validated upstream).
+ * Called automatically during pool creation flow.
  * Non-blocking: logs warnings on failure so pool creation still succeeds.
+ *
+ * Returns all transactions that need signing before the token is live.
  */
 export async function createPoolTokenInternal(
   poolId: string,
   creatorWallet: string
-): Promise<{ success: boolean; mint?: string; transaction?: string; error?: string }> {
+): Promise<{
+  success: boolean;
+  mint?: string;
+  meteoraConfigKey?: string;
+  transactions?: any[];
+  error?: string;
+}> {
   const bagsApiKey = process.env.BAGS_API_KEY;
   if (!bagsApiKey) {
     return { success: false, error: 'BAGS_API_KEY not configured' };
@@ -256,24 +328,24 @@ export async function createPoolTokenInternal(
 
     const pool = await Pool.findById(poolId).populate('selectedAssetId');
     if (!pool) return { success: false, error: 'Pool not found' };
-    if (pool.bagsTokenMint) return { success: true, mint: pool.bagsTokenMint }; // Already has token
+    if (pool.bagsTokenMint) return { success: true, mint: pool.bagsTokenMint };
 
     const asset = pool.selectedAssetId as any;
     const assetModel = asset?.model || 'LuxHub Pool Asset';
     const assetImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
-    const tokenName = `LuxHub Pool #${poolNumber} - ${assetModel}`;
-    const tokenSymbol = `LUX-${poolNumber.replace('LUX-', '')}`;
+    const tokenName = `LuxHub Pool #${poolNumber} - ${assetModel}`.slice(0, 32);
+    const tokenSymbol = `LUX-${poolNumber.replace('LUX-', '')}`.slice(0, 10);
 
-    // Step 1: Create token info (multipart/form-data)
+    // STEP 1: Create token info
     const formData = new FormData();
     formData.append('name', tokenName);
     formData.append('symbol', tokenSymbol);
     formData.append(
       'description',
-      `Tokenized pool for authenticated ${assetModel}. Pool ID: ${poolId}`
+      `Tokenized pool for authenticated ${assetModel}. Pool ID: ${poolId}`.slice(0, 1000)
     );
-    formData.append('imageUrl', assetImage);
+    if (assetImage) formData.append('imageUrl', assetImage);
     formData.append('twitter', 'https://x.com/LuxHubStudio');
     formData.append('website', process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold');
 
@@ -290,58 +362,94 @@ export async function createPoolTokenInternal(
 
     const infoResult = await infoRes.json();
     const infoData = infoResult.response || infoResult;
-    const initialPrice = pool.sharePriceUSD || 0.01;
+    const mint = infoData.tokenMint;
+    const metadataUrl = infoData.tokenMetadata;
 
-    // Step 2: Create token launch transaction (bonding curve)
-    const launchRes = await fetch(`${BAGS_API_BASE}/token-launch/create-launch-transaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': bagsApiKey },
-      body: JSON.stringify({
-        ipfs: infoData.tokenMetadata, // IPFS URL from create-info response
-        tokenMint: infoData.tokenMint, // Token mint from create-info response
-        wallet: creatorWallet,
-        initialBuyLamports: 0,
-        configKey: 'bonding_curve',
-      }),
-    });
-
-    if (!launchRes.ok) {
-      const err = await launchRes.json().catch(() => ({}));
-      return { success: false, error: `Bags token launch failed: ${JSON.stringify(err)}` };
+    if (!mint || !metadataUrl) {
+      return { success: false, error: 'Bags did not return tokenMint or tokenMetadata' };
     }
 
-    const launchResult = await launchRes.json();
-    // Token mint comes from the create-info step; launch response is the serialized tx
-    const mint = infoData.tokenMint;
-
-    // Update pool with token info
+    // Save mint immediately
     await Pool.findByIdAndUpdate(poolId, {
       $set: {
         bagsTokenMint: mint,
         bagsTokenCreatedAt: new Date(),
         fractionalMint: mint,
-        bondingCurveActive: true,
-        bondingCurveType: 'exponential',
-        initialBondingPrice: initialPrice,
-        currentBondingPrice: initialPrice,
-        tokenStatus: 'minted',
-        // bondingCurveAddress no longer returned by Bags API
+        bagsTokenName: tokenName,
+        bagsTokenSymbol: tokenSymbol,
+        tokenStatus: 'pending',
       },
     });
 
-    // Auto-configure fee share (3% to LuxHub)
-    try {
-      await configureFeeShareInternal(poolId, mint, creatorWallet);
-    } catch (feeErr) {
-      console.warn('[createPoolTokenInternal] Fee share config failed:', feeErr);
+    // STEP 2: Configure fee share → get meteoraConfigKey
+    const feeShareResult = await configureFeeShareInternal(
+      poolId,
+      mint,
+      creatorWallet,
+      pool.vendorWallet
+    );
+
+    if (!feeShareResult.success || !feeShareResult.meteoraConfigKey) {
+      console.warn('[createPoolTokenInternal] Fee share config failed:', feeShareResult.error);
+      return {
+        success: false,
+        mint,
+        error: `Fee share failed: ${feeShareResult.error}. Token info saved — retry fee share + launch manually.`,
+      };
     }
 
-    console.log(`[createPoolTokenInternal] Token minted for pool ${poolId}: ${mint}`);
+    // STEP 3: Create launch transaction
+    const launchRes = await fetch(`${BAGS_API_BASE}/token-launch/create-launch-transaction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': bagsApiKey },
+      body: JSON.stringify({
+        ipfs: metadataUrl,
+        tokenMint: mint,
+        wallet: creatorWallet,
+        initialBuyLamports: 0,
+        configKey: feeShareResult.meteoraConfigKey,
+      }),
+    });
+
+    if (!launchRes.ok) {
+      const err = await launchRes.json().catch(() => ({}));
+      return {
+        success: false,
+        mint,
+        meteoraConfigKey: feeShareResult.meteoraConfigKey,
+        error: `Launch tx failed: ${JSON.stringify(err)}. Fee share configured — retry launch manually.`,
+      };
+    }
+
+    const launchResult = await launchRes.json();
+    const launchTx = launchResult.response || launchResult;
+
+    // Update pool
+    await Pool.findByIdAndUpdate(poolId, {
+      $set: {
+        tokenStatus: 'minted',
+        bondingCurveActive: true,
+        bondingCurveType: 'exponential',
+        initialBondingPrice: pool.sharePriceUSD || 0.01,
+        currentBondingPrice: pool.sharePriceUSD || 0.01,
+      },
+    });
+
+    // Collect all transactions in signing order
+    const allTransactions = [
+      ...(feeShareResult.transactions || []),
+      typeof launchTx === 'string' ? { transaction: launchTx } : launchTx,
+    ];
+
+    console.log(
+      `[createPoolTokenInternal] Token prepared for pool ${poolId}: ${mint} (${allTransactions.length} txs to sign)`
+    );
 
     return {
       success: true,
       mint,
-      transaction: launchResult.response || launchResult.transaction, // base58 serialized tx, needs signing by creator
+      meteoraConfigKey: feeShareResult.meteoraConfigKey,
+      transactions: allTransactions,
     };
   } catch (error: any) {
     return { success: false, error: error?.message || 'Unknown error' };

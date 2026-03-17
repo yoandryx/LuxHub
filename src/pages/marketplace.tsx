@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from '
 import { createPortal } from 'react-dom';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import toast from 'react-hot-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -37,6 +39,7 @@ interface EscrowListing {
   escrowPda: string;
   nftMint: string;
   sellerWallet: string;
+  buyerWallet?: string;
   listingPrice: number;
   listingPriceUSD: number;
   status: string;
@@ -460,6 +463,7 @@ MarketplaceTour.displayName = 'MarketplaceTour';
 // Marketplace Page Component
 export default function Marketplace() {
   const wallet = useWallet();
+  const router = useRouter();
 
   // SWR hooks for data fetching with caching
   const { vendors, verifiedVendors, isLoading: isLoadingVendors } = useVendors();
@@ -467,10 +471,39 @@ export default function Marketplace() {
     listings,
     isLoading: isLoadingListings,
     mutate: mutateListings,
-  } = useEscrowListings('listed,initiated', 100);
+  } = useEscrowListings('listed,initiated,offer_accepted', 100);
   const { pools: openPools, isLoading: isLoadingPools } = usePools('open');
   const { pools: listedPools, isLoading: isLoadingCustody } = usePools('listed');
   const { price: solPrice } = useSolPrice();
+
+  // Auto-open pay modal when arriving from accepted offer notification (?pay=escrowPda)
+  useEffect(() => {
+    const payPda = router.query.pay as string;
+    if (payPda && listings?.length && wallet.connected) {
+      const listing = listings.find(
+        (l: EscrowListing) => l.escrowPda === payPda && l.status === 'offer_accepted'
+      );
+      if (listing) {
+        setSelectedListing(listing);
+        setShowBuyModal(true);
+        // Clean the URL
+        router.replace('/marketplace', undefined, { shallow: true });
+      }
+    }
+  }, [router.query.pay, listings, wallet.connected]);
+
+  // Auto-open offer modal when arriving from vendor profile (?offer=escrowPda)
+  useEffect(() => {
+    const offerPda = router.query.offer as string;
+    if (offerPda && listings?.length && wallet.connected) {
+      const listing = listings.find((l: EscrowListing) => l.escrowPda === offerPda);
+      if (listing) {
+        setSelectedListing(listing);
+        setShowOfferModal(true);
+        router.replace('/marketplace', undefined, { shallow: true });
+      }
+    }
+  }, [router.query.offer, listings, wallet.connected]);
 
   // Tour state
   const [showTour, setShowTour] = useState(false);
@@ -748,7 +781,10 @@ export default function Marketplace() {
   // Handle buy action
   const handleBuy = useCallback(
     (listing: EscrowListing) => {
-      if (!wallet.connected) return;
+      if (!wallet.connected) {
+        toast.error('Connect your wallet to buy');
+        return;
+      }
       setSelectedListing(listing);
       setShowBuyModal(true);
     },
@@ -758,7 +794,10 @@ export default function Marketplace() {
   // Handle offer action
   const handleOffer = useCallback(
     (listing: EscrowListing) => {
-      if (!wallet.connected) return;
+      if (!wallet.connected) {
+        toast.error('Connect your wallet to make an offer');
+        return;
+      }
       setSelectedListing(listing);
       setShowOfferModal(true);
     },
@@ -790,9 +829,13 @@ export default function Marketplace() {
   };
 
   const formatSol = (usd: number) => {
-    if (!solPrice) return '---';
+    if (!solPrice || solPrice <= 0) return '0';
     return (usd / solPrice).toFixed(2);
   };
+  // Debug: log current SOL price for verification
+  useEffect(() => {
+    if (solPrice) console.log('[Marketplace] SOL price:', solPrice);
+  }, [solPrice]);
 
   // Animation variants
   const containerVariants = {
@@ -1044,9 +1087,9 @@ export default function Marketplace() {
                             <UnifiedNFTCard
                               title={listing.asset?.model || 'Unknown Watch'}
                               image={resolveImage(listing)}
-                              price={priceSol || 0}
-                              priceLabel="SOL"
-                              priceUSD={listing.listingPriceUSD}
+                              price={listing.listingPriceUSD || 0}
+                              priceLabel="USD"
+                              subtitle={solPrice ? `${priceSol} SOL` : undefined}
                               mintAddress={listing.nftMint}
                               owner={listing.sellerWallet}
                               brand={listing.asset?.brand}
@@ -1055,18 +1098,24 @@ export default function Marketplace() {
                               dialColor={listing.asset?.dialColor}
                               caseSize={listing.asset?.caseSize}
                               condition={listing.asset?.condition}
-                              status="listed"
+                              status={
+                                listing.status === 'offer_accepted' &&
+                                listing.buyerWallet === wallet.publicKey?.toBase58()
+                                  ? 'escrow'
+                                  : 'listed'
+                              }
                               isVerified={listing.vendor?.verified}
-                              acceptingOffers={listing.acceptingOffers}
+                              acceptingOffers={listing.status !== 'offer_accepted' && listing.acceptingOffers}
                               showBadge={true}
                               showPrice={true}
                               showOverlay={true}
                               showActionButtons={true}
-                              onQuickBuy={() =>
-                                isDemo ? handleDemoClick(listing) : handleBuy(listing)
-                              }
+                              onQuickBuy={() => {
+                                if (isDemo) return handleDemoClick(listing);
+                                handleBuy(listing);
+                              }}
                               onOffer={
-                                listing.escrowPda
+                                listing.escrowPda && listing.status !== 'offer_accepted'
                                   ? () => (isDemo ? handleDemoClick(listing) : handleOffer(listing))
                                   : undefined
                               }
@@ -1435,7 +1484,18 @@ export default function Marketplace() {
               <NftDetailCard
                 mintAddress={selectedListing.nftMint}
                 owner={selectedListing.sellerWallet}
+                buyerWallet={wallet.publicKey?.toBase58()}
                 priceSol={parseFloat(formatSol(selectedListing.listingPriceUSD || 0))}
+                status={selectedListing.status === 'offer_accepted' ? 'escrow' : 'listed'}
+                acceptingOffers={selectedListing.acceptingOffers}
+                onBuy={() => {
+                  setShowDetailModal(false);
+                  handleBuy(selectedListing);
+                }}
+                onOffer={() => {
+                  setShowDetailModal(false);
+                  handleOffer(selectedListing);
+                }}
                 previewData={{
                   title:
                     selectedListing.asset?.title || selectedListing.asset?.model || 'Luxury Watch',

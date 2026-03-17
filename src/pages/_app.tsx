@@ -93,7 +93,34 @@ const App = ({ Component, pageProps }: AppProps) => {
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
             <Navbar />
-            <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: 'rgba(10, 10, 14, 0.92)',
+                  backdropFilter: 'blur(24px)',
+                  WebkitBackdropFilter: 'blur(24px)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(200, 161, 255, 0.15)',
+                  borderRadius: '12px',
+                  fontSize: '13px',
+                  padding: '12px 16px',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                },
+                success: {
+                  iconTheme: { primary: '#26a69a', secondary: '#0a0a0e' },
+                  style: { borderColor: 'rgba(38, 166, 154, 0.3)' },
+                },
+                error: {
+                  iconTheme: { primary: '#ef5350', secondary: '#0a0a0e' },
+                  style: { borderColor: 'rgba(239, 83, 80, 0.3)' },
+                },
+                loading: {
+                  iconTheme: { primary: '#c8a1ff', secondary: '#0a0a0e' },
+                },
+              }}
+            />
             {usePrivyWallet ? <WalletNavbar /> : <WalletNavbarSimple />}
             <Component {...pageProps} />
             <VendorFab />
