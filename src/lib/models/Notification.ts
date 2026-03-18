@@ -16,6 +16,7 @@ const NotificationSchema = new Schema(
         'order_shipped', // Vendor shipped item
         'order_delivered', // Delivery confirmed
         'payment_released', // Funds released to vendor
+        'order_refunded', // Order refunded to buyer
         // Shipment Verification Events
         'shipment_submitted', // Vendor submitted proof (for admin)
         'shipment_verified', // Admin verified shipment
@@ -28,11 +29,19 @@ const NotificationSchema = new Schema(
         // Vendor Events
         'vendor_approved', // Vendor application approved
         'vendor_rejected', // Vendor application rejected
+        'vendor_application_received', // New vendor application (for admin)
         'sale_request_approved', // Admin approved sale request
         'sale_request_rejected', // Admin rejected sale request
+        // Escrow Events
+        'escrow_cancelled_external_sale', // Escrow cancelled due to external sale
+        'delist_request_approved', // Vendor delist request approved
+        'delist_request_rejected', // Vendor delist request rejected
         // Pool Events
         'pool_investment', // User invested in pool
         'pool_distribution', // Pool distributed funds
+        'pool_wind_down_announced', // Pool wind-down announced
+        'pool_snapshot_taken', // Pool snapshot taken
+        'pool_distribution_complete', // Pool distribution complete
       ],
       required: true,
       index: true,
