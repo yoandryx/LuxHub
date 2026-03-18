@@ -1001,8 +1001,11 @@ const MyOrdersPage: React.FC = () => {
                               <FiX /> Withdraw Offer
                             </button>
                           )}
-                          {offer.status === 'accepted' && (
-                            <Link href="/marketplace" className={styles.confirmButton}>
+                          {offer.status === 'accepted' && offer.escrowPda && (
+                            <Link
+                              href={`/marketplace?pay=${offer.escrowPda}`}
+                              className={styles.confirmButton}
+                            >
                               <FiDollarSign /> Deposit Funds
                             </Link>
                           )}
