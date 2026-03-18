@@ -291,7 +291,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }).catch((err: any) => console.error('[offers/create] notifyOfferReceived error:', err));
     }
 
-    return res.status(200).json({
+    return res.status(201).json({
       success: true,
       offer: {
         _id: offer._id,

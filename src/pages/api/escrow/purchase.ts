@@ -6,7 +6,11 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
-import { notifyNewOrder, notifyUser } from '../../../lib/services/notificationService';
+import {
+  notifyNewOrder,
+  notifyUser,
+  notifyOfferAutoRejected,
+} from '../../../lib/services/notificationService';
 import { Transaction } from '../../../lib/models/Transaction';
 import { Offer } from '../../../lib/models/Offer';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
@@ -190,6 +194,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // Close all other pending/countered offers on this escrow — deal is done
     try {
+      // Query for offers that will be auto-rejected (for notification dispatch)
+      const offersToReject = await Offer.find({
+        escrowPda: updatedEscrow.escrowPda,
+        status: { $in: ['pending', 'countered'] },
+        buyerWallet: { $ne: buyerWallet },
+      })
+        .select('buyerWallet')
+        .lean();
+
       await Offer.updateMany(
         {
           escrowPda: updatedEscrow.escrowPda,
@@ -204,6 +217,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           },
         }
       );
+
+      // Send auto-reject notifications to each affected buyer (FLOW-10)
+      for (const offer of offersToReject) {
+        notifyOfferAutoRejected({
+          buyerWallet: offer.buyerWallet,
+          escrowPda: updatedEscrow.escrowPda,
+          reason: 'Item has been purchased by another buyer',
+        }).catch((err: any) => console.error('[purchase] auto-reject notification error:', err));
+      }
     } catch (err) {
       console.error('[/api/escrow/purchase] Offer cleanup error:', err);
     }

@@ -26,6 +26,7 @@ const NotificationSchema = new Schema(
         'offer_accepted', // Buyer's offer accepted
         'offer_rejected', // Buyer's offer rejected
         'offer_countered', // Vendor made counter-offer
+        'offer_auto_rejected', // Offer auto-rejected (item purchased by another buyer)
         // Vendor Events
         'vendor_approved', // Vendor application approved
         'vendor_rejected', // Vendor application rejected

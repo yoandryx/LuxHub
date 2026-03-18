@@ -29,6 +29,7 @@ export type NotificationType =
   | 'pool_wind_down_announced'
   | 'pool_snapshot_taken'
   | 'pool_distribution_complete'
+  | 'offer_auto_rejected'
   | 'vendor_application_received';
 
 export interface NotificationMetadata {
@@ -155,6 +156,10 @@ const emailTemplates: Record<
   pool_distribution_complete: {
     subject: () => 'Pool Distribution Complete',
     getHtml: (p) => baseEmailTemplate(p, '#22c55e'),
+  },
+  offer_auto_rejected: {
+    subject: () => 'Offer Automatically Closed',
+    getHtml: (p) => baseEmailTemplate(p, '#ef4444'),
   },
   vendor_application_received: {
     subject: () => 'New Vendor Application — Action Required',
@@ -341,6 +346,7 @@ function getNotificationCategory(type: NotificationType): string {
     offer_accepted: 'offerAlerts',
     offer_rejected: 'offerAlerts',
     offer_countered: 'offerAlerts',
+    offer_auto_rejected: 'offerAlerts',
     payment_released: 'paymentAlerts',
     pool_investment: 'poolUpdates',
     pool_distribution: 'poolUpdates',
@@ -748,6 +754,29 @@ export async function notifyOfferCountered(params: {
 }
 
 /**
+ * Notify buyer when their offer is auto-rejected (item purchased by another buyer)
+ */
+export async function notifyOfferAutoRejected(params: {
+  buyerWallet: string;
+  escrowPda: string;
+  reason: string;
+}) {
+  const { buyerWallet, escrowPda, reason } = params;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
+
+  return notifyUser({
+    userWallet: buyerWallet,
+    type: 'offer_auto_rejected',
+    title: 'Offer Automatically Closed',
+    message: `Your offer was automatically closed because the item was purchased. ${reason}`,
+    metadata: {
+      escrowPda,
+      actionUrl: `${appUrl}/marketplace`,
+    },
+  });
+}
+
+/**
  * Notify vendor of application approval/rejection
  */
 export async function notifyVendorApplicationResult(params: {
@@ -920,6 +949,7 @@ export default {
   notifyOfferAccepted,
   notifyOfferRejected,
   notifyOfferCountered,
+  notifyOfferAutoRejected,
   notifyVendorApplicationResult,
   notifyOrderRefunded,
   notifyNewVendorApplication,
