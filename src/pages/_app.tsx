@@ -35,6 +35,7 @@ import { Toaster } from 'react-hot-toast';
 import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
 import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
+import { Analytics } from '@vercel/analytics/next';
 
 // Network URL
 const network = WalletAdapterNetwork.Devnet;
@@ -123,6 +124,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             />
             {usePrivyWallet ? <WalletNavbar /> : <WalletNavbarSimple />}
             <Component {...pageProps} />
+            <Analytics />
             <VendorFab />
             <LuxuryAssistant />
             <Footer />
