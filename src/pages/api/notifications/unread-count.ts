@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       deleted: false,
     });
 
-    return res.status(200).json({ count });
+    return res.status(200).json({ unreadCount: count });
   } catch (error: any) {
     console.error('[/api/notifications/unread-count] Error:', error);
     return res.status(500).json({

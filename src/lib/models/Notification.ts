@@ -4,7 +4,7 @@ import { Schema, model, models } from 'mongoose';
 const NotificationSchema = new Schema(
   {
     // ========== RECIPIENT ==========
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     userWallet: { type: String, required: true, index: true }, // Denormalized for quick lookup
 
     // ========== NOTIFICATION CONTENT ==========

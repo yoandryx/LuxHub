@@ -15,7 +15,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { notificationIds, wallet, markAll } = req.body;
 
     // Option 1: Mark all notifications as read for a wallet
-    if (markAll && wallet) {
+    // Supports both explicit markAll flag and implicit (wallet with no notificationIds)
+    if ((markAll || (!notificationIds && !req.body.notificationId)) && wallet) {
       const result = await Notification.updateMany(
         { userWallet: wallet, read: false, deleted: false },
         { $set: { read: true, readAt: new Date() } }
