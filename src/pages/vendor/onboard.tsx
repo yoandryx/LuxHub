@@ -1,7 +1,8 @@
 // pages/vendor/onboard.tsx
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState, useLayoutEffect } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import AvatarBannerUploader from '../../components/vendor/AvatarBannerUploader';
 import styles from '../../styles/VendorOnboard.module.css';
 import toast from 'react-hot-toast';
@@ -31,7 +32,7 @@ const { Permission, Permissions } = multisig.types;
 export default function VendorOnboard() {
   const router = useRouter();
   const { query } = router;
-  const { publicKey, signTransaction, signMessage } = useWallet();
+  const { publicKey, signTransaction, signMessage } = useEffectiveWallet();
   const { connection } = useConnection();
 
   // Wizard step state (0: Account Info, 1: Images, 2: Review)
