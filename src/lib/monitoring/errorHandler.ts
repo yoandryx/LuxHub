@@ -1,6 +1,7 @@
 // src/lib/monitoring/errorHandler.ts
 import type { NextApiRequest, NextApiResponse, NextApiHandler } from 'next';
 import crypto from 'crypto';
+import * as Sentry from '@sentry/nextjs';
 
 interface ErrorContext {
   endpoint?: string;
@@ -72,10 +73,16 @@ class ErrorMonitor {
       console.log(JSON.stringify(output, null, this.isDevelopment ? 2 : 0));
     }
 
-    // Sentry integration placeholder
-    // if (process.env.SENTRY_DSN && entry.level === 'error') {
-    //   Sentry.captureMessage(entry.message, { extra: entry.context });
-    // }
+    // Sentry integration for errors/critical in production
+    if (
+      process.env.NODE_ENV === 'production' &&
+      (entry.level === 'error' || entry.level === 'critical')
+    ) {
+      Sentry.captureMessage(entry.message, {
+        level: entry.level === 'critical' ? 'fatal' : 'error',
+        extra: { ...entry.context, requestId: entry.requestId },
+      });
+    }
   }
 
   /**
@@ -97,13 +104,16 @@ class ErrorMonitor {
       },
     });
 
-    // Sentry integration placeholder
-    // if (process.env.SENTRY_DSN) {
-    //   Sentry.captureException(error, {
-    //     extra: context,
-    //     tags: { requestId },
-    //   });
-    // }
+    // Sentry integration — capture exceptions in production
+    if (process.env.NODE_ENV === 'production') {
+      Sentry.captureException(error, {
+        extra: context,
+        tags: {
+          requestId,
+          endpoint: context?.endpoint,
+        },
+      });
+    }
 
     return requestId;
   }
