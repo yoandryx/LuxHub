@@ -37,6 +37,8 @@ const NotificationSchema = new Schema(
         'escrow_cancelled_external_sale', // Escrow cancelled due to external sale
         'delist_request_approved', // Vendor delist request approved
         'delist_request_rejected', // Vendor delist request rejected
+        'delist_request_submitted', // Vendor submitted a delist request (for admin)
+        'dispute_created', // Buyer opened a dispute (for admin)
         // Pool Events
         'pool_investment', // User invested in pool
         'pool_distribution', // Pool distributed funds

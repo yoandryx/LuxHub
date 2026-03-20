@@ -6,6 +6,7 @@ jest.mock('@/lib/models/Notification', () => ({
   Notification: {
     create: jest.fn().mockResolvedValue({
       _id: 'notif-123',
+      emailSent: false,
       save: jest.fn().mockResolvedValue(true),
     }),
   },
@@ -21,6 +22,8 @@ jest.mock('@/lib/models/User', () => ({
   },
 }));
 
+jest.mock('@/lib/database/mongodb', () => jest.fn());
+
 // Mock fetch (for Resend email API)
 global.fetch = jest.fn().mockResolvedValue({
   ok: true,
@@ -30,7 +33,6 @@ global.fetch = jest.fn().mockResolvedValue({
 describe('notificationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset module cache for env var changes
     process.env.NEXT_PUBLIC_APP_URL = 'https://luxhub.gold';
   });
 
@@ -50,7 +52,6 @@ describe('notificationService', () => {
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
-      // Check that Notification.create was called with type: 'dispute_created'
       expect(Notification.create).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'dispute_created',
@@ -83,19 +84,13 @@ describe('notificationService', () => {
   });
 
   describe('emailTemplates', () => {
-    it('has dispute_created email template', async () => {
-      // Access emailTemplates via the module internals
-      // We test indirectly: calling notifyDisputeCreated with a user who has email should trigger sendEmail
-      // Alternatively, we verify that the NotificationType union accepts 'dispute_created'
-      // by checking the exported type works without TS errors (compile-time check)
+    it('has dispute_created email template (notifyUser accepts type without error)', async () => {
       const service = await import('@/lib/services/notificationService');
-      // If emailTemplates is missing 'dispute_created', the Record<NotificationType, ...> type
-      // would cause a compile error. We verify at runtime by calling notifyUser with this type.
       const { Notification } = await import('@/lib/models/Notification');
 
       await service.notifyUser({
         userWallet: 'test-wallet',
-        type: 'dispute_created' as any,
+        type: 'dispute_created',
         title: 'Test',
         message: 'Test message',
       });
@@ -105,13 +100,13 @@ describe('notificationService', () => {
       );
     });
 
-    it('has delist_request_submitted email template', async () => {
+    it('has delist_request_submitted email template (notifyUser accepts type without error)', async () => {
       const service = await import('@/lib/services/notificationService');
       const { Notification } = await import('@/lib/models/Notification');
 
       await service.notifyUser({
         userWallet: 'test-wallet',
-        type: 'delist_request_submitted' as any,
+        type: 'delist_request_submitted',
         title: 'Test',
         message: 'Test message',
       });
@@ -123,13 +118,9 @@ describe('notificationService', () => {
   });
 
   describe('categoryMap', () => {
-    it('maps dispute_created to securityAlerts', async () => {
-      // We can test this indirectly: if a user has securityAlerts disabled,
-      // dispute_created notifications should not be created.
-      // But for simplicity, we test that the function exists and works
+    it('dispute_created notifications work end-to-end', async () => {
       const { notifyDisputeCreated } = await import('@/lib/services/notificationService');
 
-      // The function should work without throwing
       const result = await notifyDisputeCreated({
         adminWallets: ['admin1'],
         buyerWallet: 'buyer1',

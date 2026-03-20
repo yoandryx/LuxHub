@@ -30,7 +30,9 @@ export type NotificationType =
   | 'pool_snapshot_taken'
   | 'pool_distribution_complete'
   | 'offer_auto_rejected'
-  | 'vendor_application_received';
+  | 'vendor_application_received'
+  | 'dispute_created'
+  | 'delist_request_submitted';
 
 export interface NotificationMetadata {
   escrowId?: string;
@@ -164,6 +166,14 @@ const emailTemplates: Record<
   vendor_application_received: {
     subject: () => 'New Vendor Application — Action Required',
     getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
+  },
+  dispute_created: {
+    subject: () => 'Dispute Opened - Action Required',
+    getHtml: (p) => baseEmailTemplate(p, '#ef4444'),
+  },
+  delist_request_submitted: {
+    subject: () => 'New Delist Request - Action Required',
+    getHtml: (p) => baseEmailTemplate(p, '#f59e0b'),
   },
 };
 
@@ -361,6 +371,8 @@ function getNotificationCategory(type: NotificationType): string {
     pool_snapshot_taken: 'poolUpdates',
     pool_distribution_complete: 'poolUpdates',
     vendor_application_received: 'securityAlerts',
+    dispute_created: 'securityAlerts',
+    delist_request_submitted: 'orderUpdates',
   };
   return categoryMap[type] || 'orderUpdates';
 }
@@ -937,6 +949,69 @@ export async function notifyNewVendorApplication(params: {
   return results;
 }
 
+/**
+ * Notify admins when a buyer opens a dispute
+ */
+export async function notifyDisputeCreated(params: {
+  adminWallets: string[];
+  buyerWallet: string;
+  escrowId: string;
+  escrowPda: string;
+  assetTitle: string;
+  reason: string;
+}) {
+  const { adminWallets, buyerWallet, escrowId, escrowPda, assetTitle, reason } = params;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
+
+  const results = await Promise.all(
+    adminWallets.map((adminWallet) =>
+      notifyUser({
+        userWallet: adminWallet,
+        type: 'dispute_created',
+        title: 'New Dispute Opened',
+        message: `Buyer ${buyerWallet.slice(0, 8)}... opened a dispute for "${assetTitle}". Reason: ${reason}. Review and resolve within 7 days.`,
+        metadata: {
+          escrowId,
+          escrowPda,
+          actionUrl: `${appUrl}/adminDashboard`,
+        },
+      })
+    )
+  );
+  return results;
+}
+
+/**
+ * Notify admins when a vendor submits a delist request
+ */
+export async function notifyDelistRequestSubmitted(params: {
+  adminWallets: string[];
+  vendorWallet: string;
+  assetId: string;
+  assetTitle: string;
+  reason: string;
+}) {
+  const { adminWallets, vendorWallet, assetId, assetTitle, reason } = params;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
+
+  const results = await Promise.all(
+    adminWallets.map((adminWallet) =>
+      notifyUser({
+        userWallet: adminWallet,
+        type: 'delist_request_submitted',
+        title: 'New Delist Request',
+        message: `Vendor ${vendorWallet.slice(0, 8)}... requested to delist "${assetTitle}". Reason: ${reason}`,
+        metadata: {
+          assetId,
+          vendorId: vendorWallet,
+          actionUrl: `${appUrl}/adminDashboard`,
+        },
+      })
+    )
+  );
+  return results;
+}
+
 export default {
   notifyUser,
   notifyNewOrder,
@@ -953,4 +1028,6 @@ export default {
   notifyVendorApplicationResult,
   notifyOrderRefunded,
   notifyNewVendorApplication,
+  notifyDisputeCreated,
+  notifyDelistRequestSubmitted,
 };
