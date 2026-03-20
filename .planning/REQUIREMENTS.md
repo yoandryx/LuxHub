@@ -30,13 +30,13 @@ Requirements for launch readiness. Each maps to roadmap phases.
 ### Security Hardening
 
 - [x] **SEC-01**: All Solana connections use centralized cluster config — no hardcoded devnet fallbacks
-- [ ] **SEC-02**: `_app.tsx` network selection is environment-driven (not hardcoded Devnet)
+- [x] **SEC-02**: `_app.tsx` network selection is environment-driven (not hardcoded Devnet)
 - [x] **SEC-03**: TX verification validates program called, amount transferred, correct USDC mint, and escrow PDA destination
 - [x] **SEC-04**: TX verification prevents replay attacks (processed txSignatures stored and checked)
 - [x] **SEC-05**: Sentry error monitoring configured with DSN, source maps, and alerting
 - [ ] **SEC-06**: Priority fee logic added to all fund-moving transactions for mainnet readiness
 - [x] **SEC-07**: Rate limiting applied to `/api/pool/invest` and `/api/pool/buy-resale`
-- [ ] **SEC-08**: RPC connection fails loudly with clear error when endpoint env var is missing (no silent devnet fallback)
+- [x] **SEC-08**: RPC connection fails loudly with clear error when endpoint env var is missing (no silent devnet fallback)
 
 ### Notification Fixes
 
@@ -127,13 +127,13 @@ Deferred to future release. Tracked but not in current roadmap.
 | FLOW-16 | Phase 1 | Complete |
 | FLOW-17 | Phase 1 | Complete |
 | SEC-01 | Phase 2 | Complete |
-| SEC-02 | Phase 2 | Pending |
+| SEC-02 | Phase 2 | Complete |
 | SEC-03 | Phase 2 | Complete |
 | SEC-04 | Phase 2 | Complete |
 | SEC-05 | Phase 2 | Complete |
 | SEC-06 | Phase 2 | Pending |
 | SEC-07 | Phase 2 | Complete |
-| SEC-08 | Phase 2 | Pending |
+| SEC-08 | Phase 2 | Complete |
 | NOTF-01 | Phase 2 | Complete |
 | NOTF-02 | Phase 2 | Complete |
 | NOTF-03 | Phase 2 | Complete |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-03-20T00:23:11.718Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-20T00:55:50.865Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -48,6 +48,7 @@ Plan: 3 of 4
 *Updated after each plan completion*
 | Phase 02 P00 | 4min | 2 tasks | 9 files |
 | Phase 02 P02 | 8min | 2 tasks | 9 files |
+| Phase 02 P01 | 40min | 2 tasks | 36 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Replaced pre-existing clusterConfig real tests with stubs to avoid uuid ESM breakage; Wave 1 will re-implement with proper transformIgnorePatterns
 - [Phase 02]: dispute_created mapped to securityAlerts category for urgent admin email notifications
 - [Phase 02]: Admin notification pattern: env wallet parsing + Set deduplication + best-effort .catch()
+- [Phase 02]: All Solana connections must use getClusterConfig()/getConnection() - never inline env fallbacks
+- [Phase 02]: getClusterConfig() must be called inside component bodies, not at module scope (SSR build safety)
 
 ### Pending Todos
 
@@ -80,5 +83,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T00:23:11.717Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-03-20T00:55:50.864Z
+Stopped at: Completed 02-01-PLAN.md
