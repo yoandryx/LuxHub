@@ -6,7 +6,10 @@ import { Escrow } from '../../../lib/models/Escrow';
 import { Vendor } from '../../../lib/models/Vendor';
 import { User } from '../../../lib/models/User';
 import { Asset } from '../../../lib/models/Assets';
-import { notifyOrderShipped } from '../../../lib/services/notificationService';
+import {
+  notifyOrderShipped,
+  notifyShipmentProofSubmitted,
+} from '../../../lib/services/notificationService';
 
 interface SubmitShipmentRequest {
   escrowPda: string;
@@ -146,6 +149,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         trackingUrl: trackingLink || undefined,
       }).catch((err: any) =>
         console.error('[/api/escrow/submit-shipment] Notification error:', err)
+      );
+
+      // Notify admins about shipment proof submission for verification queue
+      const adminWallets = (process.env.ADMIN_WALLETS || '')
+        .split(',')
+        .map((w) => w.trim())
+        .filter(Boolean);
+      const superAdminWallets = (process.env.SUPER_ADMIN_WALLETS || '')
+        .split(',')
+        .map((w) => w.trim())
+        .filter(Boolean);
+      const allAdmins = [...new Set([...adminWallets, ...superAdminWallets])];
+
+      notifyShipmentProofSubmitted({
+        adminWallets: allAdmins,
+        vendorWallet,
+        escrowId: escrow._id.toString(),
+        escrowPda: escrow.escrowPda,
+        assetTitle,
+      }).catch((err: any) =>
+        console.error('[/api/escrow/submit-shipment] Admin notification error:', err)
       );
     }
 

@@ -5,7 +5,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
-import { notifyUser } from '../../../lib/services/notificationService';
+import { notifyUser, notifyDisputeCreated } from '../../../lib/services/notificationService';
 
 interface DisputeRequest {
   escrowPda?: string;
@@ -127,15 +127,17 @@ async function handleCreate(req: NextApiRequest, res: NextApiResponse, data: Dis
   try {
     const adminConfig = getAdminConfig();
     const adminWallets = adminConfig.adminWallets || [];
-    for (const adminWallet of adminWallets.slice(0, 3)) {
-      await notifyUser({
-        userWallet: adminWallet,
-        type: 'shipment_submitted',
-        title: 'New Dispute Opened',
-        message: `Buyer ${buyerWallet.slice(0, 8)}... opened a dispute: ${reason}`,
-        metadata: { escrowId: escrow._id.toString(), actionUrl: '/adminDashboard' },
-      }).catch(() => {});
-    }
+    const superAdminWallets = adminConfig.superAdminWallets || [];
+    const allAdmins = [...new Set([...adminWallets, ...superAdminWallets])];
+
+    await notifyDisputeCreated({
+      adminWallets: allAdmins,
+      buyerWallet,
+      escrowId: escrow._id.toString(),
+      escrowPda: escrow.escrowPda,
+      assetTitle: escrow.assetTitle || 'Unknown Asset',
+      reason,
+    }).catch((err: any) => console.error('[Dispute] Notification error:', err));
   } catch {
     /* non-blocking */
   }

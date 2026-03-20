@@ -5,6 +5,7 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Asset } from '../../../lib/models/Assets';
 import { Vendor } from '../../../lib/models/Vendor';
 import DelistRequest from '../../../lib/models/DelistRequest';
+import { notifyDelistRequestSubmitted } from '../../../lib/services/notificationService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
@@ -114,6 +115,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         reasonDetails,
         requestedAction,
       });
+
+      // Notify admins about new delist request (best-effort)
+      const adminWallets = (process.env.ADMIN_WALLETS || '')
+        .split(',')
+        .map((w) => w.trim())
+        .filter(Boolean);
+      const superAdminWallets = (process.env.SUPER_ADMIN_WALLETS || '')
+        .split(',')
+        .map((w) => w.trim())
+        .filter(Boolean);
+      const allAdmins = [...new Set([...adminWallets, ...superAdminWallets])];
+
+      await notifyDelistRequestSubmitted({
+        adminWallets: allAdmins,
+        vendorWallet: wallet,
+        assetId: asset._id.toString(),
+        assetTitle: asset.title || asset.name || 'Unknown Asset',
+        reason: reason,
+      }).catch((err: any) => console.error('[DelistRequest] Notification error:', err));
 
       return res.status(201).json({
         success: true,
