@@ -41,11 +41,11 @@ Requirements for launch readiness. Each maps to roadmap phases.
 ### Notification Fixes
 
 - [x] **NOTF-01**: Dispute creation notifies admins with correct notification type (not `shipment_submitted`)
-- [ ] **NOTF-02**: Auto-rejected offers notify affected buyers with reason
+- [x] **NOTF-02**: Auto-rejected offers notify affected buyers with reason
 - [x] **NOTF-03**: Vendor delist requests notify admins
 - [x] **NOTF-04**: Shipment proof submission notifies admins for verification queue
 - [x] **NOTF-05**: Email delivery works end-to-end via Resend — purchase confirmation, offer updates, shipping, and delivery emails arrive in user's inbox
-- [ ] **NOTF-06**: Email templates render correctly with LuxHub branding, action URLs, and correct data for each notification type
+- [x] **NOTF-06**: Email templates render correctly with LuxHub branding, action URLs, and correct data for each notification type
 
 ### Marketplace UX
 
@@ -135,11 +135,11 @@ Deferred to future release. Tracked but not in current roadmap.
 | SEC-07 | Phase 2 | Complete |
 | SEC-08 | Phase 2 | Pending |
 | NOTF-01 | Phase 2 | Complete |
-| NOTF-02 | Phase 2 | Pending |
+| NOTF-02 | Phase 2 | Complete |
 | NOTF-03 | Phase 2 | Complete |
 | NOTF-04 | Phase 2 | Complete |
 | NOTF-05 | Phase 2 | Complete |
-| NOTF-06 | Phase 2 | Pending |
+| NOTF-06 | Phase 2 | Complete |
 | UX-01 | Phase 3 | Pending |
 | UX-02 | Phase 3 | Pending |
 | UX-03 | Phase 3 | Pending |
