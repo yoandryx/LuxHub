@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/PoolDetailNew.module.css';
 import {
   FaArrowLeft,
@@ -505,7 +506,7 @@ const PoolDetailPage: React.FC = () => {
                   <div className={styles.infoRow}>
                     <span>Escrow PDA</span>
                     <a
-                      href={`https://solscan.io/account/${pool.escrowPda}?cluster=devnet`}
+                      href={getClusterConfig().explorerUrl(pool.escrowPda)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={styles.addressLink}
@@ -519,7 +520,7 @@ const PoolDetailPage: React.FC = () => {
                   <div className={styles.infoRow}>
                     <span>Share Token</span>
                     <a
-                      href={`https://solscan.io/token/${pool.bagsTokenMint}?cluster=devnet`}
+                      href={getClusterConfig().explorerUrl(pool.bagsTokenMint)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={styles.addressLink}

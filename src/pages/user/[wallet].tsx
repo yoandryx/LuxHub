@@ -9,6 +9,7 @@ import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 import NFTCard from '../../components/marketplace/NFTCard';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { SiSolana } from 'react-icons/si';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import {
   FaCopy,
   FaArrowUpRightFromSquare,
@@ -295,7 +296,7 @@ const UserProfilePage = () => {
                   {copied && <span className={styles.copiedTooltip}>Copied!</span>}
                 </button>
                 <a
-                  href={`https://explorer.solana.com/address/${walletStr}?cluster=devnet`}
+                  href={getClusterConfig().explorerUrl(walletStr)}
                   target="_blank"
                   rel="noreferrer"
                   className={styles.explorerBtn}

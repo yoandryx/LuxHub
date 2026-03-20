@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, VersionedTransaction } from '@solana/web3.js';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/BagsPoolTrading.module.css';
 
 interface Pool {
@@ -162,9 +163,8 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
       }
 
       // Deserialize and sign transaction
-      const connection = new Connection(
-        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-      );
+      const { endpoint: rpcEndpoint } = getClusterConfig();
+      const connection = new Connection(rpcEndpoint);
 
       const txBuffer = Buffer.from(data.transaction.serialized, 'base64');
       const transaction = VersionedTransaction.deserialize(txBuffer);
@@ -476,7 +476,7 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
           <p>{success}</p>
           {txSignature && (
             <a
-              href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
+              href={getClusterConfig().explorerTxUrl(txSignature)}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.txLink}

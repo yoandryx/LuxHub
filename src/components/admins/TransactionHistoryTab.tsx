@@ -1,6 +1,7 @@
 // src/components/admins/TransactionHistoryTab.tsx
 // Admin tab for viewing transaction history across the platform
 import React, { useState, useEffect, useCallback } from 'react';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/AdminDashboard.module.css';
 import {
   HiOutlineExternalLink,
@@ -226,7 +227,7 @@ export const TransactionHistoryTab: React.FC = () => {
               {(tx.txSignature || tx.mintTxSignature) && (
                 <div className={styles.cardFooter}>
                   <a
-                    href={`https://solscan.io/tx/${tx.txSignature || tx.mintTxSignature}?cluster=devnet`}
+                    href={getClusterConfig().explorerTxUrl((tx.txSignature || tx.mintTxSignature)!)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.cardBtn}

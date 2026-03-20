@@ -10,6 +10,7 @@ import {
   SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js';
 import { getProgram } from '../utils/programUtils';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
@@ -452,10 +453,9 @@ const Marketplace = () => {
       });
   }, [custodyItems, filters.brands, searchQuery, sortOption]);
 
-  // Create a connection to the devnet endpoint.
+  // Create a connection to the configured cluster endpoint
   const connection = useMemo(
-    () =>
-      new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'),
+    () => new Connection(getClusterConfig().endpoint),
     []
   );
 
@@ -1041,7 +1041,7 @@ const Marketplace = () => {
                         className={styles.contactBtn}
                         onClick={() =>
                           window.open(
-                            `https://explorer.solana.com/address/${nft.currentOwner}?cluster=devnet`,
+                            getClusterConfig().explorerUrl(nft.currentOwner),
                             '_blank'
                           )
                         }
