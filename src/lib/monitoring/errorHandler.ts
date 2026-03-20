@@ -107,10 +107,10 @@ class ErrorMonitor {
     // Sentry integration — capture exceptions in production
     if (process.env.NODE_ENV === 'production') {
       Sentry.captureException(error, {
-        extra: context,
+        extra: context ? { ...context } : undefined,
         tags: {
           requestId,
-          endpoint: context?.endpoint,
+          ...(context?.endpoint && { endpoint: context.endpoint }),
         },
       });
     }

@@ -1,5 +1,6 @@
 // src/pages/api/squads/execute.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import * as multisig from '@sqds/multisig';
 import { readFileSync } from 'fs';
@@ -17,7 +18,7 @@ interface ExecuteResponse {
   error?: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
@@ -146,3 +147,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: e?.message ?? 'Unknown error' });
   }
 }
+
+export default withErrorMonitoring(handler);

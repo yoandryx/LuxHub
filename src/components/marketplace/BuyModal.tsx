@@ -15,6 +15,7 @@ import { FaShoppingCart, FaShippingFast, FaCheckCircle, FaLock, FaWallet } from 
 import { HiOutlineX } from 'react-icons/hi';
 import { SiSolana } from 'react-icons/si';
 import { FiSave, FiEdit2 } from 'react-icons/fi';
+import { addPriorityFee } from '../../lib/solana/priorityFees';
 import { getProgram } from '../../utils/programUtils';
 import { resolveImageUrl, handleImageError, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 import {
@@ -297,6 +298,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
           // Build and send ATA creation tx separately
           const { Transaction } = await import('@solana/web3.js');
           const ataTx = new Transaction().add(createAtaIx);
+          addPriorityFee(ataTx);
           const { blockhash } = await connection.getLatestBlockhash();
           ataTx.recentBlockhash = blockhash;
           ataTx.feePayer = publicKey;

@@ -5,7 +5,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 import { Transaction } from '../../../lib/models/Transaction';
-import { verifyTransactionForWallet } from '../../../lib/services/txVerification';
+import { verifyTransactionEnhanced } from '../../../lib/services/txVerification';
+import { strictLimiter } from '../../../lib/middleware/rateLimit';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 
 interface BuyResaleRequest {
   poolId: string;
@@ -15,7 +17,7 @@ interface BuyResaleRequest {
   paidPriceLamports?: number;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -44,8 +46,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Verify on-chain payment
-    const txResult = await verifyTransactionForWallet(txSignature, buyerWallet);
+    // Verify on-chain payment (SEC-03 enhanced)
+    const txResult = await verifyTransactionEnhanced({
+      txSignature,
+      expectedWallet: buyerWallet,
+      endpoint: '/api/pool/buy-resale',
+    });
     if (!txResult.verified) {
       return res.status(400).json({
         error: 'Transaction verification failed',
@@ -144,3 +150,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
+
+export default withErrorMonitoring(strictLimiter(handler));

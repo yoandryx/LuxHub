@@ -1,5 +1,6 @@
 // pages/api/nft/approveSale.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import { Connection, PublicKey, Keypair } from '@solana/web3.js';
 import { Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js';
 import { uploadToPinata } from '../../../utils/pinata';
@@ -29,7 +30,7 @@ const adminWalletAdapter = {
   },
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     res.status(405).end(); // Method not allowed
     return;
@@ -118,3 +119,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: 'Failed to approve NFT sale' });
   }
 }
+
+export default withErrorMonitoring(handler);

@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '../../../../lib/monitoring/errorHandler';
 import dbConnect from '../../../../lib/database/mongodb';
 import { DelistRequest } from '../../../../lib/models/DelistRequest';
 import { Escrow } from '../../../../lib/models/Escrow';
@@ -7,7 +8,7 @@ import AdminRole from '../../../../lib/models/AdminRole';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
 import { notifyUser } from '../../../../lib/services/notificationService';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { requestId, adminWallet, reviewNotes } = req.body;
@@ -108,3 +109,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+export default withErrorMonitoring(handler);

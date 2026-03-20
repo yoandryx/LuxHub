@@ -11,6 +11,7 @@ import {
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
+import { addPriorityFee } from '@/lib/solana/priorityFees';
 import { HiOutlineX } from 'react-icons/hi';
 import {
   FiTrendingUp,
@@ -327,6 +328,7 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
             lamports: Math.round(solIn * LAMPORTS_PER_SOL),
           })
         );
+        addPriorityFee(tx);
         const sig = await sendTx(tx, connection);
         await connection.confirmTransaction(sig, 'confirmed');
 

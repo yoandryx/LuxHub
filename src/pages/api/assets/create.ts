@@ -1,6 +1,7 @@
 // pages/api/assets/create.ts
 // Creates an asset record after NFT minting — requires wallet validation
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '@/lib/monitoring/errorHandler';
 import dbConnect from '@/lib/database/mongodb';
 import { Asset } from '../../../lib/models/Assets';
 import { Vendor } from '../../../lib/models/Vendor';
@@ -111,4 +112,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default withWalletValidation(handler);
+export default withErrorMonitoring(withWalletValidation(handler));

@@ -2,6 +2,7 @@
 // Buyer-initiated dispute/refund request
 // Creates a dispute record for admin review with SLA tracking
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
@@ -24,7 +25,7 @@ interface ResolveRequest {
   adminNotes: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
 
   // GET: List disputes (admin or buyer)
@@ -214,3 +215,5 @@ async function handleResolve(req: NextApiRequest, res: NextApiResponse, data: Re
           : [`Partial refund of ${partialRefundPercent}% will be processed`],
   });
 }
+
+export default withErrorMonitoring(handler);

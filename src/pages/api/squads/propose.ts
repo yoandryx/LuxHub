@@ -1,6 +1,7 @@
 // src/pages/api/squads/propose.ts
 // SECURED: Requires admin wallet authorization
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import {
   Connection,
   Keypair,
@@ -203,4 +204,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Wrap with wallet authentication middleware (requires signed message)
-export default withWalletAuth(handler);
+export default withErrorMonitoring(withWalletAuth(handler));

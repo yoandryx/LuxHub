@@ -1,6 +1,7 @@
 // src/pages/api/escrow/submit-shipment.ts
 // Vendor submits shipment proof (tracking + photos)
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { Vendor } from '../../../lib/models/Vendor';
@@ -35,7 +36,7 @@ const SUPPORTED_CARRIERS = [
   'other',
 ];
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -215,3 +216,5 @@ function getTrackingLink(carrier: string, trackingNumber: string): string | null
 
   return trackingUrls[carrier] || null;
 }
+
+export default withErrorMonitoring(handler);

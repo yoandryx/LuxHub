@@ -14,7 +14,9 @@ import {
 import { Transaction } from '../../../lib/models/Transaction';
 import { Offer } from '../../../lib/models/Offer';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
-import { verifyTransactionForWallet } from '../../../lib/services/txVerification';
+import { verifyTransactionEnhanced } from '../../../lib/services/txVerification';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
+import { getClusterConfig } from '../../../lib/solana/clusterConfig';
 
 interface ShippingAddress {
   fullName: string;
@@ -117,10 +119,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    // ========== ON-CHAIN TX VERIFICATION ==========
-    // Verify the payment transaction actually exists and is confirmed on Solana
+    // ========== ON-CHAIN TX VERIFICATION (Enhanced SEC-03) ==========
+    // Verify payment: program, amount, destination PDA, mint, replay prevention
     if (txSignature) {
-      const txResult = await verifyTransactionForWallet(txSignature, buyerWallet);
+      const clusterConfig = getClusterConfig();
+      const txResult = await verifyTransactionEnhanced({
+        txSignature,
+        expectedWallet: buyerWallet,
+        expectedProgramId: process.env.PROGRAM_ID,
+        expectedDestination: escrow.escrowPda,
+        expectedMint: clusterConfig.usdcMint,
+        expectedAmountLamports: escrow.listingPrice,
+        endpoint: '/api/escrow/purchase',
+      });
       if (!txResult.verified) {
         return res.status(400).json({
           error: 'Transaction verification failed',
@@ -308,4 +319,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Rate limit purchases: 5 per minute per IP
-export default strictLimiter(handler);
+export default withErrorMonitoring(strictLimiter(handler));

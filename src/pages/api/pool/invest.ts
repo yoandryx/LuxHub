@@ -4,8 +4,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 import { User } from '../../../lib/models/User';
-import { verifyTransactionForWallet } from '../../../lib/services/txVerification';
+import { verifyTransactionEnhanced } from '../../../lib/services/txVerification';
 import { notifyUser } from '../../../lib/services/notificationService';
+import { strictLimiter } from '../../../lib/middleware/rateLimit';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 
 interface InvestRequest {
   poolId: string;
@@ -15,7 +17,7 @@ interface InvestRequest {
   txSignature?: string; // On-chain transaction signature (if payment already made)
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -51,20 +53,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Verify on-chain payment before recording investment
-    if (txSignature) {
-      const txResult = await verifyTransactionForWallet(txSignature, investorWallet);
-      if (!txResult.verified) {
-        return res.status(400).json({
-          error: 'Transaction verification failed',
-          details: txResult.error,
-          message: 'On-chain payment could not be verified.',
-        });
-      }
-    } else {
+    // Verify on-chain payment before recording investment (SEC-03 enhanced)
+    if (!txSignature) {
       return res.status(400).json({
-        error: 'Transaction signature required',
+        error: 'txSignature is required',
         message: 'Provide txSignature to prove on-chain payment.',
+      });
+    }
+
+    const txResult = await verifyTransactionEnhanced({
+      txSignature,
+      expectedWallet: investorWallet,
+      endpoint: '/api/pool/invest',
+    });
+    if (!txResult.verified) {
+      return res.status(400).json({
+        error: 'Transaction verification failed',
+        details: txResult.error,
+        message: 'On-chain payment could not be verified.',
       });
     }
 
@@ -216,3 +222,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
+
+export default withErrorMonitoring(strictLimiter(handler));

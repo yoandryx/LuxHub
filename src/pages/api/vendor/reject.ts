@@ -1,11 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import dbConnect from '../../../lib/database/mongodb';
 import VendorProfileModel from '../../../lib/models/VendorProfile';
 import AdminRole from '../../../lib/models/AdminRole';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
 import { notifyVendorApplicationResult } from '../../../lib/services/notificationService';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -66,3 +67,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+export default withErrorMonitoring(handler);

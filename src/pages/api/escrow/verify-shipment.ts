@@ -1,6 +1,7 @@
 // src/pages/api/escrow/verify-shipment.ts
 // Admin verifies shipment proof and can trigger confirm_delivery proposal
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { User } from '../../../lib/models/User';
@@ -22,7 +23,7 @@ interface VerifyShipmentRequest {
 // Admin wallets (should be in env or database in production)
 const ADMIN_WALLETS = process.env.ADMIN_WALLETS?.split(',') || [];
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -325,3 +326,5 @@ async function createConfirmDeliverySquadsProposal(
     return { success: false, error: error?.message || 'Unknown error' };
   }
 }
+
+export default withErrorMonitoring(handler);
