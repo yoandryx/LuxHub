@@ -2,7 +2,8 @@
 // Public endpoint to verify if an NFT is an authentic LuxHub mint
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { getConnection } from '@/lib/solana/clusterConfig';
 import dbConnect from '@/lib/database/mongodb';
 import { Asset } from '@/lib/models/Assets';
 import { VaultInventory, VaultConfig } from '@/lib/models/LuxHubVault';
@@ -98,9 +99,7 @@ export default async function handler(
 
     // 4. On-chain verification (check creators array)
     if (vaultConfig?.vaultPda || luxhubVendor?.walletAddress) {
-      const connection = new Connection(
-        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-      );
+      const connection = getConnection();
 
       try {
         // Fetch NFT metadata from chain to verify creator

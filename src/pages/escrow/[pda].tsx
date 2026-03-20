@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/EscrowDetail.module.css';
 import {
   FaArrowLeft,
@@ -340,7 +341,7 @@ const EscrowDetailPage: React.FC = () => {
                 <div className={styles.infoRow}>
                   <span>Escrow PDA</span>
                   <a
-                    href={`https://solscan.io/account/${escrow.escrowPda}?cluster=devnet`}
+                    href={getClusterConfig().explorerUrl(escrow.escrowPda)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.addressLink}
@@ -353,7 +354,7 @@ const EscrowDetailPage: React.FC = () => {
                   <div className={styles.infoRow}>
                     <span>NFT Mint</span>
                     <a
-                      href={`https://solscan.io/token/${escrow.nftMint}?cluster=devnet`}
+                      href={getClusterConfig().explorerUrl(escrow.nftMint)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={styles.addressLink}

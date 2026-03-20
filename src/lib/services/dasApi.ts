@@ -3,8 +3,10 @@
 // Unified interface for all Solana digital assets: NFTs, cNFTs, tokens
 // Docs: https://www.helius.dev/docs/das-api
 
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
+
 const getRpcUrl = (): string => {
-  return process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com';
+  return getClusterConfig().endpoint;
 };
 
 // ========== TYPES ==========

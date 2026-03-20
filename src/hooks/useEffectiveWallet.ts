@@ -51,10 +51,7 @@ export function useEffectiveWallet() {
         return walletAdapterSignMessage(message);
       }
       if (usingPrivy && privyWallet) {
-        const result = await privyWallet.signMessage({
-          message,
-          address: privyWallet.address,
-        });
+        const result = await (privyWallet.signMessage as any)({ message });
         return result.signature;
       }
       throw new Error('No wallet available for message signing');

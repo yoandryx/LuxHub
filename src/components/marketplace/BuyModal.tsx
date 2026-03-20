@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
@@ -950,7 +951,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               </p>
               {txSignature && (
                 <a
-                  href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
+                  href={getClusterConfig().explorerTxUrl(txSignature)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.txLink}
@@ -960,7 +961,7 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
               )}
               {swapTxSignature && (
                 <a
-                  href={`https://explorer.solana.com/tx/${swapTxSignature}?cluster=devnet`}
+                  href={getClusterConfig().explorerTxUrl(swapTxSignature)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.txLink}

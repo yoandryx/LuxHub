@@ -1,7 +1,8 @@
 // /pages/api/squads/check-membership.ts
 // Check if a wallet is a member of the LuxHub Squads multisig
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { getConnection } from '@/lib/solana/clusterConfig';
 import * as multisig from '@sqds/multisig';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -34,9 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-    );
+    const connection = getConnection();
 
     const msigPk = new PublicKey(multisigAddress);
     const multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msigPk);

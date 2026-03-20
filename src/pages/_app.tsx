@@ -18,8 +18,9 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Fallback } from '../components/common/Fallback';
 import '../styles/globals.css';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { SolflareWalletAdapter, PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { getClusterConfig } from '../lib/solana/clusterConfig';
+import { ClusterErrorBoundary } from '../components/common/ClusterErrorBoundary';
 import {
   RemoteSolanaMobileWalletAdapter,
   createDefaultAuthorizationResultCache,
@@ -35,19 +36,17 @@ import { Toaster } from 'react-hot-toast';
 import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
 import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
-
-// Network URL
-const network = WalletAdapterNetwork.Devnet;
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 // Privy Solana wallet connectors for external wallets
 const solanaConnectors = toSolanaWalletConnectors({
   // Show Phantom and Solflare in Privy's wallet connect modal
   shouldAutoConnect: true,
 });
-const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? 'https://api.devnet.solana.com';
 
 const App = ({ Component, pageProps }: AppProps) => {
   const [isClient, setIsClient] = useState(false);
+  const { network, endpoint, chain } = getClusterConfig();
 
   useEffect(() => {
     setIsClient(true); // Ensuring everything is loaded on the client side
@@ -64,7 +63,7 @@ const App = ({ Component, pageProps }: AppProps) => {
         },
         addressSelector: createDefaultAddressSelector(),
         authorizationResultCache: createDefaultAuthorizationResultCache(),
-        chain: 'devnet',
+        chain: chain,
         remoteHostAuthority: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold')
           .hostname,
         onWalletNotFound: createDefaultWalletNotFoundHandler(),
@@ -72,7 +71,7 @@ const App = ({ Component, pageProps }: AppProps) => {
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
     ],
-    []
+    [chain]
   );
 
   const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
@@ -126,6 +125,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             <VendorFab />
             <LuxuryAssistant />
             <Footer />
+            <SpeedInsights />
           </WalletModalProvider>
         </WalletProvider>
       </ConnectionProvider>
@@ -133,52 +133,54 @@ const App = ({ Component, pageProps }: AppProps) => {
   );
 
   const content = (
-    <ErrorBoundary
-      FallbackComponent={Fallback}
-      onError={(error, info) => {
-        console.error('[LuxHub] ErrorBoundary caught:', error);
-        console.error('[LuxHub] Component stack:', info?.componentStack);
-      }}
-    >
-      <Head>
-        <title>LuxHub</title>
-        <link rel="icon" href="/images/purpleLGG.png" type="image/luxury-marketplace" />
-        <link
-          href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700,800&display=swap"
-          rel="stylesheet"
-        />
-      </Head>
+    <ClusterErrorBoundary>
+      <ErrorBoundary
+        FallbackComponent={Fallback}
+        onError={(error, info) => {
+          console.error('[LuxHub] ErrorBoundary caught:', error);
+          console.error('[LuxHub] Component stack:', info?.componentStack);
+        }}
+      >
+        <Head>
+          <title>LuxHub</title>
+          <link rel="icon" href="/images/purpleLGG.png" type="image/luxury-marketplace" />
+          <link
+            href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700,800&display=swap"
+            rel="stylesheet"
+          />
+        </Head>
 
-      {hasValidPrivyId ? (
-        <PrivyProvider
-          appId={privyAppId}
-          config={{
-            loginMethods: ['email', 'wallet'],
-            appearance: {
-              theme: 'dark',
-              accentColor: '#c8a1ff',
-              logo: '/images/purpleLGG.png',
-            },
-            // Solana embedded wallet configuration
-            embeddedWallets: {
-              solana: {
-                createOnLogin: 'users-without-wallets',
+        {hasValidPrivyId ? (
+          <PrivyProvider
+            appId={privyAppId}
+            config={{
+              loginMethods: ['email', 'wallet'],
+              appearance: {
+                theme: 'dark',
+                accentColor: '#c8a1ff',
+                logo: '/images/purpleLGG.png',
               },
-            },
-            // External wallet connectors (Phantom, Solflare via Privy)
-            externalWallets: {
-              solana: {
-                connectors: solanaConnectors,
+              // Solana embedded wallet configuration
+              embeddedWallets: {
+                solana: {
+                  createOnLogin: 'users-without-wallets',
+                },
               },
-            },
-          }}
-        >
-          {createInnerContent(true)}
-        </PrivyProvider>
-      ) : (
-        createInnerContent(false)
-      )}
-    </ErrorBoundary>
+              // External wallet connectors (Phantom, Solflare via Privy)
+              externalWallets: {
+                solana: {
+                  connectors: solanaConnectors,
+                },
+              },
+            }}
+          >
+            {createInnerContent(true)}
+          </PrivyProvider>
+        ) : (
+          createInnerContent(false)
+        )}
+      </ErrorBoundary>
+    </ClusterErrorBoundary>
   );
 
   return isClient ? content : <div className="text-center mt-10">Loading application...</div>;

@@ -20,15 +20,15 @@ import {
 } from '@solana/spl-token';
 import * as multisig from '@sqds/multisig';
 import { readFileSync } from 'fs';
+import {
+  getClusterConfig,
+  getConnection as getCentralConnection,
+} from '@/lib/solana/clusterConfig';
 
-// USDC mint on devnet (use mainnet mint for production)
-const USDC_MINT_DEVNET = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
-const USDC_MINT_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const USDC_DECIMALS = 6;
 
 function getUsdcMint(): PublicKey {
-  const cluster = process.env.NEXT_PUBLIC_SOLANA_CLUSTER || 'devnet';
-  return cluster === 'mainnet-beta' ? USDC_MINT_MAINNET : USDC_MINT_DEVNET;
+  return new PublicKey(getClusterConfig().usdcMint);
 }
 
 function loadPayerKeypair(): Keypair {
@@ -42,9 +42,7 @@ function loadPayerKeypair(): Keypair {
 }
 
 function getConnection(): Connection {
-  const rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
-  if (!rpc) throw new Error('NEXT_PUBLIC_SOLANA_ENDPOINT not configured');
-  return new Connection(rpc, 'confirmed');
+  return getCentralConnection();
 }
 
 export interface TransferRecipient {
@@ -235,10 +233,7 @@ export async function getTopTokenHolders(
   }
 
   // Fallback: standard Solana RPC (N+1 calls)
-  const rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
-  if (!rpc) throw new Error('NEXT_PUBLIC_SOLANA_ENDPOINT not configured');
-
-  const connection = new Connection(rpc, 'confirmed');
+  const connection = getCentralConnection();
   const mintPk = new PublicKey(tokenMint);
   const largestAccounts = await connection.getTokenLargestAccounts(mintPk);
 

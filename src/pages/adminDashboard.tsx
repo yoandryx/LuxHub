@@ -5,6 +5,7 @@ import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Connection, Keypair } fro
 import * as anchor from '@coral-xyz/anchor';
 import { BN } from '@coral-xyz/anchor';
 import { getProgram } from '../utils/programUtils';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 // Metaplex loaded dynamically where needed to reduce bundle size
 import { uploadToPinata } from '../utils/pinata';
@@ -184,9 +185,7 @@ const PLACEHOLDER_BUYER = new PublicKey('11111111111111111111111111111111');
 // ------------------------------------------------
 const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: string, wallet: any) => {
   try {
-    const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-    );
+    const connection = new Connection(getClusterConfig().endpoint);
     // Dynamic import Metaplex to reduce initial bundle size (~87KB saved)
     const { Metaplex, walletAdapterIdentity } = await import('@metaplex-foundation/js');
     const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
@@ -972,9 +971,7 @@ const AdminDashboard: React.FC = () => {
     }
 
     setLoading(true);
-    const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-    );
+    const connection = new Connection(getClusterConfig().endpoint);
 
     try {
       // ---------- resolve buyer & escrow pda ----------
@@ -1194,9 +1191,7 @@ const AdminDashboard: React.FC = () => {
 
     try {
       setLoading(true);
-      const connection = new Connection(
-        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-      );
+      const connection = new Connection(getClusterConfig().endpoint);
 
       const sellerPk = new PublicKey(req.seller);
       const nftMint = new PublicKey(req.nftId);
@@ -1700,7 +1695,7 @@ const AdminDashboard: React.FC = () => {
                             <span className={styles.cardLabel}>Escrow PDA</span>
                             <span className={styles.cardValue}>
                               <a
-                                href={`https://solscan.io/account/${escrowPda.toBase58()}?cluster=devnet`}
+                                href={getClusterConfig().explorerUrl(escrowPda.toBase58())}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
@@ -2346,7 +2341,7 @@ const AdminDashboard: React.FC = () => {
                           <span className={styles.cardLabel}>View on Solscan</span>
                           <span className={styles.cardValue}>
                             <a
-                              href={`https://solscan.io/account/${proposal.proposalPda}?cluster=devnet`}
+                              href={getClusterConfig().explorerUrl(proposal.proposalPda)}
                               target="_blank"
                               rel="noopener noreferrer"
                             >

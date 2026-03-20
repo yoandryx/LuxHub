@@ -14,6 +14,7 @@ import {
   HiOutlineExclamation,
 } from 'react-icons/hi';
 import { LuShield, LuBadgeCheck, LuSparkles } from 'react-icons/lu';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/VaultConfigPanel.module.css';
 import toast from 'react-hot-toast';
 
@@ -330,7 +331,7 @@ export const VaultConfigPanel: React.FC = () => {
           <div className={styles.infoValue}>
             <code>{truncateAddress(config.vaultPda)}</code>
             <a
-              href={`https://solscan.io/account/${config.vaultPda}?cluster=devnet`}
+              href={getClusterConfig().explorerUrl(config.vaultPda)}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.externalLink}
@@ -443,7 +444,7 @@ export const VaultConfigPanel: React.FC = () => {
                       <span className={styles.derivedLabel}>New Vault PDA:</span>
                       <code className={styles.derivedValue}>{derivedVaultPda}</code>
                       <a
-                        href={`https://solscan.io/account/${derivedVaultPda}?cluster=devnet`}
+                        href={getClusterConfig().explorerUrl(derivedVaultPda)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={styles.externalLink}

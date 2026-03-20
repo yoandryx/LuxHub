@@ -2,7 +2,7 @@
 // Mints an approved mint request - requires admin with canMint permission
 // Optionally verifies Squads membership for audit trail
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection } from '@solana/web3.js';
+import { getConnection } from '@/lib/solana/clusterConfig';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { keypairIdentity } from '@metaplex-foundation/umi';
 import {
@@ -171,7 +171,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (contentType.includes('text/html')) {
             throw new Error('Image URL returned HTML - check if the image is publicly accessible');
           }
-
         } else {
           return res.status(400).json({ error: 'No valid image source available' });
         }
@@ -257,9 +256,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Step 4: Create UMI instance
-    const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-    );
+    const connection = getConnection();
     const umi = createUmi(connection.rpcEndpoint)
       .use(
         keypairIdentity({

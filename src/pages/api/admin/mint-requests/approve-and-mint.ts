@@ -1,7 +1,7 @@
 // /pages/api/admin/mint-requests/approve-and-mint.ts
 // Approves a mint request and actually mints the NFT to the vendor wallet
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection } from '@solana/web3.js';
+import { getConnection } from '@/lib/solana/clusterConfig';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { keypairIdentity } from '@metaplex-foundation/umi';
 import { mplCore, create as createAsset, transfer } from '@metaplex-foundation/mpl-core';
@@ -145,7 +145,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.error('❌ Received HTML instead of image - URL may require authentication');
             throw new Error('Image URL returned HTML - check if the image is publicly accessible');
           }
-
         } else {
           return res.status(400).json({ error: 'No valid image source available' });
         }
@@ -157,7 +156,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         imageUrl = imageResult.gateway;
         imageTxId = imageResult.irysTxId || imageResult.ipfsHash;
-
       } catch (error) {
         console.error('Failed to upload image:', error);
         return res.status(500).json({
@@ -240,9 +238,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Step 4: Create UMI instance with admin keypair
-    const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-    );
+    const connection = getConnection();
     const umi = createUmi(connection.rpcEndpoint)
       .use(
         keypairIdentity({

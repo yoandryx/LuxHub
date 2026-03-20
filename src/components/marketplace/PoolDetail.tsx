@@ -10,6 +10,7 @@ import {
   VersionedTransaction,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import { HiOutlineX } from 'react-icons/hi';
 import {
   FiTrendingUp,
@@ -127,10 +128,22 @@ const fmtPrice = (price: number, prefix = '$'): string => {
   const sigFigs = afterDot.slice(zeros, zeros + 4);
   // Unicode subscript digits
   const subscriptMap: Record<string, string> = {
-    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
-    '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+    '0': '₀',
+    '1': '₁',
+    '2': '₂',
+    '3': '₃',
+    '4': '₄',
+    '5': '₅',
+    '6': '₆',
+    '7': '₇',
+    '8': '₈',
+    '9': '₉',
   };
-  const sub = zeros.toString().split('').map(d => subscriptMap[d] || d).join('');
+  const sub = zeros
+    .toString()
+    .split('')
+    .map((d) => subscriptMap[d] || d)
+    .join('');
   return `${prefix}0.0${sub}${sigFigs}`;
 };
 
@@ -255,9 +268,7 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
     setLoading(true);
     setError(null);
     try {
-      const connection = new Connection(
-        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-      );
+      const connection = new Connection(getClusterConfig().endpoint);
 
       if (p.bagsTokenMint && !p.graduated) {
         // ── Real Bags bonding curve buy ──
@@ -353,9 +364,7 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
     setLoading(true);
     setError(null);
     try {
-      const connection = new Connection(
-        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-      );
+      const connection = new Connection(getClusterConfig().endpoint);
 
       if (p.bagsTokenMint && !p.graduated) {
         // ── Real Bags bonding curve sell ──
@@ -474,7 +483,8 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
                             fontWeight: 600,
                           }}
                         >
-                          {isUp ? '+' : ''}{change24h.toFixed(2)}%
+                          {isUp ? '+' : ''}
+                          {change24h.toFixed(2)}%
                         </span>
                       )}
                       {dexScreenerData && (

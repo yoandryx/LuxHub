@@ -15,6 +15,7 @@ import {
 } from '@metaplex-foundation/mpl-core';
 import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 import toast from 'react-hot-toast';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/AdminDashboard.module.css';
 import {
   HiOutlineRefresh,
@@ -551,7 +552,7 @@ const MintRequestsPanel: React.FC = () => {
             NFT minted & listed on marketplace!
             <br />
             <a
-              href={`https://explorer.solana.com/address/${mintAddress}?cluster=devnet`}
+              href={getClusterConfig().explorerUrl(mintAddress)}
               target="_blank"
               rel="noreferrer"
               style={{ color: '#c8a1ff' }}
@@ -1268,7 +1269,7 @@ const MintRequestsPanel: React.FC = () => {
                           >
                             {request.mintAddress?.slice(0, 8)}...
                             <a
-                              href={`https://explorer.solana.com/address/${request.mintAddress}?cluster=devnet`}
+                              href={getClusterConfig().explorerUrl(request.mintAddress)}
                               target="_blank"
                               rel="noreferrer"
                               style={{ marginLeft: '4px', color: '#c8a1ff' }}

@@ -119,8 +119,8 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     const fetchMetadata = async () => {
       try {
         let uri = metadataUri;
-        const rpcEndpoint =
-          process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com';
+        const { getClusterConfig } = await import('@/lib/solana/clusterConfig');
+        const rpcEndpoint = getClusterConfig().endpoint;
 
         if (!uri && mintAddress) {
           // Try mpl-core first (new NFT format)

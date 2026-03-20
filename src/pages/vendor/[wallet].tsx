@@ -13,6 +13,7 @@ import { NftDetailCard } from '../../components/marketplace/NftDetailCard';
 import NFTCard from '../../components/marketplace/NFTCard';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { getProgram } from '../../utils/programUtils';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
@@ -141,11 +142,7 @@ const VendorProfilePage = () => {
   const [offerAmount, setOfferAmount] = useState<string>('');
   const [offerMessage, setOfferMessage] = useState<string>('');
 
-  const connection = useMemo(
-    () =>
-      new Connection(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'),
-    []
-  );
+  const connection = useMemo(() => new Connection(getClusterConfig().endpoint), []);
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
 
   const isOwnProfile = wallet.publicKey?.toBase58() === profile?.wallet;
@@ -904,7 +901,7 @@ const VendorProfilePage = () => {
                 {copied && <span className={styles.copiedTooltip}>Copied!</span>}
               </button>
               <a
-                href={`https://explorer.solana.com/address/${profile.wallet}?cluster=devnet`}
+                href={getClusterConfig().explorerUrl(profile.wallet)}
                 target="_blank"
                 rel="noreferrer"
                 className={styles.explorerBtn}

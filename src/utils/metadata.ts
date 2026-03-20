@@ -2,6 +2,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js';
 import type { WalletAdapter } from '@solana/wallet-adapter-base';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 
 export interface NFTMetadata {
   name: string;
@@ -169,9 +170,7 @@ export const updateNftMetadata = async (
     properties: NFTMetadata['properties'];
   }>
 ) => {
-  const connection = new Connection(
-    process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-  );
+  const connection = new Connection(getClusterConfig().endpoint);
   const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
 
   // Fetch NFT

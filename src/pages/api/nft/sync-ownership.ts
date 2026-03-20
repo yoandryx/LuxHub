@@ -4,8 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { Connection, PublicKey } from '@solana/web3.js';
 import dbConnect from '@/lib/database/mongodb';
 import { Asset } from '../../../lib/models/Assets';
-
-const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com';
+import { getConnection } from '@/lib/solana/clusterConfig';
 
 interface SyncResult {
   mintAddress: string;
@@ -27,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     await dbConnect();
-    const connection = new Connection(RPC_URL, 'confirmed');
+    const connection = getConnection();
 
     // If specific mint addresses provided, sync those. Otherwise sync all.
     let assetsToSync;

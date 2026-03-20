@@ -7,6 +7,7 @@ import AvatarBannerUploader from '../../components/vendor/AvatarBannerUploader';
 import styles from '../../styles/VendorOnboard.module.css';
 import toast from 'react-hot-toast';
 
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import * as multisig from '@sqds/multisig';
 import { Keypair, PublicKey, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
@@ -906,7 +907,7 @@ export default function VendorOnboard() {
                       Download Backup
                     </button>
                     <a
-                      href={`https://explorer.solana.com/address/${multisigState.pda}?cluster=devnet`}
+                      href={getClusterConfig().explorerUrl(multisigState.pda)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={styles.secondaryButton}

@@ -36,10 +36,7 @@ import { usePriceDisplay } from '../marketplace/PriceDisplay';
 import toast from 'react-hot-toast';
 import { getProgram } from '../../utils/programUtils';
 
-const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? 'https://api.devnet.solana.com';
-const explorerUrl = endpoint.includes('devnet')
-  ? 'https://explorer.solana.com/address/'
-  : 'https://solscan.io/account/';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 
 type UserRole = 'user' | 'vendor' | 'admin';
 
@@ -73,6 +70,7 @@ interface UserProfile {
 }
 
 export default function WalletNavbar() {
+  const { endpoint, explorerUrl: makeExplorerUrl } = getClusterConfig();
   const router = useRouter();
 
   // Solana wallet adapter hooks (for Phantom, Solflare, etc.)
@@ -458,11 +456,7 @@ export default function WalletNavbar() {
 
   const handleExplorer = () => {
     if (activePublicKey) {
-      window.open(
-        `${explorerUrl}${activePublicKey.toBase58()}?cluster=devnet`,
-        '_blank',
-        'noopener,noreferrer'
-      );
+      window.open(makeExplorerUrl(activePublicKey.toBase58()), '_blank', 'noopener,noreferrer');
     }
   };
 

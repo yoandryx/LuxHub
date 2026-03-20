@@ -385,7 +385,7 @@ export const PlatformSettingsPanel: React.FC = () => {
               onChange={(e) => updateField('solana', 'rpcEndpoint', e.target.value)}
               disabled={!isSuperAdmin}
               className={styles.input}
-              placeholder="https://api.devnet.solana.com"
+              placeholder="https://devnet.helius-rpc.com/?api-key=..."
             />
           </div>
           <div className={styles.fieldRow}>

@@ -1,8 +1,7 @@
 // src/lib/services/txVerification.ts
 // On-chain transaction verification — ensures payments actually happened before updating MongoDB
-import { Connection, PublicKey } from '@solana/web3.js';
-
-const getRpc = () => process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com';
+import { PublicKey } from '@solana/web3.js';
+import { getConnection } from '@/lib/solana/clusterConfig';
 
 export interface TxVerificationResult {
   verified: boolean;
@@ -22,7 +21,7 @@ export async function verifyTransaction(txSignature: string): Promise<TxVerifica
   }
 
   try {
-    const connection = new Connection(getRpc(), 'confirmed');
+    const connection = getConnection();
 
     const tx = await connection.getTransaction(txSignature, {
       commitment: 'confirmed',
@@ -63,7 +62,7 @@ export async function verifyTransactionForWallet(
   }
 
   try {
-    const connection = new Connection(getRpc(), 'confirmed');
+    const connection = getConnection();
 
     const tx = await connection.getTransaction(txSignature, {
       commitment: 'confirmed',

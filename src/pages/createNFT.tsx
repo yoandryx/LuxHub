@@ -8,6 +8,7 @@ import { mplCore, transfer, fetchAsset } from '@metaplex-foundation/mpl-core';
 import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
 import { create as createAsset, update as updateAsset } from '@metaplex-foundation/mpl-core';
 import { createMetadata } from '../utils/metadata';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 
 // Upload metadata via server-side API (supports Irys/Pinata based on config)
 async function uploadMetadataViaApi(metadata: object, name: string): Promise<string> {
@@ -382,9 +383,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
   // Create UMI instance (memoized)
   const getUmi = useCallback(() => {
-    return createUmi(process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com')
-      .use(walletAdapterIdentity(wallet))
-      .use(mplCore());
+    return createUmi(getClusterConfig().endpoint).use(walletAdapterIdentity(wallet)).use(mplCore());
   }, [wallet]);
 
   // AI Verification function

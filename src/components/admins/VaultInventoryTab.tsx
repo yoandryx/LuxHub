@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { HiOutlineRefresh, HiOutlineExternalLink, HiOutlineEye } from 'react-icons/hi';
 import { LuSparkles, LuShield, LuBadgeCheck } from 'react-icons/lu';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/VaultInventoryTab.module.css';
 
 interface VaultNFT {
@@ -122,7 +123,7 @@ export const VaultInventoryTab: React.FC<VaultInventoryTabProps> = ({ onSelectNF
   };
 
   const openSolscan = (mint: string) => {
-    window.open(`https://solscan.io/token/${mint}?cluster=devnet`, '_blank');
+    window.open(getClusterConfig().explorerUrl(mint), '_blank');
   };
 
   return (
@@ -317,7 +318,7 @@ export const VaultInventoryTab: React.FC<VaultInventoryTabProps> = ({ onSelectNF
                   <span className={styles.detailLabel}>Mint Address</span>
                   <span className={styles.detailValue}>
                     <a
-                      href={`https://solscan.io/token/${selectedNFT.nftMint}?cluster=devnet`}
+                      href={getClusterConfig().explorerUrl(selectedNFT.nftMint)}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

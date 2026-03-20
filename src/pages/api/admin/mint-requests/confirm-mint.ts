@@ -2,7 +2,8 @@
 // Confirms a mint after client-side signing and submission
 // Updates database records, creates asset, and auto-lists on marketplace
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { getConnection } from '@/lib/solana/clusterConfig';
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
 import Asset from '../../../../lib/models/Assets';
@@ -63,9 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verify the mint exists on-chain (with retry for slow RPC)
-    const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-    );
+    const connection = getConnection();
 
     let onChainVerified = false;
     for (let attempt = 0; attempt < 3; attempt++) {

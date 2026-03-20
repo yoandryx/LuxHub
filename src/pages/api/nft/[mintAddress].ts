@@ -57,9 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { Metaplex } = await import('@metaplex-foundation/js');
       const { Connection, PublicKey } = await import('@solana/web3.js');
 
-      const connection = new Connection(
-        process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com'
-      );
+      const { getConnection } = await import('@/lib/solana/clusterConfig');
+      const connection = getConnection();
       const metaplex = Metaplex.make(connection);
       const nft = await metaplex.nfts().findByMint({ mintAddress: new PublicKey(mintAddress) });
 

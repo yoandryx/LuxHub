@@ -5,7 +5,8 @@ import { getAdminConfig } from '../lib/config/adminConfig';
 // Irys network configuration
 // Use 'devnet' for testing (free uploads), 'mainnet' for production
 const IRYS_NETWORK = process.env.IRYS_NETWORK || 'devnet';
-const IRYS_RPC = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
+const getIrysRpc = () => getClusterConfig().endpoint;
 
 // Gateway URL for accessing uploaded content
 const IRYS_GATEWAY = 'https://gateway.irys.xyz';
@@ -35,7 +36,7 @@ async function getIrys(): Promise<Irys | null> {
         token: IRYS_TOKEN,
         key: process.env.IRYS_PRIVATE_KEY,
         config: {
-          providerUrl: IRYS_RPC,
+          providerUrl: getIrysRpc(),
         },
       });
       return _irysInstance;
@@ -56,7 +57,7 @@ async function getIrys(): Promise<Irys | null> {
       token: IRYS_TOKEN,
       key: adminKeypair.secretKey, // Pass the Uint8Array directly
       config: {
-        providerUrl: IRYS_RPC,
+        providerUrl: getIrysRpc(),
       },
     });
 

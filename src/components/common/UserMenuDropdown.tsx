@@ -28,10 +28,7 @@ import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { useUserRole, UserRole } from '@/hooks/useUserRole';
 import styles from '@/styles/UserMenuDropdown.module.css';
 
-const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT ?? 'https://api.devnet.solana.com';
-const explorerUrl = endpoint.includes('devnet')
-  ? 'https://explorer.solana.com/address/'
-  : 'https://solscan.io/account/';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 
 interface UserMenuDropdownProps {
   className?: string;
@@ -50,6 +47,7 @@ const RoleBadge = memo(function RoleBadge({ role }: { role: UserRole }) {
 });
 
 function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
+  const { explorerUrl: makeExplorerUrl } = getClusterConfig();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
@@ -244,7 +242,7 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
                     <button
                       className={styles.toolButton}
                       onClick={() =>
-                        window.open(`${explorerUrl}${walletAddress}?cluster=devnet`, '_blank')
+                        walletAddress && window.open(makeExplorerUrl(walletAddress), '_blank')
                       }
                       title="Explorer"
                     >
