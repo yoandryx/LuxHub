@@ -1,3 +1,8 @@
+// Polyfill TextEncoder/TextDecoder for jsdom (needed by @solana/web3.js)
+const { TextEncoder, TextDecoder } = require('util');
+global.TextEncoder = global.TextEncoder || TextEncoder;
+global.TextDecoder = global.TextDecoder || TextDecoder;
+
 require('@testing-library/jest-dom');
 
 // Mock Next.js router

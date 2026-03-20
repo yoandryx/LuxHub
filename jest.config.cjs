@@ -26,6 +26,10 @@ module.exports = {
     "<rootDir>/.next/",
     "<rootDir>/Solana-Anchor/",
   ],
+  // Transform ESM-only Solana packages (uuid, jayson, @solana/wallet-adapter-*)
+  transformIgnorePatterns: [
+    "node_modules/(?!(@solana/wallet-adapter-base|@solana/wallet-adapter-react|uuid|jayson|@noble)/)",
+  ],
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
