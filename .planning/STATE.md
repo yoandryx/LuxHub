@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-20T00:55:50.865Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-03-20T01:22:50.000Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 02 (security-and-notification-hardening) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Plan: 3 of 4
 | Phase 02 P00 | 4min | 2 tasks | 9 files |
 | Phase 02 P02 | 8min | 2 tasks | 9 files |
 | Phase 02 P01 | 40min | 2 tasks | 36 files |
+| Phase 02 P03 | 25min | 2 tasks | 28 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ Recent decisions affecting current work:
 - [Phase 02]: Admin notification pattern: env wallet parsing + Set deduplication + best-effort .catch()
 - [Phase 02]: All Solana connections must use getClusterConfig()/getConnection() - never inline env fallbacks
 - [Phase 02]: getClusterConfig() must be called inside component bodies, not at module scope (SSR build safety)
+- [Phase 02]: verifyTransactionEnhanced enforces expectedDestination for BOTH SOL and SPL paths
+- [Phase 02]: Sentry captureException uses spread operator for ErrorContext -> Extras type compat
+- [Phase 02]: vendor/apply.ts does not exist -- skipped in endpoint wrapping
 
 ### Pending Todos
 
@@ -83,5 +87,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T00:55:50.864Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-20T01:22:50Z
+Stopped at: Completed 02-03-PLAN.md

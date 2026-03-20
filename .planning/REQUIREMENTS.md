@@ -34,7 +34,7 @@ Requirements for launch readiness. Each maps to roadmap phases.
 - [x] **SEC-03**: TX verification validates program called, amount transferred, correct USDC mint, and escrow PDA destination
 - [x] **SEC-04**: TX verification prevents replay attacks (processed txSignatures stored and checked)
 - [x] **SEC-05**: Sentry error monitoring configured with DSN, source maps, and alerting
-- [ ] **SEC-06**: Priority fee logic added to all fund-moving transactions for mainnet readiness
+- [x] **SEC-06**: Priority fee logic added to all fund-moving transactions for mainnet readiness
 - [x] **SEC-07**: Rate limiting applied to `/api/pool/invest` and `/api/pool/buy-resale`
 - [x] **SEC-08**: RPC connection fails loudly with clear error when endpoint env var is missing (no silent devnet fallback)
 
@@ -131,7 +131,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | SEC-03 | Phase 2 | Complete |
 | SEC-04 | Phase 2 | Complete |
 | SEC-05 | Phase 2 | Complete |
-| SEC-06 | Phase 2 | Pending |
+| SEC-06 | Phase 2 | Complete |
 | SEC-07 | Phase 2 | Complete |
 | SEC-08 | Phase 2 | Complete |
 | NOTF-01 | Phase 2 | Complete |
