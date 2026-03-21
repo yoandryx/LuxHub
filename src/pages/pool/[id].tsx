@@ -1,10 +1,11 @@
 // src/pages/pool/[id].tsx
-// Pool Detail Page - Shows investment pool details and participation options
+// Pool Detail Page - Shows pool details and participation options
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/PoolDetailNew.module.css';
 import {
@@ -87,8 +88,16 @@ interface PoolData {
   fundsInEscrow?: number;
 }
 
+interface UserPosition {
+  balance: number;
+  ownershipPercent: number;
+  costBasis: number | null; // from MongoDB participants.investedUSD, null if bought on secondary
+  currentValue: number;
+  gainPercent: number | null;
+}
+
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  open: { label: 'Open for Investment', color: '#22c55e', icon: <FaMoneyBillWave /> },
+  open: { label: 'Open for Contributions', color: '#22c55e', icon: <FaMoneyBillWave /> },
   filled: { label: 'Fully Funded', color: '#3b82f6', icon: <FaCheckCircle /> },
   funded: { label: 'Vendor Paid', color: '#8b5cf6', icon: <FaCheckCircle /> },
   custody: { label: 'In Transit to LuxHub', color: '#f59e0b', icon: <FaTruck /> },
@@ -111,6 +120,7 @@ const PoolDetailPage: React.FC = () => {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [investShares, setInvestShares] = useState(1);
   const [isInvesting, setIsInvesting] = useState(false);
+  const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
 
   const fetchPool = useCallback(async () => {
     if (!id) return;
@@ -138,6 +148,85 @@ const PoolDetailPage: React.FC = () => {
   useEffect(() => {
     fetchPool();
   }, [fetchPool]);
+
+  // Fetch user token position when pool and wallet are available
+  useEffect(() => {
+    if (!pool || !wallet.publicKey || !pool.bagsTokenMint) {
+      setUserPosition(null);
+      return;
+    }
+
+    const fetchPosition = async () => {
+      try {
+        const { endpoint } = getClusterConfig();
+        const mintPubkey = new PublicKey(pool.bagsTokenMint!);
+
+        // Fetch token accounts for this wallet filtered by the pool token mint
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'get-token-accounts',
+            method: 'getTokenAccountsByOwner',
+            params: [
+              wallet.publicKey!.toBase58(),
+              { mint: mintPubkey.toBase58() },
+              { encoding: 'jsonParsed' },
+            ],
+          }),
+        });
+
+        const data = await response.json();
+        const accounts = data?.result?.value || [];
+
+        let balance = 0;
+        for (const account of accounts) {
+          const info = account.account?.data?.parsed?.info;
+          if (info) {
+            balance += Number(info.tokenAmount?.uiAmount || 0);
+          }
+        }
+
+        if (balance <= 0) {
+          setUserPosition(null);
+          return;
+        }
+
+        // Calculate ownership percent using totalShares as proxy for total supply
+        const totalSupply = pool.totalShares;
+        const ownershipPercent = totalSupply > 0 ? (balance / totalSupply) * 100 : 0;
+
+        // Look up cost basis from pool participants
+        const participant = pool.participants?.find(
+          (p) => p.wallet === wallet.publicKey!.toBase58()
+        );
+        const costBasis = participant ? participant.investedUSD : null;
+
+        // Current value based on share price
+        const currentValue = balance * (pool.sharePriceUSD || 0);
+
+        // Gain/loss calculation
+        const gainPercent =
+          costBasis !== null && costBasis > 0
+            ? ((currentValue - costBasis) / costBasis) * 100
+            : null;
+
+        setUserPosition({
+          balance,
+          ownershipPercent,
+          costBasis,
+          currentValue,
+          gainPercent,
+        });
+      } catch (err) {
+        console.error('Error fetching user position:', err);
+        setUserPosition(null);
+      }
+    };
+
+    fetchPosition();
+  }, [pool, wallet.publicKey]);
 
   const getAssetImage = (): string => {
     if (pool?.asset?.imageIpfsUrls?.[0]) return pool.asset.imageIpfsUrls[0];
@@ -168,14 +257,14 @@ const PoolDetailPage: React.FC = () => {
 
       const data = await res.json();
       if (data.success) {
-        alert('Investment successful!');
+        alert('Contribution successful!');
         fetchPool();
       } else {
-        alert(data.error || 'Investment failed');
+        alert(data.error || 'Contribution failed');
       }
     } catch (err) {
-      console.error('Investment error:', err);
-      alert('Failed to process investment');
+      console.error('Contribution error:', err);
+      alert('Failed to process contribution');
     } finally {
       setIsInvesting(false);
     }
@@ -214,10 +303,10 @@ const PoolDetailPage: React.FC = () => {
   return (
     <>
       <Head>
-        <title>{pool.asset?.model || 'Pool'} | LuxHub Investment Pool</title>
+        <title>{pool.asset?.model || 'Pool'} | LuxHub Token Pool</title>
         <meta
           name="description"
-          content={`Invest in fractional ownership of ${pool.asset?.model || 'luxury asset'}`}
+          content={`Contribute to the token-backed pool for ${pool.asset?.model || 'luxury asset'}`}
         />
       </Head>
 
@@ -267,7 +356,7 @@ const PoolDetailPage: React.FC = () => {
             {/* Participants List */}
             <div className={styles.detailCard}>
               <h3>
-                <FaUsers /> Investors ({pool.investorCount})
+                <FaUsers /> Token Holders ({pool.investorCount})
               </h3>
               {pool.participants && pool.participants.length > 0 ? (
                 <div className={styles.participantsList}>
@@ -280,21 +369,21 @@ const PoolDetailPage: React.FC = () => {
                         )}
                       </span>
                       <span className={styles.participantShares}>
-                        {p.shares} shares ({p.ownershipPercent.toFixed(1)}%)
+                        {p.shares} tokens ({p.ownershipPercent.toFixed(1)}%)
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className={styles.noParticipants}>No investors yet. Be the first!</p>
+                <p className={styles.noParticipants}>No token holders yet. Be the first!</p>
               )}
             </div>
           </div>
 
-          {/* Right Column - Investment Info */}
+          {/* Right Column - Pool Info */}
           <div className={styles.rightColumn}>
             <div className={styles.headerCard}>
-              <h1>{pool.asset?.model || 'Investment Pool'}</h1>
+              <h1>{pool.asset?.model || 'Token Pool'}</h1>
               {pool.vendor?.businessName && (
                 <p className={styles.vendorName}>
                   by {pool.vendor.businessName}
@@ -311,7 +400,7 @@ const PoolDetailPage: React.FC = () => {
                 </span>
                 {pool.projectedROI && (
                   <span className={styles.roiBadge}>
-                    <FaChartLine /> {((pool.projectedROI - 1) * 100).toFixed(0)}% Projected ROI
+                    <FaChartLine /> {((pool.projectedROI - 1) * 100).toFixed(0)}% Projected Return
                   </span>
                 )}
               </div>
@@ -321,13 +410,17 @@ const PoolDetailPage: React.FC = () => {
             <div className={styles.progressCard}>
               <div className={styles.progressHeader}>
                 <span>Funding Progress</span>
-                <span>{pool.fundingProgress.toFixed(1)}%</span>
+                <span className={styles.progressPercent}>{pool.fundingProgress.toFixed(1)}%</span>
               </div>
               <div className={styles.progressBar}>
                 <div
                   className={styles.progressFill}
-                  style={{ width: `${pool.fundingProgress}%` }}
+                  style={{ width: `${Math.min(pool.fundingProgress, 100)}%` }}
                 />
+              </div>
+              <div className={styles.progressDollars}>
+                ${(pool.sharesSold * (pool.sharePriceUSD || 0)).toLocaleString()} of $
+                {(pool.targetAmountUSD || 0).toLocaleString()}
               </div>
               <div className={styles.progressStats}>
                 <div>
@@ -344,29 +437,74 @@ const PoolDetailPage: React.FC = () => {
                 </div>
                 <div>
                   <span className={styles.statValue}>{pool.investorCount}</span>
-                  <span className={styles.statLabel}>Investors</span>
+                  <span className={styles.statLabel}>Contributors</span>
                 </div>
               </div>
             </div>
 
-            {/* Investment Card */}
+            {/* Your Position */}
+            {userPosition && userPosition.balance > 0 && (
+              <div className={styles.positionCard}>
+                <h3 className={styles.sectionTitle}>Your Position</h3>
+                <div className={styles.positionGrid}>
+                  <div className={styles.positionItem}>
+                    <span className={styles.positionLabel}>Tokens Held</span>
+                    <span className={styles.positionValue}>
+                      {userPosition.balance.toLocaleString()}
+                      <span className={styles.positionPercent}>
+                        ({userPosition.ownershipPercent.toFixed(1)}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className={styles.positionItem}>
+                    <span className={styles.positionLabel}>Cost Basis</span>
+                    <span className={styles.positionValue}>
+                      {userPosition.costBasis !== null
+                        ? `$${userPosition.costBasis.toLocaleString()}`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div className={styles.positionItem}>
+                    <span className={styles.positionLabel}>Current Value</span>
+                    <span className={styles.positionValue}>
+                      ${userPosition.currentValue.toLocaleString()}
+                      {userPosition.gainPercent !== null && (
+                        <span
+                          className={
+                            userPosition.gainPercent >= 0
+                              ? styles.positiveGain
+                              : styles.negativeGain
+                          }
+                        >
+                          {' '}
+                          ({userPosition.gainPercent >= 0 ? '+' : ''}
+                          {userPosition.gainPercent.toFixed(1)}%)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Contribution Card */}
             {pool.status === 'open' && (
               <div className={styles.investCard}>
-                <h3>Invest in This Pool</h3>
+                <h3>Contribute to This Pool</h3>
 
                 <div className={styles.investInfo}>
                   <div className={styles.infoRow}>
-                    <span>Share Price</span>
+                    <span>Token Price</span>
                     <span className={styles.sharePrice}>
                       ${pool.sharePriceUSD?.toLocaleString()}
                     </span>
                   </div>
                   <div className={styles.infoRow}>
-                    <span>Minimum Investment</span>
+                    <span>Minimum Contribution</span>
                     <span>${pool.minBuyInUSD?.toLocaleString()}</span>
                   </div>
                   <div className={styles.infoRow}>
-                    <span>Available Shares</span>
+                    <span>Available Tokens</span>
                     <span>
                       {sharesRemaining} of {pool.totalShares}
                     </span>
@@ -377,15 +515,15 @@ const PoolDetailPage: React.FC = () => {
                   <div className={styles.existingInvestment}>
                     <FaCheckCircle className={styles.checkIcon} />
                     <p>
-                      You own {userInvestment.shares} shares (
+                      You own {userInvestment.shares} tokens (
                       {userInvestment.ownershipPercent.toFixed(1)}%)
                     </p>
-                    <span>Invested: ${userInvestment.investedUSD.toLocaleString()}</span>
+                    <span>Contributed: ${userInvestment.investedUSD.toLocaleString()}</span>
                   </div>
                 ) : (
                   <>
                     <div className={styles.sharesInput}>
-                      <label>Number of Shares</label>
+                      <label>Number of Tokens</label>
                       <div className={styles.inputWrapper}>
                         <button
                           onClick={() => setInvestShares(Math.max(1, investShares - 1))}
@@ -417,7 +555,7 @@ const PoolDetailPage: React.FC = () => {
 
                     <div className={styles.investSummary}>
                       <div className={styles.summaryRow}>
-                        <span>Investment Amount</span>
+                        <span>Contribution Amount</span>
                         <span className={styles.amount}>${investmentAmount.toLocaleString()}</span>
                       </div>
                       <div className={styles.summaryRow}>
@@ -426,7 +564,7 @@ const PoolDetailPage: React.FC = () => {
                       </div>
                       {pool.projectedROI && (
                         <div className={styles.summaryRow}>
-                          <span>Projected Return</span>
+                          <span>Estimated Return</span>
                           <span className={styles.projected}>
                             ${projectedReturn.toLocaleString()}
                           </span>
@@ -441,7 +579,7 @@ const PoolDetailPage: React.FC = () => {
                     >
                       {isInvesting
                         ? 'Processing...'
-                        : `Invest $${investmentAmount.toLocaleString()}`}
+                        : `Contribute $${investmentAmount.toLocaleString()}`}
                     </button>
                   </>
                 )}
@@ -518,7 +656,7 @@ const PoolDetailPage: React.FC = () => {
                 )}
                 {pool.bagsTokenMint && (
                   <div className={styles.infoRow}>
-                    <span>Share Token</span>
+                    <span>Pool Token</span>
                     <a
                       href={getClusterConfig().explorerUrl(pool.bagsTokenMint)}
                       target="_blank"
@@ -598,7 +736,7 @@ const PoolDetailPage: React.FC = () => {
               <button className={styles.modalClose} onClick={() => setShowWalletModal(false)}>
                 &times;
               </button>
-              <p className={styles.modalMessage}>Connect your wallet to invest</p>
+              <p className={styles.modalMessage}>Connect your wallet to contribute</p>
               <WalletGuide onConnected={() => setShowWalletModal(false)} showSteps={false} />
             </div>
           </div>
