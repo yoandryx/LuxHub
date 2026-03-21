@@ -47,6 +47,14 @@ Requirements for launch readiness. Each maps to roadmap phases.
 - [x] **NOTF-05**: Email delivery works end-to-end via Resend — purchase confirmation, offer updates, shipping, and delivery emails arrive in user's inbox
 - [x] **NOTF-06**: Email templates render correctly with LuxHub branding, action URLs, and correct data for each notification type
 
+### Tokenomics & Multi-Treasury (Phase 02.1 — INSERTED)
+
+- [ ] **TM-01**: All fund-moving endpoints route fees to the correct treasury (Marketplace, Pools, or Partner) via centralized config helper — no NEXT_PUBLIC_LUXHUB_WALLET references for treasury purposes
+- [ ] **TM-02**: Bags fee-share config uses single claimer at 10,000 BPS (100% Pools Treasury) — vendor is paid at graduation only, no ongoing trading fee share
+- [ ] **TM-03**: Post-graduation trading validated (webhook sets bondingCurveActive: false, Bags DEX handles trading, BagsPoolTrading component supports post-graduation UI)
+- [ ] **TM-04**: Resale distribution snapshots ALL token holders via paginated DAS, distributes 97% proportionally, 3% to Pools Treasury, then closes pool (status=closed, tokenStatus=burned)
+- [ ] **TM-05**: Pool detail page shows YOUR POSITION (tokens, ownership %, cost basis, value, gain/loss), funding progress with %, and collapsible HOW THIS WORKS 4-step explainer with legal-safe language
+
 ### Marketplace UX
 
 - [ ] **UX-01**: Multi-image gallery per listing (5+ photos stored in Asset doc, displayed on listing page alongside NFT primary image)
@@ -140,6 +148,11 @@ Deferred to future release. Tracked but not in current roadmap.
 | NOTF-04 | Phase 2 | Complete |
 | NOTF-05 | Phase 2 | Complete |
 | NOTF-06 | Phase 2 | Complete |
+| TM-01 | Phase 2.1 | Pending |
+| TM-02 | Phase 2.1 | Pending |
+| TM-03 | Phase 2.1 | Pending |
+| TM-04 | Phase 2.1 | Pending |
+| TM-05 | Phase 2.1 | Pending |
 | UX-01 | Phase 3 | Pending |
 | UX-02 | Phase 3 | Pending |
 | UX-03 | Phase 3 | Pending |
@@ -153,10 +166,10 @@ Deferred to future release. Tracked but not in current roadmap.
 | VEND-05 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 42 total
-- Mapped to phases: 42
-- Unmapped: 0 ✓
+- v1 requirements: 47 total
+- Mapped to phases: 47
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-18 after roadmap phase mapping*
+*Last updated: 2026-03-21 after Phase 02.1 planning*

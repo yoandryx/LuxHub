@@ -54,6 +54,25 @@ Plans:
 - [ ] 02-02-PLAN.md -- Fix 4 notification bugs and verify email delivery (NOTF-01 through NOTF-06)
 - [ ] 02-03-PLAN.md -- Enhanced TX verification, replay prevention, Sentry, priority fees, rate limiting (SEC-03 through SEC-07)
 
+### Phase 02.1: Tokenomics & Multi-Treasury (INSERTED)
+
+**Goal:** Full pool token lifecycle from tokenomics document is implemented -- 3 separate treasury wallets route revenue by source, fee-share config sends 100% to Pools Treasury, resale distribution pays all token holders proportionally and closes the pool, and the pool page shows position tracking with a legal-safe explainer
+**Requirements**: TM-01, TM-02, TM-03, TM-04, TM-05
+**Depends on:** Phase 02
+**Success Criteria** (what must be TRUE):
+  1. All fund-moving endpoints route fees to the correct treasury (Marketplace, Pools, or Partner) via a centralized config helper
+  2. Bags fee-share config uses single claimer at 10,000 BPS (100% Pools Treasury) -- no vendor split on trading fees
+  3. Post-graduation trading works via Bags DEX (webhook sets bondingCurveActive: false, component handles post-graduation UI)
+  4. Resale distribution snapshots ALL token holders via paginated DAS, distributes 97% proportionally, and closes the pool (status=closed, tokenStatus=burned)
+  5. Pool detail page shows YOUR POSITION (tokens, ownership %, cost basis, value, gain/loss), funding progress with %, and a collapsible HOW THIS WORKS 4-step explainer with legal-safe language
+**Plans:** 4 plans
+
+Plans:
+- [ ] 02.1-01-PLAN.md -- Treasury config helper + fee-share change to 100% Pools Treasury (TM-01, TM-02)
+- [ ] 02.1-02-PLAN.md -- Migrate 11 endpoints from NEXT_PUBLIC_LUXHUB_WALLET to multi-treasury (TM-01)
+- [ ] 02.1-03-PLAN.md -- Resale distribution with paginated snapshot, state machine, pool closure (TM-03, TM-04)
+- [ ] 02.1-04-PLAN.md -- Pool page UX: position tracking, funding progress, HOW THIS WORKS explainer (TM-05)
+
 ### Phase 3: Marketplace UX
 **Goal**: The marketplace meets luxury buyer expectations -- multiple photos per listing, standardized condition grading, searchable inventory, and everything works on mobile
 **Depends on**: Phase 1
@@ -86,12 +105,13 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
+Phases execute in numeric order: 1 -> 2 -> 2.1 -> 3 -> 4
 Note: Phase 3 depends on Phase 1 (not Phase 2), so Phases 2 and 3 could theoretically run in parallel if needed.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Marketplace Flows | 3/3 | Complete | 2026-03-19 |
 | 2. Security and Notification Hardening | 0/4 | Not started | - |
+| 2.1 Tokenomics & Multi-Treasury | 0/4 | Not started | - |
 | 3. Marketplace UX | 0/2 | Not started | - |
 | 4. Vendor Demo Readiness | 0/1 | Not started | - |
