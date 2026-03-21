@@ -51,8 +51,8 @@ Requirements for launch readiness. Each maps to roadmap phases.
 
 - [x] **TM-01**: All fund-moving endpoints route fees to the correct treasury (Marketplace, Pools, or Partner) via centralized config helper — no NEXT_PUBLIC_LUXHUB_WALLET references for treasury purposes
 - [x] **TM-02**: Bags fee-share config uses single claimer at 10,000 BPS (100% Pools Treasury) — vendor is paid at graduation only, no ongoing trading fee share
-- [ ] **TM-03**: Post-graduation trading validated (webhook sets bondingCurveActive: false, Bags DEX handles trading, BagsPoolTrading component supports post-graduation UI)
-- [ ] **TM-04**: Resale distribution snapshots ALL token holders via paginated DAS, distributes 97% proportionally, 3% to Pools Treasury, then closes pool (status=closed, tokenStatus=burned)
+- [x] **TM-03**: Post-graduation trading validated (webhook sets bondingCurveActive: false, Bags DEX handles trading, BagsPoolTrading component supports post-graduation UI)
+- [x] **TM-04**: Resale distribution snapshots ALL token holders via paginated DAS, distributes 97% proportionally, 3% to Pools Treasury, then closes pool (status=closed, tokenStatus=burned)
 - [x] **TM-05**: Pool detail page shows YOUR POSITION (tokens, ownership %, cost basis, value, gain/loss), funding progress with %, and collapsible HOW THIS WORKS 4-step explainer with legal-safe language
 
 ### Marketplace UX
@@ -150,8 +150,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | NOTF-06 | Phase 2 | Complete |
 | TM-01 | Phase 2.1 | Complete |
 | TM-02 | Phase 2.1 | Complete |
-| TM-03 | Phase 2.1 | Pending |
-| TM-04 | Phase 2.1 | Pending |
+| TM-03 | Phase 2.1 | Complete |
+| TM-04 | Phase 2.1 | Complete |
 | TM-05 | Phase 2.1 | Complete |
 | UX-01 | Phase 3 | Pending |
 | UX-02 | Phase 3 | Pending |

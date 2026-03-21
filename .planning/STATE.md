@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02.1-02-PLAN.md
-last_updated: "2026-03-21T20:08:40.936Z"
+stopped_at: Completed 02.1-03-PLAN.md
+last_updated: "2026-03-21T20:13:31.368Z"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 02.1 (tokenomics-multi-treasury) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Plan: 3 of 4
 | Phase 02.1 P01 | 4min | 2 tasks | 7 files |
 | Phase 02.1 P04 | 4min | 2 tasks | 2 files |
 | Phase 02.1 P02 | 4min | 2 tasks | 11 files |
+| Phase 02.1 P03 | 3min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase 02.1]: Used direct RPC getTokenAccountsByOwner from client for token balance instead of new API endpoint
 - [Phase 02.1]: All user-facing prohibited language replaced: invest->contribute, shares->tokens, investors->contributors, ROI->return
 - [Phase 02.1]: Helius webhook TREASURY_WALLET moved from module scope to handler-body getTreasury() call for SSR safety
+- [Phase 02.1]: Extracted calculateDistribution as pure function in separate file for testability
+- [Phase 02.1]: Post-graduation trading validated as already handled by existing Bags webhook + BagsPoolTrading component
+- [Phase 02.1]: On-chain token burn deferred to v2; tokens marked burned in DB only
 
 ### Roadmap Evolution
 
@@ -97,7 +101,12 @@ None yet.
 - Treasury wallet has 0 SOL on mainnet (not blocking this milestone, but blocking the next)
 - Bags partner config PDA not yet created on mainnet (same -- next milestone)
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260321-m9x | Fix chart Object is disposed error and upgrade pool charts with TradingView-style tools like DexScreener | 2026-03-21 | 0c97f24 | [260321-m9x-fix-chart-object-is-disposed-error-and-u](./quick/260321-m9x-fix-chart-object-is-disposed-error-and-u/) |
+
 ## Session Continuity
 
-Last session: 2026-03-21T20:11:53Z
-Stopped at: Completed quick task 260321-m9x (chart fix + OHLCV upgrade)
+Last activity: 2026-03-21 - Completed quick task 260321-m9x: Fix chart Object is disposed error and upgrade pool charts with TradingView-style tools like DexScreener
