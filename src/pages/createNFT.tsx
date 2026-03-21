@@ -1,5 +1,5 @@
 // src/pages/createNFT.tsx
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
@@ -60,6 +60,7 @@ import {
   handleImageError,
   resolveImageUrl as resolveImageUrlUtil,
 } from '../utils/imageUtils';
+import type { UploadedImage } from '../components/common/ImageUploadZone';
 
 // SWR fetcher
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -192,6 +193,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [mintMode, setMintMode] = useState<'single' | 'bulk'>('single');
   const [fileCid, setFileCid] = useState('');
   const [imageUri, setImageUri] = useState(''); // Full URL (Irys or IPFS gateway)
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [priceSol, setPriceSol] = useState(0);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -213,6 +215,14 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [releaseDate, setReleaseDate] = useState('');
   const [boxPapers, setBoxPapers] = useState('');
   const [condition, setCondition] = useState('');
+
+  // Keep imageUri in sync with primary uploaded image (first in array)
+  useEffect(() => {
+    const primary = uploadedImages.find((img) => img.url && !img.uploading);
+    if (primary) {
+      setImageUri(primary.url);
+    }
+  }, [uploadedImages]);
 
   // Minting state
   const [minting, setMinting] = useState(false);
@@ -609,8 +619,13 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         currentVendorId || (isVaultMint && luxhubVendor?.id ? luxhubVendor.id : undefined);
       console.log('[MINT] Vendor ID:', vendorId, '(LuxHub vault:', isVaultMint, ')');
 
-      // Store full image URL for display, ID for reference
+      // Store full image URLs for display, ID for reference
       const fullImageUrl = imageUri || (fileCid ? resolveImageUrl(fileCid, gateway) : '');
+      const allImageUrls = uploadedImages
+        .filter((img) => img.url && !img.error)
+        .map((img) => img.url);
+      const imagesForDb =
+        allImageUrls.length > 0 ? allImageUrls : fullImageUrl ? [fullImageUrl] : [];
 
       const dbPayload = {
         ...(vendorId && { vendor: vendorId }),
@@ -618,7 +633,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         serial: serialNumber,
         description,
         priceUSD: priceSol * solPrice,
-        images: fullImageUrl ? [fullImageUrl] : [], // Full URL for direct display
+        images: imagesForDb, // All uploaded image URLs
         imageIpfsUrls: fileCid ? [fileCid] : [], // ID/CID for reference
         metadataIpfsUrl: metadataUri,
         nftMint: mintAddress,
@@ -750,6 +765,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     setDescription('');
     setFileCid('');
     setImageUri('');
+    setUploadedImages([]);
     setPriceSol(0);
     setBrand('');
     setModel('');
@@ -806,7 +822,20 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       if (data.movement) setMovement(data.movement);
       if (data.waterResistance) setWaterResistance(data.waterResistance);
       if (data.productionYear) setProductionYear(data.productionYear);
-      if (data.condition) setCondition(data.condition);
+      if (data.condition) {
+        // Map AI condition grades to the 5-grade scale
+        const conditionMap: Record<string, string> = {
+          unworn: 'Unworn',
+          new: 'Unworn',
+          excellent: 'Excellent',
+          very_good: 'Very Good',
+          good: 'Good',
+          fair: 'Fair',
+        };
+        const mapped =
+          conditionMap[data.condition.toLowerCase().replace(/\s+/g, '_')] || data.condition;
+        setCondition(mapped);
+      }
       if (data.features) setFeatures(data.features);
       if (data.country) setCountry(data.country);
       if (data.estimatedPriceSol) setPriceSol(data.estimatedPriceSol);
@@ -1515,7 +1544,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         uri: newUri,
       }).sendAndConfirm(umi);
 
-      // Update database
+      // Update database — include all uploaded image URLs
+      const updateImageUrls = uploadedImages
+        .filter((img) => img.url && !img.error)
+        .map((img) => img.url);
       const response = await fetch('/api/assets/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1523,6 +1555,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           nftMint: editingNft.mintAddress,
           priceUSD: priceSol * solPrice,
           metadataIpfsUrl: newUri,
+          ...(updateImageUrls.length > 0 && { images: updateImageUrls }),
           imageIpfsUrls: fileCid
             ? [fileCid]
             : editingNft.ipfs_pin_hash
@@ -1571,6 +1604,12 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     setPriceSol(nft.priceSol);
     setFileCid(nft.ipfs_pin_hash || '');
     setImageUri(nft.image || ''); // Use existing image URL
+    // Pre-populate uploadedImages from existing asset image
+    if (nft.image) {
+      setUploadedImages([{ id: nft.image, url: nft.image, uploading: false, progress: 100 }]);
+    } else {
+      setUploadedImages([]);
+    }
     setMarketStatus(nft.marketStatus || 'pending');
     setActiveTab('mint');
   }, []);
@@ -1748,6 +1787,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                   setFileCid={setFileCid}
                   imageUri={imageUri}
                   setImageUri={setImageUri}
+                  uploadedImages={uploadedImages}
+                  setUploadedImages={setUploadedImages}
                   title={title}
                   setTitle={setTitle}
                   description={description}

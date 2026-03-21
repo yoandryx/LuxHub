@@ -1,5 +1,5 @@
 // src/components/common/ImageUploadZone.tsx
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -18,7 +18,7 @@ export interface UploadedImage {
 
 interface ImageUploadZoneProps {
   images: UploadedImage[];
-  onChange: (images: UploadedImage[]) => void;
+  onChange: React.Dispatch<React.SetStateAction<UploadedImage[]>>;
   maxFiles?: number;
   maxSizeMB?: number;
   minFiles?: number;

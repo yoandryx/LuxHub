@@ -2,7 +2,7 @@
 import React, { JSX, useEffect, useState, useCallback } from 'react';
 import styles from '../../styles/CreateNFT.module.css';
 import RadixSelect from './RadixSelect';
-import { ImageUploader } from './ImageUploader';
+import ImageUploadZone, { type UploadedImage } from '../common/ImageUploadZone';
 import useSWR from 'swr';
 import { FaMagic, FaSpinner } from 'react-icons/fa';
 
@@ -58,6 +58,9 @@ interface NftFormProps {
   setFeatures: (val: string) => void;
   mintNFT: () => Promise<void>;
   minting: boolean;
+  // Multi-image upload
+  uploadedImages: UploadedImage[];
+  setUploadedImages: React.Dispatch<React.SetStateAction<UploadedImage[]>>;
   // AI Analysis
   onAnalyzeImage?: (imageUrl: string) => Promise<void>;
   analyzingImage?: boolean;
@@ -113,6 +116,8 @@ export const NftForm: React.FC<NftFormProps> = ({
   setFeatures,
   mintNFT,
   minting,
+  uploadedImages,
+  setUploadedImages,
   onAnalyzeImage,
   analyzingImage = false,
   analysisError,
@@ -139,18 +144,6 @@ export const NftForm: React.FC<NftFormProps> = ({
       return () => clearTimeout(timer);
     }
   }, [solRate]);
-
-  // Handle image upload completion
-  const handleImageUploadComplete = useCallback(
-    (cid: string, uri: string) => {
-      setFileCid(cid);
-      // Store full URI (Irys or IPFS gateway URL)
-      if (setImageUri && uri) {
-        setImageUri(uri);
-      }
-    },
-    [setFileCid, setImageUri]
-  );
 
   const handleUsdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const usd = e.target.value;
@@ -179,32 +172,33 @@ export const NftForm: React.FC<NftFormProps> = ({
 
       {/* Image Upload */}
       <div className={styles.formSection}>
-        <div className={styles.formSectionTitle}>Asset Image</div>
+        <div className={styles.formSectionTitle}>Asset Images</div>
         <div className={styles.formFieldWrapper} style={{ gridColumn: '1 / -1', maxWidth: '100%' }}>
-          <label className={styles.formLabel}>* Upload Image</label>
+          <label className={styles.formLabel}>* Upload Images</label>
           <small className={styles.formHint}>
-            Drag and drop or click to upload your asset image to IPFS
+            Drag and drop or click to upload photos. First image is the primary NFT image. Drag
+            thumbnails to reorder.
           </small>
-          <ImageUploader
-            onUploadComplete={handleImageUploadComplete}
-            currentCid={fileCid}
-            currentUri={imageUri}
+          <ImageUploadZone
+            images={uploadedImages}
+            onChange={setUploadedImages}
+            maxFiles={15}
+            maxSizeMB={10}
+            minFiles={5}
             disabled={minting}
           />
         </div>
 
-        {/* AI Analysis Button */}
-        {fileCid && onAnalyzeImage && (
+        {/* AI Analysis Button — enabled when at least one image is uploaded */}
+        {uploadedImages.some((img) => img.url && !img.uploading) && onAnalyzeImage && (
           <div className={styles.formFieldWrapper} style={{ gridColumn: '1 / -1' }}>
             <button
               type="button"
               className={styles.aiAnalyzeButton}
-              onClick={() =>
-                onAnalyzeImage(
-                  imageUri ||
-                    `${process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/'}${fileCid}`
-                )
-              }
+              onClick={() => {
+                const primary = uploadedImages.find((img) => img.url && !img.uploading);
+                if (primary) onAnalyzeImage(primary.url);
+              }}
               disabled={analyzingImage || minting}
             >
               {analyzingImage ? (
@@ -376,7 +370,7 @@ export const NftForm: React.FC<NftFormProps> = ({
             value={condition}
             onValueChange={setCondition}
             placeholder="Condition"
-            options={['New', 'Excellent', 'Good', 'Fair', 'Poor']}
+            options={['Unworn', 'Excellent', 'Very Good', 'Good', 'Fair']}
           />
         )}
       </div>
