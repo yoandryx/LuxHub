@@ -1,0 +1,75 @@
+/* ========================================
+   LUXHUB IMAGE LIGHTBOX
+   Full-screen viewer with swipe navigation
+   ======================================== */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--lux-text-secondary, #a1a1a1);
+  cursor: pointer;
+  font-size: 24px;
+  z-index: 1001;
+  transition: color 0.15s ease;
+}
+
+.closeButton:hover {
+  color: var(--lux-accent, #c8a1ff);
+}
+
+.carouselViewport {
+  overflow: hidden;
+  width: 90vw;
+  height: 90vh;
+  display: flex;
+  align-items: center;
+}
+
+.carouselContainer {
+  display: flex;
+  align-items: center;
+}
+
+.carouselSlide {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightboxImage {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  user-select: none;
+}
+
+.counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lux-text-secondary, #a1a1a1);
+  pointer-events: none;
+}
