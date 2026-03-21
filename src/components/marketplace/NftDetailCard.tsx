@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import styles from '../../styles/NFTDetailCard.module.css';
 import { FaTimes, FaCopy } from 'react-icons/fa';
-import { LuBadgeCheck, LuSparkles, LuGem } from 'react-icons/lu';
+import { LuBadgeCheck, LuGem } from 'react-icons/lu';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { useUserRole } from '../../hooks/useUserRole';
 import { usePriceDisplay } from '../marketplace/PriceDisplay';
 import { resolveImageUrl, resolveAssetImage, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
+import ImageGallery from './ImageGallery';
 
 // Dynamic import for Metaplex (only loaded when needed - ~87KB saved for previewData cases)
 const loadMetaplex = async () => {
@@ -94,7 +95,6 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
   const [metadata, setMetadata] = useState<NFTMetadata | null>(null);
   const [loading, setLoading] = useState<boolean>(!!metadataUri && !previewData);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [showFullImage, setShowFullImage] = useState(false);
 
   const { formatPrice, displayInUSD, toggleDisplay } = usePriceDisplay();
   const { walletAddress: connectedWallet, isConnected: walletConnected } = useUserRole();
@@ -211,6 +211,22 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
     [metadata?.attributes]
   );
 
+  // Build gallery images from all available sources
+  const galleryImages = useMemo(() => {
+    const imgs: string[] = [];
+    if (previewData?.images?.length) {
+      imgs.push(...previewData.images);
+    }
+    if (previewData?.imageIpfsUrls?.length) {
+      imgs.push(...previewData.imageIpfsUrls);
+    }
+    return [...new Set(imgs)];
+  }, [previewData]);
+
+  // Primary image for gallery
+  const primaryImageUrl =
+    previewData?.image || previewData?.imageUrl || metadata?.image || PLACEHOLDER_IMAGE;
+
   // Loading state
   if (loading) {
     return (
@@ -244,20 +260,6 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
 
   return (
     <div className={styles.modalBackdrop} onClick={onClose}>
-      {/* Full Image Viewer */}
-      {showFullImage && (
-        <div
-          className={styles.fullImageOverlay}
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowFullImage(false);
-          }}
-        >
-          <img src={resolvedImage} alt={metadata.name} className={styles.fullImage} />
-          <span className={styles.fullImageHint}>Click anywhere to close</span>
-        </div>
-      )}
-
       {/* Product Modal */}
       <div className={styles.productModal} onClick={(e) => e.stopPropagation()}>
         {/* Close Button */}
@@ -266,14 +268,13 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
         </button>
 
         <div className={styles.productLayout}>
-          {/* Image Section */}
-          <div className={styles.imageSection} onClick={() => setShowFullImage(true)}>
-            <img
-              src={resolvedImage || PLACEHOLDER_IMAGE}
-              alt={metadata.name}
-              className={styles.productImage}
+          {/* Image Section — Gallery */}
+          <div className={styles.imageSection}>
+            <ImageGallery
+              images={galleryImages}
+              primaryImage={primaryImageUrl}
+              alt={metadata?.name || previewData?.title || 'Watch'}
             />
-            <div className={styles.imageShine} />
 
             {/* Status badge */}
             <div className={styles.statusBadge}>
@@ -288,10 +289,6 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
                       : 'Verified'}
               </span>
             </div>
-
-            <div className={styles.imageExpandHint}>
-              <LuSparkles /> View Full
-            </div>
           </div>
 
           {/* Details Section */}
@@ -300,6 +297,13 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
             <h2 className={styles.productTitle}>{metadata.name}</h2>
 
             {metadata.description && <p className={styles.description}>{metadata.description}</p>}
+
+            {/* Condition label */}
+            {previewData?.attributes?.find((a) => a.trait_type === 'Condition')?.value && (
+              <span className={styles.conditionLabel}>
+                Condition: {previewData.attributes.find((a) => a.trait_type === 'Condition')!.value}
+              </span>
+            )}
 
             {/* Price + Actions — together */}
             <div className={styles.priceActionBlock}>

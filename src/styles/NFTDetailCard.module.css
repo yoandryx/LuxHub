@@ -202,8 +202,8 @@
   position: relative;
   flex: 0 0 45%;
   background: var(--bg-dark);
-  cursor: zoom-in;
   overflow: hidden;
+  padding: 16px;
 }
 
 .productImage {
@@ -397,6 +397,14 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Condition label */
+.conditionLabel {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-top: 8px;
 }
 
 /* ========== PRICE + ACTION BLOCK ========== */
