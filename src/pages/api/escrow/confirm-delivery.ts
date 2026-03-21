@@ -11,6 +11,7 @@ import AdminRole from '../../../lib/models/AdminRole';
 import { notifyDeliveryConfirmed } from '../../../lib/services/notificationService';
 import { Transaction } from '../../../lib/models/Transaction';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
+import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 interface ConfirmDeliveryRequest {
   escrowId?: string;
@@ -287,7 +288,7 @@ async function createConfirmDeliverySquadsProposal(
     const buyerPk = new PublicKey(escrow.buyer?.wallet || escrow.buyerWallet);
     const sellerPk = new PublicKey(escrow.sellerWallet);
     const nftMintPk = new PublicKey(escrow.nftMint);
-    const luxhubWallet = new PublicKey(process.env.NEXT_PUBLIC_LUXHUB_WALLET!);
+    const luxhubWallet = new PublicKey(getTreasury('marketplace'));
 
     // Derive PDAs
     const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('luxhub-config')], programPk);
@@ -441,10 +442,7 @@ async function triggerPoolDistribution(
   }
 
   // Build Squads distribution proposal
-  const treasuryWallet = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
-  if (!treasuryWallet) {
-    return { success: false, error: 'Missing treasury wallet' };
-  }
+  const treasuryWallet = getTreasury('pools');
 
   const recipients = [
     ...distributions
@@ -454,7 +452,7 @@ async function triggerPoolDistribution(
         amountUSD: d.amount,
         label: `Investor ${d.wallet.slice(0, 8)}... (${d.ownershipPercent.toFixed(1)}%)`,
       })),
-    { wallet: treasuryWallet, amountUSD: royaltyAmount, label: 'LuxHub 3% royalty' },
+    { wallet: treasuryWallet, amountUSD: royaltyAmount, label: 'Pools Treasury 3% royalty' },
   ];
 
   const squadsResult = await buildMultiTransferProposal(recipients, {

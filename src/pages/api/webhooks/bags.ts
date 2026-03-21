@@ -9,6 +9,7 @@ import { TreasuryDeposit } from '@/lib/models/TreasuryDeposit';
 import { TreasuryVesting } from '@/lib/models/TreasuryVesting';
 import { webhookLimiter } from '@/lib/middleware/rateLimit';
 import { withErrorMonitoring, errorMonitor } from '@/lib/monitoring/errorHandler';
+import { getTreasury } from '@/lib/config/treasuryConfig';
 
 // Bags API event types
 type BagsEventType =
@@ -163,9 +164,7 @@ async function handleTradeExecuted(event: BagsTradeEvent): Promise<void> {
       const creatorFeeUSD = tradeAmountUSD * 0.01; // 1% creator fee
       // Internal split of creator fee (based on pool's fee-share claimers):
       // Default: 83.33% treasury (8333 BPS) + 16.67% vendor (1667 BPS)
-      const treasuryShare = pool.feeShareClaimers?.find(
-        (c: any) => c.label === 'LuxHub Treasury'
-      );
+      const treasuryShare = pool.feeShareClaimers?.find((c: any) => c.label === 'LuxHub Treasury');
       const vendorShare = pool.feeShareClaimers?.find((c: any) => c.label === 'Vendor');
       const treasuryBps = treasuryShare?.basisPoints || 10000;
       const vendorBps = vendorShare?.basisPoints || 0;
@@ -203,7 +202,6 @@ async function handleTradeExecuted(event: BagsTradeEvent): Promise<void> {
         txSignature: signature,
         status: 'success',
       });
-
     }
 
     // Track partner fee if earned
@@ -214,7 +212,7 @@ async function handleTradeExecuted(event: BagsTradeEvent): Promise<void> {
         amountLamports: parseInt(partnerFee),
         amountSOL: parseInt(partnerFee) / 1e9,
         fromWallet: traderWallet,
-        toWallet: process.env.BAGS_PARTNER_WALLET || process.env.NEXT_PUBLIC_LUXHUB_WALLET,
+        toWallet: getTreasury('partner'),
         depositType: 'pool_royalty',
         pool: pool?._id,
         heliusEventType: 'BAGS_TRADE',
@@ -252,7 +250,6 @@ async function handlePoolCreated(event: BagsPoolEvent): Promise<void> {
           lastPriceUSD: priceUSD,
         },
       });
-
     } else {
       // Pool created for unknown token
     }
@@ -401,7 +398,6 @@ async function handlePartnerFeeEarned(event: BagsPartnerFeeEvent): Promise<void>
       heliusEventType: 'BAGS_PARTNER_FEE',
       description: `Partner fee earned from pool trading`,
     });
-
   } catch (error) {
     errorMonitor.captureException(error as Error, {
       endpoint: '/api/webhooks/bags',
@@ -430,7 +426,6 @@ async function handlePartnerFeeClaimed(event: BagsPartnerFeeEvent): Promise<void
         }
       );
     }
-
   } catch (error) {
     errorMonitor.captureException(error as Error, {
       endpoint: '/api/webhooks/bags',
@@ -469,7 +464,6 @@ async function handleLiquidityEvent(event: BagsLiquidityEvent): Promise<void> {
         txSignature: signature,
         status: 'success',
       });
-
     }
   } catch (error) {
     errorMonitor.captureException(error as Error, {
@@ -497,7 +491,6 @@ async function handleHolderDividend(event: BagsHolderDividendEvent): Promise<voi
           lastDividendAt: new Date(event.timestamp * 1000),
         },
       });
-
     }
   } catch (error) {
     errorMonitor.captureException(error as Error, {
@@ -534,7 +527,6 @@ async function handleCreatorFeeVested(event: BagsCreatorFeeVestedEvent): Promise
         },
         { upsert: true, new: true }
       );
-
     }
   } catch (error) {
     errorMonitor.captureException(error as Error, {

@@ -8,9 +8,7 @@ import { Transaction } from '@/lib/models/Transaction';
 import { TreasuryDeposit } from '@/lib/models/TreasuryDeposit';
 import { webhookLimiter } from '@/lib/middleware/rateLimit';
 import { withErrorMonitoring, errorMonitor } from '@/lib/monitoring/errorHandler';
-
-// LuxHub Treasury wallet address
-const TREASURY_WALLET = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
+import { getTreasury } from '@/lib/config/treasuryConfig';
 
 // Program ID for escrow account detection
 const PROGRAM_ID = process.env.PROGRAM_ID;
@@ -183,15 +181,18 @@ async function classifyDeposit(
  * Handle treasury wallet deposits (SOL transfers to LuxHub wallet)
  */
 async function handleTreasuryDeposit(event: HeliusEvent): Promise<void> {
-  if (!TREASURY_WALLET) {
-    return;
+  let treasuryWallet: string;
+  try {
+    treasuryWallet = getTreasury('marketplace');
+  } catch {
+    return; // Treasury not configured
   }
 
   const nativeTransfers = event.nativeTransfers || [];
 
   for (const transfer of nativeTransfers) {
     // Only track transfers TO the treasury wallet
-    if (transfer.toUserAccount !== TREASURY_WALLET) continue;
+    if (transfer.toUserAccount !== treasuryWallet) continue;
     if (transfer.amount <= 0) continue;
 
     const { fromUserAccount, amount } = transfer;
@@ -214,7 +215,7 @@ async function handleTreasuryDeposit(event: HeliusEvent): Promise<void> {
         amountLamports: amount,
         amountSOL: amount / 1e9,
         fromWallet: fromUserAccount,
-        toWallet: TREASURY_WALLET,
+        toWallet: treasuryWallet,
         depositType: classification.depositType,
         escrow: classification.escrowId,
         asset: classification.assetId,
@@ -344,7 +345,6 @@ async function handleNftSale(event: HeliusEvent): Promise<void> {
           status: 'success',
         });
       }
-
     } catch (error) {
       errorMonitor.captureException(error as Error, {
         endpoint: '/api/webhooks/helius',
@@ -435,7 +435,6 @@ async function handleNftCancelListing(event: HeliusEvent): Promise<void> {
           $set: { status: 'pending' },
         }
       );
-
     } catch (error) {
       errorMonitor.captureException(error as Error, {
         endpoint: '/api/webhooks/helius',
@@ -524,7 +523,6 @@ async function handleAccountUpdate(event: HeliusEvent): Promise<void> {
 
         updateData.status = newStatus;
         await Escrow.findByIdAndUpdate(escrow._id, { $set: updateData });
-
       }
     } catch (error) {
       errorMonitor.captureException(error as Error, {

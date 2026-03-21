@@ -11,6 +11,7 @@ import {
   notifyShipmentRejected,
   notifyUser,
 } from '../../../lib/services/notificationService';
+import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 interface VerifyShipmentRequest {
   escrowPda: string;
@@ -250,7 +251,7 @@ async function createConfirmDeliverySquadsProposal(
     const buyerPk = new PublicKey(escrow.buyer?.wallet || escrow.buyerWallet);
     const sellerPk = new PublicKey(escrow.sellerWallet);
     const nftMintPk = new PublicKey(escrow.nftMint);
-    const luxhubWallet = new PublicKey(process.env.NEXT_PUBLIC_LUXHUB_WALLET!);
+    const luxhubWallet = new PublicKey(getTreasury('marketplace'));
 
     // Derive PDAs
     const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('config')], programPk);

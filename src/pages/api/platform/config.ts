@@ -5,6 +5,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/database/mongodb';
 import { PlatformConfig } from '@/lib/models/PlatformConfig';
 import { VaultConfig } from '@/lib/models/LuxHubVault';
+import { getTreasury } from '@/lib/config/treasuryConfig';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
@@ -35,12 +36,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             address: vaultConfig?.multisigAddress || process.env.NEXT_PUBLIC_SQUADS_MSIG || '',
             treasuryVaultIndex: 0,
             nftVaultIndex: 1,
-            treasuryVaultPda: process.env.NEXT_PUBLIC_LUXHUB_WALLET || '',
+            treasuryVaultPda: safeGetTreasury('marketplace'),
             nftVaultPda: vaultConfig?.vaultPda || process.env.NEXT_PUBLIC_VAULT_PDA || '',
           },
           wallets: {
-            luxhubWallet: process.env.NEXT_PUBLIC_LUXHUB_WALLET || '',
-            feeCollector: process.env.NEXT_PUBLIC_LUXHUB_WALLET || '',
+            luxhubWallet: safeGetTreasury('marketplace'),
+            feeCollector: safeGetTreasury('marketplace'),
+          },
+          treasury: {
+            marketplace: safeGetTreasury('marketplace'),
+            pools: safeGetTreasury('pools'),
+            partner: safeGetTreasury('partner'),
           },
           lastUpdatedBy: 'system',
         });
@@ -173,6 +179,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+// Safe wrapper that returns 'not configured' instead of throwing
+function safeGetTreasury(type: 'marketplace' | 'pools' | 'partner'): string {
+  try {
+    return getTreasury(type);
+  } catch {
+    return 'not configured';
+  }
 }
 
 // Helper to mask addresses
