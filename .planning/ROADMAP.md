@@ -82,11 +82,13 @@ Plans:
   2. Listings show a standardized condition grade (Unworn, Excellent, Very Good, Good, Fair) selected from a dropdown with defined criteria
   3. Buyer can search listings by brand name and model, and filter by price range and condition grade
   4. All modals (BuyModal, MakeOfferModal) and key pages (marketplace, orders, vendor dashboard) render correctly and are usable on mobile devices
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md -- Condition grading enum update, PriceRangeSlider, filter consolidation (UX-02, UX-03, UX-04)
+- [ ] 03-02-PLAN.md -- Image gallery and lightbox components, NftDetailCard integration (UX-01)
+- [ ] 03-03-PLAN.md -- Multi-image upload zone with drag-and-drop reorder, createNFT integration (UX-01)
+- [ ] 03-04-PLAN.md -- Mobile responsiveness: bottom sheet modals, filter drawer, responsive layouts (UX-05, UX-06)
 
 ### Phase 4: Vendor Demo Readiness
 **Goal**: Every flow is polished and demo-ready for an in-person walkthrough with JC Gold Jewelers in Miami -- vendor onboarding, listing creation, pool tokenization, dashboard management, and admin approval all work smoothly
@@ -113,5 +115,5 @@ Note: Phase 3 depends on Phase 1 (not Phase 2), so Phases 2 and 3 could theoreti
 | 1. Core Marketplace Flows | 3/3 | Complete | 2026-03-19 |
 | 2. Security and Notification Hardening | 0/4 | Not started | - |
 | 2.1 Tokenomics & Multi-Treasury | 0/4 | Not started | - |
-| 3. Marketplace UX | 0/2 | Not started | - |
+| 3. Marketplace UX | 0/4 | Not started | - |
 | 4. Vendor Demo Readiness | 0/1 | Not started | - |
