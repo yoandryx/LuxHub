@@ -10,6 +10,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage } from 'react-icons/fi';
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
 import PoolDetail from '../components/marketplace/PoolDetail';
+import TvChart, { generatePriceHistory } from '../components/marketplace/TvChart';
 import styles from '../styles/PoolsNew.module.css';
 
 // ─── Status Config ──────────────────────────────────────────────
@@ -241,175 +242,11 @@ const PoolsTour: React.FC<{ onClose: () => void }> = memo(({ onClose }) => {
 });
 PoolsTour.displayName = 'PoolsTour';
 
-// ─── TradingView Mini Chart ──────────────────────────────────────
-type ChartType = 'area' | 'candlestick' | 'line';
-
-const TvChart = memo(
-  ({
-    data,
-    chartType = 'area',
-    interactive = false,
-  }: {
-    data: number[];
-    chartType?: ChartType;
-    interactive?: boolean;
-    showTimeframes?: boolean;
-    showToolbar?: boolean;
-  }) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const chartRef = useRef<any>(null);
-    const seriesRef = useRef<any>(null);
-
-    useEffect(() => {
-      if (!containerRef.current || data.length < 2) return;
-      let cancelled = false;
-
-      import('lightweight-charts').then((lc) => {
-        if (cancelled || !containerRef.current) return;
-
-        // Clean up previous chart
-        if (chartRef.current) {
-          chartRef.current.remove();
-          chartRef.current = null;
-          seriesRef.current = null;
-        }
-
-        const isUp = data[data.length - 1] >= data[0];
-        const lineColor = isUp ? '#4ade80' : '#f87171';
-        const topColor = isUp ? 'rgba(74, 222, 128, 0.3)' : 'rgba(248, 113, 113, 0.3)';
-        const bottomColor = isUp ? 'rgba(74, 222, 128, 0)' : 'rgba(248, 113, 113, 0)';
-
-        const chart = lc.createChart(containerRef.current, {
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
-          layout: {
-            background: { type: lc.ColorType.Solid, color: 'transparent' },
-            textColor: 'rgba(255,255,255,0.4)',
-            fontSize: 9,
-          },
-          grid: {
-            vertLines: { visible: false },
-            horzLines: { color: 'rgba(255,255,255,0.04)', style: 3 },
-          },
-          crosshair: {
-            vertLine: { color: 'rgba(200,161,255,0.3)', labelVisible: false },
-            horzLine: { color: 'rgba(200,161,255,0.3)', labelVisible: true },
-          },
-          rightPriceScale: {
-            borderVisible: false,
-            scaleMargins: { top: 0.1, bottom: 0.05 },
-          },
-          timeScale: {
-            borderVisible: false,
-            visible: interactive,
-          },
-          handleScale: interactive,
-          handleScroll: interactive,
-        });
-
-        const now = Math.floor(Date.now() / 1000);
-
-        if (chartType === 'candlestick') {
-          const series = chart.addSeries(lc.CandlestickSeries, {
-            upColor: '#4ade80',
-            downColor: '#f87171',
-            borderUpColor: '#4ade80',
-            borderDownColor: '#f87171',
-            wickUpColor: 'rgba(74, 222, 128, 0.5)',
-            wickDownColor: 'rgba(248, 113, 113, 0.5)',
-            priceLineVisible: false,
-            lastValueVisible: true,
-          });
-          const chartData = data.map((value, i) => {
-            const open = i > 0 ? data[i - 1] : value;
-            const high = Math.max(open, value) * (1 + Math.random() * 0.005);
-            const low = Math.min(open, value) * (1 - Math.random() * 0.005);
-            return {
-              time: (now - (data.length - 1 - i) * 60) as any,
-              open,
-              high,
-              low,
-              close: value,
-            };
-          });
-          series.setData(chartData);
-          seriesRef.current = series;
-        } else if (chartType === 'line') {
-          const series = chart.addSeries(lc.LineSeries, {
-            color: lineColor,
-            lineWidth: 2,
-            priceLineVisible: false,
-            lastValueVisible: true,
-            crosshairMarkerRadius: 4,
-            crosshairMarkerBorderColor: lineColor,
-            crosshairMarkerBackgroundColor: '#0a0a0f',
-          });
-          const chartData = data.map((value, i) => ({
-            time: (now - (data.length - 1 - i) * 60) as any,
-            value,
-          }));
-          series.setData(chartData);
-          seriesRef.current = series;
-        } else {
-          const series = chart.addSeries(lc.AreaSeries, {
-            lineColor,
-            topColor,
-            bottomColor,
-            lineWidth: 2,
-            priceLineVisible: false,
-            lastValueVisible: true,
-            crosshairMarkerRadius: 4,
-            crosshairMarkerBorderColor: lineColor,
-            crosshairMarkerBackgroundColor: '#0a0a0f',
-          });
-          const chartData = data.map((value, i) => ({
-            time: (now - (data.length - 1 - i) * 60) as any,
-            value,
-          }));
-          series.setData(chartData);
-          seriesRef.current = series;
-        }
-
-        chart.timeScale().fitContent();
-        chartRef.current = chart;
-
-        // Resize observer
-        const ro = new ResizeObserver((entries) => {
-          const { width, height } = entries[0].contentRect;
-          chart.applyOptions({ width, height });
-        });
-        ro.observe(containerRef.current);
-
-        return () => ro.disconnect();
-      });
-
-      return () => {
-        cancelled = true;
-        if (chartRef.current) {
-          chartRef.current.remove();
-          chartRef.current = null;
-          seriesRef.current = null;
-        }
-      };
-    }, [data, chartType, interactive]);
-
-    return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
-  }
-);
-TvChart.displayName = 'TvChart';
-
-// Generate simulated price history (fallback when no real data available)
-function generatePriceHistory(basePrice: number, points: number = 30): number[] {
-  const prices: number[] = [basePrice];
-  for (let i = 1; i < points; i++) {
-    const change = (Math.random() - 0.42) * basePrice * 0.04;
-    prices.push(Math.max(basePrice * 0.7, prices[i - 1] + change));
-  }
-  return prices;
-}
-
 // Hook to fetch real price data — falls back to synthetic if no token launched
-function usePoolPriceHistory(pool: { _id?: string; bagsTokenMint?: string; sharePriceUSD?: number }, points = 30) {
+function usePoolPriceHistory(
+  pool: { _id?: string; bagsTokenMint?: string; sharePriceUSD?: number },
+  points = 30
+) {
   const [prices, setPrices] = React.useState<number[]>([]);
   const [dexData, setDexData] = React.useState<any>(null);
 
@@ -429,7 +266,9 @@ function usePoolPriceHistory(pool: { _id?: string; bagsTokenMint?: string; share
       .catch(() => {
         if (!cancelled) setPrices(generatePriceHistory(pool.sharePriceUSD || 0.01, points));
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [pool.bagsTokenMint, pool.sharePriceUSD, points]);
 
   return { prices, dexData, hasRealData: !!pool.bagsTokenMint && prices.length > 0 };
@@ -449,7 +288,9 @@ const PoolCard = memo(
     const [localToggle, setLocalToggle] = useState<boolean | null>(null);
     const showChart = localToggle !== null ? localToggle : globalChartMode;
     const [selectedSol, setSelectedSol] = useState<string | null>(null);
-    const [tradeStatus, setTradeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [tradeStatus, setTradeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(
+      'idle'
+    );
     const [tradeMsg, setTradeMsg] = useState('');
     const { publicKey, signTransaction } = useWallet();
 
@@ -641,11 +482,16 @@ const PoolCard = memo(
             {(hasRealChange || pool.projectedROI > 1) && changePercent !== 0 && (
               <span
                 className={styles.cardRoi}
-                style={hasRealChange ? { color: changeIsPositive ? '#26a69a' : '#ef5350' } : undefined}
+                style={
+                  hasRealChange ? { color: changeIsPositive ? '#26a69a' : '#ef5350' } : undefined
+                }
               >
                 {changeIsPositive ? <FiTrendingUp size={11} /> : <FiTrendingDown size={11} />}
-                {changeIsPositive ? '+' : ''}{changePercent.toFixed(1)}%
-                {hasRealChange && <span style={{ fontSize: '9px', opacity: 0.6, marginLeft: '2px' }}>24h</span>}
+                {changeIsPositive ? '+' : ''}
+                {changePercent.toFixed(1)}%
+                {hasRealChange && (
+                  <span style={{ fontSize: '9px', opacity: 0.6, marginLeft: '2px' }}>24h</span>
+                )}
               </span>
             )}
           </div>
@@ -669,9 +515,7 @@ const PoolCard = memo(
                             : '#c8a1ff',
                     }}
                   >
-                    {tradeStatus === 'loading' && (
-                      <span className={styles.cardTradeSpinner} />
-                    )}
+                    {tradeStatus === 'loading' && <span className={styles.cardTradeSpinner} />}
                     {tradeMsg}
                   </div>
                 )}
@@ -781,11 +625,21 @@ const PoolCard = memo(
                   // Subscript zero notation for micro-prices
                   const str = price.toFixed(20).split('.')[1] || '';
                   let zeros = 0;
-                  for (const ch of str) { if (ch === '0') zeros++; else break; }
+                  for (const ch of str) {
+                    if (ch === '0') zeros++;
+                    else break;
+                  }
                   const sig = str.slice(zeros, zeros + 3);
-                  const sub = zeros.toString().split('').map(d =>
-                    '\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089'[parseInt(d)] || d
-                  ).join('');
+                  const sub = zeros
+                    .toString()
+                    .split('')
+                    .map(
+                      (d) =>
+                        '\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089'[
+                          parseInt(d)
+                        ] || d
+                    )
+                    .join('');
                   return `$0.0${sub}${sig}`;
                 })()}
               </span>
