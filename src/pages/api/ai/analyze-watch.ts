@@ -57,7 +57,7 @@ interface WatchAnalysis {
   confidence: number;
   // Enhanced authenticity fields
   authenticityIndicators: AuthenticityIndicators;
-  conditionGrade: 'mint' | 'excellent' | 'very_good' | 'good' | 'fair' | 'poor';
+  conditionGrade: 'unworn' | 'excellent' | 'very_good' | 'good' | 'fair';
   verificationFlags: string[];
   overallConfidence: number;
 }
@@ -154,7 +154,7 @@ Return a JSON object with ONLY these fields (no markdown, just raw JSON):
     "caseback": "Description of caseback if visible, or 'Not visible'",
     "bracelet": "Description of bracelet/strap condition and authenticity markers"
   },
-  "conditionGrade": "mint|excellent|very_good|good|fair|poor",
+  "conditionGrade": "unworn|excellent|very_good|good|fair",
   "verificationFlags": ["Array of any concerns or red flags noticed"],
   "overallConfidence": number (0-100, overall confidence including authenticity assessment)
 }
@@ -169,12 +169,11 @@ AUTHENTICITY ASSESSMENT GUIDELINES:
 - Note any inconsistencies in finishing
 
 CONDITION GRADING:
-- mint: Unworn, with tags, perfect condition
+- unworn: Never worn, with tags, perfect condition
 - excellent: Minimal wear, no visible scratches
 - very_good: Light wear, minor hairlines
 - good: Moderate wear, some scratches
-- fair: Heavy wear, visible damage
-- poor: Significant damage or issues
+- fair: Heavy wear, visible damage or significant issues
 
 Be specific and accurate. If you notice any authenticity concerns, add them to verificationFlags.`,
             },
@@ -231,7 +230,13 @@ Be specific and accurate. If you notice any authenticity concerns, add them to v
           caseback: 'Not visible',
           bracelet: 'Not assessed',
         },
-        conditionGrade: parsed.conditionGrade || 'good',
+        conditionGrade: (() => {
+          const grade = parsed.conditionGrade || 'good';
+          // Normalize legacy values
+          if (grade === 'mint') return 'unworn';
+          if (grade === 'poor') return 'fair';
+          return grade;
+        })(),
         verificationFlags: parsed.verificationFlags || [],
         overallConfidence: parsed.overallConfidence || parsed.confidence || 50,
       };

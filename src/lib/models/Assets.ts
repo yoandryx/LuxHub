@@ -98,7 +98,7 @@ const AssetSchema = new Schema(
     // Condition tracking
     condition: {
       type: String,
-      enum: ['New', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'Non-functional'],
+      enum: ['Unworn', 'Excellent', 'Very Good', 'Good', 'Fair'],
     },
     lastConditionUpdate: { type: Date },
     conditionUpdatesDue: { type: Date }, // When next update is required
@@ -124,7 +124,7 @@ const AssetSchema = new Schema(
       authenticityScore: { type: Number, min: 0, max: 100 },
       conditionGrade: {
         type: String,
-        enum: ['mint', 'excellent', 'very_good', 'good', 'fair', 'poor'],
+        enum: ['unworn', 'excellent', 'very_good', 'good', 'fair'],
       },
       claimsVerified: {
         brand: { verified: Boolean, confidence: Number, notes: String },
