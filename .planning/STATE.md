@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-21T22:24:06.465Z"
+last_updated: "2026-03-21T22:26:58.063Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 15
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -55,6 +55,7 @@ Plan: 2 of 4
 | Phase 02.1 P02 | 4min | 2 tasks | 11 files |
 | Phase 02.1 P03 | 3min | 2 tasks | 5 files |
 | Phase 03 P02 | 3min | 2 tasks | 6 files |
+| Phase 03 P01 | 5min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase 02.1]: Post-graduation trading validated as already handled by existing Bags webhook + BagsPoolTrading component
 - [Phase 02.1]: On-chain token burn deferred to v2; tokens marked burned in DB only
 - [Phase 03]: Removed old fullscreen overlay in NftDetailCard in favor of ImageLightbox with swipe navigation
+- [Phase 03]: Dual state pattern for price slider: selectedPriceRange for visual drag, committedPriceRange for filtering
+- [Phase 03]: Industry-standard 5-grade condition scale: Unworn, Excellent, Very Good, Good, Fair
 
 ### Roadmap Evolution
 
