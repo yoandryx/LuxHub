@@ -1,5 +1,5 @@
-// src/pages/my-orders.tsx
-// Buyer's order tracking + offers management page
+// src/pages/orders.tsx
+// Buyer's order tracking + offers management — modern luxury dashboard
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,14 +22,13 @@ import {
   FiMessageSquare,
   FiShoppingBag,
   FiArrowLeft,
-  FiUser,
-  FiPhone,
-  FiMail,
   FiInfo,
   FiCheck,
   FiTag,
   FiDollarSign,
   FiRefreshCw,
+  FiChevronDown,
+  FiChevronRight,
 } from 'react-icons/fi';
 
 // ==================== INTERFACES ====================
@@ -136,6 +135,13 @@ const CARRIER_NAMES: Record<string, string> = {
   japan_post: 'Japan Post',
 };
 
+const TIMELINE_STEPS = [
+  { key: 'placed', label: 'Ordered', icon: FiCheck },
+  { key: 'shipped', label: 'Shipped', icon: FiTruck },
+  { key: 'delivered', label: 'Delivered', icon: FiPackage },
+  { key: 'released', label: 'Complete', icon: FiCheckCircle },
+];
+
 // ==================== COMPONENT ====================
 const MyOrdersPage: React.FC = () => {
   const wallet = useWallet();
@@ -157,6 +163,7 @@ const MyOrdersPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   // Offers state (via SWR)
   const {
@@ -323,7 +330,7 @@ const MyOrdersPage: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        mutateOffers(); // Refresh offers list
+        mutateOffers();
         setShowCounterModal(false);
         setSelectedOffer(null);
       } else {
@@ -352,20 +359,62 @@ const MyOrdersPage: React.FC = () => {
   };
 
   // ==================== HELPERS ====================
+  const getTimelineProgress = (status: string): number => {
+    switch (status) {
+      case 'offer_accepted':
+        return 0;
+      case 'funded':
+        return 1;
+      case 'shipped':
+        return 2;
+      case 'delivered':
+        return 3;
+      case 'released':
+        return 4;
+      default:
+        return 0;
+    }
+  };
+
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'offer_accepted':
-        return { label: 'Pay Now', icon: FiDollarSign, className: styles.statusPayment };
+        return {
+          label: 'Pay Now',
+          icon: FiDollarSign,
+          className: styles.statusPayment,
+          color: '#ef5350',
+        };
       case 'funded':
-        return { label: 'Awaiting Shipment', icon: FiClock, className: styles.statusAwaiting };
+        return {
+          label: 'Awaiting Shipment',
+          icon: FiClock,
+          className: styles.statusAwaiting,
+          color: '#fbbf24',
+        };
       case 'shipped':
-        return { label: 'In Transit', icon: FiTruck, className: styles.statusShipped };
+        return {
+          label: 'In Transit',
+          icon: FiTruck,
+          className: styles.statusShipped,
+          color: '#60a5fa',
+        };
       case 'delivered':
-        return { label: 'Delivered', icon: FiPackage, className: styles.statusDelivered };
+        return {
+          label: 'Delivered',
+          icon: FiPackage,
+          className: styles.statusDelivered,
+          color: '#4ade80',
+        };
       case 'released':
-        return { label: 'Completed', icon: FiCheckCircle, className: styles.statusCompleted };
+        return {
+          label: 'Completed',
+          icon: FiCheckCircle,
+          className: styles.statusCompleted,
+          color: '#c8a1ff',
+        };
       default:
-        return { label: status, icon: FiPackage, className: '' };
+        return { label: status, icon: FiPackage, className: '', color: '#a1a1a1' };
     }
   };
 
@@ -410,6 +459,22 @@ const MyOrdersPage: React.FC = () => {
     ].filter(Boolean);
   };
 
+  const formatTimeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const actionCount =
+    stats.awaitingPayment +
+    stats.delivered +
+    (offerStats?.pending || 0) +
+    (offerStats?.countered || 0);
+
   // ==================== RENDER: NOT CONNECTED ====================
   if (!wallet.connected) {
     return (
@@ -419,9 +484,10 @@ const MyOrdersPage: React.FC = () => {
         </Head>
         <div className={styles.container}>
           <div className={styles.connectPrompt}>
+            <div className={styles.connectGlow} />
             <FiShoppingBag className={styles.connectIcon} />
-            <h1>Orders</h1>
-            <p>Connect your wallet to view your purchases and track deliveries.</p>
+            <h1>Your Orders</h1>
+            <p>Connect your wallet to track purchases, manage offers, and confirm deliveries.</p>
           </div>
         </div>
       </>
@@ -437,85 +503,108 @@ const MyOrdersPage: React.FC = () => {
       </Head>
 
       <div className={styles.container}>
-        {/* Page Header */}
+        <div className={styles.ambientBg} />
+
+        {/* Page Header — Compact */}
         <header className={styles.pageHeader}>
-          <Link href="/marketplace" className={styles.backLink}>
-            <FiArrowLeft /> Back to Marketplace
-          </Link>
-          <div className={styles.headerContent}>
-            <div className={styles.headerTitle}>
-              <FiShoppingBag className={styles.headerIcon} />
-              <div>
-                <h1>Orders</h1>
-                <p>Track your purchases and manage offers</p>
-              </div>
-            </div>
-            <div className={styles.statsCards}>
-              <div className={styles.statCard}>
-                <span className={styles.statValue}>{stats.total}</span>
-                <span className={styles.statLabel}>Total</span>
-              </div>
-              {stats.awaitingPayment > 0 && (
-                <div
-                  className={styles.statCard}
-                  onClick={() => {
-                    setTopTab('orders');
-                    setActiveFilter('payment');
-                  }}
-                >
-                  <FiDollarSign className={styles.statIcon} />
-                  <span className={styles.statValue}>{stats.awaitingPayment}</span>
-                  <span className={styles.statLabel}>To Pay</span>
-                </div>
-              )}
-              <div className={styles.statCard}>
-                <FiClock className={styles.statIcon} />
-                <span className={styles.statValue}>{stats.awaitingShipment}</span>
-                <span className={styles.statLabel}>Awaiting Ship</span>
-              </div>
-              <div className={styles.statCard}>
-                <FiTruck className={styles.statIcon} />
-                <span className={styles.statValue}>{stats.inTransit}</span>
-                <span className={styles.statLabel}>In Transit</span>
-              </div>
-              <div className={styles.statCard}>
-                <FiPackage className={styles.statIcon} />
-                <span className={styles.statValue}>{stats.delivered}</span>
-                <span className={styles.statLabel}>To Confirm</span>
-              </div>
-            </div>
+          <div className={styles.headerRow}>
+            <Link href="/marketplace" className={styles.backLink}>
+              <FiArrowLeft />
+            </Link>
+            <h1 className={styles.pageTitle}>Orders</h1>
+            {actionCount > 0 && (
+              <span className={styles.actionBadge}>
+                {actionCount} action{actionCount > 1 ? 's' : ''} needed
+              </span>
+            )}
+          </div>
+
+          {/* Quick Stats Bar */}
+          <div className={styles.statsBar}>
+            {[
+              { label: 'Total', value: stats.total, filter: 'all' as FilterTab },
+              ...(stats.awaitingPayment > 0
+                ? [
+                    {
+                      label: 'To Pay',
+                      value: stats.awaitingPayment,
+                      filter: 'payment' as FilterTab,
+                      urgent: true,
+                    },
+                  ]
+                : []),
+              {
+                label: 'Awaiting Ship',
+                value: stats.awaitingShipment,
+                filter: 'awaiting' as FilterTab,
+              },
+              { label: 'In Transit', value: stats.inTransit, filter: 'shipped' as FilterTab },
+              { label: 'Delivered', value: stats.delivered, filter: 'delivered' as FilterTab },
+              { label: 'Completed', value: stats.completed, filter: 'completed' as FilterTab },
+            ].map((stat) => (
+              <button
+                key={stat.label}
+                className={`${styles.statPill} ${activeFilter === stat.filter && topTab === 'orders' ? styles.statPillActive : ''} ${'urgent' in stat && stat.urgent ? styles.statPillUrgent : ''}`}
+                onClick={() => {
+                  setTopTab('orders');
+                  setActiveFilter(stat.filter);
+                }}
+              >
+                <span className={styles.statNum}>{stat.value}</span>
+                <span className={styles.statLbl}>{stat.label}</span>
+              </button>
+            ))}
           </div>
         </header>
 
-        {/* ===== TOP-LEVEL TAB SWITCHER ===== */}
-        <div className={styles.topTabSection}>
-          <div className={styles.topTabs}>
+        {/* Tab Switcher */}
+        <div className={styles.tabSection}>
+          <div className={styles.tabBar}>
             <button
-              className={`${styles.topTab} ${topTab === 'orders' ? styles.topTabActive : ''}`}
+              className={`${styles.tab} ${topTab === 'orders' ? styles.tabActive : ''}`}
               onClick={() => setTopTab('orders')}
             >
               <FiShoppingBag /> Orders
-              {(stats.awaitingPayment > 0 || stats.delivered > 0) && (
-                <span className={styles.topTabBadge}>
-                  {stats.awaitingPayment + stats.delivered}
+              {stats.total > 0 && <span className={styles.tabCount}>{stats.total}</span>}
+            </button>
+            <button
+              className={`${styles.tab} ${topTab === 'offers' ? styles.tabActive : ''}`}
+              onClick={() => setTopTab('offers')}
+            >
+              <FiTag /> Offers
+              {offerStats && (offerStats.pending > 0 || offerStats.countered > 0) && (
+                <span className={styles.tabBadge}>
+                  {(offerStats.pending || 0) + (offerStats.countered || 0)}
                 </span>
               )}
             </button>
-            <button
-              className={`${styles.topTab} ${topTab === 'offers' ? styles.topTabActive : ''}`}
-              onClick={() => setTopTab('offers')}
-            >
-              <FiTag /> My Offers
-              {offerStats &&
-                (offerStats.pending > 0 || offerStats.countered > 0 || offerStats.accepted > 0) && (
-                  <span className={styles.topTabBadge}>
-                    {(offerStats.pending || 0) +
-                      (offerStats.countered || 0) +
-                      (offerStats.accepted || 0)}
-                  </span>
-                )}
-            </button>
           </div>
+
+          {/* Sub-filter for offers */}
+          {topTab === 'offers' && (
+            <div className={styles.subFilters}>
+              {(['all', 'pending', 'countered', 'accepted', 'rejected'] as OfferFilter[]).map(
+                (f) => {
+                  const count =
+                    f === 'all'
+                      ? offerStats?.total || 0
+                      : f === 'rejected'
+                        ? (offerStats?.rejected || 0) + (offerStats?.auto_rejected || 0)
+                        : (offerStats as any)?.[f] || 0;
+                  return (
+                    <button
+                      key={f}
+                      className={`${styles.subFilter} ${offerFilter === f ? styles.subFilterActive : ''}`}
+                      onClick={() => setOfferFilter(f)}
+                    >
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                      {count > 0 && <span className={styles.subFilterCount}>{count}</span>}
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          )}
         </div>
 
         {/* Error Banner */}
@@ -531,497 +620,441 @@ const MyOrdersPage: React.FC = () => {
 
         {/* ===== ORDERS TAB ===== */}
         {topTab === 'orders' && (
-          <>
-            {/* Filter Tabs */}
-            <div className={styles.filterSection}>
-              <div className={styles.filterTabs}>
-                <button
-                  className={`${styles.filterTab} ${activeFilter === 'all' ? styles.active : ''}`}
-                  onClick={() => setActiveFilter('all')}
-                >
-                  All <span className={styles.filterCount}>{stats.total}</span>
-                </button>
-                {stats.awaitingPayment > 0 && (
-                  <button
-                    className={`${styles.filterTab} ${activeFilter === 'payment' ? styles.active : ''}`}
-                    onClick={() => setActiveFilter('payment')}
-                  >
-                    Pay Now <span className={styles.filterBadge}>{stats.awaitingPayment}</span>
-                  </button>
-                )}
-                <button
-                  className={`${styles.filterTab} ${activeFilter === 'awaiting' ? styles.active : ''}`}
-                  onClick={() => setActiveFilter('awaiting')}
-                >
-                  Awaiting Shipment{' '}
-                  {stats.awaitingShipment > 0 && (
-                    <span className={styles.filterBadge}>{stats.awaitingShipment}</span>
-                  )}
-                </button>
-                <button
-                  className={`${styles.filterTab} ${activeFilter === 'shipped' ? styles.active : ''}`}
-                  onClick={() => setActiveFilter('shipped')}
-                >
-                  In Transit{' '}
-                  {stats.inTransit > 0 && (
-                    <span className={styles.filterBadge}>{stats.inTransit}</span>
-                  )}
-                </button>
-                <button
-                  className={`${styles.filterTab} ${activeFilter === 'delivered' ? styles.active : ''}`}
-                  onClick={() => setActiveFilter('delivered')}
-                >
-                  Delivered{' '}
-                  {stats.delivered > 0 && (
-                    <span className={styles.filterBadge}>{stats.delivered}</span>
-                  )}
-                </button>
-                <button
-                  className={`${styles.filterTab} ${activeFilter === 'completed' ? styles.active : ''}`}
-                  onClick={() => setActiveFilter('completed')}
-                >
-                  Completed
-                </button>
+          <div className={styles.content}>
+            {isLoading ? (
+              <div className={styles.loadingState}>
+                <FiLoader className={styles.spinner} />
+                <p>Loading your orders...</p>
               </div>
-            </div>
+            ) : filteredOrders.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiShoppingBag className={styles.emptyIcon} />
+                <h2>{activeFilter === 'all' ? 'No Orders Yet' : `No ${activeFilter} orders`}</h2>
+                <p>
+                  {activeFilter === 'all'
+                    ? 'Your purchases will appear here once you buy items from the marketplace.'
+                    : 'Orders matching this filter will appear here.'}
+                </p>
+                {activeFilter === 'all' && (
+                  <Link href="/marketplace" className={styles.browseLink}>
+                    Browse Marketplace <FiChevronRight />
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className={styles.ordersList}>
+                {filteredOrders.map((order) => {
+                  const statusInfo = getStatusInfo(order.status);
+                  const StatusIcon = statusInfo.icon;
+                  const progress = getTimelineProgress(order.status);
+                  const isExpanded = expandedOrder === order._id;
 
-            <div className={styles.content}>
-              {isLoading ? (
-                <div className={styles.loadingState}>
-                  <FiLoader className={styles.spinner} />
-                  <p>Loading your orders...</p>
-                </div>
-              ) : filteredOrders.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <FiShoppingBag className={styles.emptyIcon} />
-                  <h2>{activeFilter === 'all' ? 'No Orders Yet' : `No ${activeFilter} orders`}</h2>
-                  <p>
-                    {activeFilter === 'all'
-                      ? 'Your purchases will appear here once you buy items from the marketplace.'
-                      : 'Orders matching this filter will appear here.'}
-                  </p>
-                  {activeFilter === 'all' && (
-                    <Link href="/marketplace" className={styles.browseLink}>
-                      Browse Marketplace
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className={styles.ordersList}>
-                  {filteredOrders.map((order) => {
-                    const statusInfo = getStatusInfo(order.status);
-                    const StatusIcon = statusInfo.icon;
-                    return (
-                      <div key={order._id} className={styles.orderCard}>
-                        <div className={styles.orderHeader}>
-                          <div className={styles.orderImage}>
-                            {order.assetImage ? (
-                              <img src={order.assetImage} alt={order.assetTitle} />
-                            ) : (
-                              <div className={styles.noImage}>
-                                <FiPackage />
-                              </div>
-                            )}
-                          </div>
-                          <div className={styles.orderDetails}>
-                            <h3 className={styles.orderTitle}>{order.assetTitle}</h3>
-                            {order.assetBrand && (
-                              <span className={styles.orderBrand}>{order.assetBrand}</span>
-                            )}
-                            <div className={styles.orderMeta}>
-                              <span className={styles.orderPrice}>
-                                ${order.amount.toLocaleString()}
-                              </span>
-                              <span className={styles.orderVendor}>
-                                from {order.vendorName}
-                                {order.vendorVerified && (
-                                  <FiCheckCircle className={styles.verifiedBadge} />
-                                )}
-                              </span>
-                            </div>
-                            <span className={styles.orderDate}>
-                              Purchased{' '}
-                              {new Date(order.fundedAt || order.createdAt).toLocaleDateString()}
+                  return (
+                    <motion.div
+                      key={order._id}
+                      className={`${styles.orderCard} ${isExpanded ? styles.orderCardExpanded : ''}`}
+                      layout
+                    >
+                      {/* Compact Order Row */}
+                      <div
+                        className={styles.orderRow}
+                        onClick={() => setExpandedOrder(isExpanded ? null : order._id)}
+                      >
+                        <div className={styles.orderThumb}>
+                          {order.assetImage ? (
+                            <img src={order.assetImage} alt={order.assetTitle} />
+                          ) : (
+                            <FiPackage />
+                          )}
+                        </div>
+
+                        <div className={styles.orderInfo}>
+                          <div className={styles.orderTopLine}>
+                            <h3>{order.assetTitle}</h3>
+                            <span className={styles.orderAmount}>
+                              ${order.amount.toLocaleString()}
                             </span>
                           </div>
-                          <div className={`${styles.orderStatus} ${statusInfo.className}`}>
-                            <StatusIcon />
-                            <span>{statusInfo.label}</span>
+                          <div className={styles.orderBottomLine}>
+                            <span className={styles.orderMeta}>
+                              {order.assetBrand && (
+                                <span className={styles.brand}>{order.assetBrand}</span>
+                              )}
+                              <span className={styles.dot} />
+                              <span>{order.vendorName}</span>
+                              {order.vendorVerified && (
+                                <FiCheckCircle className={styles.verifiedTick} />
+                              )}
+                              <span className={styles.dot} />
+                              <span>{formatTimeAgo(order.fundedAt || order.createdAt)}</span>
+                            </span>
                           </div>
                         </div>
 
-                        {/* Timeline */}
-                        <div className={styles.timeline}>
-                          <div className={`${styles.timelineStep} ${styles.completed}`}>
-                            <div className={styles.timelineIcon}>
-                              <FiCheck />
-                            </div>
-                            <span>Order Placed</span>
-                          </div>
-                          <div className={styles.timelineConnector} />
-                          <div
-                            className={`${styles.timelineStep} ${['shipped', 'delivered', 'released'].includes(order.status) ? styles.completed : ''}`}
-                          >
-                            <div className={styles.timelineIcon}>
-                              {['shipped', 'delivered', 'released'].includes(order.status) ? (
-                                <FiCheck />
-                              ) : (
-                                <FiTruck />
-                              )}
-                            </div>
-                            <span>Shipped</span>
-                          </div>
-                          <div className={styles.timelineConnector} />
-                          <div
-                            className={`${styles.timelineStep} ${['delivered', 'released'].includes(order.status) ? styles.completed : ''}`}
-                          >
-                            <div className={styles.timelineIcon}>
-                              {['delivered', 'released'].includes(order.status) ? (
-                                <FiCheck />
-                              ) : (
-                                <FiPackage />
-                              )}
-                            </div>
-                            <span>Delivered</span>
-                          </div>
-                          <div className={styles.timelineConnector} />
-                          <div
-                            className={`${styles.timelineStep} ${order.status === 'released' ? styles.completed : ''}`}
-                          >
-                            <div className={styles.timelineIcon}>
-                              {order.status === 'released' ? <FiCheck /> : <FiCheckCircle />}
-                            </div>
-                            <span>Completed</span>
-                          </div>
+                        <div className={`${styles.statusChip} ${statusInfo.className}`}>
+                          <StatusIcon />
+                          <span>{statusInfo.label}</span>
                         </div>
 
-                        {/* Tracking */}
-                        {order.trackingNumber && (
-                          <div className={styles.trackingSection}>
-                            <h4>
-                              <FiTruck /> Tracking Information
-                            </h4>
-                            <div className={styles.trackingCard}>
-                              <div className={styles.trackingInfo}>
-                                <span className={styles.trackingCarrier}>
-                                  {CARRIER_NAMES[order.trackingCarrier || ''] ||
-                                    order.trackingCarrier?.toUpperCase()}
-                                </span>
-                                <span className={styles.trackingNumber}>
-                                  {order.trackingNumber}
-                                </span>
-                                {order.shippedAt && (
-                                  <span className={styles.shippedDate}>
-                                    Shipped {new Date(order.shippedAt).toLocaleDateString()}
-                                  </span>
+                        <FiChevronDown
+                          className={`${styles.expandArrow} ${isExpanded ? styles.expandArrowOpen : ''}`}
+                        />
+                      </div>
+
+                      {/* Mini Timeline */}
+                      <div className={styles.miniTimeline}>
+                        {TIMELINE_STEPS.map((step, i) => {
+                          const isCompleted = i < progress;
+                          const isCurrent = i === progress - 1;
+                          return (
+                            <React.Fragment key={step.key}>
+                              {i > 0 && (
+                                <div
+                                  className={`${styles.tConnector} ${isCompleted ? styles.tConnectorDone : ''}`}
+                                />
+                              )}
+                              <div
+                                className={`${styles.tDot} ${isCompleted ? styles.tDotDone : ''} ${isCurrent ? styles.tDotCurrent : ''}`}
+                                title={step.label}
+                              />
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+
+                      {/* Expanded Detail Panel */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            className={styles.expandedPanel}
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                          >
+                            <div className={styles.detailGrid}>
+                              {/* Full Timeline */}
+                              <div className={styles.timelinePanel}>
+                                <div className={styles.panelLabel}>Order Progress</div>
+                                <div className={styles.verticalTimeline}>
+                                  {TIMELINE_STEPS.map((step, i) => {
+                                    const isCompleted = i < progress;
+                                    const StepIcon = step.icon;
+                                    return (
+                                      <div
+                                        key={step.key}
+                                        className={`${styles.vtStep} ${isCompleted ? styles.vtStepDone : ''}`}
+                                      >
+                                        <div className={styles.vtIcon}>
+                                          {isCompleted ? <FiCheck /> : <StepIcon />}
+                                        </div>
+                                        <span>{step.label}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Details Column */}
+                              <div className={styles.detailColumn}>
+                                {/* Tracking */}
+                                {order.trackingNumber && (
+                                  <div className={styles.detailCard}>
+                                    <div className={styles.detailCardHeader}>
+                                      <FiTruck /> Tracking
+                                    </div>
+                                    <div className={styles.trackingRow}>
+                                      <div>
+                                        <span className={styles.carrier}>
+                                          {CARRIER_NAMES[order.trackingCarrier || ''] ||
+                                            order.trackingCarrier?.toUpperCase()}
+                                        </span>
+                                        <span className={styles.trackNum}>
+                                          {order.trackingNumber}
+                                        </span>
+                                        {order.shippedAt && (
+                                          <span className={styles.trackDate}>
+                                            Shipped {new Date(order.shippedAt).toLocaleDateString()}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {(order.trackingUrl ||
+                                        getTrackingUrl(
+                                          order.trackingCarrier || '',
+                                          order.trackingNumber
+                                        )) && (
+                                        <a
+                                          href={
+                                            order.trackingUrl ||
+                                            getTrackingUrl(
+                                              order.trackingCarrier || '',
+                                              order.trackingNumber
+                                            ) ||
+                                            '#'
+                                          }
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={styles.trackBtn}
+                                        >
+                                          Track <FiExternalLink />
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Shipping Address */}
+                                {order.shippingAddress && (
+                                  <div className={styles.detailCard}>
+                                    <div className={styles.detailCardHeader}>
+                                      <FiMapPin /> Shipping To
+                                    </div>
+                                    <p className={styles.addressName}>
+                                      {order.shippingAddress.fullName}
+                                    </p>
+                                    {formatAddress(order.shippingAddress)?.map((line, idx) => (
+                                      <p key={idx} className={styles.addressLine}>
+                                        {line}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Delivery Confirmation */}
+                                {order.deliveryConfirmation && (
+                                  <div
+                                    className={`${styles.detailCard} ${styles.detailCardSuccess}`}
+                                  >
+                                    <div className={styles.detailCardHeader}>
+                                      <FiCheckCircle /> Delivery Confirmed
+                                    </div>
+                                    <p className={styles.confirmDate}>
+                                      {new Date(
+                                        order.deliveryConfirmation.confirmedAt || ''
+                                      ).toLocaleDateString()}
+                                    </p>
+                                    {order.deliveryConfirmation.rating && (
+                                      <div className={styles.ratingDisplay}>
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <FiStar
+                                            key={star}
+                                            className={
+                                              star <= (order.deliveryConfirmation?.rating || 0)
+                                                ? styles.starFilled
+                                                : styles.starEmpty
+                                            }
+                                          />
+                                        ))}
+                                      </div>
+                                    )}
+                                    {order.deliveryConfirmation.reviewText && (
+                                      <p className={styles.reviewText}>
+                                        &ldquo;{order.deliveryConfirmation.reviewText}&rdquo;
+                                      </p>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                              {(order.trackingUrl ||
-                                getTrackingUrl(
-                                  order.trackingCarrier || '',
-                                  order.trackingNumber
-                                )) && (
-                                <a
-                                  href={
-                                    order.trackingUrl ||
-                                    getTrackingUrl(
-                                      order.trackingCarrier || '',
-                                      order.trackingNumber
-                                    ) ||
-                                    '#'
-                                  }
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={styles.trackLink}
+                            </div>
+
+                            {/* Actions */}
+                            <div className={styles.orderActions}>
+                              {(order.status === 'shipped' ||
+                                (order.status === 'delivered' && !order.deliveryConfirmation)) && (
+                                <button
+                                  className={styles.primaryAction}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openConfirmModal(order);
+                                  }}
                                 >
-                                  Track Package <FiExternalLink />
-                                </a>
+                                  <FiCheckCircle /> Confirm Delivery
+                                </button>
                               )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Shipping Address */}
-                        {order.shippingAddress && (
-                          <div className={styles.addressSection}>
-                            <h4>
-                              <FiMapPin /> Shipping To
-                            </h4>
-                            <div className={styles.addressCard}>
-                              <p className={styles.addressName}>{order.shippingAddress.fullName}</p>
-                              {formatAddress(order.shippingAddress)?.map((line, idx) => (
-                                <p key={idx}>{line}</p>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Delivery Confirmation */}
-                        {order.deliveryConfirmation && (
-                          <div className={styles.confirmationSection}>
-                            <h4>
-                              <FiCheckCircle /> Delivery Confirmed
-                            </h4>
-                            <div className={styles.confirmationCard}>
-                              <p>
-                                Confirmed on{' '}
-                                {new Date(
-                                  order.deliveryConfirmation.confirmedAt || ''
-                                ).toLocaleDateString()}
-                              </p>
-                              {order.deliveryConfirmation.rating && (
-                                <div className={styles.ratingDisplay}>
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <FiStar
-                                      key={star}
-                                      className={
-                                        star <= (order.deliveryConfirmation?.rating || 0)
-                                          ? styles.starFilled
-                                          : styles.starEmpty
-                                      }
-                                    />
-                                  ))}
+                              {order.status === 'funded' && (
+                                <div className={styles.awaitingMsg}>
+                                  <FiClock /> Waiting for vendor to ship your item
                                 </div>
                               )}
-                              {order.deliveryConfirmation.reviewText && (
-                                <p className={styles.reviewText}>
-                                  "{order.deliveryConfirmation.reviewText}"
-                                </p>
+                              {order.nftMint && (
+                                <Link
+                                  href={`/marketplace?nft=${order.nftMint}`}
+                                  className={styles.secondaryAction}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  View Listing <FiExternalLink />
+                                </Link>
                               )}
                             </div>
-                          </div>
+                          </motion.div>
                         )}
-
-                        {/* Actions */}
-                        <div className={styles.orderActions}>
-                          {(order.status === 'shipped' ||
-                            (order.status === 'delivered' && !order.deliveryConfirmation)) && (
-                            <button
-                              className={styles.confirmButton}
-                              onClick={() => openConfirmModal(order)}
-                            >
-                              <FiCheckCircle /> Confirm Delivery
-                            </button>
-                          )}
-                          {order.status === 'funded' && (
-                            <div className={styles.awaitingMessage}>
-                              <FiInfo /> Waiting for vendor to ship your item
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </>
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ===== MY OFFERS TAB ===== */}
         {topTab === 'offers' && (
-          <>
-            {/* Offer Filter Tabs */}
-            <div className={styles.filterSection}>
-              <div className={styles.filterTabs}>
-                <button
-                  className={`${styles.filterTab} ${offerFilter === 'all' ? styles.active : ''}`}
-                  onClick={() => setOfferFilter('all')}
-                >
-                  All Offers <span className={styles.filterCount}>{offerStats?.total || 0}</span>
-                </button>
-                <button
-                  className={`${styles.filterTab} ${offerFilter === 'pending' ? styles.active : ''}`}
-                  onClick={() => setOfferFilter('pending')}
-                >
-                  Pending{' '}
-                  {(offerStats?.pending || 0) > 0 && (
-                    <span className={styles.filterBadge}>{offerStats?.pending}</span>
-                  )}
-                </button>
-                <button
-                  className={`${styles.filterTab} ${offerFilter === 'countered' ? styles.active : ''}`}
-                  onClick={() => setOfferFilter('countered')}
-                >
-                  Countered{' '}
-                  {(offerStats?.countered || 0) > 0 && (
-                    <span className={styles.filterBadge}>{offerStats?.countered}</span>
-                  )}
-                </button>
-                <button
-                  className={`${styles.filterTab} ${offerFilter === 'accepted' ? styles.active : ''}`}
-                  onClick={() => setOfferFilter('accepted')}
-                >
-                  Accepted{' '}
-                  {(offerStats?.accepted || 0) > 0 && (
-                    <span className={styles.filterBadge}>{offerStats?.accepted}</span>
-                  )}
-                </button>
-                <button
-                  className={`${styles.filterTab} ${offerFilter === 'rejected' ? styles.active : ''}`}
-                  onClick={() => setOfferFilter('rejected')}
-                >
-                  Rejected
-                </button>
+          <div className={styles.content}>
+            {isLoadingOffers ? (
+              <div className={styles.loadingState}>
+                <FiLoader className={styles.spinner} />
+                <p>Loading your offers...</p>
               </div>
-            </div>
+            ) : filteredOffers.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiTag className={styles.emptyIcon} />
+                <h2>{offerFilter === 'all' ? 'No Offers Yet' : `No ${offerFilter} offers`}</h2>
+                <p>Offers you make on marketplace listings will appear here.</p>
+                {offerFilter === 'all' && (
+                  <Link href="/marketplace" className={styles.browseLink}>
+                    Browse Marketplace <FiChevronRight />
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className={styles.ordersList}>
+                {filteredOffers.map((offer) => {
+                  const statusInfo = getOfferStatusInfo(offer.status);
+                  const listPrice = offer.escrowListingPrice || offer.assetListPrice || 0;
+                  const lastCounter = offer.latestCounterOffer;
 
-            <div className={styles.content}>
-              {isLoadingOffers ? (
-                <div className={styles.loadingState}>
-                  <FiLoader className={styles.spinner} />
-                  <p>Loading your offers...</p>
-                </div>
-              ) : filteredOffers.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <FiTag className={styles.emptyIcon} />
-                  <h2>{offerFilter === 'all' ? 'No Offers Yet' : `No ${offerFilter} offers`}</h2>
-                  <p>Offers you make on marketplace listings will appear here.</p>
-                  {offerFilter === 'all' && (
-                    <Link href="/marketplace" className={styles.browseLink}>
-                      Browse Marketplace
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className={styles.ordersList}>
-                  {filteredOffers.map((offer) => {
-                    const statusInfo = getOfferStatusInfo(offer.status);
-                    const listPrice = offer.escrowListingPrice || offer.assetListPrice || 0;
-                    const lastCounter = offer.latestCounterOffer;
+                  return (
+                    <div key={offer._id} className={styles.offerCard}>
+                      {/* Offer Row */}
+                      <div className={styles.offerRow}>
+                        <div className={styles.orderThumb}>
+                          {offer.assetImage ? (
+                            <img
+                              src={resolveImageUrl(offer.assetImage) || PLACEHOLDER_IMAGE}
+                              alt={offer.assetModel || 'Asset'}
+                            />
+                          ) : (
+                            <FiTag />
+                          )}
+                        </div>
 
-                    return (
-                      <div key={offer._id} className={styles.orderCard}>
-                        <div className={styles.orderHeader}>
-                          <div className={styles.orderImage}>
-                            {offer.assetImage ? (
-                              <img
-                                src={resolveImageUrl(offer.assetImage) || PLACEHOLDER_IMAGE}
-                                alt={offer.assetModel || 'Asset'}
-                              />
-                            ) : (
-                              <div className={styles.noImage}>
-                                <FiTag />
-                              </div>
-                            )}
-                          </div>
-                          <div className={styles.orderDetails}>
-                            <h3 className={styles.orderTitle}>
-                              {offer.assetModel || 'Luxury Watch'}
-                            </h3>
-                            {offer.vendorName && (
-                              <span className={styles.orderBrand}>{offer.vendorName}</span>
-                            )}
-                            <div className={styles.orderMeta}>
-                              <span className={styles.orderPrice}>
-                                Offered: ${offer.offerPriceUSD.toLocaleString()}
+                        <div className={styles.orderInfo}>
+                          <div className={styles.orderTopLine}>
+                            <h3>{offer.assetModel || 'Luxury Watch'}</h3>
+                            <div className={styles.priceStack}>
+                              <span className={styles.offerPrice}>
+                                ${offer.offerPriceUSD.toLocaleString()}
                               </span>
                               {listPrice > 0 && (
-                                <span className={styles.orderVendor}>
+                                <span className={styles.listPrice}>
                                   List: ${listPrice.toLocaleString()}
                                 </span>
                               )}
                             </div>
-                            <span className={styles.orderDate}>
-                              Sent {new Date(offer.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className={styles.orderBottomLine}>
+                            <span className={styles.orderMeta}>
+                              {offer.vendorName && <span>{offer.vendorName}</span>}
+                              <span className={styles.dot} />
+                              <span>{formatTimeAgo(offer.createdAt)}</span>
                             </span>
                           </div>
-                          <div className={`${styles.orderStatus} ${statusInfo.className}`}>
-                            <span>{statusInfo.label}</span>
-                          </div>
                         </div>
 
-                        {/* Counter-offer history */}
-                        {offer.counterOffers.length > 0 && (
-                          <div className={styles.counterHistory}>
-                            <h4>
-                              <FiRefreshCw /> Negotiation History
-                            </h4>
-                            <div className={styles.counterList}>
-                              <div className={styles.counterItem}>
-                                <span className={styles.counterFrom}>You</span>
-                                <span className={styles.counterAmount}>
-                                  ${offer.offerPriceUSD.toLocaleString()}
-                                </span>
-                                <span className={styles.counterDate}>
-                                  {new Date(offer.createdAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                              {offer.counterOffers.map((co, idx) => (
-                                <div key={idx} className={styles.counterItem}>
-                                  <span className={styles.counterFrom}>
-                                    {co.fromType === 'vendor' ? 'Vendor' : 'You'}
-                                  </span>
-                                  <span className={styles.counterAmount}>
-                                    ${co.amountUSD.toLocaleString()}
-                                  </span>
-                                  <span className={styles.counterDate}>
-                                    {new Date(co.at).toLocaleDateString()}
-                                  </span>
-                                  {co.message && <p className={styles.counterMsg}>{co.message}</p>}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Offer Actions */}
-                        <div className={styles.orderActions}>
-                          {offer.status === 'countered' && lastCounter?.fromType === 'vendor' && (
-                            <>
-                              <button
-                                className={styles.confirmButton}
-                                onClick={() => handleOfferAction(offer._id, 'accept_counter')}
-                                disabled={isResponding}
-                              >
-                                <FiCheck /> Accept ${lastCounter.amountUSD.toLocaleString()}
-                              </button>
-                              <button
-                                className={styles.offerCounterBtn}
-                                onClick={() => openCounterModal(offer)}
-                                disabled={isResponding}
-                              >
-                                <FiRefreshCw /> Counter
-                              </button>
-                              <button
-                                className={styles.offerRejectBtn}
-                                onClick={() => handleOfferAction(offer._id, 'reject_counter')}
-                                disabled={isResponding}
-                              >
-                                <FiX /> Reject
-                              </button>
-                            </>
-                          )}
-                          {offer.status === 'pending' && (
-                            <button
-                              className={styles.offerRejectBtn}
-                              onClick={() => handleOfferAction(offer._id, 'withdraw')}
-                              disabled={isResponding}
-                            >
-                              <FiX /> Withdraw Offer
-                            </button>
-                          )}
-                          {offer.status === 'accepted' && offer.escrowPda && (
-                            <Link
-                              href={`/marketplace?pay=${offer.escrowPda}`}
-                              className={styles.confirmButton}
-                            >
-                              <FiDollarSign /> Deposit Funds
-                            </Link>
-                          )}
-                          {offer.status === 'countered' && lastCounter?.fromType === 'buyer' && (
-                            <div className={styles.awaitingMessage}>
-                              <FiClock /> Waiting for vendor to respond to your counter-offer
-                            </div>
-                          )}
+                        <div className={`${styles.statusChip} ${statusInfo.className}`}>
+                          <span>{statusInfo.label}</span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </>
+
+                      {/* Counter-offer history */}
+                      {offer.counterOffers.length > 0 && (
+                        <div className={styles.counterSection}>
+                          <div className={styles.counterLabel}>
+                            <FiRefreshCw /> Negotiation
+                          </div>
+                          <div className={styles.counterChain}>
+                            <div className={styles.counterStep}>
+                              <span className={styles.counterWho}>You</span>
+                              <span className={styles.counterAmt}>
+                                ${offer.offerPriceUSD.toLocaleString()}
+                              </span>
+                            </div>
+                            {offer.counterOffers.map((co, idx) => (
+                              <React.Fragment key={idx}>
+                                <FiChevronRight className={styles.counterArrow} />
+                                <div className={styles.counterStep}>
+                                  <span className={styles.counterWho}>
+                                    {co.fromType === 'vendor' ? 'Vendor' : 'You'}
+                                  </span>
+                                  <span className={styles.counterAmt}>
+                                    ${co.amountUSD.toLocaleString()}
+                                  </span>
+                                  {co.message && (
+                                    <span className={styles.counterNote}>{co.message}</span>
+                                  )}
+                                </div>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Offer Actions */}
+                      <div className={styles.offerActions}>
+                        {offer.status === 'countered' && lastCounter?.fromType === 'vendor' && (
+                          <>
+                            <button
+                              className={styles.primaryAction}
+                              onClick={() => handleOfferAction(offer._id, 'accept_counter')}
+                              disabled={isResponding}
+                            >
+                              <FiCheck /> Accept ${lastCounter.amountUSD.toLocaleString()}
+                            </button>
+                            <button
+                              className={styles.secondaryAction}
+                              onClick={() => openCounterModal(offer)}
+                              disabled={isResponding}
+                            >
+                              <FiRefreshCw /> Counter
+                            </button>
+                            <button
+                              className={styles.dangerAction}
+                              onClick={() => handleOfferAction(offer._id, 'reject_counter')}
+                              disabled={isResponding}
+                            >
+                              <FiX /> Reject
+                            </button>
+                          </>
+                        )}
+                        {offer.status === 'pending' && (
+                          <button
+                            className={styles.dangerAction}
+                            onClick={() => handleOfferAction(offer._id, 'withdraw')}
+                            disabled={isResponding}
+                          >
+                            <FiX /> Withdraw Offer
+                          </button>
+                        )}
+                        {offer.status === 'accepted' && offer.escrowPda && (
+                          <Link
+                            href={`/marketplace?pay=${offer.escrowPda}`}
+                            className={styles.primaryAction}
+                          >
+                            <FiDollarSign /> Deposit Funds
+                          </Link>
+                        )}
+                        {offer.status === 'countered' && lastCounter?.fromType === 'buyer' && (
+                          <div className={styles.awaitingMsg}>
+                            <FiClock /> Waiting for vendor to respond
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ===== CONFIRM DELIVERY MODAL ===== */}
@@ -1060,7 +1093,7 @@ const MyOrdersPage: React.FC = () => {
                       <FiCheckCircle className={styles.modalIcon} />
                       <div>
                         <h2>Confirm Delivery</h2>
-                        <p>Confirm that you've received your item</p>
+                        <p>Confirm that you&apos;ve received your item</p>
                       </div>
                     </div>
                     <div className={styles.orderSummary}>
