@@ -26,6 +26,7 @@ import styles from '../styles/Marketplace.module.css';
 import MakeOfferModal from '../components/marketplace/MakeOfferModal';
 import BuyModal from '../components/marketplace/BuyModal';
 import FilterSidebar, { FilterGroup } from '../components/marketplace/FilterSidebar';
+import PriceRangeSlider from '../components/marketplace/PriceRangeSlider';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import UnifiedNFTCard from '../components/common/UnifiedNFTCard';
 import { VendorCard } from '../components/common/VendorCard';
@@ -143,16 +144,8 @@ const BRANDS = [
   'IWC',
 ];
 
-const PRICE_RANGES = [
-  { label: 'Under $10K', min: 0, max: 10000 },
-  { label: '$10K - $25K', min: 10000, max: 25000 },
-  { label: '$25K - $50K', min: 25000, max: 50000 },
-  { label: '$50K - $100K', min: 50000, max: 100000 },
-  { label: '$100K+', min: 100000, max: Infinity },
-];
-
 const MATERIALS = ['Steel', 'Gold', 'Titanium', 'Platinum', 'Ceramic'];
-const CONDITIONS = ['New', 'Excellent', 'Very Good', 'Good'];
+const CONDITIONS = ['Unworn', 'Excellent', 'Very Good', 'Good', 'Fair'];
 
 const SORT_OPTIONS = [
   { value: 'latest', label: 'Newest First' },
@@ -523,9 +516,8 @@ export default function Marketplace() {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
-  const [selectedPriceRange, setSelectedPriceRange] = useState<{ min: number; max: number } | null>(
-    null
-  );
+  const [selectedPriceRange, setSelectedPriceRange] = useState<[number, number]>([0, 500000]);
+  const [committedPriceRange, setCommittedPriceRange] = useState<[number, number]>([0, 500000]);
   const [sortBy, setSortBy] = useState('latest');
 
   // Expanded filter sections
@@ -565,7 +557,8 @@ export default function Marketplace() {
     setSelectedBrands([]);
     setSelectedMaterials([]);
     setSelectedConditions([]);
-    setSelectedPriceRange(null);
+    setSelectedPriceRange([0, 500000]);
+    setCommittedPriceRange([0, 500000]);
     setSearchQuery('');
   };
 
@@ -575,21 +568,11 @@ export default function Marketplace() {
     if (selectedBrands.length) count += selectedBrands.length;
     if (selectedMaterials.length) count += selectedMaterials.length;
     if (selectedConditions.length) count += selectedConditions.length;
-    if (selectedPriceRange) count += 1;
+    if (committedPriceRange[0] > 0 || committedPriceRange[1] < 500000) count += 1;
     return count;
-  }, [selectedBrands, selectedMaterials, selectedConditions, selectedPriceRange]);
+  }, [selectedBrands, selectedMaterials, selectedConditions, committedPriceRange]);
 
-  // Build price range options as string labels for the filter sidebar
-  const togglePriceLabel = useCallback(
-    (label: string) => {
-      const range = PRICE_RANGES.find((r) => r.label === label);
-      if (!range) return;
-      setSelectedPriceRange(selectedPriceRange?.min === range.min ? null : range);
-    },
-    [selectedPriceRange]
-  );
-
-  // Filter groups for the sidebar component
+  // Filter groups for the sidebar component (price handled by PriceRangeSlider slot)
   const filterGroups: FilterGroup[] = useMemo(
     () => [
       {
@@ -598,16 +581,6 @@ export default function Marketplace() {
         options: BRANDS,
         selected: selectedBrands,
         onToggle: (v: string) => toggleFilter(v, selectedBrands, setSelectedBrands),
-        defaultExpanded: true,
-      },
-      {
-        key: 'price',
-        label: 'Price Range',
-        options: PRICE_RANGES.map((r) => r.label),
-        selected: selectedPriceRange
-          ? [PRICE_RANGES.find((r) => r.min === selectedPriceRange.min)?.label || '']
-          : [],
-        onToggle: togglePriceLabel,
         defaultExpanded: true,
       },
       {
@@ -625,7 +598,7 @@ export default function Marketplace() {
         onToggle: (v: string) => toggleFilter(v, selectedConditions, setSelectedConditions),
       },
     ],
-    [selectedBrands, selectedPriceRange, selectedMaterials, selectedConditions, togglePriceLabel]
+    [selectedBrands, selectedMaterials, selectedConditions]
   );
 
   // Source listings: real data with mock fallback
@@ -660,10 +633,10 @@ export default function Marketplace() {
     }
 
     // Price filter
-    if (selectedPriceRange) {
+    if (committedPriceRange[0] > 0 || committedPriceRange[1] < 500000) {
       result = result.filter(
         (l: EscrowListing) =>
-          l.listingPriceUSD >= selectedPriceRange.min && l.listingPriceUSD <= selectedPriceRange.max
+          l.listingPriceUSD >= committedPriceRange[0] && l.listingPriceUSD <= committedPriceRange[1]
       );
     }
 
@@ -715,7 +688,7 @@ export default function Marketplace() {
     selectedBrands,
     selectedMaterials,
     selectedConditions,
-    selectedPriceRange,
+    committedPriceRange,
     sortBy,
   ]);
 
@@ -1007,6 +980,15 @@ export default function Marketplace() {
                 groups={filterGroups}
                 activeCount={activeFilterCount}
                 onClearAll={clearFilters}
+                priceRangeSlot={
+                  <PriceRangeSlider
+                    min={0}
+                    max={500000}
+                    value={selectedPriceRange}
+                    onChange={setSelectedPriceRange}
+                    onChangeCommitted={setCommittedPriceRange}
+                  />
+                }
               />
             )}
 
@@ -1024,10 +1006,16 @@ export default function Marketplace() {
                       {b} <HiOutlineX />
                     </span>
                   ))}
-                  {selectedPriceRange && (
-                    <span className={styles.activeChip} onClick={() => setSelectedPriceRange(null)}>
-                      {PRICE_RANGES.find((r) => r.min === selectedPriceRange.min)?.label}{' '}
-                      <HiOutlineX />
+                  {(committedPriceRange[0] > 0 || committedPriceRange[1] < 500000) && (
+                    <span
+                      className={styles.activeChip}
+                      onClick={() => {
+                        setSelectedPriceRange([0, 500000]);
+                        setCommittedPriceRange([0, 500000]);
+                      }}
+                    >
+                      ${committedPriceRange[0].toLocaleString()} - $
+                      {committedPriceRange[1].toLocaleString()} <HiOutlineX />
                     </span>
                   )}
                   {selectedMaterials.map((m) => (
@@ -1105,7 +1093,9 @@ export default function Marketplace() {
                                   : 'listed'
                               }
                               isVerified={listing.vendor?.verified}
-                              acceptingOffers={listing.status !== 'offer_accepted' && listing.acceptingOffers}
+                              acceptingOffers={
+                                listing.status !== 'offer_accepted' && listing.acceptingOffers
+                              }
                               showBadge={true}
                               showPrice={true}
                               showOverlay={true}
@@ -1377,26 +1367,20 @@ export default function Marketplace() {
                       className={styles.mobileFilterSectionHeader}
                       onClick={() => toggleSection('price')}
                     >
-                      <span>Price Range</span>
+                      <span>Price Range (USD)</span>
                       <HiOutlineChevronDown
                         className={`${styles.chevron} ${expandedSections.price ? styles.expanded : ''}`}
                       />
                     </button>
                     {expandedSections.price && (
                       <div className={styles.mobileFilterChips}>
-                        {PRICE_RANGES.map((range) => (
-                          <button
-                            key={range.label}
-                            className={`${styles.mobileChip} ${selectedPriceRange?.min === range.min ? styles.mobileChipActive : ''}`}
-                            onClick={() =>
-                              setSelectedPriceRange(
-                                selectedPriceRange?.min === range.min ? null : range
-                              )
-                            }
-                          >
-                            {range.label}
-                          </button>
-                        ))}
+                        <PriceRangeSlider
+                          min={0}
+                          max={500000}
+                          value={selectedPriceRange}
+                          onChange={setSelectedPriceRange}
+                          onChangeCommitted={setCommittedPriceRange}
+                        />
                       </div>
                     )}
                   </div>

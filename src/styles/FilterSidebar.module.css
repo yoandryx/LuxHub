@@ -183,6 +183,11 @@
   padding-bottom: 14px;
 }
 
+/* ── Price Range Section ─────────────────────────────── */
+.priceRangeSection {
+  padding: 0 0 14px;
+}
+
 /* ── Chip Button ──────────────────────────────────────── */
 .chip {
   padding: 7px 13px;

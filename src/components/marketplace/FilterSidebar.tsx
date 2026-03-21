@@ -19,6 +19,7 @@ export interface FilterSidebarProps {
   groups: FilterGroup[];
   activeCount: number;
   onClearAll: () => void;
+  priceRangeSlot?: React.ReactNode;
 }
 
 // ── FilterSection (internal) ───────────────────────────
@@ -65,34 +66,85 @@ const FilterSection = memo(
 
 FilterSection.displayName = 'FilterSection';
 
-// ── FilterSidebar ──────────────────────────────────────
-const FilterSidebar = memo(({ groups, activeCount, onClearAll }: FilterSidebarProps) => {
-  return (
-    <aside className={styles.sidebar}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>Filters</h3>
-        {activeCount > 0 && (
-          <button className={styles.clearBtn} onClick={onClearAll}>
-            Clear ({activeCount})
-          </button>
-        )}
-      </div>
+// ── PriceRangeSection (internal) ──────────────────────
+const PriceRangeSection = memo(({ children }: { children: React.ReactNode }) => {
+  const [expanded, setExpanded] = useState(true);
 
-      <div className={styles.sections}>
-        {groups.map((group) => (
-          <FilterSection
-            key={group.key}
-            label={group.label}
-            options={group.options}
-            selected={group.selected}
-            onToggle={group.onToggle}
-            defaultExpanded={group.defaultExpanded}
-          />
-        ))}
-      </div>
-    </aside>
+  return (
+    <div className={styles.section}>
+      <button className={styles.sectionHeader} onClick={() => setExpanded((prev) => !prev)}>
+        <span>Price Range (USD)</span>
+        <HiOutlineChevronDown
+          className={`${styles.chevron} ${expanded ? styles.chevronOpen : ''}`}
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            className={styles.sectionBody}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+          >
+            <div className={styles.priceRangeSection}>{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 });
+
+PriceRangeSection.displayName = 'PriceRangeSection';
+
+// ── FilterSidebar ──────────────────────────────────────
+const FilterSidebar = memo(
+  ({ groups, activeCount, onClearAll, priceRangeSlot }: FilterSidebarProps) => {
+    // Separate brand group from the rest so price slider goes after brand
+    const brandGroup = groups.find((g) => g.key === 'brand');
+    const otherGroups = groups.filter((g) => g.key !== 'brand');
+
+    return (
+      <aside className={styles.sidebar}>
+        <div className={styles.header}>
+          <h3 className={styles.title}>Filters</h3>
+          {activeCount > 0 && (
+            <button className={styles.clearBtn} onClick={onClearAll}>
+              Clear ({activeCount})
+            </button>
+          )}
+        </div>
+
+        <div className={styles.sections}>
+          {brandGroup && (
+            <FilterSection
+              key={brandGroup.key}
+              label={brandGroup.label}
+              options={brandGroup.options}
+              selected={brandGroup.selected}
+              onToggle={brandGroup.onToggle}
+              defaultExpanded={brandGroup.defaultExpanded}
+            />
+          )}
+
+          {priceRangeSlot && <PriceRangeSection>{priceRangeSlot}</PriceRangeSection>}
+
+          {otherGroups.map((group) => (
+            <FilterSection
+              key={group.key}
+              label={group.label}
+              options={group.options}
+              selected={group.selected}
+              onToggle={group.onToggle}
+              defaultExpanded={group.defaultExpanded}
+            />
+          ))}
+        </div>
+      </aside>
+    );
+  }
+);
 
 FilterSidebar.displayName = 'FilterSidebar';
 
