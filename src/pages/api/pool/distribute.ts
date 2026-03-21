@@ -1,5 +1,8 @@
 // src/pages/api/pool/distribute.ts
-// Distribute proceeds to investors when pool asset is resold
+// Distribute proceeds to token holders when pool asset is resold.
+// Supports two actions:
+//   - 'propose' (default): Snapshot holders, calculate distribution, create Squads proposal
+//   - 'finalize': After Squads execution, close pool and mark tokens as burned
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import dbConnect from '../../../lib/database/mongodb';
@@ -7,9 +10,10 @@ import { Pool } from '../../../lib/models/Pool';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
 import {
   buildMultiTransferProposal,
-  getTopTokenHolders,
   TransferRecipient,
 } from '../../../lib/services/squadsTransferService';
+import { getAllTokenHolders } from '../../../lib/services/dasApi';
+import { calculateDistribution } from '../../../lib/services/distributionCalc';
 import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 interface DistributeRequest {
@@ -17,6 +21,7 @@ interface DistributeRequest {
   adminWallet: string;
   resalePriceUSD?: number; // If not already set on pool
   createSquadsProposal?: boolean;
+  action?: 'propose' | 'finalize'; // default: 'propose'
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -30,6 +35,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       adminWallet,
       resalePriceUSD,
       createSquadsProposal = true,
+      action = 'propose',
     } = req.body as DistributeRequest;
 
     // Validation
@@ -52,6 +58,42 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!pool || pool.deleted) {
       return res.status(404).json({ error: 'Pool not found' });
     }
+
+    // ========== FINALIZE ACTION ==========
+    if (action === 'finalize') {
+      if (!['proposed', 'executed', 'approved', 'completed'].includes(pool.distributionStatus)) {
+        return res.status(400).json({
+          error: `Cannot finalize: distribution status must be proposed, approved, executed, or completed. Current: ${pool.distributionStatus}`,
+        });
+      }
+
+      await Pool.findByIdAndUpdate(poolId, {
+        $set: {
+          status: 'closed',
+          tokenStatus: 'burned',
+          distributionStatus: 'completed',
+          closedAt: new Date(),
+        },
+      });
+
+      const closedPool = await Pool.findById(poolId);
+
+      return res.status(200).json({
+        success: true,
+        action: 'finalize',
+        pool: {
+          _id: closedPool._id,
+          status: closedPool.status,
+          tokenStatus: closedPool.tokenStatus,
+          distributionStatus: closedPool.distributionStatus,
+          closedAt: closedPool.closedAt,
+        },
+        message: 'Pool closed. Tokens marked as burned. Distribution complete.',
+        note: 'On-chain token burn deferred to v2. Tokens exist on-chain but have no redemption value.',
+      });
+    }
+
+    // ========== PROPOSE ACTION (default) ==========
 
     // Check pool status
     if (pool.status !== 'sold') {
@@ -76,23 +118,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    // Calculate distribution amounts
-    const royaltyAmount = finalResalePrice * 0.03; // 3% to LuxHub
-    const distributionPool = finalResalePrice * 0.97; // 97% to investors
-
-    // Fetch live on-chain token holders instead of stale MongoDB participants
-    interface DistributionItem {
+    // Fetch live on-chain token holders and calculate distribution
+    let distributions: {
       wallet: string;
       balance: number;
       ownershipPercent: number;
       distributionAmount: number;
-    }
-
-    let distributions: DistributionItem[];
+    }[];
+    let royaltyAmount: number;
+    let distributionPool: number;
+    let dustFiltered = 0;
+    let holderSource: string;
 
     if (pool.bagsTokenMint) {
-      // On-chain snapshot — accurate even after secondary trading
-      const holders = await getTopTokenHolders(pool.bagsTokenMint, 200);
+      // Paginated on-chain snapshot — fetches ALL holders, not just first 200
+      const holders = await getAllTokenHolders(pool.bagsTokenMint);
 
       if (holders.length === 0) {
         return res.status(400).json({
@@ -101,38 +141,49 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
       }
 
-      distributions = holders.map((h) => ({
-        wallet: h.wallet,
-        balance: h.balance,
-        ownershipPercent: h.ownershipPercent,
-        distributionAmount: distributionPool * (h.ownershipPercent / 100),
-      }));
+      const result = calculateDistribution(holders, finalResalePrice);
+      distributions = result.distributions;
+      royaltyAmount = result.royaltyAmount;
+      distributionPool = result.distributionPool;
+      dustFiltered = result.dustFiltered;
+      holderSource = 'on-chain snapshot (paginated)';
     } else {
       // Fallback to MongoDB participants if no token minted
-      distributions = (pool.participants || []).map((p: any) => {
+      const mongoHolders = (pool.participants || []).map((p: any) => {
         const pct = pool.totalShares > 0 ? (p.shares / pool.totalShares) * 100 : 0;
         return {
           wallet: p.wallet,
           balance: p.shares,
           ownershipPercent: pct,
-          distributionAmount: distributionPool * (pct / 100),
         };
       });
+
+      const result = calculateDistribution(mongoHolders, finalResalePrice);
+      distributions = result.distributions;
+      royaltyAmount = result.royaltyAmount;
+      distributionPool = result.distributionPool;
+      dustFiltered = result.dustFiltered;
+      holderSource = 'MongoDB participants';
     }
+
+    // Transition pool to distributing
+    await Pool.findByIdAndUpdate(poolId, {
+      $set: { status: 'distributing' },
+    });
 
     // Create Squads proposal for distribution
     let squadsResult = null;
     if (createSquadsProposal) {
       const treasuryWallet = getTreasury('pools');
 
-      // Build recipient list: all holders + LuxHub fee
+      // Build recipient list: all holders + Pools Treasury fee
       const recipients: TransferRecipient[] = [
         ...distributions
           .filter((d) => d.distributionAmount > 0)
           .map((d) => ({
             wallet: d.wallet,
             amountUSD: d.distributionAmount,
-            label: `Investor ${d.wallet.slice(0, 8)}... (${d.ownershipPercent.toFixed(1)}%)`,
+            label: `Holder ${d.wallet.slice(0, 8)}... (${d.ownershipPercent.toFixed(1)}%)`,
           })),
         { wallet: treasuryWallet, amountUSD: royaltyAmount, label: 'Pools Treasury 3% royalty' },
       ];
@@ -149,7 +200,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             distributionAmount: distributionPool,
             distributionRoyalty: royaltyAmount,
             squadsDistributionIndex: squadsResult.transactionIndex,
-            distributions: distributions.map((d: DistributionItem) => ({
+            distributions: distributions.map((d) => ({
               wallet: d.wallet,
               balance: d.balance,
               ownershipPercent: d.ownershipPercent,
@@ -162,6 +213,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     return res.status(200).json({
       success: true,
+      action: 'propose',
       resale: {
         resalePriceUSD: finalResalePrice,
         royaltyAmount,
@@ -169,16 +221,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         distributionPool,
         distributionPercent: '97%',
       },
-      distributions: distributions.map((d: DistributionItem) => ({
+      distributions: distributions.map((d) => ({
         wallet: d.wallet,
         balance: d.balance,
         ownershipPercent: `${d.ownershipPercent.toFixed(2)}%`,
         receives: `$${d.distributionAmount.toFixed(2)}`,
       })),
-      holderSource: pool.bagsTokenMint ? 'on-chain snapshot' : 'MongoDB participants',
+      dustFiltered,
+      holderSource,
       pool: {
         _id: pool._id,
-        status: pool.status,
+        status: 'distributing',
         distributionStatus: 'proposed',
       },
       squadsProposal: squadsResult,
@@ -188,7 +241,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       nextSteps: [
         'Multisig members approve distribution in Squads UI',
         'Execute distribution via /api/squads/execute',
-        'Pool status will update to "distributed"',
+        'Finalize pool: POST /api/pool/distribute with action: "finalize"',
+        'Pool will be closed, tokens marked as burned',
       ],
     });
   } catch (error: any) {

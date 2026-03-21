@@ -300,6 +300,9 @@ const PoolSchema = new Schema(
     nftBurnTxSignature: { type: String },
     nftBurnReason: { type: String },
 
+    // ========== POOL CLOSURE ==========
+    closedAt: { type: Date },
+
     // ========== STATUS ==========
     status: {
       type: String,
