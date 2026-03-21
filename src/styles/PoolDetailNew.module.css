@@ -778,6 +778,134 @@
   font-weight: 600;
 }
 
+/* Explainer Card */
+.explainerCard {
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.explainerToggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background var(--transition);
+  font-family: var(--font);
+}
+
+.explainerToggle:hover {
+  background: var(--accent-light);
+}
+
+.chevron {
+  color: var(--accent);
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.explainerContent {
+  padding: 0 20px 20px;
+}
+
+.explainerSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.stepNumber {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  border: 1px solid var(--accent-medium);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.stepText strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stepText p {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 4px 0 0 0;
+  line-height: 1.5;
+}
+
+.exitPaths {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.exitTitle {
+  color: var(--text);
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.exitGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.exitOption {
+  background: var(--accent-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exitOption strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.exitOption p {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.exitIcon {
+  color: var(--accent);
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .contentGrid {
@@ -799,6 +927,10 @@
   }
 
   .positionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .exitGrid {
     grid-template-columns: 1fr;
   }
 

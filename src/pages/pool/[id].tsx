@@ -121,6 +121,7 @@ const PoolDetailPage: React.FC = () => {
   const [investShares, setInvestShares] = useState(1);
   const [isInvesting, setIsInvesting] = useState(false);
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
+  const [showExplainer, setShowExplainer] = useState(false);
 
   const fetchPool = useCallback(async () => {
     if (!id) return;
@@ -702,6 +703,84 @@ const PoolDetailPage: React.FC = () => {
               userShares={userInvestment?.shares || 0}
               onTradeComplete={fetchPool}
             />
+
+            {/* How This Works Explainer */}
+            <div className={styles.explainerCard}>
+              <button
+                className={styles.explainerToggle}
+                onClick={() => setShowExplainer(!showExplainer)}
+              >
+                <span>How This Works</span>
+                <span className={styles.chevron}>{showExplainer ? '\u25B2' : '\u25BC'}</span>
+              </button>
+
+              {showExplainer && (
+                <div className={styles.explainerContent}>
+                  <div className={styles.explainerSteps}>
+                    <div className={styles.step}>
+                      <div className={styles.stepNumber}>1</div>
+                      <div className={styles.stepText}>
+                        <strong>Trading funds this watch</strong>
+                        <p>
+                          Token purchases go toward acquiring the luxury watch. When the pool
+                          reaches 100%, the vendor ships the watch to LuxHub custody.
+                        </p>
+                      </div>
+                    </div>
+                    <div className={styles.step}>
+                      <div className={styles.stepNumber}>2</div>
+                      <div className={styles.stepText}>
+                        <strong>Watch secured in custody</strong>
+                        <p>
+                          LuxHub verifies authenticity and stores the watch securely. Your tokens
+                          represent a portion of this real asset.
+                        </p>
+                      </div>
+                    </div>
+                    <div className={styles.step}>
+                      <div className={styles.stepNumber}>3</div>
+                      <div className={styles.stepText}>
+                        <strong>Trade tokens anytime</strong>
+                        <p>
+                          Buy or sell tokens on the secondary market. Token value is backed by the
+                          real market price of the watch.
+                        </p>
+                      </div>
+                    </div>
+                    <div className={styles.step}>
+                      <div className={styles.stepNumber}>4</div>
+                      <div className={styles.stepText}>
+                        <strong>Watch resells, holders get paid</strong>
+                        <p>
+                          When the watch is resold, 97% of the sale price is distributed
+                          proportionally to all current token holders.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.exitPaths}>
+                    <h4 className={styles.exitTitle}>Two Ways to Exit</h4>
+                    <div className={styles.exitGrid}>
+                      <div className={styles.exitOption}>
+                        <span className={styles.exitIcon}>
+                          <FaChartLine />
+                        </span>
+                        <strong>Sell on Secondary Market</strong>
+                        <p>Trade your tokens anytime at current market price.</p>
+                      </div>
+                      <div className={styles.exitOption}>
+                        <span className={styles.exitIcon}>
+                          <FaShieldAlt />
+                        </span>
+                        <strong>Hold Until Resale</strong>
+                        <p>Keep tokens and receive your portion when the watch is resold.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Distribution Info (if applicable) */}
             {(pool.distributionStatus || pool.resaleSoldPriceUSD) && (
