@@ -1,4 +1,5 @@
 import React, { memo, useRef, useEffect, useCallback, useState } from 'react';
+import styles from '@/styles/TvChart.module.css';
 
 type ChartType = 'area' | 'candlestick' | 'line';
 type TimeFrame = '1m' | '5m' | '15m' | '1h' | '4h' | '1D';
@@ -13,6 +14,16 @@ interface TvChartProps {
   totalSupply?: number; // Token total supply — used to derive market cap from price
   defaultDataMode?: DataMode; // 'mcap' (default) or 'price'
   onTimeframeChange?: (tf: TimeFrame) => void;
+}
+
+interface CrosshairData {
+  time: string;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+  price?: number;
+  volume?: number;
 }
 
 const TIMEFRAME_INTERVALS: Record<TimeFrame, number> = {
@@ -38,16 +49,33 @@ const TvChart = memo(
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const roRef = useRef<ResizeObserver | null>(null);
+    const mainSeriesRef = useRef<any>(null);
+    const volSeriesRef = useRef<any>(null);
     const [activeTimeframe, setActiveTimeframe] = useState<TimeFrame>('1m');
     const [activeChartType, setActiveChartType] = useState<ChartType>(initialChartType);
     const [dataMode, setDataMode] = useState<DataMode>(defaultDataMode);
+    const [crosshairData, setCrosshairData] = useState<CrosshairData | null>(null);
 
     // Transform price data to market cap if needed
-    const chartData = dataMode === 'mcap' && totalSupply > 0
-      ? data.map((p) => p * totalSupply)
-      : data;
+    const chartData =
+      dataMode === 'mcap' && totalSupply > 0 ? data.map((p) => p * totalSupply) : data;
 
     const chartType = showToolbar ? activeChartType : initialChartType;
+
+    const formatPrice = useCallback(
+      (price: number) => {
+        if (dataMode === 'mcap') {
+          if (price >= 1_000_000) return '$' + (price / 1_000_000).toFixed(2) + 'M';
+          if (price >= 1_000) return '$' + (price / 1_000).toFixed(1) + 'K';
+          return '$' + price.toFixed(2);
+        }
+        if (price < 0.0001) return price.toFixed(10);
+        if (price < 0.01) return price.toFixed(8);
+        if (price < 1) return price.toFixed(6);
+        return '$' + price.toFixed(2);
+      },
+      [dataMode]
+    );
 
     const cleanup = useCallback(() => {
       if (roRef.current) {
@@ -62,6 +90,8 @@ const TvChart = memo(
         }
         chartRef.current = null;
       }
+      mainSeriesRef.current = null;
+      volSeriesRef.current = null;
     }, []);
 
     const handleTimeframeClick = useCallback(
@@ -97,8 +127,7 @@ const TvChart = memo(
               background: { type: lc.ColorType.Solid, color: 'transparent' },
               textColor: '#9ca3af',
               fontSize: 11,
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             },
             grid: {
               vertLines: { color: 'rgba(255,255,255,0.04)' },
@@ -125,7 +154,7 @@ const TvChart = memo(
               borderVisible: false,
               scaleMargins: {
                 top: chartType === 'candlestick' ? 0.1 : 0.08,
-                bottom: chartType === 'candlestick' ? 0.2 : 0.04,
+                bottom: 0.2,
               },
               entireTextOnly: true,
             },
@@ -159,8 +188,19 @@ const TvChart = memo(
           const now = Math.floor(Date.now() / 1000);
           const interval = TIMEFRAME_INTERVALS[activeTimeframe];
 
+          // Generate synthetic volume from price changes
+          const generateVolume = (i: number) => {
+            if (i === 0) return Math.random() * 500 + 100;
+            const change = Math.abs(chartData[i] - chartData[i - 1]);
+            const relChange = chartData[i - 1] > 0 ? change / chartData[i - 1] : 0;
+            return relChange * 10000 + Math.random() * 500 + 100;
+          };
+
+          let mainSeries: any;
+          let volSeries: any;
+
           if (chartType === 'candlestick') {
-            const series = chart.addSeries(lc.CandlestickSeries, {
+            mainSeries = chart.addSeries(lc.CandlestickSeries, {
               upColor: green,
               downColor: red,
               borderUpColor: green,
@@ -187,10 +227,10 @@ const TvChart = memo(
                 close,
               };
             });
-            series.setData(ohlc);
+            mainSeries.setData(ohlc);
 
             // Volume histogram
-            const volSeries = chart.addSeries(lc.HistogramSeries, {
+            volSeries = chart.addSeries(lc.HistogramSeries, {
               priceFormat: { type: 'volume' },
               priceScaleId: 'vol',
               lastValueVisible: false,
@@ -200,17 +240,14 @@ const TvChart = memo(
               scaleMargins: { top: 0.85, bottom: 0 },
             });
             volSeries.setData(
-              ohlc.map((c) => ({
+              ohlc.map((c, i) => ({
                 time: c.time,
-                value: Math.random() * 1000 + 100,
-                color:
-                  c.close >= c.open
-                    ? 'rgba(38,166,154,0.25)'
-                    : 'rgba(239,83,80,0.25)',
+                value: generateVolume(i),
+                color: c.close >= c.open ? 'rgba(38,166,154,0.25)' : 'rgba(239,83,80,0.25)',
               }))
             );
           } else if (chartType === 'line') {
-            const series = chart.addSeries(lc.LineSeries, {
+            mainSeries = chart.addSeries(lc.LineSeries, {
               color: lineColor,
               lineWidth: 2,
               priceLineVisible: true,
@@ -223,19 +260,37 @@ const TvChart = memo(
               crosshairMarkerBackgroundColor: '#0a0a0f',
             });
 
-            series.setData(
-              chartData.map((value, i) => ({
-                time: (now - (chartData.length - 1 - i) * interval) as any,
-                value,
+            const lineData = chartData.map((value, i) => ({
+              time: (now - (chartData.length - 1 - i) * interval) as any,
+              value,
+            }));
+            mainSeries.setData(lineData);
+
+            // Volume histogram for line chart
+            volSeries = chart.addSeries(lc.HistogramSeries, {
+              priceFormat: { type: 'volume' },
+              priceScaleId: 'vol',
+              lastValueVisible: false,
+              priceLineVisible: false,
+            });
+            chart.priceScale('vol').applyOptions({
+              scaleMargins: { top: 0.85, bottom: 0 },
+            });
+            volSeries.setData(
+              lineData.map((d, i) => ({
+                time: d.time,
+                value: generateVolume(i),
+                color:
+                  i > 0 && chartData[i] >= chartData[i - 1]
+                    ? 'rgba(38,166,154,0.2)'
+                    : 'rgba(239,83,80,0.2)',
               }))
             );
           } else {
             // Area chart
-            const series = chart.addSeries(lc.AreaSeries, {
+            mainSeries = chart.addSeries(lc.AreaSeries, {
               lineColor,
-              topColor: isUp
-                ? 'rgba(38,166,154,0.28)'
-                : 'rgba(239,83,80,0.28)',
+              topColor: isUp ? 'rgba(38,166,154,0.28)' : 'rgba(239,83,80,0.28)',
               bottomColor: 'transparent',
               lineWidth: 2,
               priceLineVisible: true,
@@ -249,13 +304,84 @@ const TvChart = memo(
               crosshairMarkerBackgroundColor: '#0a0a0f',
             });
 
-            series.setData(
-              chartData.map((value, i) => ({
-                time: (now - (chartData.length - 1 - i) * interval) as any,
-                value,
+            const areaData = chartData.map((value, i) => ({
+              time: (now - (chartData.length - 1 - i) * interval) as any,
+              value,
+            }));
+            mainSeries.setData(areaData);
+
+            // Volume histogram for area chart
+            volSeries = chart.addSeries(lc.HistogramSeries, {
+              priceFormat: { type: 'volume' },
+              priceScaleId: 'vol',
+              lastValueVisible: false,
+              priceLineVisible: false,
+            });
+            chart.priceScale('vol').applyOptions({
+              scaleMargins: { top: 0.85, bottom: 0 },
+            });
+            volSeries.setData(
+              areaData.map((d, i) => ({
+                time: d.time,
+                value: generateVolume(i),
+                color:
+                  i > 0 && chartData[i] >= chartData[i - 1]
+                    ? 'rgba(38,166,154,0.2)'
+                    : 'rgba(239,83,80,0.2)',
               }))
             );
           }
+
+          // Store series refs for crosshair callback
+          mainSeriesRef.current = mainSeries;
+          volSeriesRef.current = volSeries;
+
+          // Subscribe to crosshair move for OHLCV tooltip
+          chart.subscribeCrosshairMove((param: any) => {
+            if (!param.time || !param.seriesData) {
+              setCrosshairData(null);
+              return;
+            }
+            const mSeries = mainSeriesRef.current;
+            const vSeries = volSeriesRef.current;
+            if (!mSeries) {
+              setCrosshairData(null);
+              return;
+            }
+
+            const mainData = param.seriesData.get(mSeries);
+            if (!mainData) {
+              setCrosshairData(null);
+              return;
+            }
+
+            const timeStr = new Date((param.time as number) * 1000).toLocaleString([], {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
+            const volData = vSeries ? param.seriesData.get(vSeries) : null;
+            const vol = volData && 'value' in volData ? volData.value : undefined;
+
+            if ('open' in mainData) {
+              setCrosshairData({
+                time: timeStr,
+                open: mainData.open,
+                high: mainData.high,
+                low: mainData.low,
+                close: mainData.close,
+                volume: vol,
+              });
+            } else if ('value' in mainData) {
+              setCrosshairData({
+                time: timeStr,
+                price: mainData.value,
+                volume: vol,
+              });
+            }
+          });
 
           chart.timeScale().fitContent();
           chartRef.current = chart;
@@ -293,101 +419,36 @@ const TvChart = memo(
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
         {(showTimeframes || showToolbar) && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-              padding: '4px 8px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              flexShrink: 0,
-            }}
-          >
+          <div className={styles.toolbar}>
             {showTimeframes &&
               timeframes.map((tf) => (
                 <button
                   key={tf}
                   onClick={() => handleTimeframeClick(tf)}
-                  style={{
-                    background:
-                      activeTimeframe === tf
-                        ? 'rgba(200,161,255,0.15)'
-                        : 'transparent',
-                    color: activeTimeframe === tf ? '#c8a1ff' : '#6b7280',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '3px 8px',
-                    fontSize: '11px',
-                    fontWeight: activeTimeframe === tf ? 600 : 400,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
+                  className={`${styles.toolbarBtn} ${activeTimeframe === tf ? styles.toolbarBtnActive : ''}`}
                 >
                   {tf}
                 </button>
               ))}
-            {showTimeframes && showToolbar && (
-              <div
-                style={{
-                  width: '1px',
-                  height: '16px',
-                  background: 'rgba(255,255,255,0.1)',
-                  margin: '0 6px',
-                }}
-              />
-            )}
+            {showTimeframes && showToolbar && <div className={styles.toolbarDivider} />}
             {showToolbar &&
               chartTypes.map((ct) => (
                 <button
                   key={ct.type}
                   onClick={() => setActiveChartType(ct.type)}
-                  style={{
-                    background:
-                      activeChartType === ct.type
-                        ? 'rgba(200,161,255,0.15)'
-                        : 'transparent',
-                    color:
-                      activeChartType === ct.type ? '#c8a1ff' : '#6b7280',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '3px 8px',
-                    fontSize: '11px',
-                    fontWeight: activeChartType === ct.type ? 600 : 400,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
+                  className={`${styles.toolbarBtn} ${activeChartType === ct.type ? styles.toolbarBtnActive : ''}`}
                 >
                   {ct.label}
                 </button>
               ))}
             {showToolbar && (
               <>
-                <div
-                  style={{
-                    width: '1px',
-                    height: '16px',
-                    background: 'rgba(255,255,255,0.1)',
-                    margin: '0 6px',
-                  }}
-                />
+                <div className={styles.toolbarDivider} />
                 {dataModes.map((dm) => (
                   <button
                     key={dm.mode}
                     onClick={() => setDataMode(dm.mode)}
-                    style={{
-                      background:
-                        dataMode === dm.mode
-                          ? 'rgba(200,161,255,0.15)'
-                          : 'transparent',
-                      color: dataMode === dm.mode ? '#c8a1ff' : '#6b7280',
-                      border: 'none',
-                      borderRadius: '4px',
-                      padding: '3px 8px',
-                      fontSize: '11px',
-                      fontWeight: dataMode === dm.mode ? 600 : 400,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}
+                    className={`${styles.toolbarBtn} ${dataMode === dm.mode ? styles.toolbarBtnActive : ''}`}
                   >
                     {dm.label}
                   </button>
@@ -396,10 +457,47 @@ const TvChart = memo(
             )}
           </div>
         )}
-        <div
-          ref={containerRef}
-          style={{ width: '100%', flex: 1, minHeight: '120px' }}
-        />
+        <div className={styles.chartWrapper}>
+          <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+          {crosshairData && interactive && (
+            <div className={styles.ohlcvTooltip}>
+              <span className={styles.ohlcvTime}>{crosshairData.time}</span>
+              {crosshairData.open !== undefined ? (
+                <>
+                  <span className={styles.ohlcvLabel}>
+                    O <span className={styles.ohlcvValue}>{formatPrice(crosshairData.open)}</span>
+                  </span>
+                  <span className={styles.ohlcvLabel}>
+                    H <span className={styles.ohlcvValue}>{formatPrice(crosshairData.high!)}</span>
+                  </span>
+                  <span className={styles.ohlcvLabel}>
+                    L <span className={styles.ohlcvValue}>{formatPrice(crosshairData.low!)}</span>
+                  </span>
+                  <span className={styles.ohlcvLabel}>
+                    C <span className={styles.ohlcvValue}>{formatPrice(crosshairData.close!)}</span>
+                  </span>
+                  {crosshairData.volume !== undefined && (
+                    <span className={styles.ohlcvLabel}>
+                      V <span className={styles.ohlcvValue}>{crosshairData.volume.toFixed(0)}</span>
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className={styles.ohlcvLabel}>
+                    Price{' '}
+                    <span className={styles.ohlcvValue}>{formatPrice(crosshairData.price!)}</span>
+                  </span>
+                  {crosshairData.volume !== undefined && (
+                    <span className={styles.ohlcvLabel}>
+                      V <span className={styles.ohlcvValue}>{crosshairData.volume.toFixed(0)}</span>
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -408,10 +506,7 @@ TvChart.displayName = 'TvChart';
 
 export default TvChart;
 
-export function generatePriceHistory(
-  basePrice: number,
-  points: number = 50
-): number[] {
+export function generatePriceHistory(basePrice: number, points: number = 50): number[] {
   if (basePrice <= 0) basePrice = 0.001;
   const prices: number[] = [basePrice];
   for (let i = 1; i < points; i++) {

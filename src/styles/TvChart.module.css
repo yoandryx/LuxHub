@@ -1,0 +1,82 @@
+.chartWrapper {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 120px;
+}
+
+/* ─── OHLCV Crosshair Tooltip ──────────────────────────────────── */
+.ohlcvTooltip {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  flex-wrap: wrap;
+}
+
+.ohlcvTime {
+  color: rgba(255, 255, 255, 0.4);
+  margin-right: 4px;
+}
+
+.ohlcvLabel {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
+
+.ohlcvValue {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  margin-left: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Toolbar ──────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  background: rgba(10, 10, 15, 0.5);
+}
+
+.toolbarBtn {
+  background: transparent;
+  color: #6b7280;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.toolbarBtn:hover {
+  color: #9ca3af;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.toolbarBtnActive {
+  background: rgba(200, 161, 255, 0.15);
+  color: #c8a1ff;
+  font-weight: 600;
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 6px;
+}
