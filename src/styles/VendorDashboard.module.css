@@ -740,6 +740,78 @@
   }
 }
 
+/* ==================== RESPONSIVE: Mobile (600px) ==================== */
+@media screen and (max-width: 600px) {
+  .contentBody {
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .tabBarInner {
+    padding: 8px 10px;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .tabBarInner::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabItem {
+    padding: 8px 10px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .tabLabel {
+    display: none;
+  }
+
+  .metricsGrid,
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .quickActions {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .assetGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .earningsSummary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .orderHeader,
+  .offerHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .fab {
+    bottom: 60px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+}
+
 /* Notification styles */
 .notificationSuccess {
   background-color: #1e7e34;
