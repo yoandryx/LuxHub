@@ -25,6 +25,7 @@ interface Pool {
   ammEnabled?: boolean;
   ammLiquidityPercent?: number;
   windDownStatus?: string;
+  bondingCurveActive?: boolean;
 }
 
 interface TradeQuote {
@@ -237,7 +238,7 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
           <p>Tokens Minted - Trading Locked</p>
           <span>
             Trading will unlock once the pool is filled and the physical asset is verified in LuxHub
-            custody. This escrow protection ensures your investment is secured by real assets.
+            custody. This escrow protection ensures your contribution is secured by real assets.
           </span>
           <div className={styles.lockedInfo}>
             <div className={styles.lockedStep}>
@@ -338,7 +339,7 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
           />
           <span>Powered by Bags</span>
         </div>
-        <h3>Trade Pool Shares</h3>
+        <h3>Trade Pool Tokens</h3>
         <p className={styles.tokenMint}>
           Token: {poolTokenMint?.slice(0, 8)}...{poolTokenMint?.slice(-6)}
         </p>

@@ -699,6 +699,7 @@ const PoolDetailPage: React.FC = () => {
                 liquidityModel: pool.liquidityModel,
                 ammEnabled: pool.ammEnabled,
                 ammLiquidityPercent: pool.ammLiquidityPercent,
+                bondingCurveActive: pool.bondingCurveActive,
               }}
               userShares={userInvestment?.shares || 0}
               onTradeComplete={fetchPool}
