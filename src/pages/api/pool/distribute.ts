@@ -10,6 +10,7 @@ import {
   getTopTokenHolders,
   TransferRecipient,
 } from '../../../lib/services/squadsTransferService';
+import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 interface DistributeRequest {
   poolId: string;
@@ -122,10 +123,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Create Squads proposal for distribution
     let squadsResult = null;
     if (createSquadsProposal) {
-      const treasuryWallet = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
-      if (!treasuryWallet) {
-        return res.status(500).json({ error: 'Missing NEXT_PUBLIC_LUXHUB_WALLET (treasury)' });
-      }
+      const treasuryWallet = getTreasury('pools');
 
       // Build recipient list: all holders + LuxHub fee
       const recipients: TransferRecipient[] = [
@@ -136,7 +134,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             amountUSD: d.distributionAmount,
             label: `Investor ${d.wallet.slice(0, 8)}... (${d.ownershipPercent.toFixed(1)}%)`,
           })),
-        { wallet: treasuryWallet, amountUSD: royaltyAmount, label: 'LuxHub 3% royalty' },
+        { wallet: treasuryWallet, amountUSD: royaltyAmount, label: 'Pools Treasury 3% royalty' },
       ];
 
       squadsResult = await buildMultiTransferProposal(recipients, {

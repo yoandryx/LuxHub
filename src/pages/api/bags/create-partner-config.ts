@@ -14,6 +14,7 @@
 //
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
+import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
 
@@ -45,14 +46,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const finalPartnerWallet =
-      partnerWallet ||
-      process.env.BAGS_PARTNER_WALLET ||
-      process.env.NEXT_PUBLIC_LUXHUB_WALLET;
-
-    if (!finalPartnerWallet) {
+    let finalPartnerWallet: string;
+    try {
+      finalPartnerWallet = partnerWallet || getTreasury('partner');
+    } catch {
       return res.status(500).json({
-        error: 'No partner wallet configured. Set BAGS_PARTNER_WALLET or NEXT_PUBLIC_LUXHUB_WALLET.',
+        error: 'No partner wallet configured. Set TREASURY_PARTNER env var.',
       });
     }
 

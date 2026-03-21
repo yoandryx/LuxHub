@@ -8,6 +8,7 @@ import {
   buildMultiTransferProposal,
   TransferRecipient,
 } from '../../../lib/services/squadsTransferService';
+import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 interface PayVendorRequest {
   poolId: string;
@@ -296,17 +297,14 @@ async function createVendorPaymentProposal(
   squadsDeepLink?: string;
   error?: string;
 }> {
-  const treasuryWallet = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
-  if (!treasuryWallet) {
-    return { success: false, error: 'Missing NEXT_PUBLIC_LUXHUB_WALLET (treasury)' };
-  }
+  const treasuryWallet = getTreasury('pools');
   if (!pool.vendorWallet) {
     return { success: false, error: 'Pool has no vendorWallet set' };
   }
 
   const recipients: TransferRecipient[] = [
     { wallet: pool.vendorWallet, amountUSD: vendorPayment, label: 'Vendor payment' },
-    { wallet: treasuryWallet, amountUSD: luxhubFee, label: 'LuxHub 3% fee' },
+    { wallet: treasuryWallet, amountUSD: luxhubFee, label: 'Pools Treasury 3% fee' },
   ];
 
   const result = await buildMultiTransferProposal(recipients, {

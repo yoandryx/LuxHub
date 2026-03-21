@@ -13,6 +13,7 @@
 //
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
+import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
 
@@ -57,12 +58,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const feeClaimer =
-        claimerWallet || process.env.NEXT_PUBLIC_LUXHUB_WALLET;
-
-      if (!feeClaimer) {
+      let feeClaimer: string;
+      try {
+        feeClaimer = claimerWallet || getTreasury('pools');
+      } catch {
         return res.status(500).json({
-          error: 'No claimer wallet. Provide claimerWallet or set NEXT_PUBLIC_LUXHUB_WALLET.',
+          error: 'No claimer wallet. Provide claimerWallet or set TREASURY_POOLS.',
         });
       }
 
@@ -106,14 +107,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     } else if (type === 'partner') {
       // ── Partner fee claim (across all tokens) ──
-      const partnerWallet =
-        claimerWallet ||
-        process.env.BAGS_PARTNER_WALLET ||
-        process.env.NEXT_PUBLIC_LUXHUB_WALLET;
-
-      if (!partnerWallet) {
+      let partnerWallet: string;
+      try {
+        partnerWallet = claimerWallet || getTreasury('partner');
+      } catch {
         return res.status(500).json({
-          error: 'No partner wallet configured.',
+          error: 'No partner wallet configured. Set TREASURY_PARTNER.',
         });
       }
 

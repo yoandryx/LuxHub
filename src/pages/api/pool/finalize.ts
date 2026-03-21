@@ -6,6 +6,7 @@ import { Pool } from '../../../lib/models/Pool';
 import { User } from '../../../lib/models/User';
 import { getTopTokenHolders } from '../../../lib/services/heliusService';
 import { createPoolSquad, transferNftToSquadVault } from '../../../lib/services/squadService';
+import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 interface FinalizeRequest {
   poolId: string;
@@ -107,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // For now, we prepare the transfer data
       nftTransferResult = await transferNftToSquadVault(
         pool.fractionalMint,
-        process.env.NEXT_PUBLIC_LUXHUB_WALLET || '',
+        getTreasury('pools'),
         squadResult.vaultPda
       );
     }

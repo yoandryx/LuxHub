@@ -9,6 +9,7 @@
 //   POST /fee-share/partner-config/claim-tx { partnerWallet } → claim transactions
 //
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getTreasury } from '../../../lib/config/treasuryConfig';
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -20,15 +21,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const bagsApiKey = process.env.BAGS_API_KEY;
-    const partnerWallet = process.env.BAGS_PARTNER_WALLET || process.env.NEXT_PUBLIC_LUXHUB_WALLET;
+    let partnerWallet: string;
+    try {
+      partnerWallet = getTreasury('partner');
+    } catch {
+      return res.status(500).json({ error: 'TREASURY_PARTNER not configured' });
+    }
 
     if (!bagsApiKey) {
       return res.status(500).json({ error: 'BAGS_API_KEY not configured' });
     }
-    if (!partnerWallet) {
-      return res.status(500).json({ error: 'BAGS_PARTNER_WALLET not configured' });
-    }
-
     // Get partner stats — GET with query param
     const statsUrl = new URL(`${BAGS_API_BASE}/fee-share/partner-config/stats`);
     statsUrl.searchParams.set('partner', partnerWallet);
@@ -88,9 +90,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         totalFeesSOL: parseFloat((claimedFeesSOL + unclaimedFeesSOL).toFixed(9)),
       },
       raw: statsData,
-      message: unclaimedFeesSOL > 0
-        ? `${unclaimedFeesSOL.toFixed(4)} SOL available to claim. Use POST /api/bags/claim-fees?type=partner to claim.`
-        : 'No unclaimed partner fees at this time.',
+      message:
+        unclaimedFeesSOL > 0
+          ? `${unclaimedFeesSOL.toFixed(4)} SOL available to claim. Use POST /api/bags/claim-fees?type=partner to claim.`
+          : 'No unclaimed partner fees at this time.',
     });
   } catch (error: any) {
     console.error('[/api/bags/partner-stats] Error:', error);
