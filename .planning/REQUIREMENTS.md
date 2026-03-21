@@ -57,9 +57,9 @@ Requirements for launch readiness. Each maps to roadmap phases.
 
 ### Marketplace UX
 
-- [ ] **UX-01**: Multi-image gallery per listing (5+ photos stored in Asset doc, displayed on listing page alongside NFT primary image)
+- [x] **UX-01**: Multi-image gallery per listing (5+ photos stored in Asset doc, displayed on listing page alongside NFT primary image)
 - [ ] **UX-02**: Standardized condition grading dropdown (Unworn, Excellent, Very Good, Good, Fair) with defined criteria
-- [ ] **UX-03**: Search by brand name and model on marketplace page
+- [x] **UX-03**: Search by brand name and model on marketplace page
 - [ ] **UX-04**: Filter listings by price range and condition grade
 - [ ] **UX-05**: All modals (BuyModal, MakeOfferModal) work correctly on mobile devices
 - [ ] **UX-06**: Marketplace, orders, and vendor dashboard are mobile-responsive
@@ -153,9 +153,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | TM-03 | Phase 2.1 | Complete |
 | TM-04 | Phase 2.1 | Complete |
 | TM-05 | Phase 2.1 | Complete |
-| UX-01 | Phase 3 | Pending |
+| UX-01 | Phase 3 | Complete |
 | UX-02 | Phase 3 | Pending |
-| UX-03 | Phase 3 | Pending |
+| UX-03 | Phase 3 | Complete |
 | UX-04 | Phase 3 | Pending |
 | UX-05 | Phase 3 | Pending |
 | UX-06 | Phase 3 | Pending |

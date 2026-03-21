@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-21T20:21:51.323Z"
-last_activity: "2026-03-21 - Completed quick task 260321-m9x: Fix chart Object is disposed error and upgrade pool charts with TradingView-style tools like DexScreener"
+last_updated: "2026-03-21T22:24:06.465Z"
+last_activity: 2026-03-21
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 15
+  completed_plans: 12
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 02.1 — tokenomics-multi-treasury
+**Current focus:** Phase 03 — marketplace-ux
 
 ## Current Position
 
-Phase: 02.1 (tokenomics-multi-treasury) — EXECUTING
-Plan: 4 of 4
+Phase: 03 (marketplace-ux) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Plan: 4 of 4
 | Phase 02.1 P04 | 4min | 2 tasks | 2 files |
 | Phase 02.1 P02 | 4min | 2 tasks | 11 files |
 | Phase 02.1 P03 | 3min | 2 tasks | 5 files |
+| Phase 03 P02 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,7 @@ Recent decisions affecting current work:
 - [Phase 02.1]: Extracted calculateDistribution as pure function in separate file for testability
 - [Phase 02.1]: Post-graduation trading validated as already handled by existing Bags webhook + BagsPoolTrading component
 - [Phase 02.1]: On-chain token burn deferred to v2; tokens marked burned in DB only
+- [Phase 03]: Removed old fullscreen overlay in NftDetailCard in favor of ImageLightbox with swipe navigation
 
 ### Roadmap Evolution
 
@@ -109,4 +111,4 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-21 - Completed quick task 260321-m9x: Fix chart Object is disposed error and upgrade pool charts with TradingView-style tools like DexScreener
+Last activity: 2026-03-21
