@@ -82,9 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Find the metadata URL from the token info
       // We stored it during Phase 1 or we can reconstruct
-      const metadataUrl =
-        pool.bagsTokenMetadataUrl ||
-        `https://ipfs.io/ipfs/${pool.bagsTokenMint}`; // Fallback
+      const metadataUrl = pool.bagsTokenMetadataUrl || `https://ipfs.io/ipfs/${pool.bagsTokenMint}`; // Fallback
 
       const launchResponse = await fetch(
         `${BAGS_API_BASE}/token-launch/create-launch-transaction`,
@@ -232,12 +230,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ──────────────────────────────────────────────────────────────
     // STEP 2: Configure fee share → get meteoraConfigKey
     // ──────────────────────────────────────────────────────────────
-    const feeShareResult = await configureFeeShareInternal(
-      poolId,
-      tokenMintAddress,
-      adminWallet,
-      pool.vendorWallet // Include vendor in fee split if available
-    );
+    const feeShareResult = await configureFeeShareInternal(poolId, tokenMintAddress, adminWallet);
 
     if (!feeShareResult.success || !feeShareResult.meteoraConfigKey) {
       console.error('[create-pool-token] Fee share config failed:', feeShareResult.error);
@@ -382,12 +375,7 @@ export async function createPoolTokenInternal(
     });
 
     // STEP 2: Configure fee share → get meteoraConfigKey
-    const feeShareResult = await configureFeeShareInternal(
-      poolId,
-      mint,
-      creatorWallet,
-      pool.vendorWallet
-    );
+    const feeShareResult = await configureFeeShareInternal(poolId, mint, creatorWallet);
 
     if (!feeShareResult.success || !feeShareResult.meteoraConfigKey) {
       console.warn('[createPoolTokenInternal] Fee share config failed:', feeShareResult.error);

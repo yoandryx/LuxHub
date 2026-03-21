@@ -5,12 +5,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
-
-interface FeeShareClaimer {
-  wallet: string;
-  basisPoints: number; // Share of creator fee (must total 10,000 across all claimers)
-  label?: string;
-}
+import { getTreasury } from '../../../lib/config/treasuryConfig';
+import { buildDefaultClaimers } from '../../../lib/config/feeShareConfig';
+import type { FeeShareClaimer } from '../../../lib/config/feeShareConfig';
 
 interface ConfigureFeeShareRequest {
   poolId: string;
@@ -21,32 +18,6 @@ interface ConfigureFeeShareRequest {
 }
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
-
-// LuxHub treasury wallet — receives creator fee share
-const LUXHUB_TREASURY = process.env.NEXT_PUBLIC_LUXHUB_WALLET;
-
-/**
- * Build the default fee claimers array for a pool.
- * 10,000 BPS = 100% of the creator's 1% fee on every trade.
- *
- * Default split:
- *  - LuxHub Treasury: 8,333 BPS (83.33%) — platform ops + holder rewards + trade rewards
- *  - Vendor Wallet:   1,667 BPS (16.67%) — vendor's automatic on-chain cut
- *
- * If no vendor wallet, treasury gets 10,000 BPS (100%).
- */
-function buildDefaultClaimers(
-  treasuryWallet: string,
-  vendorWallet?: string
-): FeeShareClaimer[] {
-  if (vendorWallet && vendorWallet !== treasuryWallet) {
-    return [
-      { wallet: treasuryWallet, basisPoints: 8333, label: 'LuxHub Treasury' },
-      { wallet: vendorWallet, basisPoints: 1667, label: 'Vendor' },
-    ];
-  }
-  return [{ wallet: treasuryWallet, basisPoints: 10000, label: 'LuxHub Treasury' }];
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -67,9 +38,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!bagsApiKey) {
       return res.status(500).json({ error: 'BAGS_API_KEY not configured' });
     }
-    if (!LUXHUB_TREASURY) {
-      return res.status(500).json({ error: 'LUXHUB_WALLET not configured' });
-    }
 
     await dbConnect();
 
@@ -85,7 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     if (!pool.bagsTokenMint) {
       return res.status(400).json({
-        error: 'Pool does not have a Bags token. Create token first via /api/bags/create-pool-token',
+        error:
+          'Pool does not have a Bags token. Create token first via /api/bags/create-pool-token',
       });
     }
     if (pool.meteoraConfigKey) {
@@ -95,8 +64,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Build claimers — use custom or defaults
-    const finalClaimers = feeClaimers || buildDefaultClaimers(LUXHUB_TREASURY, pool.vendorWallet);
+    // Build claimers — use custom or defaults (100% Pools Treasury)
+    const finalClaimers = feeClaimers || buildDefaultClaimers();
 
     // Validate BPS totals exactly 10,000
     const totalBps = finalClaimers.reduce((sum, c) => sum + c.basisPoints, 0);
@@ -109,9 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Validate individual claimers
-    const invalidClaimer = finalClaimers.find(
-      (c) => c.basisPoints <= 0 || c.basisPoints > 10000
-    );
+    const invalidClaimer = finalClaimers.find((c) => c.basisPoints <= 0 || c.basisPoints > 10000);
     if (invalidClaimer) {
       return res.status(400).json({
         error: 'Each claimer must have basisPoints between 1 and 10,000',
@@ -131,7 +98,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Include partner config if requested and available
-    const partnerWallet = process.env.BAGS_PARTNER_WALLET || LUXHUB_TREASURY;
+    let partnerWallet: string | undefined;
+    try {
+      partnerWallet = process.env.BAGS_PARTNER_WALLET || getTreasury('partner');
+    } catch {
+      // Partner treasury not configured — skip partner integration
+    }
     const partnerConfigPda = process.env.BAGS_PARTNER_CONFIG_PDA;
     if (includePartner !== false && partnerWallet && partnerConfigPda) {
       requestBody.partner = partnerWallet;
@@ -223,8 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 export async function configureFeeShareInternal(
   poolId: string,
   tokenMint: string,
-  payerWallet: string,
-  vendorWallet?: string
+  payerWallet: string
 ): Promise<{
   success: boolean;
   meteoraConfigKey?: string;
@@ -233,13 +204,12 @@ export async function configureFeeShareInternal(
   error?: string;
 }> {
   const bagsApiKey = process.env.BAGS_API_KEY;
-  const treasury = LUXHUB_TREASURY;
-  if (!bagsApiKey || !treasury) {
-    return { success: false, error: 'Missing BAGS_API_KEY or LUXHUB_WALLET' };
+  if (!bagsApiKey) {
+    return { success: false, error: 'Missing BAGS_API_KEY' };
   }
 
-  // Build claimers
-  const claimers = buildDefaultClaimers(treasury, vendorWallet);
+  // Build claimers (100% Pools Treasury)
+  const claimers = buildDefaultClaimers();
   const claimersArray = claimers.map((c) => c.wallet);
   const basisPointsArray = claimers.map((c) => c.basisPoints);
 
@@ -251,7 +221,12 @@ export async function configureFeeShareInternal(
   };
 
   // Include partner config if available
-  const partnerWallet = process.env.BAGS_PARTNER_WALLET || treasury;
+  let partnerWallet: string | undefined;
+  try {
+    partnerWallet = process.env.BAGS_PARTNER_WALLET || getTreasury('partner');
+  } catch {
+    // Partner treasury not configured — skip
+  }
   const partnerConfigPda = process.env.BAGS_PARTNER_CONFIG_PDA;
   if (partnerWallet && partnerConfigPda) {
     requestBody.partner = partnerWallet;

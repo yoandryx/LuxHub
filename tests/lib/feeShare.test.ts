@@ -15,7 +15,7 @@ describe('buildDefaultClaimers', () => {
   });
 
   async function importFeeShare() {
-    return await import('@/pages/api/bags/configure-fee-share');
+    return await import('@/lib/config/feeShareConfig');
   }
 
   it('returns array with exactly 1 entry', async () => {
