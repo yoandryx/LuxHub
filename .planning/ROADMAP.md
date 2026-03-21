@@ -65,7 +65,7 @@ Plans:
   3. Post-graduation trading works via Bags DEX (webhook sets bondingCurveActive: false, component handles post-graduation UI)
   4. Resale distribution snapshots ALL token holders via paginated DAS, distributes 97% proportionally, and closes the pool (status=closed, tokenStatus=burned)
   5. Pool detail page shows YOUR POSITION (tokens, ownership %, cost basis, value, gain/loss), funding progress with %, and a collapsible HOW THIS WORKS 4-step explainer with legal-safe language
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [ ] 02.1-01-PLAN.md -- Treasury config helper + fee-share change to 100% Pools Treasury (TM-01, TM-02)

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02.1-04-PLAN.md
-last_updated: "2026-03-21T20:02:17.859Z"
+stopped_at: Completed 02.1-02-PLAN.md
+last_updated: "2026-03-21T20:08:40.936Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 02.1 (tokenomics-multi-treasury) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Plan: 2 of 4
 | Phase 02 P03 | 25min | 2 tasks | 28 files |
 | Phase 02.1 P01 | 4min | 2 tasks | 7 files |
 | Phase 02.1 P04 | 4min | 2 tasks | 2 files |
+| Phase 02.1 P02 | 4min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,7 @@ Recent decisions affecting current work:
 - [Phase 02.1]: Partner wallet lookup uses try/catch graceful fallback (optional config)
 - [Phase 02.1]: Used direct RPC getTokenAccountsByOwner from client for token balance instead of new API endpoint
 - [Phase 02.1]: All user-facing prohibited language replaced: invest->contribute, shares->tokens, investors->contributors, ROI->return
+- [Phase 02.1]: Helius webhook TREASURY_WALLET moved from module scope to handler-body getTreasury() call for SSR safety
 
 ### Roadmap Evolution
 
@@ -97,5 +99,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:02:17.857Z
-Stopped at: Completed 02.1-04-PLAN.md
+Last session: 2026-03-21T20:08:40.933Z
+Stopped at: Completed 02.1-02-PLAN.md
