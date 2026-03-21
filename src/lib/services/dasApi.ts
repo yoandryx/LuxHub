@@ -281,6 +281,45 @@ export async function getAssetProof(
   return dasRpc('getAssetProof', { id: assetId });
 }
 
+// ========== PAGINATED TOKEN HOLDER SNAPSHOT ==========
+
+/**
+ * Paginated token holder snapshot for distribution.
+ * Fetches ALL holders by paginating through DAS getTokenAccounts.
+ * Unlike getTokenHolders (limited to N), this gets every holder.
+ */
+export async function getAllTokenHolders(
+  mint: string
+): Promise<{ wallet: string; balance: number; ownershipPercent: number }[]> {
+  const allAccounts: DASTokenAccount[] = [];
+  let page = 1;
+
+  while (true) {
+    const result = await dasRpc<DASTokenAccountResult>('getTokenAccounts', {
+      mint,
+      page,
+      limit: 1000,
+    });
+
+    const accounts = result.token_accounts || [];
+    const active = accounts.filter((ta) => ta.amount > 0);
+    allAccounts.push(...active);
+
+    if (active.length < 1000) break; // Last page
+    page++;
+  }
+
+  const totalBalance = allAccounts.reduce((sum, ta) => sum + ta.amount, 0);
+
+  return allAccounts
+    .map((ta) => ({
+      wallet: ta.owner,
+      balance: ta.amount,
+      ownershipPercent: totalBalance > 0 ? (ta.amount / totalBalance) * 100 : 0,
+    }))
+    .sort((a, b) => b.balance - a.balance);
+}
+
 // ========== HELPERS ==========
 
 /**
