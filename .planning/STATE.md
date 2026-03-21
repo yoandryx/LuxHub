@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-03-20T01:22:50.000Z"
+stopped_at: Completed 02.1-04-PLAN.md
+last_updated: "2026-03-21T20:02:17.859Z"
 progress:
-  total_phases: 4
-  completed_phases: 1
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 5
+  completed_phases: 2
+  total_plans: 11
+  completed_plans: 9
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 02 — security-and-notification-hardening
+**Current focus:** Phase 02.1 — tokenomics-multi-treasury
 
 ## Current Position
 
-Phase: 02 (security-and-notification-hardening) — EXECUTING
-Plan: 4 of 4
+Phase: 02.1 (tokenomics-multi-treasury) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -50,6 +50,8 @@ Plan: 4 of 4
 | Phase 02 P02 | 8min | 2 tasks | 9 files |
 | Phase 02 P01 | 40min | 2 tasks | 36 files |
 | Phase 02 P03 | 25min | 2 tasks | 28 files |
+| Phase 02.1 P01 | 4min | 2 tasks | 7 files |
+| Phase 02.1 P04 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -75,6 +77,14 @@ Recent decisions affecting current work:
 - [Phase 02]: verifyTransactionEnhanced enforces expectedDestination for BOTH SOL and SPL paths
 - [Phase 02]: Sentry captureException uses spread operator for ErrorContext -> Extras type compat
 - [Phase 02]: vendor/apply.ts does not exist -- skipped in endpoint wrapping
+- [Phase 02.1]: Extracted buildDefaultClaimers to feeShareConfig.ts for Jest testability (API route imports break Jest)
+- [Phase 02.1]: Partner wallet lookup uses try/catch graceful fallback (optional config)
+- [Phase 02.1]: Used direct RPC getTokenAccountsByOwner from client for token balance instead of new API endpoint
+- [Phase 02.1]: All user-facing prohibited language replaced: invest->contribute, shares->tokens, investors->contributors, ROI->return
+
+### Roadmap Evolution
+
+- Phase 02.1 inserted after Phase 02: Tokenomics & Multi-Treasury (URGENT) — Implement full pool token lifecycle from tokenomics PDF + 3 separate treasury wallets for revenue tracking
 
 ### Pending Todos
 
@@ -87,5 +97,5 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T01:22:50Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-03-21T20:02:17.857Z
+Stopped at: Completed 02.1-04-PLAN.md
