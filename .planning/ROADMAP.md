@@ -85,10 +85,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Condition grading enum update, PriceRangeSlider, filter consolidation (UX-02, UX-03, UX-04)
-- [ ] 03-02-PLAN.md -- Image gallery and lightbox components, NftDetailCard integration (UX-01)
+- [ ] 03-01-PLAN.md -- Condition grading enum update, migration, PriceRangeSlider, filter consolidation (UX-02, UX-04)
+- [ ] 03-02-PLAN.md -- Image gallery and lightbox components, NftDetailCard integration, search integrity (UX-01, UX-03)
 - [ ] 03-03-PLAN.md -- Multi-image upload zone with drag-and-drop reorder, createNFT integration (UX-01)
-- [ ] 03-04-PLAN.md -- Mobile responsiveness: bottom sheet modals, filter drawer, responsive layouts (UX-05, UX-06)
+- [ ] 03-04-PLAN.md -- Mobile responsiveness: bottom sheet modals, FilterDrawer component, responsive layouts (UX-05, UX-06)
 
 ### Phase 4: Vendor Demo Readiness
 **Goal**: Every flow is polished and demo-ready for an in-person walkthrough with JC Gold Jewelers in Miami -- vendor onboarding, listing creation, pool tokenization, dashboard management, and admin approval all work smoothly
