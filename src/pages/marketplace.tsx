@@ -26,6 +26,7 @@ import styles from '../styles/Marketplace.module.css';
 import MakeOfferModal from '../components/marketplace/MakeOfferModal';
 import BuyModal from '../components/marketplace/BuyModal';
 import FilterSidebar, { FilterGroup } from '../components/marketplace/FilterSidebar';
+import FilterDrawer from '../components/marketplace/FilterDrawer';
 import PriceRangeSlider from '../components/marketplace/PriceRangeSlider';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import UnifiedNFTCard from '../components/common/UnifiedNFTCard';
@@ -510,6 +511,7 @@ export default function Marketplace() {
   const [activeSection, setActiveSection] = useState<MarketSection>('direct_sales');
   const [showFilters, setShowFilters] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -963,7 +965,10 @@ export default function Marketplace() {
               </button>
 
               {/* Mobile Filter Button */}
-              <button className={styles.mobileFilterBtn} onClick={() => setShowMobileFilters(true)}>
+              <button
+                className={`${styles.mobileFilterBtn} ${styles.mobileFilterButton}`}
+                onClick={() => setShowMobileFilters(true)}
+              >
                 <HiOutlineFilter />
                 {activeFilterCount > 0 && (
                   <span className={styles.filterBadge}>{activeFilterCount}</span>
@@ -1296,6 +1301,24 @@ export default function Marketplace() {
             </div>
           </div>
         </main>
+
+        {/* FilterDrawer (slide-in sidebar for mobile) */}
+        <FilterDrawer isOpen={filterDrawerOpen} onClose={() => setFilterDrawerOpen(false)}>
+          <FilterSidebar
+            groups={filterGroups}
+            activeCount={activeFilterCount}
+            onClearAll={clearFilters}
+            priceRangeSlot={
+              <PriceRangeSlider
+                min={0}
+                max={500000}
+                value={selectedPriceRange}
+                onChange={setSelectedPriceRange}
+                onChangeCommitted={setCommittedPriceRange}
+              />
+            }
+          />
+        </FilterDrawer>
 
         {/* Mobile Filter Modal */}
         <AnimatePresence>

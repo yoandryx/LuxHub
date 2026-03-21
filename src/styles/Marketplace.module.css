@@ -3884,3 +3884,23 @@
     rgba(185, 145, 255, 0.75)
   );
 }
+
+/* ==================== MOBILE FILTER BUTTON (Plan 04) ==================== */
+.mobileFilterButton {
+  /* Alias class for FilterDrawer trigger — styled via mobileFilterBtn */
+}
+
+/* ==================== RESPONSIVE GRID OVERRIDES (Plan 04) ==================== */
+@media screen and (max-width: 600px) {
+  .nftGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media screen and (min-width: 601px) and (max-width: 900px) {
+  .nftGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
