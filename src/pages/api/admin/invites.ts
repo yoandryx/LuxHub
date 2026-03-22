@@ -4,6 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import InviteCodeModel from '../../../lib/models/InviteCode';
 import VendorInterest from '../../../lib/models/VendorInterest';
+import { notifyUser } from '../../../lib/services/notificationService';
 import { v4 as uuidv4 } from 'uuid';
 
 const ADMIN_WALLETS = (process.env.ADMIN_WALLETS || '')
@@ -214,6 +215,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let emailResult = { sent: false, error: undefined as string | undefined };
     if (vendorEmail) {
       emailResult = await sendInviteEmail(vendorEmail, vendorName, link);
+    }
+
+    // Send in-app notification to vendor
+    try {
+      await notifyUser({
+        userWallet: vendorWallet,
+        type: 'vendor_invite_sent',
+        title: 'Complete Your Vendor Onboarding',
+        message: `You've been invited to become a LuxHub vendor! Click here to set up your profile and start listing.`,
+        metadata: {
+          actionUrl: link,
+        },
+        sendEmail: false,
+      });
+    } catch (notifErr) {
+      console.error('[admin/invites] In-app notification error (non-blocking):', notifErr);
     }
 
     return res.status(200).json({

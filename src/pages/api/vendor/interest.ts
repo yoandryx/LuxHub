@@ -1,8 +1,10 @@
 // src/pages/api/vendor/interest.ts
 // Save vendor interest submissions from /vendor/apply
+// Notifies admins in-app + notifies vendor with confirmation
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import VendorInterest from '../../../lib/models/VendorInterest';
+import { notifyUser, notifyNewVendorApplication } from '../../../lib/services/notificationService';
 import { z } from 'zod';
 import { apiLimiter } from '../../../lib/middleware/rateLimit';
 
@@ -50,6 +52,36 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       message: parsed.message.trim(),
       contact: parsed.contact?.trim() || null,
     });
+
+    // Notify admins about new application
+    try {
+      if (parsed.wallet) {
+        await notifyNewVendorApplication({
+          vendorName: parsed.name.trim(),
+          vendorWallet: parsed.wallet,
+          vendorUsername: parsed.name.trim().toLowerCase().replace(/\s+/g, ''),
+          primaryCategory: parsed.category || undefined,
+        });
+      }
+    } catch (notifErr) {
+      console.error('[vendor/interest] Admin notification error (non-blocking):', notifErr);
+    }
+
+    // Notify the vendor their application was received
+    try {
+      if (parsed.wallet) {
+        await notifyUser({
+          userWallet: parsed.wallet,
+          type: 'vendor_application_submitted',
+          title: 'Application Received',
+          message:
+            "Thanks for applying to sell on LuxHub! We're reviewing your application and will send you an invite to complete onboarding once approved.",
+          sendEmail: false,
+        });
+      }
+    } catch (notifErr) {
+      console.error('[vendor/interest] Vendor notification error (non-blocking):', notifErr);
+    }
 
     return res.status(200).json({
       success: true,

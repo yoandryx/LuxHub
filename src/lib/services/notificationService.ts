@@ -31,6 +31,8 @@ export type NotificationType =
   | 'pool_distribution_complete'
   | 'offer_auto_rejected'
   | 'vendor_application_received'
+  | 'vendor_application_submitted'
+  | 'vendor_invite_sent'
   | 'dispute_created'
   | 'delist_request_submitted';
 
@@ -174,6 +176,14 @@ const emailTemplates: Record<
   delist_request_submitted: {
     subject: () => 'New Delist Request - Action Required',
     getHtml: (p) => baseEmailTemplate(p, '#f59e0b'),
+  },
+  vendor_application_submitted: {
+    subject: () => 'Application Received - LuxHub',
+    getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
+  },
+  vendor_invite_sent: {
+    subject: () => "You're Invited to Sell on LuxHub",
+    getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
   },
 };
 
@@ -371,6 +381,8 @@ function getNotificationCategory(type: NotificationType): string {
     pool_snapshot_taken: 'poolUpdates',
     pool_distribution_complete: 'poolUpdates',
     vendor_application_received: 'securityAlerts',
+    vendor_application_submitted: 'securityAlerts',
+    vendor_invite_sent: 'securityAlerts',
     dispute_created: 'securityAlerts',
     delist_request_submitted: 'orderUpdates',
   };
