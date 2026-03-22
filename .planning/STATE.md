@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 260322-nmo quick task
-last_updated: "2026-03-22T21:08:44.928Z"
+stopped_at: Completed 260322-nwk quick task
+last_updated: "2026-03-22T21:24:07.379Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 5
@@ -133,8 +133,9 @@ None yet.
 | 260322-cpo | Fix prepare-mint 500 error: migrate Irys SDK + add diagnostic logging | 2026-03-22 | 16d7f53 | [260322-cpo-fix-prepare-mint-500-error-add-logging-m](./quick/260322-cpo-fix-prepare-mint-500-error-add-logging-m/) |
 | 260322-my2 | Fix offer button not showing (Escrow pre-save hook + NFT detail page) | 2026-03-22 | 710304a | [260322-my2-fix-offer-button-not-showing-and-buyer-a](./quick/260322-my2-fix-offer-button-not-showing-and-buyer-a/) |
 | 260322-nmo | Fix offer lifecycle notifications: vendor-specific helpers + buyer-respond rewiring | 2026-03-22 | cebf1fb | [260322-nmo-audit-fix-offer-buy-modal-shipping-notif](./quick/260322-nmo-audit-fix-offer-buy-modal-shipping-notif/) |
+| 260322-nwk | Rich offer emails with watch image + purple pulse navbar badge | 2026-03-22 | 55e6b68 | [260322-nwk-offer-notification-ux-emails-navbar-badg](./quick/260322-nwk-offer-notification-ux-emails-navbar-badg/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 260322-nmo quick task
+Stopped at: Completed 260322-nwk quick task
