@@ -15,6 +15,7 @@ const NftPage: React.FC = () => {
     null
   );
   const [sellerWallet, setSellerWallet] = useState<string | null>(null);
+  const [acceptingOffers, setAcceptingOffers] = useState(false);
 
   // Fetch basic metadata for OG tags (SEO / social sharing)
   useEffect(() => {
@@ -39,6 +40,7 @@ const NftPage: React.FC = () => {
         if (data?.escrows) {
           const listing = data.escrows.find((e: any) => e.nftMint === mint);
           if (listing?.sellerWallet) setSellerWallet(listing.sellerWallet);
+          if (listing?.acceptingOffers !== undefined) setAcceptingOffers(listing.acceptingOffers);
         }
       })
       .catch(() => {});
@@ -72,7 +74,7 @@ const NftPage: React.FC = () => {
         <div style={styles.cardWrapper}>
           <NftDetailCard
             mintAddress={mint}
-            acceptingOffers={!isOwnListing}
+            acceptingOffers={!isOwnListing && acceptingOffers}
             onBuy={isOwnListing ? undefined : () => router.push(`/marketplace?pay=${mint}`)}
             onOffer={isOwnListing ? undefined : () => router.push(`/marketplace?offer=${mint}`)}
             onClose={() => router.push('/marketplace')}
