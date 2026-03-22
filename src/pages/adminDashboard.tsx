@@ -2490,19 +2490,19 @@ const AdminDashboard: React.FC = () => {
     { id: 0, label: 'Escrow Config', icon: HiOutlineDatabase },
   ];
 
-  // Render sidebar nav item
-  const renderNavItem = (item: { id: number; label: string; icon: any; badge?: number }) => {
+  // Render horizontal tab item
+  const renderTabItem = (item: { id: number; label: string; icon: any; badge?: number }) => {
     const Icon = item.icon;
     return (
       <button
         key={item.id}
-        className={`${styles.navItem} ${tabIndex === item.id ? styles.active : ''}`}
+        className={`${styles.tabItem} ${tabIndex === item.id ? styles.tabItemActive : ''}`}
         onClick={() => setTabIndex(item.id)}
       >
-        <Icon className={styles.navIcon} />
+        <Icon className={styles.tabIcon} />
         <span>{item.label}</span>
         {item.badge !== undefined && item.badge > 0 && (
-          <span className={styles.navBadge}>{item.badge}</span>
+          <span className={styles.tabBadge}>{item.badge}</span>
         )}
       </button>
     );
@@ -2553,28 +2553,17 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className={styles.dashboard}>
-      {/* Sidebar Navigation */}
-      <aside className={styles.sidebar}>
-        <nav className={styles.sidebarNav}>
-          <div className={styles.navSection}>
-            <div className={styles.navSectionLabel}>Marketplace</div>
-            {navItems.map(renderNavItem)}
-          </div>
-
-          <div className={styles.navSection}>
-            <div className={styles.navSectionLabel}>NFT Management</div>
-            {nftNavItems.map(renderNavItem)}
-          </div>
-
-          <div className={styles.navSection}>
-            <div className={styles.navSectionLabel}>Security & Admin</div>
-            {securityNavItems.map(renderNavItem)}
-          </div>
-        </nav>
-      </aside>
-
       {/* Main Content Area */}
       <main className={styles.mainContent}>
+        {/* Horizontal Tab Bar */}
+        <div className={styles.tabBar}>
+          {navItems.map(renderTabItem)}
+          <div className={styles.tabDivider} />
+          {nftNavItems.map(renderTabItem)}
+          <div className={styles.tabDivider} />
+          {securityNavItems.map(renderTabItem)}
+        </div>
+
         <div className={styles.contentBody}>
           {/* Quick Stats Overview */}
           {tabIndex === 5 && (

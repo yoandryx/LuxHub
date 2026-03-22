@@ -144,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (existing) {
       const link = `${APP_URL}/vendor/onboard?invite=${existing.code}`;
-      let emailResult = { sent: false, error: undefined as string | undefined };
+      let emailResult: { sent: boolean; error?: string } = { sent: false };
 
       if (vendorEmail) {
         emailResult = await sendInviteEmail(vendorEmail, vendorName, link);
@@ -185,7 +185,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Send email notification
-    let emailResult = { sent: false, error: undefined as string | undefined };
+    let emailResult: { sent: boolean; error?: string } = { sent: false };
     if (vendorEmail) {
       emailResult = await sendInviteEmail(vendorEmail, vendorName, link);
     }
