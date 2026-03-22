@@ -233,113 +233,31 @@ interface EmailTemplateParams {
 
 function baseEmailTemplate(params: EmailTemplateParams, accentColor: string): string {
   const { title, message, actionUrl, type } = params;
-  const typeBadge = type.replace(/_/g, ' ').toUpperCase();
+  const typeBadge = params.eventBadge || type.replace(/_/g, ' ').toUpperCase();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #0d0d0d;
-      color: #ffffff;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background: linear-gradient(135deg, rgba(17, 17, 17, 0.95), rgba(13, 13, 13, 0.9));
-      border: 1px solid #222222;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .header {
-      background: linear-gradient(135deg, #c8a1ff 0%, #8b5cf6 100%);
-      padding: 30px;
-      text-align: center;
-    }
-    .header h1 {
-      margin: 0;
-      color: #ffffff;
-      font-size: 24px;
-      font-weight: 600;
-      letter-spacing: 2px;
-    }
-    .content {
-      padding: 40px 30px;
-    }
-    .type-badge {
-      display: inline-block;
-      background: ${accentColor}20;
-      color: ${accentColor};
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 20px;
-    }
-    .title {
-      font-size: 22px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      color: #ffffff;
-    }
-    .message {
-      font-size: 16px;
-      line-height: 1.7;
-      color: #a1a1a1;
-      margin-bottom: 30px;
-    }
-    .button {
-      display: inline-block;
-      background: linear-gradient(135deg, #c8a1ff 0%, #8b5cf6 100%);
-      color: #ffffff !important;
-      text-decoration: none;
-      padding: 14px 32px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 16px;
-    }
-    .footer {
-      padding: 30px;
-      text-align: center;
-      font-size: 14px;
-      color: #666666;
-      border-top: 1px solid #222222;
-    }
-    .footer a {
-      color: #c8a1ff;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>LUXHUB</h1>
-    </div>
-    <div class="content">
-      <div class="type-badge">${typeBadge}</div>
-      <div class="title">${title}</div>
-      <div class="message">${message}</div>
-      ${actionUrl ? `<a href="${actionUrl}" class="button">View Details</a>` : ''}
-    </div>
-    <div class="footer">
-      <p>Decentralized Luxury Marketplace on Solana</p>
-      <p style="font-size: 12px; margin-top: 10px;">
-        You received this email because you have notifications enabled on your LuxHub account.
-      </p>
-    </div>
-  </div>
-</body>
-</html>
-  `.trim();
+  return `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
+<style>:root{color-scheme:dark only;}body,html{background-color:#050507!important;}u+.body{background-color:#050507!important;}[data-ogsc] body{background-color:#050507!important;}@media(prefers-color-scheme:light){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}@media(prefers-color-scheme:dark){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}</style></head>
+<body class="cbg" style="margin:0;padding:0;background-color:#050507;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<div style="display:none;font-size:0;color:#050507;line-height:0;max-height:0;overflow:hidden;">${title}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="cbg" style="background-color:#050507;">
+<tr><td align="center" style="padding:48px 16px 40px;background-color:#050507;">
+<table role="presentation" width="560" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;width:100%;">
+<tr><td align="center" style="padding-bottom:44px;"><img src="${appUrl}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" /></td></tr>
+<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;">
+<div style="height:2px;background:linear-gradient(90deg,transparent 5%,#c8a1ff 30%,#a855f7 50%,#c8a1ff 70%,transparent 95%);"></div>
+<div style="padding:48px 44px 40px;">
+<div style="display:inline-block;background:${accentColor}20;color:${accentColor};padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:24px;">${typeBadge}</div>
+${params.imageUrl ? `<div style="text-align:center;margin:0 0 24px;"><div style="display:inline-block;border-radius:12px;overflow:hidden;border:1px solid rgba(200,161,255,0.15);"><img src="${params.imageUrl}" alt="${title}" style="display:block;max-width:280px;width:100%;object-fit:cover;" /></div></div>` : ''}
+<p class="t1" style="font-size:20px;font-weight:600;margin:0 0 12px;color:#ffffff;">${title}</p>
+<p class="t2" style="font-size:15px;line-height:1.75;color:#e0e0e0;margin:0 0 28px;">${message}</p>
+${actionUrl ? `<div style="text-align:center;margin:0 0 12px;"><a href="${actionUrl}" style="display:inline-block;min-width:200px;padding:16px 44px;background:linear-gradient(135deg,rgba(200,161,255,0.12),rgba(168,85,247,0.08));border:1px solid #c8a1ff50;color:#c8a1ff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;">${params.ctaText || 'View Details'}</a></div>` : ''}
+</div></td></tr>
+<tr><td style="padding:36px 16px 0;text-align:center;"><p style="margin:0;font-size:11px;color:#555555;"><a href="https://luxhub.gold" style="color:#777;text-decoration:none;">luxhub.gold</a>&nbsp;&nbsp;&#183;&nbsp;&nbsp;<a href="https://x.com/LuxHubStudio" style="color:#777;text-decoration:none;">@LuxHubStudio</a></p></td></tr>
+</table></td></tr></table></body></html>`.trim();
 }
 
 function offerEmailTemplate(params: EmailTemplateParams, accentColor: string): string {
@@ -360,76 +278,32 @@ function offerEmailTemplate(params: EmailTemplateParams, accentColor: string): s
   const truncWallet = counterpartyWallet
     ? `${counterpartyWallet.slice(0, 6)}...${counterpartyWallet.slice(-4)}`
     : '';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #050507; color: #ffffff; margin: 0; padding: 0;">
-  <div style="max-width: 600px; margin: 40px auto; background: linear-gradient(135deg, rgba(17,17,17,0.95), rgba(13,13,13,0.9)); border: 1px solid rgba(200,161,255,0.15); border-radius: 16px; overflow: hidden;">
-    <!-- Header -->
-    <div style="background: linear-gradient(135deg, #c8a1ff 0%, #8b5cf6 100%); padding: 28px; text-align: center;">
-      <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 600; letter-spacing: 3px;">LUXHUB</h1>
-    </div>
-    <!-- Content -->
-    <div style="padding: 36px 30px;">
-      <!-- Event badge -->
-      <div style="display: inline-block; background: ${accentColor}20; color: ${accentColor}; padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 24px;">${badge}</div>
-      ${
-        imageUrl
-          ? `
-      <!-- Asset image -->
-      <div style="text-align: center; margin-bottom: 24px;">
-        <img src="${imageUrl}" alt="Asset" style="max-width: 280px; width: 100%; border-radius: 12px; border: 1px solid rgba(200,161,255,0.15); display: block; margin: 0 auto;" />
-      </div>`
-          : ''
-      }
-      <!-- Title -->
-      <div style="font-size: 20px; font-weight: 600; margin-bottom: 12px; color: #ffffff;">${title}</div>
-      ${
-        amountUSD !== undefined
-          ? `
-      <!-- Amount -->
-      <div style="margin-bottom: 16px;">
-        <span style="font-size: 13px; color: #a1a1a1; text-transform: uppercase; letter-spacing: 0.5px;">${amountLabel || 'Amount'}</span>
-        <div style="font-size: 28px; font-weight: 700; color: #c8a1ff; margin-top: 4px;">$${amountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</div>
-      </div>`
-          : ''
-      }
-      ${
-        counterpartyWallet
-          ? `
-      <!-- Counterparty -->
-      <div style="margin-bottom: 20px; padding: 10px 14px; background: rgba(200,161,255,0.06); border-radius: 8px; border: 1px solid rgba(200,161,255,0.08);">
-        <span style="font-size: 12px; color: #a1a1a1;">${counterpartyLabel || 'Wallet'}</span>
-        <div style="font-size: 14px; color: #ffffff; font-family: 'SF Mono', 'Fira Code', monospace; margin-top: 2px;">${truncWallet}</div>
-      </div>`
-          : ''
-      }
-      <!-- Message -->
-      <div style="font-size: 15px; line-height: 1.7; color: #a1a1a1; margin-bottom: 28px;">${message}</div>
-      ${
-        actionUrl
-          ? `
-      <!-- CTA -->
-      <div style="text-align: center;">
-        <a href="${actionUrl}" style="display: inline-block; background: linear-gradient(135deg, #c8a1ff 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; padding: 14px 36px; border-radius: 8px; font-weight: 600; font-size: 15px;">${ctaText || 'View Details'}</a>
-      </div>`
-          : ''
-      }
-    </div>
-    <!-- Footer -->
-    <div style="padding: 24px 30px; text-align: center; font-size: 13px; color: #666666; border-top: 1px solid rgba(200,161,255,0.08);">
-      <p style="margin: 0 0 8px 0;">Decentralized Luxury Marketplace on Solana</p>
-      <p style="margin: 0; font-size: 11px;">You received this email because you have notifications enabled on your LuxHub account.</p>
-    </div>
-  </div>
-</body>
-</html>
-  `.trim();
+  return `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
+<style>:root{color-scheme:dark only;}body,html{background-color:#050507!important;}u+.body{background-color:#050507!important;}[data-ogsc] body{background-color:#050507!important;}@media(prefers-color-scheme:light){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}@media(prefers-color-scheme:dark){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}</style></head>
+<body class="cbg" style="margin:0;padding:0;background-color:#050507;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<div style="display:none;font-size:0;color:#050507;line-height:0;max-height:0;overflow:hidden;">${title}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="cbg" style="background-color:#050507;">
+<tr><td align="center" style="padding:48px 16px 40px;background-color:#050507;">
+<table role="presentation" width="560" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;width:100%;">
+<tr><td align="center" style="padding-bottom:44px;"><img src="${appUrl}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" /></td></tr>
+<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;">
+<div style="height:2px;background:linear-gradient(90deg,transparent 5%,#c8a1ff 30%,#a855f7 50%,#c8a1ff 70%,transparent 95%);"></div>
+<div style="padding:48px 44px 40px;">
+<div style="display:inline-block;background:${accentColor}20;color:${accentColor};padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:24px;">${badge}</div>
+${imageUrl ? `<div style="text-align:center;margin:0 0 24px;"><div style="display:inline-block;border-radius:12px;overflow:hidden;border:1px solid rgba(200,161,255,0.15);"><img src="${imageUrl}" alt="Asset" style="display:block;max-width:280px;width:100%;object-fit:cover;" /></div></div>` : ''}
+<p class="t1" style="font-size:20px;font-weight:600;margin:0 0 12px;color:#ffffff;">${title}</p>
+${amountUSD !== undefined ? `<div style="margin:0 0 16px;"><span style="font-size:13px;color:#a1a1a1;text-transform:uppercase;letter-spacing:0.5px;">${amountLabel || 'Amount'}</span><div style="font-size:28px;font-weight:700;color:#c8a1ff;margin-top:4px;">$${amountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</div></div>` : ''}
+${counterpartyWallet ? `<div style="margin:0 0 20px;padding:10px 14px;background:rgba(200,161,255,0.06);border-radius:8px;border:1px solid rgba(200,161,255,0.08);"><span style="font-size:12px;color:#a1a1a1;">${counterpartyLabel || 'Wallet'}</span><div style="font-size:14px;color:#ffffff;font-family:'SF Mono','Fira Code',monospace;margin-top:2px;">${truncWallet}</div></div>` : ''}
+<p class="t2" style="font-size:15px;line-height:1.75;color:#e0e0e0;margin:0 0 28px;">${message}</p>
+${actionUrl ? `<div style="text-align:center;margin:0 0 12px;"><a href="${actionUrl}" style="display:inline-block;min-width:200px;padding:16px 44px;background:linear-gradient(135deg,rgba(200,161,255,0.12),rgba(168,85,247,0.08));border:1px solid #c8a1ff50;color:#c8a1ff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;">${ctaText || 'View Details'}</a></div>` : ''}
+</div></td></tr>
+<tr><td style="padding:36px 16px 0;text-align:center;"><p style="margin:0;font-size:11px;color:#555555;"><a href="https://luxhub.gold" style="color:#777;text-decoration:none;">luxhub.gold</a>&nbsp;&nbsp;&#183;&nbsp;&nbsp;<a href="https://x.com/LuxHubStudio" style="color:#777;text-decoration:none;">@LuxHubStudio</a></p></td></tr>
+</table></td></tr></table></body></html>`.trim();
 }
 
 // ========== RESEND EMAIL SENDER ==========
