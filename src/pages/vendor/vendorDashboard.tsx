@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { VendorProfile } from '../../lib/models/VendorProfile';
 import EmailPromptBanner from '../../components/common/EmailPromptBanner';
 import styles from '../../styles/VendorDashboard.module.css';
@@ -94,7 +94,7 @@ interface DashboardMetrics {
 type TabId = 'dashboard' | 'inventory' | 'orders' | 'offers' | 'payouts' | 'profile';
 
 const VendorDashboard = () => {
-  const { publicKey } = useWallet();
+  const { publicKey } = useEffectiveWallet();
   const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);

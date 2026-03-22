@@ -4,13 +4,13 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { NftDetailCard } from '../../components/marketplace/NftDetailCard';
 
 const NftPage: React.FC = () => {
   const router = useRouter();
   const { mint } = router.query;
-  const { publicKey } = useWallet();
+  const { publicKey } = useEffectiveWallet();
   const [ogData, setOgData] = useState<{ name: string; image: string; description: string } | null>(
     null
   );

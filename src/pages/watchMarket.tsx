@@ -1,6 +1,7 @@
 // src/pages/WatchMarket.tsx
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import WalletGuide from '../components/common/WalletGuide';
 import {
   PublicKey,
@@ -229,7 +230,7 @@ const MOCK_POOLS: Pool[] = [
     _id: 'pool_001',
     title: 'Rolex Daytona Rainbow',
     description:
-      'Limited edition Daytona with factory-set sapphires. Investment pool for fractional ownership.',
+      'Limited edition Daytona with factory-set sapphires. Tokenized pool for collective access.',
     image: '/images/rolex-daytona-rainbow.jpg',
     targetAmountUSD: 250000,
     currentAmountUSD: 187500,
@@ -292,7 +293,7 @@ const MOCK_CUSTODY: CustodyItem[] = [
     poolId: 'completed_pool_001',
     title: 'Rolex Daytona Rainbow',
     description:
-      'Pool fully funded. Watch verified and secured in LuxHub vault. Listed for profit distribution.',
+      'Pool fully funded. Watch verified and secured in LuxHub vault. Listed for proceeds distribution.',
     image: '/images/rolex-daytona-rainbow.jpg',
     originalPurchaseUSD: 250000,
     resaleListingPriceUSD: 295000,
@@ -324,6 +325,7 @@ const MOCK_CUSTODY: CustodyItem[] = [
 
 const Marketplace = () => {
   const wallet = useWallet();
+  const { publicKey: effectivePublicKey, connected: effectiveConnected } = useEffectiveWallet();
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [loadingMint, setLoadingMint] = useState<string | null>(null);
@@ -454,10 +456,7 @@ const Marketplace = () => {
   }, [custodyItems, filters.brands, searchQuery, sortOption]);
 
   // Create a connection to the configured cluster endpoint
-  const connection = useMemo(
-    () => new Connection(getClusterConfig().endpoint),
-    []
-  );
+  const connection = useMemo(() => new Connection(getClusterConfig().endpoint), []);
 
   const metaplex = useMemo(() => {
     if (wallet.publicKey) {
@@ -667,11 +666,11 @@ const Marketplace = () => {
   const handleWalletConnected = useCallback(() => {
     setShowWalletModal(false);
     // If there was a pending purchase, proceed with it
-    if (pendingPurchaseNft && wallet.publicKey) {
+    if (pendingPurchaseNft && effectivePublicKey) {
       handlePurchase(pendingPurchaseNft);
       setPendingPurchaseNft(null);
     }
-  }, [pendingPurchaseNft, wallet.publicKey]);
+  }, [pendingPurchaseNft, effectivePublicKey]);
 
   // Handle making an offer
   const handleMakeOffer = (nft: NFT) => {
@@ -683,7 +682,7 @@ const Marketplace = () => {
       return;
     }
 
-    if (!wallet.connected) {
+    if (!effectiveConnected) {
       setShowWalletModal(true);
       return;
     }
@@ -828,7 +827,7 @@ const Marketplace = () => {
   return (
     <div className={styles.container}>
       {/* Wallet Connection Banner - show when not connected */}
-      {!wallet.connected && (
+      {!effectiveConnected && (
         <div className={styles.walletBanner}>
           <div className={styles.walletBannerContent}>
             <span>Connect your wallet to purchase NFTs and make offers</span>
@@ -959,7 +958,7 @@ const Marketplace = () => {
           onClick={() => setActiveSection('pools')}
         >
           <FaUsers className={styles.tabIcon} />
-          <span>Investment Pools</span>
+          <span>Tokenized Pools</span>
           <span className={styles.tabCount}>{filteredPools.length}</span>
         </button>
         <button
@@ -1040,10 +1039,7 @@ const Marketplace = () => {
                       <button
                         className={styles.contactBtn}
                         onClick={() =>
-                          window.open(
-                            getClusterConfig().explorerUrl(nft.currentOwner),
-                            '_blank'
-                          )
+                          window.open(getClusterConfig().explorerUrl(nft.currentOwner), '_blank')
                         }
                       >
                         Contact
@@ -1102,15 +1098,15 @@ const Marketplace = () => {
       )}
 
       {/* ============================================
-          INVESTMENT POOLS SECTION
+          TOKENIZED POOLS SECTION
           ============================================ */}
       {activeSection === 'pools' && (
         <>
           <div className={styles.sectionHeader}>
-            <h3>Fractional Investment Pools</h3>
+            <h3>Tokenized Access Pools</h3>
             <p className={styles.sectionDescription}>
-              Invest in luxury timepieces with fractional ownership. Join pools to share in future
-              resale profits.
+              Participate in luxury timepieces with tokenized access. Join pools to share in future
+              resale proceeds.
             </p>
           </div>
 
@@ -1135,7 +1131,7 @@ const Marketplace = () => {
           ) : filteredPools.length === 0 ? (
             <div className={styles.emptyState}>
               <h3>No active pools</h3>
-              <p>New investment opportunities coming soon</p>
+              <p>New pool opportunities coming soon</p>
             </div>
           ) : (
             <div className={styles.poolGrid}>
@@ -1199,7 +1195,7 @@ const Marketplace = () => {
                             <span className={styles.statValue}>
                               {pool.currentInvestors}/{pool.maxInvestors}
                             </span>
-                            <span className={styles.statLabel}>investors</span>
+                            <span className={styles.statLabel}>participants</span>
                           </div>
                         </div>
                         <div className={styles.poolStat}>
@@ -1208,7 +1204,7 @@ const Marketplace = () => {
                             <span className={styles.statValue}>
                               {((pool.projectedROI - 1) * 100).toFixed(0)}%
                             </span>
-                            <span className={styles.statLabel}>projected ROI</span>
+                            <span className={styles.statLabel}>estimated value</span>
                           </div>
                         </div>
                       </div>
@@ -1219,16 +1215,16 @@ const Marketplace = () => {
                         onClick={() => {
                           if (isDemo) {
                             alert(
-                              `This is a demo pool for "${pool.title}". Real investment pools will be available soon.\n\nMin investment: $${pool.minBuyInUSD.toLocaleString()}`
+                              `This is a demo pool for "${pool.title}". Real pools will be available soon.\n\nMin contribution: $${pool.minBuyInUSD.toLocaleString()}`
                             );
-                          } else if (!wallet.connected) {
+                          } else if (!effectiveConnected) {
                             setShowWalletModal(true);
                           } else {
                             window.location.href = `/pool/${pool._id}`;
                           }
                         }}
                       >
-                        Invest Now
+                        Join Now
                       </button>
                     </div>
                   </div>
@@ -1248,7 +1244,7 @@ const Marketplace = () => {
             <h3>LuxHub Custody - Ready for Resale</h3>
             <p className={styles.sectionDescription}>
               Fully funded pools with verified watches in LuxHub secure storage. Purchase to
-              distribute profits to investors.
+              distribute proceeds to participants.
             </p>
           </div>
 
@@ -1323,11 +1319,11 @@ const Marketplace = () => {
                       <div className={styles.custodyStats}>
                         <div className={styles.custodyStat}>
                           <FaUsers className={styles.statIcon} />
-                          <span>{item.totalInvestors} investors</span>
+                          <span>{item.totalInvestors} participants</span>
                         </div>
                         <div className={styles.profitBadge}>
                           <FaChartLine className={styles.statIcon} />
-                          <span>+{item.projectedProfitPercent.toFixed(1)}% profit</span>
+                          <span>+{item.projectedProfitPercent.toFixed(1)}% gain</span>
                         </div>
                       </div>
 
@@ -1337,9 +1333,9 @@ const Marketplace = () => {
                         onClick={() => {
                           if (isDemo) {
                             alert(
-                              `This is a demo custody item for "${item.title}".\n\nPurchasing this watch will distribute $${item.resaleListingPriceUSD.toLocaleString()} among ${item.totalInvestors} investors.`
+                              `This is a demo custody item for "${item.title}".\n\nPurchasing this watch will distribute $${item.resaleListingPriceUSD.toLocaleString()} among ${item.totalInvestors} participants.`
                             );
-                          } else if (!wallet.connected) {
+                          } else if (!effectiveConnected) {
                             setShowWalletModal(true);
                           } else {
                             // Navigate to custody purchase page
@@ -1347,7 +1343,7 @@ const Marketplace = () => {
                           }
                         }}
                       >
-                        Purchase & Distribute Profits
+                        Purchase & Distribute Proceeds
                       </button>
                     </div>
                   </div>

@@ -7,7 +7,7 @@ import Head from 'next/head';
 import styles from '../../styles/VendorProfilePage.module.css';
 import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 import NFTCard from '../../components/marketplace/NFTCard';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { SiSolana } from 'react-icons/si';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import {
@@ -91,7 +91,7 @@ interface ProfileData {
 const UserProfilePage = () => {
   const router = useRouter();
   const { wallet: routeWallet } = router.query;
-  const connectedWallet = useWallet();
+  const { publicKey: connectedPublicKey } = useEffectiveWallet();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +99,7 @@ const UserProfilePage = () => {
   const [activeTab, setActiveTab] = useState<'nfts' | 'pools'>('nfts');
 
   const walletStr = typeof routeWallet === 'string' ? routeWallet : '';
-  const isOwnProfile = connectedWallet.publicKey?.toBase58() === walletStr;
+  const isOwnProfile = connectedPublicKey?.toBase58() === walletStr;
   const [gradientA, gradientB] = useMemo(() => getWalletGradient(walletStr), [walletStr]);
 
   useEffect(() => {
@@ -323,7 +323,7 @@ const UserProfilePage = () => {
                   <span className={styles.statValue}>
                     ${data.stats.totalPoolInvested.toFixed(0)}
                   </span>
-                  <span className={styles.statLabel}>Invested</span>
+                  <span className={styles.statLabel}>Contributed</span>
                 </div>
               </div>
             </div>
@@ -399,8 +399,8 @@ const UserProfilePage = () => {
               {data.pools.length === 0 && (
                 <div className={styles.emptyState}>
                   <FiPieChart className={styles.emptyIcon} />
-                  <h3>No pool investments yet</h3>
-                  <p>This wallet hasn&apos;t invested in any pools</p>
+                  <h3>No pool contributions yet</h3>
+                  <p>This wallet hasn&apos;t contributed to any pools</p>
                 </div>
               )}
               {data.pools.map((pool, index) => (

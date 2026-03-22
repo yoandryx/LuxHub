@@ -6,7 +6,7 @@ import { useMemo, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth/solana';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, Transaction } from '@solana/web3.js';
 
 function isValidSolanaAddress(address: string | undefined): boolean {
   if (!address) return false;
@@ -44,6 +44,20 @@ export function useEffectiveWallet() {
     return null;
   }, [walletAdapterPublicKey, authenticated, walletsReady, privyWallet]);
 
+  // Bridge Privy signTransaction to match wallet adapter signature
+  const signTransaction = useCallback(
+    async (tx: Transaction): Promise<Transaction> => {
+      if (walletAdapterSignTransaction) {
+        return walletAdapterSignTransaction(tx);
+      }
+      if (usingPrivy && privyWallet) {
+        return (privyWallet as any).signTransaction(tx);
+      }
+      throw new Error('No wallet available for transaction signing');
+    },
+    [walletAdapterSignTransaction, usingPrivy, privyWallet]
+  );
+
   // Bridge Privy signMessage to match wallet adapter signature: (message: Uint8Array) => Promise<Uint8Array>
   const signMessage = useCallback(
     async (message: Uint8Array): Promise<Uint8Array> => {
@@ -62,7 +76,7 @@ export function useEffectiveWallet() {
   return {
     publicKey: effectivePublicKey,
     connected: connected || (authenticated && !!effectivePublicKey),
-    signTransaction: walletAdapterSignTransaction,
+    signTransaction: effectivePublicKey ? signTransaction : undefined,
     signMessage: effectivePublicKey ? signMessage : undefined,
     source: walletAdapterPublicKey ? ('wallet-adapter' as const) : ('privy' as const),
   };

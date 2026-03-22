@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import {
   FaBell,
   FaEnvelope,
@@ -36,7 +36,7 @@ const DEFAULT_PREFS: NotificationPrefs = {
 };
 
 export default function SettingsPage() {
-  const { publicKey } = useWallet();
+  const { publicKey } = useEffectiveWallet();
   const wallet = publicKey?.toBase58();
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);

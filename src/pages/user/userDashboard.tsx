@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import EmailPromptBanner from '../../components/common/EmailPromptBanner';
 import styles from '../../styles/UserDashboard.module.css'; // Adjust path as needed
 
@@ -18,7 +18,7 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const router = useRouter();
-  const { publicKey } = useWallet();
+  const { publicKey } = useEffectiveWallet();
 
   useEffect(() => {
     const fetchListings = async () => {

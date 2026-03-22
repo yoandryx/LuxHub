@@ -1,10 +1,7 @@
 // src/pages/notifications.tsx
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { usePrivy } from '@privy-io/react-auth';
-import { useWallets } from '@privy-io/react-auth/solana';
-import { PublicKey } from '@solana/web3.js';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { FaBell, FaCheck, FaFilter } from 'react-icons/fa';
 import styles from '../styles/Notifications.module.css';
 
@@ -40,20 +37,13 @@ const typeConfig: Record<string, { label: string; color: string }> = {
   vendor_rejected: { label: 'Rejected', color: '#ef4444' },
   sale_request_approved: { label: 'Approved', color: '#22c55e' },
   sale_request_rejected: { label: 'Rejected', color: '#ef4444' },
-  pool_investment: { label: 'Investment', color: '#c8a1ff' },
+  pool_investment: { label: 'Contribution', color: '#c8a1ff' },
   pool_distribution: { label: 'Distribution', color: '#22c55e' },
 };
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const wallet = useWallet();
-  const { authenticated } = usePrivy();
-  const { wallets: privyWallets } = useWallets();
-  const privyWalletAddress = privyWallets?.[0]?.address;
-
-  const activePublicKey =
-    wallet.publicKey || (privyWalletAddress ? new PublicKey(privyWalletAddress) : null);
-  const isConnected = wallet.connected || (authenticated && !!privyWalletAddress);
+  const { publicKey, connected } = useEffectiveWallet();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,13 +54,13 @@ export default function NotificationsPage() {
   // Fetch notifications
   useEffect(() => {
     const fetchNotifications = async () => {
-      if (!activePublicKey) {
+      if (!publicKey) {
         setLoading(false);
         return;
       }
 
       try {
-        const walletAddress = activePublicKey.toBase58();
+        const walletAddress = publicKey.toBase58();
         const params = new URLSearchParams({
           wallet: walletAddress,
           limit: '50',
@@ -96,7 +86,7 @@ export default function NotificationsPage() {
     };
 
     fetchNotifications();
-  }, [activePublicKey, filter, typeFilter]);
+  }, [publicKey, filter, typeFilter]);
 
   // Mark notification as read
   const handleMarkAsRead = async (notificationId: string) => {
@@ -118,13 +108,13 @@ export default function NotificationsPage() {
 
   // Mark all as read
   const handleMarkAllAsRead = async () => {
-    if (!activePublicKey) return;
+    if (!publicKey) return;
 
     try {
       await fetch('/api/notifications/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wallet: activePublicKey.toBase58(), markAll: true }),
+        body: JSON.stringify({ wallet: publicKey.toBase58(), markAll: true }),
       });
 
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -164,7 +154,7 @@ export default function NotificationsPage() {
   // Get unique notification types from current notifications
   const availableTypes = Array.from(new Set(notifications.map((n) => n.type)));
 
-  if (!isConnected) {
+  if (!connected) {
     return (
       <div className={styles.container}>
         <div className={styles.emptyState}>
