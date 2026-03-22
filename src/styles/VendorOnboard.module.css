@@ -855,7 +855,96 @@
   line-height: 1.5;
 }
 
-/* ========== SUCCESS SCREEN ========== */
+/* ========== WALLET DISCONNECT BANNER ========== */
+.walletDisconnectBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  color: #fbbf24;
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 16px;
+}
+
+/* ========== PENDING APPROVAL SUCCESS STATE ========== */
+.pendingApproval {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 2rem;
+  gap: 1rem;
+  min-height: 400px;
+}
+
+.pendingApproval .successIcon {
+  font-size: 48px;
+  color: #4ade80;
+}
+
+.pendingApproval h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.pendingApproval p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 360px;
+  margin: 0;
+}
+
+.pendingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  animation: pendingPulse 2s ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.dashboardBtn {
+  background: transparent;
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.dashboardBtn:hover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* ========== SUCCESS SCREEN (Legacy) ========== */
 .successScreen {
   text-align: center;
   padding: 40px 20px;
@@ -878,6 +967,44 @@
   color: var(--text-secondary);
   margin-bottom: 24px;
   line-height: 1.5;
+}
+
+/* ========== MOBILE RESPONSIVE (600px) ========== */
+@media screen and (max-width: 600px) {
+  .wizardCard {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .navButtons {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .nextButton,
+  .submitButton,
+  .backButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pendingApproval {
+    padding: 2rem 1rem;
+    min-height: 300px;
+  }
+
+  .stepLabel {
+    display: none !important;
+  }
+
+  .stepConnector {
+    width: 24px;
+  }
+
+  .walletDisconnectBanner {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
 }
 
 /* ========== UTILITY ========== */
