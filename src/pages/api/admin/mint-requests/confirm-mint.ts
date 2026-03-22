@@ -329,18 +329,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             from: fromEmail,
             to: [vendorUser.email],
             subject: `Your ${mintRequest.title} is now live on LuxHub`,
-            html: `<div style="font-family:sans-serif;background:#050507;color:#e0e0e0;padding:32px;max-width:600px;margin:0 auto;">
-              <h2 style="color:#c8a1ff;margin:0 0 8px;">Your NFT is Live</h2>
-              <p style="color:#999;margin:0 0 20px;">Minted, verified, and listed on the marketplace.</p>
-              ${imageUrl ? `<div style="margin:0 0 20px;border-radius:12px;overflow:hidden;border:1px solid #222;"><img src="${imageUrl}" alt="${mintRequest.title}" style="width:100%;max-height:320px;object-fit:cover;display:block;" /></div>` : ''}
-              <p style="font-size:18px;margin:0 0 8px;"><strong>${mintRequest.title}</strong></p>
-              <p style="color:#c8a1ff;font-size:20px;margin:0 0 12px;font-weight:600;">$${Number(mintRequest.priceUSD).toLocaleString()} USD</p>
-              <p style="color:#999;margin:0 0 4px;">Mint: <code style="background:#111;padding:2px 6px;border-radius:4px;font-size:12px;">${mintAddress.slice(0, 12)}...${mintAddress.slice(-4)}</code></p>
-              <div style="margin-top:20px;">
-                <a href="${appUrl}/nft/${mintAddress}" style="display:inline-block;padding:12px 28px;background:rgba(200,161,255,0.1);border:1px solid #c8a1ff50;color:#c8a1ff;border-radius:8px;text-decoration:none;font-weight:600;margin-right:8px;">View Listing</a>
-                <a href="${appUrl}/vendor/vendorDashboard" style="display:inline-block;padding:12px 28px;background:rgba(255,255,255,0.03);border:1px solid #333;color:#999;border-radius:8px;text-decoration:none;">Dashboard</a>
-              </div>
-            </div>`,
+            html: `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
+<style>:root{color-scheme:dark only;}body,html{background-color:#050507!important;}u+.body{background-color:#050507!important;}[data-ogsc] body{background-color:#050507!important;}@media(prefers-color-scheme:light){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}@media(prefers-color-scheme:dark){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}</style></head>
+<body class="cbg" style="margin:0;padding:0;background-color:#050507;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<div style="display:none;font-size:0;color:#050507;line-height:0;max-height:0;overflow:hidden;">Your ${mintRequest.title} is now live on LuxHub&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="cbg" style="background-color:#050507;">
+<tr><td align="center" style="padding:48px 16px 40px;background-color:#050507;">
+<table role="presentation" width="560" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;width:100%;">
+<tr><td align="center" style="padding-bottom:44px;"><img src="${appUrl}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" /></td></tr>
+<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;">
+<div style="height:2px;background:linear-gradient(90deg,transparent 5%,#c8a1ff 30%,#a855f7 50%,#c8a1ff 70%,transparent 95%);"></div>
+<div style="padding:48px 44px 40px;">
+<p class="t1" style="margin:0 0 8px;font-size:18px;font-weight:600;color:#ffffff;">Your NFT is Live</p>
+<p class="t3" style="margin:0 0 24px;font-size:14px;color:#999999;">Minted, verified, and listed on the marketplace.</p>
+${imageUrl ? `<div style="text-align:center;margin:0 0 24px;"><div style="display:inline-block;border-radius:12px;overflow:hidden;border:1px solid rgba(200,161,255,0.15);"><img src="${imageUrl}" alt="${mintRequest.title}" style="display:block;max-width:280px;width:100%;object-fit:cover;" /></div></div>` : ''}
+<p class="t1" style="margin:0 0 8px;font-size:18px;color:#ffffff;">${mintRequest.title}</p>
+<p style="margin:0 0 12px;font-size:20px;font-weight:600;color:#c8a1ff;">$${Number(mintRequest.priceUSD).toLocaleString()} USD</p>
+<p class="t3" style="margin:0 0 24px;font-size:13px;color:#999999;">Mint: <code style="background:#111;padding:2px 6px;border-radius:4px;font-size:12px;color:#999;">${mintAddress.slice(0, 12)}...${mintAddress.slice(-4)}</code></p>
+<div style="text-align:center;margin:0 0 12px;">
+<a href="${appUrl}/nft/${mintAddress}" style="display:inline-block;min-width:160px;padding:16px 36px;background:linear-gradient(135deg,rgba(200,161,255,0.12),rgba(168,85,247,0.08));border:1px solid #c8a1ff50;color:#c8a1ff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;margin-right:8px;">View Listing</a>
+<a href="${appUrl}/vendor/vendorDashboard" style="display:inline-block;min-width:120px;padding:16px 36px;background:rgba(255,255,255,0.03);border:1px solid #333;color:#999;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;">Dashboard</a>
+</div>
+</div></td></tr>
+<tr><td style="padding:36px 16px 0;text-align:center;"><p style="margin:0;font-size:11px;color:#555555;"><a href="https://luxhub.gold" style="color:#777;text-decoration:none;">luxhub.gold</a>&nbsp;&nbsp;&#183;&nbsp;&nbsp;<a href="https://x.com/LuxHubStudio" style="color:#777;text-decoration:none;">@LuxHubStudio</a></p></td></tr>
+</table></td></tr></table></body></html>`,
           }),
         }).catch((err) => console.error('[confirm-mint] Vendor email error:', err));
       }

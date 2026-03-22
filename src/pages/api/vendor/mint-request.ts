@@ -175,25 +175,86 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: 'pending',
       });
 
-      // Notify admins about new mint request (best-effort)
+      // Notify admins about new mint request + send email
       try {
-        const adminConfig = getAdminConfig();
-        const adminWallets = adminConfig.adminWallets;
-        const uniqueAdmins = [...new Set(adminWallets)];
-        await Promise.all(
-          uniqueAdmins.map(
-            (adminWallet) =>
-              notifyUser({
-                userWallet: adminWallet,
-                type: 'mint_request_submitted',
-                title: 'New Mint Request',
-                message: `${brand} ${model} submitted by vendor ${wallet.slice(0, 8)}...`,
-                metadata: { actionUrl: '/adminDashboard' },
-              }).catch(() => {}) // best-effort
-          )
+        const adminWalletList = (process.env.ADMIN_WALLETS || '')
+          .split(',')
+          .map((w) => w.trim())
+          .filter(Boolean);
+        const superAdminList = (process.env.SUPER_ADMIN_WALLETS || '')
+          .split(',')
+          .map((w) => w.trim())
+          .filter(Boolean);
+        const allAdmins = [...new Set([...adminWalletList, ...superAdminList])];
+        console.log(
+          `[mint-request] Notifying ${allAdmins.length} admins:`,
+          allAdmins.map((w) => w.slice(0, 8))
         );
-      } catch {
-        /* non-blocking */
+
+        for (const adminWallet of allAdmins) {
+          try {
+            const result = await notifyUser({
+              userWallet: adminWallet,
+              type: 'mint_request_submitted',
+              title: 'New Mint Request',
+              message: `${brand} ${model} submitted by vendor ${wallet.slice(0, 8)}...`,
+              metadata: { actionUrl: '/adminDashboard' },
+            });
+            console.log(
+              `[mint-request] Notified ${adminWallet.slice(0, 8)}: notification=${!!result.notification}, email=${result.emailSent}`
+            );
+          } catch (err: any) {
+            console.error(
+              `[mint-request] Failed to notify ${adminWallet.slice(0, 8)}:`,
+              err.message || err
+            );
+          }
+        }
+
+        // Also send admin email directly
+        const adminEmail = process.env.ADMIN_EMAIL || 'yoandry@luxhub.gold';
+        const resendKey = process.env.RESEND_API_KEY;
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'LuxHub <notifications@luxhub.gold>';
+        if (resendKey) {
+          fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: fromEmail,
+              to: [adminEmail],
+              subject: `New listing request — ${brand} ${model}`,
+              html: `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
+<style>:root{color-scheme:dark only;}body,html{background-color:#050507!important;}u+.body{background-color:#050507!important;}[data-ogsc] body{background-color:#050507!important;}@media(prefers-color-scheme:light){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}@media(prefers-color-scheme:dark){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}</style></head>
+<body class="cbg" style="margin:0;padding:0;background-color:#050507;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<div style="display:none;font-size:0;color:#050507;line-height:0;max-height:0;overflow:hidden;">New listing request: ${brand} ${model}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="cbg" style="background-color:#050507;">
+<tr><td align="center" style="padding:48px 16px 40px;background-color:#050507;">
+<table role="presentation" width="560" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;width:100%;">
+<tr><td align="center" style="padding-bottom:44px;"><img src="${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" /></td></tr>
+<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;">
+<div style="height:2px;background:linear-gradient(90deg,transparent 5%,#c8a1ff 30%,#a855f7 50%,#c8a1ff 70%,transparent 95%);"></div>
+<div style="padding:48px 44px 40px;">
+<p class="t1" style="margin:0 0 20px;font-size:18px;font-weight:600;color:#ffffff;">New Listing Request</p>
+${finalImageUrl ? `<div style="text-align:center;margin:0 0 24px;"><div style="display:inline-block;border-radius:12px;overflow:hidden;border:1px solid rgba(200,161,255,0.15);"><img src="${finalImageUrl}" alt="${brand} ${model}" style="display:block;max-width:100%;width:100%;object-fit:cover;" /></div></div>` : ''}
+<p class="t1" style="margin:0 0 8px;font-size:16px;color:#ffffff;">${brand} ${model}</p>
+<p style="margin:0 0 12px;font-size:20px;font-weight:600;color:#c8a1ff;">$${Number(priceUSD).toLocaleString()} USD</p>
+${referenceNumber ? `<p class="t3" style="margin:0 0 4px;font-size:14px;color:#999999;">Ref: ${referenceNumber}</p>` : ''}
+${condition ? `<p class="t3" style="margin:0 0 4px;font-size:14px;color:#999999;">Condition: ${condition}</p>` : ''}
+<p style="margin:12px 0 0;font-size:13px;color:#666666;">Submitted by vendor ${wallet.slice(0, 8)}...${wallet.slice(-4)}</p>
+<div style="text-align:center;margin:24px 0 0;">
+<a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/adminDashboard" style="display:inline-block;min-width:200px;padding:16px 44px;background:linear-gradient(135deg,rgba(200,161,255,0.12),rgba(168,85,247,0.08));border:1px solid #c8a1ff50;color:#c8a1ff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;">Review in Dashboard</a>
+</div>
+</div></td></tr>
+<tr><td style="padding:36px 16px 0;text-align:center;"><p style="margin:0;font-size:11px;color:#555555;"><a href="https://luxhub.gold" style="color:#777;text-decoration:none;">luxhub.gold</a>&nbsp;&nbsp;&#183;&nbsp;&nbsp;<a href="https://x.com/LuxHubStudio" style="color:#777;text-decoration:none;">@LuxHubStudio</a></p></td></tr>
+</table></td></tr></table></body></html>`,
+            }),
+          }).catch((err) => console.error('[mint-request] Admin email error:', err));
+        }
+      } catch (notifErr) {
+        console.error('[mint-request] Admin notification error:', notifErr);
       }
 
       return res.status(201).json({
