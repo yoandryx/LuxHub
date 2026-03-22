@@ -2136,7 +2136,6 @@
 
 /* Loading States */
 .loadingState,
-.emptyState,
 .errorState,
 .pendingState {
   display: flex;
@@ -2150,7 +2149,6 @@
 
 @media screen and (min-width: 576px) {
   .loadingState,
-  .emptyState,
   .errorState,
   .pendingState {
     min-height: 350px;
@@ -2159,7 +2157,6 @@
 }
 
 .loadingState p,
-.emptyState p,
 .errorState p,
 .pendingState p {
   color: #aaa;
@@ -2171,7 +2168,6 @@
 
 @media screen and (min-width: 576px) {
   .loadingState p,
-  .emptyState p,
   .errorState p,
   .pendingState p {
     font-size: 1.1rem;
@@ -2186,25 +2182,119 @@
   font-size: 1.25rem;
 }
 
-.emptyState h3 {
-  color: #c8a1ff;
-  margin-bottom: 8px;
-  font-size: 1.1rem;
-}
-
 @media screen and (min-width: 576px) {
   .pendingState h2 {
     font-size: 1.5rem;
   }
-  .emptyState h3 {
-    font-size: 1.25rem;
-  }
+}
+
+/* Chrome Glass Empty States */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: rgba(200, 161, 255, 0.03);
+  border: 1px dashed var(--accent-dim);
+  border-radius: 12px;
+  gap: 0.75rem;
+  min-height: 200px;
+}
+
+.emptyState h3 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.emptyState p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.emptyStateCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.emptyStateCta:hover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* Tab Loading Spinner */
+.tabLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  min-height: 200px;
 }
 
 .spinner {
   animation: spin 1s linear infinite;
   font-size: 1.75rem;
   color: #c8a1ff;
+}
+
+/* Pending Admin Approval Banner */
+.pendingBanner {
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.pendingBannerIcon {
+  font-size: 24px;
+  color: #fbbf24;
+  flex-shrink: 0;
+  animation: pendingPulse 2s ease-in-out infinite;
+}
+
+.pendingBannerHeading {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+}
+
+.pendingBannerBody {
+  font-size: 14px;
+  font-weight: 400;
+  color: #a1a1a1;
+  margin: 0;
+}
+
+@keyframes pendingPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @media screen and (min-width: 576px) {
@@ -2682,9 +2772,8 @@
 }
 
 .emptyIcon {
-  font-size: 3rem;
-  color: #444;
-  margin-bottom: 16px;
+  font-size: 48px;
+  color: #666666;
 }
 
 /* Orders List */

@@ -732,18 +732,7 @@ const VendorDashboard = () => {
       </div>
     );
 
-  if (!profile?.approved)
-    return (
-      <div className={styles.dashboard}>
-        <div className={styles.accessDenied}>
-          <FiClock className={styles.accessDeniedIcon} style={{ color: 'var(--warning)' }} />
-          <h1 className={styles.accessDeniedTitle}>Pending Approval</h1>
-          <p className={styles.accessDeniedText}>
-            Your vendor profile is pending admin approval. You&apos;ll be notified once approved.
-          </p>
-        </div>
-      </div>
-    );
+  const isPending = profile && !profile.approved;
 
   const allNavItems = [...navItems, ...financeNavItems, ...settingsNavItems];
 
@@ -774,6 +763,18 @@ const VendorDashboard = () => {
       {/* Main Content Area */}
       <main className={styles.mainContent}>
         <div className={styles.contentBody}>
+          {/* Pending Admin Approval Banner */}
+          {isPending && (
+            <div className={styles.pendingBanner}>
+              <FiClock className={styles.pendingBannerIcon} />
+              <div>
+                <h3 className={styles.pendingBannerHeading}>Pending Admin Approval</h3>
+                <p className={styles.pendingBannerBody}>
+                  Our team is reviewing your application. This typically takes less than 24 hours.
+                </p>
+              </div>
+            </div>
+          )}
           {/* Dashboard Tab */}
           {activeTab === 'dashboard' && (
             <>
@@ -927,11 +928,22 @@ const VendorDashboard = () => {
               ) : filteredRequests.length === 0 ? (
                 <div className={styles.emptyState}>
                   <FiPackage className={styles.emptyIcon} />
+                  <h3>
+                    {requestFilter === 'all' ? 'No listings yet' : `No ${requestFilter} requests`}
+                  </h3>
                   <p>
                     {requestFilter === 'all'
-                      ? 'No mint requests yet. Tap the + button to add your first item.'
-                      : `No ${requestFilter} requests.`}
+                      ? 'List your first watch to start selling on LuxHub.'
+                      : `You don't have any ${requestFilter} requests.`}
                   </p>
+                  {requestFilter === 'all' && (
+                    <button
+                      className={styles.emptyStateCta}
+                      onClick={() => (window.location.href = '/createNFT')}
+                    >
+                      <FiPlus /> List a Watch
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className={styles.assetGrid}>
@@ -1150,7 +1162,20 @@ const VendorDashboard = () => {
           )}
 
           {/* Orders Tab - Full Shipment Management */}
-          {activeTab === 'orders' && <OrderShipmentPanel />}
+          {activeTab === 'orders' &&
+            (ordersLoading ? (
+              <div className={styles.tabLoading}>
+                <FiLoader className={styles.spinner} />
+              </div>
+            ) : orders.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiPackage className={styles.emptyIcon} />
+                <h3>No orders yet</h3>
+                <p>Once your watches are listed, buyer orders will appear here.</p>
+              </div>
+            ) : (
+              <OrderShipmentPanel />
+            ))}
 
           {/* Offers Tab */}
           {activeTab === 'offers' && (
@@ -1183,17 +1208,16 @@ const VendorDashboard = () => {
               </div>
 
               {offersLoading ? (
-                <div className={styles.loadingState}>
+                <div className={styles.tabLoading}>
                   <FiLoader className={styles.spinner} />
-                  <p>Loading offers...</p>
                 </div>
               ) : filteredOffers.length === 0 ? (
                 <div className={styles.emptyState}>
                   <FiInbox className={styles.emptyIcon} />
-                  <h3>{offerFilter === 'all' ? 'No Offers Yet' : `No ${offerFilter} Offers`}</h3>
+                  <h3>{offerFilter === 'all' ? 'No offers yet' : `No ${offerFilter} offers`}</h3>
                   <p>
                     {offerFilter === 'all'
-                      ? 'Offers from buyers will appear here. Keep your listings active!'
+                      ? 'Buyers can make offers on your listings. You will see them here.'
                       : `You don't have any ${offerFilter} offers.`}
                   </p>
                 </div>
@@ -1449,15 +1473,14 @@ const VendorDashboard = () => {
               </div>
 
               {payoutsLoading ? (
-                <div className={styles.loadingState}>
+                <div className={styles.tabLoading}>
                   <FiLoader className={styles.spinner} />
-                  <p>Loading payout history...</p>
                 </div>
               ) : payouts.length === 0 ? (
                 <div className={styles.emptyState}>
                   <FiDollarSign className={styles.emptyIcon} />
-                  <h3>No Payouts Yet</h3>
-                  <p>Completed sales and payouts will be listed here.</p>
+                  <h3>No payouts yet</h3>
+                  <p>Completed sales payouts will be tracked here.</p>
                 </div>
               ) : (
                 <>
