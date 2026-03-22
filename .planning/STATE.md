@@ -125,8 +125,9 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260321-m9x | Fix chart Object is disposed error and upgrade pool charts with TradingView-style tools like DexScreener | 2026-03-21 | 0c97f24 | [260321-m9x-fix-chart-object-is-disposed-error-and-u](./quick/260321-m9x-fix-chart-object-is-disposed-error-and-u/) |
 | 260321-tfn | Fix vendor onboard page UI to match chrome glass theme | 2026-03-22 | 716cf91 | [260321-tfn-fix-vendor-onboard-page-ui-to-match-chro](./quick/260321-tfn-fix-vendor-onboard-page-ui-to-match-chro/) |
+| 260321-tn9 | Match vendor onboard forms to modal glass border pattern | 2026-03-22 | f2fdbb9 | [260321-tn9-match-vendor-onboard-forms-to-modal-glas](./quick/260321-tn9-match-vendor-onboard-forms-to-modal-glas/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 260321-tfn quick task
+Stopped at: Completed 260321-tn9 quick task
