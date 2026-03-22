@@ -69,7 +69,7 @@ Requirements for launch readiness. Each maps to roadmap phases.
 - [x] **VEND-01**: Vendor onboarding flow is polished and demo-ready for in-person walkthrough
 - [ ] **VEND-02**: Vendor can list a watch with multi-image gallery, condition grade, and pricing
 - [ ] **VEND-03**: Vendor can convert a listing to a pool token via Bags integration
-- [ ] **VEND-04**: Vendor dashboard clearly shows pending orders, active offers, and payout history
+- [x] **VEND-04**: Vendor dashboard clearly shows pending orders, active offers, and payout history
 - [ ] **VEND-05**: Admin can approve vendor and manage listings in admin dashboard
 
 ## v2 Requirements
@@ -162,7 +162,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | VEND-01 | Phase 4 | Complete |
 | VEND-02 | Phase 4 | Pending |
 | VEND-03 | Phase 4 | Pending |
-| VEND-04 | Phase 4 | Pending |
+| VEND-04 | Phase 4 | Complete |
 | VEND-05 | Phase 4 | Pending |
 
 **Coverage:**

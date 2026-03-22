@@ -3,13 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-22T00:14:11Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-22T00:16:03.910Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -24,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 04 (vendor-demo-readiness) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -58,6 +59,7 @@ Plan: 2 of 3
 | Phase 03 P01 | 5min | 2 tasks | 8 files |
 | Phase 03 P03 | 6min | 2 tasks | 5 files |
 | Phase 04 P01 | 2min | 2 tasks | 2 files |
+| Phase 04 P02 | 3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -98,6 +100,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Condition dropdown: Unworn/Excellent/Very Good/Good/Fair (industry-standard 5-grade, replaces New/Excellent/Good/Fair/Poor)
 - [Phase 04]: Post-submit shows inline success state instead of redirect to /vendor/pending -- immediate visual feedback
 - [Phase 04]: localStorage persistence keyed by wallet pubkey with anonymous fallback and auto-migration
+- [Phase 04]: Changed pending vendor from full-page block to inline banner so vendors can still see dashboard structure
 
 ### Roadmap Evolution
 
@@ -121,4 +124,4 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 04-01-PLAN.md
+Stopped at: Completed 04-02-PLAN.md
