@@ -1,5 +1,6 @@
 // src/pages/AdminDashboard.tsx
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Connection, Keypair } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
@@ -37,6 +38,8 @@ import {
   HiOutlineLightningBolt,
   HiOutlineTrash,
   HiOutlineExclamation,
+  HiOutlineViewGrid,
+  HiOutlineX,
 } from 'react-icons/hi';
 import { VendorProfile } from '../lib/models/VendorProfile';
 
@@ -226,6 +229,7 @@ const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: strin
 const AdminDashboard: React.FC = () => {
   const wallet = useWallet();
   const [tabIndex, setTabIndex] = useState<number>(1);
+  const [navOpen, setNavOpen] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -744,6 +748,16 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     fetchAuthorizedAdmins();
   }, []);
+
+  // Close nav panel on ESC key
+  useEffect(() => {
+    if (!navOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNavOpen(false);
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [navOpen]);
 
   useEffect(() => {
     if (program) {
@@ -2508,6 +2522,28 @@ const AdminDashboard: React.FC = () => {
     );
   };
 
+  // Render nav panel item for FAB overlay
+  const renderNavPanelItem = (item: { id: number; label: string; icon: any; badge?: number }) => {
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.id}
+        className={`${styles.navPanelItem} ${tabIndex === item.id ? styles.navPanelItemActive : ''}`}
+        onClick={() => {
+          setTabIndex(item.id);
+          setNavOpen(false);
+        }}
+        role="menuitem"
+      >
+        <Icon className={styles.navPanelIcon} />
+        <span>{item.label}</span>
+        {item.badge !== undefined && item.badge > 0 && (
+          <span className={styles.navPanelBadge}>{item.badge}</span>
+        )}
+      </button>
+    );
+  };
+
   // Not connected state
   if (!wallet.publicKey) {
     return (
@@ -2555,14 +2591,60 @@ const AdminDashboard: React.FC = () => {
     <div className={styles.dashboard}>
       {/* Main Content Area */}
       <main className={styles.mainContent}>
-        {/* Horizontal Tab Bar */}
-        <div className={styles.tabBar}>
-          {navItems.map(renderTabItem)}
-          <div className={styles.tabDivider} />
-          {nftNavItems.map(renderTabItem)}
-          <div className={styles.tabDivider} />
-          {securityNavItems.map(renderTabItem)}
+        {/* FAB + Nav Panel */}
+        <div className={styles.fabContainer}>
+          <div className={styles.fabLabel}>
+            {[...navItems, ...nftNavItems, ...securityNavItems].find((i) => i.id === tabIndex)
+              ?.label ?? 'Menu'}
+          </div>
+          <motion.button
+            className={styles.fab}
+            onClick={() => setNavOpen((prev) => !prev)}
+            animate={{ rotate: navOpen ? 45 : 0 }}
+            transition={{ duration: 0.2 }}
+            aria-label="Navigation menu"
+            aria-expanded={navOpen}
+          >
+            {navOpen ? <HiOutlineX /> : <HiOutlineViewGrid />}
+          </motion.button>
         </div>
+
+        <AnimatePresence>
+          {navOpen && (
+            <>
+              <motion.div
+                className={styles.navBackdrop}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setNavOpen(false)}
+              />
+              <motion.div
+                className={styles.navPanel}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                role="menu"
+              >
+                <div className={styles.navGroup}>
+                  <div className={styles.navGroupLabel}>Operations</div>
+                  {navItems.map((item) => renderNavPanelItem(item))}
+                </div>
+                <div className={styles.navGroupDivider} />
+                <div className={styles.navGroup}>
+                  <div className={styles.navGroupLabel}>NFT Management</div>
+                  {nftNavItems.map((item) => renderNavPanelItem(item))}
+                </div>
+                <div className={styles.navGroupDivider} />
+                <div className={styles.navGroup}>
+                  <div className={styles.navGroupLabel}>Security &amp; Config</div>
+                  {securityNavItems.map((item) => renderNavPanelItem(item))}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         <div className={styles.contentBody}>
           {/* Quick Stats Overview */}
