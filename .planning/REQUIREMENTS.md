@@ -66,7 +66,7 @@ Requirements for launch readiness. Each maps to roadmap phases.
 
 ### Vendor Demo Readiness (JC Gold Miami Trip)
 
-- [ ] **VEND-01**: Vendor onboarding flow is polished and demo-ready for in-person walkthrough
+- [x] **VEND-01**: Vendor onboarding flow is polished and demo-ready for in-person walkthrough
 - [ ] **VEND-02**: Vendor can list a watch with multi-image gallery, condition grade, and pricing
 - [ ] **VEND-03**: Vendor can convert a listing to a pool token via Bags integration
 - [ ] **VEND-04**: Vendor dashboard clearly shows pending orders, active offers, and payout history
@@ -159,7 +159,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | UX-04 | Phase 3 | Complete |
 | UX-05 | Phase 3 | Pending |
 | UX-06 | Phase 3 | Pending |
-| VEND-01 | Phase 4 | Pending |
+| VEND-01 | Phase 4 | Complete |
 | VEND-02 | Phase 4 | Pending |
 | VEND-03 | Phase 4 | Pending |
 | VEND-04 | Phase 4 | Pending |

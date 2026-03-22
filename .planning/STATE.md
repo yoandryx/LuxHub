@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-21T22:35:12.442Z"
-last_activity: 2026-03-21
+last_updated: "2026-03-22T00:14:11Z"
+last_activity: 2026-03-22
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 15
-  completed_plans: 14
+  completed_phases: 4
+  total_plans: 18
+  completed_plans: 16
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 03 — marketplace-ux
+**Current focus:** Phase 04 — vendor-demo-readiness
 
 ## Current Position
 
-Phase: 03 (marketplace-ux) — EXECUTING
-Plan: 3 of 4
+Phase: 04 (vendor-demo-readiness) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Plan: 3 of 4
 | Phase 03 P02 | 3min | 2 tasks | 6 files |
 | Phase 03 P01 | 5min | 2 tasks | 8 files |
 | Phase 03 P03 | 6min | 2 tasks | 5 files |
+| Phase 04 P01 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Industry-standard 5-grade condition scale: Unworn, Excellent, Very Good, Good, Fair
 - [Phase 03]: Used React.Dispatch<SetStateAction> for ImageUploadZone onChange to support functional updater in async uploads
 - [Phase 03]: Condition dropdown: Unworn/Excellent/Very Good/Good/Fair (industry-standard 5-grade, replaces New/Excellent/Good/Fair/Poor)
+- [Phase 04]: Post-submit shows inline success state instead of redirect to /vendor/pending -- immediate visual feedback
+- [Phase 04]: localStorage persistence keyed by wallet pubkey with anonymous fallback and auto-migration
 
 ### Roadmap Evolution
 
@@ -117,4 +120,5 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-21
+Last activity: 2026-03-22
+Stopped at: Completed 04-01-PLAN.md
