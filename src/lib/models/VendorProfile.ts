@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const VendorProfileSchema = new mongoose.Schema({
   wallet: { type: String, required: true, unique: true },
+  email: { type: String, sparse: true },
   name: { type: String, required: true },
   username: { type: String, required: true, unique: true },
   bio: { type: String, default: '' },
@@ -73,6 +74,7 @@ export default mongoose.models.VendorProfile ||
 
 export type VendorProfile = {
   wallet: string;
+  email?: string;
   name: string;
   username: string;
   bio?: string;
