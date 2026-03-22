@@ -400,8 +400,8 @@
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
 .statCard {
@@ -410,8 +410,8 @@
   backdrop-filter: blur(48px);
   -webkit-backdrop-filter: blur(48px);
   border: none;
-  border-radius: var(--radius-lg);
-  padding: 20px;
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
   overflow: visible;
   transition: all 0.3s ease;
 }
@@ -465,32 +465,29 @@
 }
 
 .statIcon {
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   background: var(--accent-glow);
   border: 1px solid var(--accent-border);
-  border-radius: var(--radius-md);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   color: var(--accent);
-  font-size: 1.1rem;
+  font-size: 0.9rem;
 }
 
 .statValue {
-  font-size: 1.75rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  letter-spacing: -1px;
-  margin-bottom: 4px;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: -0.5px;
+  margin-bottom: 2px;
+  color: var(--text-primary);
 }
 
 .statLabel {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -2257,6 +2254,215 @@
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--bg-dark);
+}
+
+/* ==================== OVERVIEW GRID (Stripe-style) ==================== */
+.overviewGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.overviewLeft,
+.overviewRight {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Stats Row — compact inline pills */
+.statsRow {
+  display: flex;
+  gap: 8px;
+}
+
+.statPill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.statPill:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-elevated);
+}
+
+.statPillValue {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.statPillLabel {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Attention Section */
+.attentionSection {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.attentionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.attentionTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.attentionBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--bg-dark);
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.attentionEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 16px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.attentionList {
+  display: flex;
+  flex-direction: column;
+}
+
+.attentionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: 100%;
+  text-align: left;
+}
+
+.attentionRow:last-child {
+  border-bottom: none;
+}
+
+.attentionRow:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.attentionIcon {
+  display: flex;
+  align-items: center;
+  color: var(--accent);
+  font-size: 1rem;
+  width: 20px;
+}
+
+.attentionLabel {
+  flex: 1;
+}
+
+.attentionCount {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--bg-dark);
+  background: #fbbf24;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Navigate Grid */
+.navigateGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border-subtle);
+}
+
+.navigateBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: var(--bg-card);
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.navigateBtn:hover {
+  background: var(--bg-elevated);
+  color: var(--accent);
+}
+
+.navigateBtn svg {
+  font-size: 1.1rem;
+  color: var(--accent);
+  opacity: 0.6;
+}
+
+.navigateBtn:hover svg {
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsRow {
+    flex-wrap: wrap;
+  }
+
+  .statPill {
+    flex: 1 1 45%;
+  }
+
+  .navigateGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* ==================== SPINNING ANIMATION ==================== */

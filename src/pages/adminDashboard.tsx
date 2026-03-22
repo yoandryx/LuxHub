@@ -1441,176 +1441,158 @@ const AdminDashboard: React.FC = () => {
   const renderTabContent = () => {
     switch (tabIndex) {
       case 1: {
-        // Dashboard Overview
-        const totalAttentionCount =
-          (pendingMintRequests > 0 ? 1 : 0) +
-          (saleRequests.length > 0 ? 1 : 0) +
-          (pendingVendorApprovals > 0 ? 1 : 0) +
-          (pendingDelistRequests > 0 ? 1 : 0) +
-          (squadsProposals.filter((p) => p.status === 'active').length > 0 ? 1 : 0) +
-          (activeEscrows.length > 0 ? 1 : 0);
+        // Dashboard Overview — Stripe-inspired dense layout
+        const attentionItems = [
+          pendingMintRequests > 0 && {
+            label: 'Mint Requests',
+            count: pendingMintRequests,
+            tab: 16,
+            icon: <HiOutlineCube />,
+          },
+          saleRequests.length > 0 && {
+            label: 'Sale Requests',
+            count: saleRequests.length,
+            tab: 5,
+            icon: <HiOutlineClipboardList />,
+          },
+          pendingVendorApprovals > 0 && {
+            label: 'Vendor Approvals',
+            count: pendingVendorApprovals,
+            tab: 8,
+            icon: <HiOutlineUserGroup />,
+          },
+          pendingDelistRequests > 0 && {
+            label: 'Delist Requests',
+            count: pendingDelistRequests,
+            tab: 15,
+            icon: <HiOutlineExclamation />,
+          },
+          squadsProposals.filter((p) => p.status === 'active').length > 0 && {
+            label: 'Squads Proposals',
+            count: squadsProposals.filter((p) => p.status === 'active').length,
+            tab: 9,
+            icon: <HiOutlineShieldCheck />,
+          },
+          activeEscrows.length > 0 && {
+            label: 'Active Escrows',
+            count: activeEscrows.length,
+            tab: 2,
+            icon: <HiOutlineLockClosed />,
+          },
+        ].filter(Boolean) as { label: string; count: number; tab: number; icon: React.ReactNode }[];
 
         return (
-          <div className={styles.section}>
-            {/* Needs Attention — ALWAYS visible, first section */}
-            <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>
-                  <HiOutlineExclamation
-                    className="icon"
-                    style={{ color: totalAttentionCount > 0 ? '#fbbf24' : '#22c55e' }}
-                  />
-                  Needs Attention
-                </h2>
-                <span
-                  className={styles.sectionCount}
-                  style={{
-                    background: totalAttentionCount > 0 ? '#fbbf24' : '#22c55e',
-                    color: '#0a0a0c',
-                  }}
-                >
-                  {totalAttentionCount}
-                </span>
+          <div className={styles.overviewGrid}>
+            {/* LEFT COLUMN — Stats + Attention */}
+            <div className={styles.overviewLeft}>
+              {/* Inline Stats Row */}
+              <div className={styles.statsRow}>
+                <button className={styles.statPill} onClick={() => setTabIndex(5)}>
+                  <span className={styles.statPillValue}>{saleRequests.length}</span>
+                  <span className={styles.statPillLabel}>Requests</span>
+                </button>
+                <button className={styles.statPill} onClick={() => setTabIndex(2)}>
+                  <span className={styles.statPillValue}>{activeEscrows.length}</span>
+                  <span className={styles.statPillLabel}>Escrows</span>
+                </button>
+                <button className={styles.statPill} onClick={() => setTabIndex(9)}>
+                  <span className={styles.statPillValue}>{squadsProposals.length}</span>
+                  <span className={styles.statPillLabel}>Proposals</span>
+                </button>
+                <button className={styles.statPill} onClick={() => setTabIndex(8)}>
+                  <span className={styles.statPillValue}>{adminList.length}</span>
+                  <span className={styles.statPillLabel}>Admins</span>
+                </button>
               </div>
-              <div className={styles.quickActions}>
-                {pendingMintRequests > 0 && (
-                  <button onClick={() => setTabIndex(16)} className={styles.quickActionCard}>
-                    <HiOutlineCube />
-                    <span>Mint Requests</span>
-                    <span className={styles.quickActionBadge}>{pendingMintRequests}</span>
-                  </button>
-                )}
-                {saleRequests.length > 0 && (
-                  <button onClick={() => setTabIndex(5)} className={styles.quickActionCard}>
-                    <HiOutlineClipboardList />
-                    <span>Sale Requests</span>
-                    <span className={styles.quickActionBadge}>{saleRequests.length}</span>
-                  </button>
-                )}
-                {pendingVendorApprovals > 0 && (
-                  <button onClick={() => setTabIndex(8)} className={styles.quickActionCard}>
-                    <HiOutlineUserGroup />
-                    <span>Vendor Approvals</span>
-                    <span className={styles.quickActionBadge}>{pendingVendorApprovals}</span>
-                  </button>
-                )}
-                {pendingDelistRequests > 0 && (
-                  <button onClick={() => setTabIndex(15)} className={styles.quickActionCard}>
-                    <HiOutlineExclamation />
-                    <span>Delist Requests</span>
-                    <span className={styles.quickActionBadge}>{pendingDelistRequests}</span>
-                  </button>
-                )}
-                {squadsProposals.filter((p) => p.status === 'active').length > 0 && (
-                  <button onClick={() => setTabIndex(9)} className={styles.quickActionCard}>
-                    <HiOutlineShieldCheck />
-                    <span>Squads Proposals</span>
-                    <span className={styles.quickActionBadge}>
-                      {squadsProposals.filter((p) => p.status === 'active').length}
-                    </span>
-                  </button>
-                )}
-                {activeEscrows.length > 0 && (
-                  <button onClick={() => setTabIndex(2)} className={styles.quickActionCard}>
-                    <HiOutlineLockClosed />
-                    <span>Active Escrows</span>
-                    <span className={styles.quickActionBadge}>{activeEscrows.length}</span>
-                  </button>
-                )}
-                {/* Empty state when nothing needs attention */}
-                {totalAttentionCount === 0 && (
-                  <div
-                    style={{
-                      gridColumn: '1 / -1',
-                      textAlign: 'center',
-                      padding: '16px',
-                      color: 'var(--text-muted)',
-                      fontSize: '0.85rem',
-                    }}
+
+              {/* Needs Attention — list rows, not cards */}
+              <div className={styles.attentionSection}>
+                <div className={styles.attentionHeader}>
+                  <span className={styles.attentionTitle}>
+                    {attentionItems.length > 0 ? 'Needs Attention' : 'All Clear'}
+                  </span>
+                  <span
+                    className={styles.attentionBadge}
+                    style={{ background: attentionItems.length > 0 ? '#fbbf24' : '#22c55e' }}
                   >
-                    <HiOutlineCheckCircle
-                      style={{
-                        fontSize: '1.5rem',
-                        color: '#22c55e',
-                        marginBottom: '4px',
-                        display: 'block',
-                        margin: '0 auto 4px',
-                      }}
-                    />
-                    All clear — no items need attention
+                    {attentionItems.length}
+                  </span>
+                </div>
+                {attentionItems.length === 0 ? (
+                  <p className={styles.attentionEmpty}>
+                    <HiOutlineCheckCircle style={{ color: '#22c55e' }} /> No pending items
+                  </p>
+                ) : (
+                  <div className={styles.attentionList}>
+                    {attentionItems.map((item) => (
+                      <button
+                        key={item.tab}
+                        className={styles.attentionRow}
+                        onClick={() => setTabIndex(item.tab)}
+                      >
+                        <span className={styles.attentionIcon}>{item.icon}</span>
+                        <span className={styles.attentionLabel}>{item.label}</span>
+                        <span className={styles.attentionCount}>{item.count}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Quick Stats Grid */}
-            <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
-                <div className={styles.statIcon}>
-                  <HiOutlineClipboardList />
+              {/* Quick Navigate */}
+              <div className={styles.attentionSection}>
+                <div className={styles.attentionHeader}>
+                  <span className={styles.attentionTitle}>Navigate</span>
                 </div>
-                <div className={styles.statValue}>{saleRequests.length}</div>
-                <div className={styles.statLabel}>Pending Requests</div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={styles.statIcon}>
-                  <HiOutlineLockClosed />
+                <div className={styles.navigateGrid}>
+                  {[
+                    { label: 'Mint', icon: <HiOutlineCube />, tab: 16 },
+                    { label: 'Sales', icon: <HiOutlineClipboardList />, tab: 5 },
+                    { label: 'Escrows', icon: <HiOutlineLockClosed />, tab: 2 },
+                    { label: 'Vendors', icon: <HiOutlineUserGroup />, tab: 8 },
+                    { label: 'Shipping', icon: <HiOutlineTruck />, tab: 10 },
+                    { label: 'Multisig', icon: <HiOutlineShieldCheck />, tab: 9 },
+                  ].map((item) => (
+                    <button
+                      key={item.tab}
+                      className={styles.navigateBtn}
+                      onClick={() => setTabIndex(item.tab)}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
                 </div>
-                <div className={styles.statValue}>{activeEscrows.length}</div>
-                <div className={styles.statLabel}>Active Escrows</div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={styles.statIcon}>
-                  <HiOutlineShieldCheck />
-                </div>
-                <div className={styles.statValue}>{squadsProposals.length}</div>
-                <div className={styles.statLabel}>Squads Proposals</div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={styles.statIcon}>
-                  <HiOutlineUserGroup />
-                </div>
-                <div className={styles.statValue}>{adminList.length}</div>
-                <div className={styles.statLabel}>Active Admins</div>
               </div>
             </div>
 
-            {/* Recent Activity Feed — real notifications + session logs */}
-            <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>
-                  <HiOutlineClock className="icon" style={{ color: 'var(--accent)' }} />
-                  Recent Activity
-                </h2>
-                <span className={styles.sectionCount}>
+            {/* RIGHT COLUMN — Activity Feed */}
+            <div className={styles.overviewRight}>
+              <div className={styles.attentionHeader}>
+                <span className={styles.attentionTitle}>Recent Activity</span>
+                <span className={styles.attentionBadge} style={{ background: 'var(--accent)' }}>
                   {recentNotifications.length + logs.length}
                 </span>
               </div>
               {recentNotifications.length === 0 && logs.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <HiOutlineClock className={styles.emptyIcon} />
-                  <h3 className={styles.emptyTitle}>No Recent Activity</h3>
-                  <p className={styles.emptyDescription}>
-                    Notifications and admin actions will appear here.
-                  </p>
-                </div>
+                <p className={styles.attentionEmpty}>
+                  <HiOutlineClock style={{ color: 'var(--text-muted)' }} /> No recent activity
+                </p>
               ) : (
                 <div className={styles.activityFeed}>
-                  {/* Session logs first (most recent actions this session) */}
                   {logs
                     .slice(-5)
                     .reverse()
                     .map((log, idx) => (
                       <div key={`log-${idx}`} className={styles.activityItem}>
                         <div className={styles.activityIcon}>
-                          {log.action.toLowerCase().includes('approve') && <HiOutlineCheckCircle />}
-                          {log.action.toLowerCase().includes('reject') && <HiOutlineXCircle />}
-                          {log.action.toLowerCase().includes('squads') && <HiOutlineShieldCheck />}
-                          {!log.action.toLowerCase().includes('approve') &&
-                            !log.action.toLowerCase().includes('reject') &&
-                            !log.action.toLowerCase().includes('squads') && (
-                              <HiOutlineLightningBolt />
-                            )}
+                          {log.action.toLowerCase().includes('approve') ? (
+                            <HiOutlineCheckCircle />
+                          ) : log.action.toLowerCase().includes('reject') ? (
+                            <HiOutlineXCircle />
+                          ) : (
+                            <HiOutlineLightningBolt />
+                          )}
                         </div>
                         <div className={styles.activityContent}>
                           <div className={styles.activityTitle}>{log.action}</div>
@@ -1619,23 +1601,25 @@ const AdminDashboard: React.FC = () => {
                         <div className={styles.activityTime}>{log.timestamp}</div>
                       </div>
                     ))}
-                  {/* Persistent notifications from DB */}
                   {recentNotifications.map((notif: any) => (
                     <div
                       key={notif._id}
                       className={`${styles.activityItem} ${!notif.read ? styles.activityUnread : ''}`}
                     >
                       <div className={styles.activityIcon}>
-                        {notif.type?.includes('vendor') && <HiOutlineUserGroup />}
-                        {notif.type?.includes('escrow') && <HiOutlineLockClosed />}
-                        {notif.type?.includes('purchase') && <HiOutlineCash />}
-                        {notif.type?.includes('dispute') && <HiOutlineExclamation />}
-                        {notif.type?.includes('shipment') && <HiOutlineTruck />}
-                        {!notif.type?.includes('vendor') &&
-                          !notif.type?.includes('escrow') &&
-                          !notif.type?.includes('purchase') &&
-                          !notif.type?.includes('dispute') &&
-                          !notif.type?.includes('shipment') && <HiOutlineLightningBolt />}
+                        {notif.type?.includes('vendor') ? (
+                          <HiOutlineUserGroup />
+                        ) : notif.type?.includes('escrow') ? (
+                          <HiOutlineLockClosed />
+                        ) : notif.type?.includes('purchase') ? (
+                          <HiOutlineCash />
+                        ) : notif.type?.includes('dispute') ? (
+                          <HiOutlineExclamation />
+                        ) : notif.type?.includes('shipment') ? (
+                          <HiOutlineTruck />
+                        ) : (
+                          <HiOutlineLightningBolt />
+                        )}
                       </div>
                       <div className={styles.activityContent}>
                         <div className={styles.activityTitle}>
@@ -1650,59 +1634,6 @@ const AdminDashboard: React.FC = () => {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Quick Actions */}
-            <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>
-                  <HiOutlineLightningBolt className="icon" style={{ color: 'var(--accent)' }} />
-                  Quick Actions
-                </h2>
-              </div>
-              <div className={styles.quickActions}>
-                <button onClick={() => setTabIndex(16)} className={styles.quickActionCard}>
-                  <HiOutlineCube />
-                  <span>Mint Requests</span>
-                  {pendingMintRequests > 0 && (
-                    <span className={styles.quickActionBadge}>{pendingMintRequests}</span>
-                  )}
-                </button>
-                <button onClick={() => setTabIndex(5)} className={styles.quickActionCard}>
-                  <HiOutlineClipboardList />
-                  <span>Sale Requests</span>
-                  {saleRequests.length > 0 && (
-                    <span className={styles.quickActionBadge}>{saleRequests.length}</span>
-                  )}
-                </button>
-                <button onClick={() => setTabIndex(2)} className={styles.quickActionCard}>
-                  <HiOutlineLockClosed />
-                  <span>Escrows</span>
-                  {activeEscrows.length > 0 && (
-                    <span className={styles.quickActionBadge}>{activeEscrows.length}</span>
-                  )}
-                </button>
-                <button onClick={() => setTabIndex(8)} className={styles.quickActionCard}>
-                  <HiOutlineUserGroup />
-                  <span>Vendors</span>
-                  {pendingVendorApprovals > 0 && (
-                    <span className={styles.quickActionBadge}>{pendingVendorApprovals}</span>
-                  )}
-                </button>
-                <button onClick={() => setTabIndex(10)} className={styles.quickActionCard}>
-                  <HiOutlineTruck />
-                  <span>Shipments</span>
-                </button>
-                <button onClick={() => setTabIndex(9)} className={styles.quickActionCard}>
-                  <HiOutlineShieldCheck />
-                  <span>Multisig</span>
-                  {squadsProposals.filter((p) => p.status === 'active').length > 0 && (
-                    <span className={styles.quickActionBadge}>
-                      {squadsProposals.filter((p) => p.status === 'active').length}
-                    </span>
-                  )}
-                </button>
-              </div>
             </div>
           </div>
         );
