@@ -41,6 +41,7 @@ interface EscrowListing {
   escrowPda: string;
   nftMint: string;
   sellerWallet: string;
+  vendorWallet?: string;
   buyerWallet?: string;
   listingPrice: number;
   listingPriceUSD: number;
@@ -1070,6 +1071,12 @@ export default function Marketplace() {
                       {filteredListings.map((listing: EscrowListing) => {
                         const isDemo = listing._id.startsWith('demo_');
                         const priceSol = parseFloat(formatSol(listing.listingPriceUSD || 0));
+                        const walletAddr = wallet.publicKey?.toBase58();
+                        const isOwnListing = !!(
+                          walletAddr &&
+                          (listing.sellerWallet === walletAddr ||
+                            listing.vendorWallet === walletAddr)
+                        );
                         return (
                           <motion.div
                             key={listing._id}
@@ -1104,15 +1111,22 @@ export default function Marketplace() {
                               showBadge={true}
                               showPrice={true}
                               showOverlay={true}
-                              showActionButtons={true}
-                              onQuickBuy={() => {
-                                if (isDemo) return handleDemoClick(listing);
-                                handleBuy(listing);
-                              }}
+                              showActionButtons={!isOwnListing}
+                              onQuickBuy={
+                                isOwnListing
+                                  ? undefined
+                                  : () => {
+                                      if (isDemo) return handleDemoClick(listing);
+                                      handleBuy(listing);
+                                    }
+                              }
                               onOffer={
-                                listing.escrowPda && listing.status !== 'offer_accepted'
-                                  ? () => (isDemo ? handleDemoClick(listing) : handleOffer(listing))
-                                  : undefined
+                                isOwnListing
+                                  ? undefined
+                                  : listing.escrowPda && listing.status !== 'offer_accepted'
+                                    ? () =>
+                                        isDemo ? handleDemoClick(listing) : handleOffer(listing)
+                                    : undefined
                               }
                               onViewDetails={() =>
                                 isDemo ? handleDemoClick(listing) : handleViewDetails(listing)
@@ -1482,74 +1496,109 @@ export default function Marketplace() {
         </AnimatePresence>
 
         {/* Detail Modal */}
-        {showDetailModal && selectedListing && (
-          <div className={styles.detailOverlay} onClick={() => setShowDetailModal(false)}>
-            <div className={styles.detailModal} onClick={(e) => e.stopPropagation()}>
-              <button className={styles.closeModal} onClick={() => setShowDetailModal(false)}>
-                <HiOutlineX />
-              </button>
-              <NftDetailCard
-                mintAddress={selectedListing.nftMint}
-                owner={selectedListing.sellerWallet}
-                buyerWallet={wallet.publicKey?.toBase58()}
-                priceSol={parseFloat(formatSol(selectedListing.listingPriceUSD || 0))}
-                status={selectedListing.status === 'offer_accepted' ? 'escrow' : 'listed'}
-                acceptingOffers={selectedListing.acceptingOffers}
-                onBuy={() => {
-                  setShowDetailModal(false);
-                  handleBuy(selectedListing);
-                }}
-                onOffer={() => {
-                  setShowDetailModal(false);
-                  handleOffer(selectedListing);
-                }}
-                previewData={{
-                  title:
-                    selectedListing.asset?.title || selectedListing.asset?.model || 'Luxury Watch',
-                  image: resolveImage(selectedListing),
-                  imageUrl: selectedListing.asset?.imageUrl,
-                  imageIpfsUrls: selectedListing.asset?.imageIpfsUrls,
-                  images: selectedListing.asset?.images,
-                  description: selectedListing.asset?.description || '',
-                  priceSol: parseFloat(formatSol(selectedListing.listingPriceUSD || 0)),
-                  attributes: [
-                    { trait_type: 'Brand', value: selectedListing.asset?.brand || '~' },
-                    { trait_type: 'Model', value: selectedListing.asset?.model || '~' },
-                    { trait_type: 'Serial', value: selectedListing.asset?.serial || '~' },
-                    { trait_type: 'Material', value: selectedListing.asset?.material || '~' },
-                    { trait_type: 'Dial Color', value: selectedListing.asset?.dialColor || '~' },
-                    { trait_type: 'Case Size', value: selectedListing.asset?.caseSize || '~' },
-                    { trait_type: 'Condition', value: selectedListing.asset?.condition || '~' },
-                    {
-                      trait_type: 'Production Year',
-                      value: selectedListing.asset?.productionYear || '~',
-                    },
-                    { trait_type: 'Movement', value: selectedListing.asset?.movement || '~' },
-                    {
-                      trait_type: 'Water Resistance',
-                      value: selectedListing.asset?.waterResistance || '~',
-                    },
-                    { trait_type: 'Box & Papers', value: selectedListing.asset?.boxPapers || '~' },
-                    { trait_type: 'Certificate', value: selectedListing.asset?.certificate || '~' },
-                    { trait_type: 'Country', value: selectedListing.asset?.country || '~' },
-                    { trait_type: 'Features', value: selectedListing.asset?.features || '~' },
-                    {
-                      trait_type: 'Limited Edition',
-                      value: selectedListing.asset?.limitedEdition || '~',
-                    },
-                    { trait_type: 'Warranty', value: selectedListing.asset?.warrantyInfo || '~' },
-                    { trait_type: 'Provenance', value: selectedListing.asset?.provenance || '~' },
-                    {
-                      trait_type: 'Price',
-                      value: `$${selectedListing.listingPriceUSD?.toLocaleString() || '0'}`,
-                    },
-                  ],
-                }}
-                onClose={() => setShowDetailModal(false)}
-              />
-            </div>
-          </div>
-        )}
+        {showDetailModal &&
+          selectedListing &&
+          (() => {
+            const detailWalletAddr = wallet.publicKey?.toBase58();
+            const isOwnDetailListing = !!(
+              detailWalletAddr &&
+              (selectedListing.sellerWallet === detailWalletAddr ||
+                selectedListing.vendorWallet === detailWalletAddr)
+            );
+            return (
+              <div className={styles.detailOverlay} onClick={() => setShowDetailModal(false)}>
+                <div className={styles.detailModal} onClick={(e) => e.stopPropagation()}>
+                  <button className={styles.closeModal} onClick={() => setShowDetailModal(false)}>
+                    <HiOutlineX />
+                  </button>
+                  <NftDetailCard
+                    mintAddress={selectedListing.nftMint}
+                    owner={selectedListing.sellerWallet}
+                    buyerWallet={wallet.publicKey?.toBase58()}
+                    priceSol={parseFloat(formatSol(selectedListing.listingPriceUSD || 0))}
+                    status={selectedListing.status === 'offer_accepted' ? 'escrow' : 'listed'}
+                    acceptingOffers={isOwnDetailListing ? false : selectedListing.acceptingOffers}
+                    onBuy={
+                      isOwnDetailListing
+                        ? undefined
+                        : () => {
+                            setShowDetailModal(false);
+                            handleBuy(selectedListing);
+                          }
+                    }
+                    onOffer={
+                      isOwnDetailListing
+                        ? undefined
+                        : () => {
+                            setShowDetailModal(false);
+                            handleOffer(selectedListing);
+                          }
+                    }
+                    previewData={{
+                      title:
+                        selectedListing.asset?.title ||
+                        selectedListing.asset?.model ||
+                        'Luxury Watch',
+                      image: resolveImage(selectedListing),
+                      imageUrl: selectedListing.asset?.imageUrl,
+                      imageIpfsUrls: selectedListing.asset?.imageIpfsUrls,
+                      images: selectedListing.asset?.images,
+                      description: selectedListing.asset?.description || '',
+                      priceSol: parseFloat(formatSol(selectedListing.listingPriceUSD || 0)),
+                      attributes: [
+                        { trait_type: 'Brand', value: selectedListing.asset?.brand || '~' },
+                        { trait_type: 'Model', value: selectedListing.asset?.model || '~' },
+                        { trait_type: 'Serial', value: selectedListing.asset?.serial || '~' },
+                        { trait_type: 'Material', value: selectedListing.asset?.material || '~' },
+                        {
+                          trait_type: 'Dial Color',
+                          value: selectedListing.asset?.dialColor || '~',
+                        },
+                        { trait_type: 'Case Size', value: selectedListing.asset?.caseSize || '~' },
+                        { trait_type: 'Condition', value: selectedListing.asset?.condition || '~' },
+                        {
+                          trait_type: 'Production Year',
+                          value: selectedListing.asset?.productionYear || '~',
+                        },
+                        { trait_type: 'Movement', value: selectedListing.asset?.movement || '~' },
+                        {
+                          trait_type: 'Water Resistance',
+                          value: selectedListing.asset?.waterResistance || '~',
+                        },
+                        {
+                          trait_type: 'Box & Papers',
+                          value: selectedListing.asset?.boxPapers || '~',
+                        },
+                        {
+                          trait_type: 'Certificate',
+                          value: selectedListing.asset?.certificate || '~',
+                        },
+                        { trait_type: 'Country', value: selectedListing.asset?.country || '~' },
+                        { trait_type: 'Features', value: selectedListing.asset?.features || '~' },
+                        {
+                          trait_type: 'Limited Edition',
+                          value: selectedListing.asset?.limitedEdition || '~',
+                        },
+                        {
+                          trait_type: 'Warranty',
+                          value: selectedListing.asset?.warrantyInfo || '~',
+                        },
+                        {
+                          trait_type: 'Provenance',
+                          value: selectedListing.asset?.provenance || '~',
+                        },
+                        {
+                          trait_type: 'Price',
+                          value: `$${selectedListing.listingPriceUSD?.toLocaleString() || '0'}`,
+                        },
+                      ],
+                    }}
+                    onClose={() => setShowDetailModal(false)}
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
         {/* Offer Modal */}
         {showOfferModal && selectedListing && (

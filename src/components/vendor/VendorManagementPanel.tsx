@@ -51,6 +51,7 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     text: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [approvingVendor, setApprovingVendor] = useState<string | null>(null);
 
   // Search & filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -144,6 +145,9 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
   };
 
   const approveVendor = async (vendorWallet: string) => {
+    if (!window.confirm('Approve this vendor? They will be able to list watches on LuxHub.'))
+      return;
+    setApprovingVendor(vendorWallet);
     setLoading(true);
     const res = await fetch('/api/vendor/approve', {
       method: 'POST',
@@ -159,6 +163,7 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     } else {
       setVendorMessage({ type: 'error', text: data.error || 'Failed to approve vendor.' });
     }
+    setApprovingVendor(null);
     setLoading(false);
   };
 
@@ -367,12 +372,15 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
 
               {/* Action buttons */}
               <div className={styles.buttonGroup}>
-                <button disabled={loading} onClick={() => approveVendor(vendor.wallet)}>
-                  Approve
+                <button
+                  disabled={loading || approvingVendor === vendor.wallet}
+                  onClick={() => approveVendor(vendor.wallet)}
+                >
+                  {approvingVendor === vendor.wallet ? 'Approving...' : 'Approve'}
                 </button>
                 <button
                   className={styles.rejectButton}
-                  disabled={loading}
+                  disabled={loading || approvingVendor === vendor.wallet}
                   onClick={() => setRejectingWallet(vendor.wallet)}
                 >
                   Reject

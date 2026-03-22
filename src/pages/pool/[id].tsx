@@ -84,6 +84,7 @@ interface PoolData {
   liquidityModel?: string;
   ammEnabled?: boolean;
   ammLiquidityPercent?: number;
+  bondingCurveActive?: boolean;
   vendorPaymentPercent?: number;
   fundsInEscrow?: number;
 }

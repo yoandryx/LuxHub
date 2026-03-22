@@ -4,14 +4,17 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { NftDetailCard } from '../../components/marketplace/NftDetailCard';
 
 const NftPage: React.FC = () => {
   const router = useRouter();
   const { mint } = router.query;
+  const { publicKey } = useWallet();
   const [ogData, setOgData] = useState<{ name: string; image: string; description: string } | null>(
     null
   );
+  const [sellerWallet, setSellerWallet] = useState<string | null>(null);
 
   // Fetch basic metadata for OG tags (SEO / social sharing)
   useEffect(() => {
@@ -28,7 +31,21 @@ const NftPage: React.FC = () => {
         }
       })
       .catch(() => {});
+
+    // Fetch escrow listing to get sellerWallet for own-listing detection
+    fetch(`/api/escrow/list`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.escrows) {
+          const listing = data.escrows.find((e: any) => e.nftMint === mint);
+          if (listing?.sellerWallet) setSellerWallet(listing.sellerWallet);
+        }
+      })
+      .catch(() => {});
   }, [mint]);
+
+  const walletAddr = publicKey?.toBase58();
+  const isOwnListing = !!(walletAddr && sellerWallet && walletAddr === sellerWallet);
 
   if (!mint || typeof mint !== 'string') {
     return (
@@ -55,9 +72,9 @@ const NftPage: React.FC = () => {
         <div style={styles.cardWrapper}>
           <NftDetailCard
             mintAddress={mint}
-            acceptingOffers={true}
-            onBuy={() => router.push(`/marketplace?pay=${mint}`)}
-            onOffer={() => router.push(`/marketplace?offer=${mint}`)}
+            acceptingOffers={!isOwnListing}
+            onBuy={isOwnListing ? undefined : () => router.push(`/marketplace?pay=${mint}`)}
+            onOffer={isOwnListing ? undefined : () => router.push(`/marketplace?offer=${mint}`)}
             onClose={() => router.push('/marketplace')}
           />
         </div>
