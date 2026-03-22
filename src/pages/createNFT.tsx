@@ -43,7 +43,9 @@ import {
   FaLock,
   FaUpload,
   FaCheck,
+  FaCheckCircle,
   FaTimes,
+  FaTimesCircle,
   FaEye,
   FaEdit,
   FaLayerGroup,
@@ -183,6 +185,13 @@ type Props = {
   initialSolPrice: number;
 };
 
+const MINT_STEPS = [
+  { id: 'upload', label: 'Uploading images...', threshold: 0 },
+  { id: 'analyze', label: 'Analyzing watch...', threshold: 5 },
+  { id: 'mint', label: 'Minting NFT...', threshold: 30 },
+  { id: 'save', label: 'Creating listing...', threshold: 55 },
+] as const;
+
 const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const wallet = useWallet();
   const adminWallet = wallet.publicKey?.toBase58() || '';
@@ -229,6 +238,9 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [mintedNFTs, setMintedNFTs] = useState<MintedNFT[]>(initialMintedNFTs);
+  const mintingInProgress = progress > 0 && progress < 100;
+  const mintFailed =
+    statusMessage.startsWith('Mint failed') || statusMessage.startsWith('Update failed');
 
   // UI state
   const [selectedMetadataUri, setSelectedMetadataUri] = useState<string | null>(null);
@@ -1862,15 +1874,6 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                   brand={brand}
                   onViewDetails={() => setShowPreview(true)}
                 />
-                {minting && (
-                  <div className={styles.mintProgressContainer}>
-                    <p>{statusMessage}</p>
-                    <div className={styles.progressBar}>
-                      <div className={styles.progress} style={{ width: `${progress}%` }} />
-                    </div>
-                    <p>{progress}%</p>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -2837,18 +2840,71 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
                   setShowPreview(true);
                 }}
               />
-              {minting && (
-                <div className={styles.mintProgressContainer}>
-                  <p>{statusMessage}</p>
-                  <div className={styles.progressBar}>
-                    <div className={styles.progress} style={{ width: `${progress}%` }} />
-                  </div>
-                  <p>{progress}%</p>
-                </div>
-              )}
             </div>
           </div>
         </>
+      )}
+
+      {/* Step-by-step listing progress overlay */}
+      {(mintingInProgress || mintFailed) && (
+        <div className={styles.progressOverlay}>
+          <div className={styles.progressCard}>
+            <h3 className={styles.progressTitle}>
+              {mintFailed ? 'Listing Failed' : 'Listing Your Watch'}
+            </h3>
+            {mintFailed ? (
+              <div className={styles.progressError}>
+                <FaTimesCircle style={{ fontSize: 32, color: '#ef4444', marginBottom: 12 }} />
+                <p className={styles.progressErrorText}>{statusMessage}</p>
+                <button
+                  className={styles.progressRetryBtn}
+                  onClick={() => {
+                    setProgress(0);
+                    setStatusMessage('');
+                    setMinting(false);
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className={styles.progressSteps}>
+                  {MINT_STEPS.map((step, i) => {
+                    const isActive =
+                      progress >= step.threshold &&
+                      (i === MINT_STEPS.length - 1 || progress < MINT_STEPS[i + 1].threshold);
+                    const isComplete =
+                      i < MINT_STEPS.length - 1
+                        ? progress >= MINT_STEPS[i + 1].threshold
+                        : progress >= 100;
+                    return (
+                      <div
+                        key={step.id}
+                        className={`${styles.progressStep} ${isActive ? styles.stepActive : ''} ${isComplete ? styles.stepComplete : ''}`}
+                      >
+                        <div className={styles.stepIcon}>
+                          {isComplete ? (
+                            <FaCheckCircle />
+                          ) : isActive ? (
+                            <FaSpinner className={styles.spinnerIcon} />
+                          ) : (
+                            <span className={styles.stepCircle}>{i + 1}</span>
+                          )}
+                        </div>
+                        <span className={styles.stepLabel}>{step.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className={styles.progressBarContainer}>
+                  <div className={styles.progressBarFill} style={{ width: `${progress}%` }} />
+                </div>
+                <p className={styles.progressPercent}>{Math.round(progress)}%</p>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
