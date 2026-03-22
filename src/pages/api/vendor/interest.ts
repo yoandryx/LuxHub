@@ -10,6 +10,8 @@ const interestSchema = z.object({
   wallet: z.string().nullable().optional(),
   name: z.string().min(1, 'Name is required').max(200),
   category: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().max(30).nullable().optional(),
   message: z.string().min(1, 'Message is required').max(2000),
   contact: z.string().max(200).nullable().optional(),
 });
@@ -43,6 +45,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       wallet: parsed.wallet || null,
       name: parsed.name.trim(),
       category: parsed.category || null,
+      email: parsed.email || null,
+      phone: parsed.phone || null,
       message: parsed.message.trim(),
       contact: parsed.contact?.trim() || null,
     });

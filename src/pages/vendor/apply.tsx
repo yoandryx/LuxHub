@@ -19,12 +19,23 @@ export default function VendorApply() {
   const { publicKey } = useWallet();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', category: '', message: '', contact: '' });
+  const [form, setForm] = useState({
+    name: '',
+    category: '',
+    email: '',
+    phone: '',
+    message: '',
+    contact: '',
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.message.trim()) {
       toast.error('Name and message are required');
+      return;
+    }
+    if (!form.email.trim() && !publicKey) {
+      toast.error('Please provide an email or connect your wallet so we can reach you');
       return;
     }
     setSubmitting(true);
@@ -36,6 +47,8 @@ export default function VendorApply() {
           wallet: publicKey?.toBase58() || null,
           name: form.name.trim(),
           category: form.category || null,
+          email: form.email.trim() || null,
+          phone: form.phone.trim() || null,
           message: form.message.trim(),
           contact: form.contact.trim() || null,
         }),
@@ -252,11 +265,34 @@ export default function VendorApply() {
                       </select>
                     </div>
                   </div>
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Email {!publicKey ? '*' : ''}</label>
+                      <input
+                        className={styles.formInput}
+                        type="email"
+                        placeholder="you@business.com"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        required={!publicKey}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Phone (optional)</label>
+                      <input
+                        className={styles.formInput}
+                        type="tel"
+                        placeholder="+1 (555) 000-0000"
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      />
+                    </div>
+                  </div>
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>How can we reach you?</label>
+                    <label className={styles.formLabel}>Social / Other Contact</label>
                     <input
                       className={styles.formInput}
-                      placeholder="X handle, email, or Telegram"
+                      placeholder="X handle, Telegram, Discord, etc."
                       value={form.contact}
                       onChange={(e) => setForm({ ...form, contact: e.target.value })}
                     />
@@ -272,9 +308,14 @@ export default function VendorApply() {
                       required
                     />
                   </div>
-                  {publicKey && (
+                  {publicKey ? (
                     <p className={styles.walletNote}>
-                      Wallet: {publicKey.toBase58().slice(0, 6)}...{publicKey.toBase58().slice(-4)}
+                      Wallet connected: {publicKey.toBase58().slice(0, 6)}...
+                      {publicKey.toBase58().slice(-4)}
+                    </p>
+                  ) : (
+                    <p className={styles.walletNote}>
+                      Connect your wallet for faster onboarding (we'll link your invite to it)
                     </p>
                   )}
                   <button type="submit" className={styles.submitBtn} disabled={submitting}>

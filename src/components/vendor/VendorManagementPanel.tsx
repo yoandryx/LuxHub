@@ -18,6 +18,8 @@ interface InterestEntry {
   wallet?: string;
   name: string;
   category?: string;
+  email?: string;
+  phone?: string;
   message: string;
   contact?: string;
   status: string;
@@ -159,6 +161,10 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     }
   };
 
+  // Invite email field
+  const [newInviteEmail, setNewInviteEmail] = useState('');
+  const [inviteInterestId, setInviteInterestId] = useState<string | null>(null);
+
   const createInvite = async () => {
     if (!newInviteWallet.trim()) {
       toast.error('Vendor wallet address is required');
@@ -175,18 +181,26 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
         body: JSON.stringify({
           vendorWallet: newInviteWallet.trim(),
           vendorName: newInviteName.trim() || null,
+          vendorEmail: newInviteEmail.trim() || null,
+          interestId: inviteInterestId,
         }),
       });
       const data = await res.json();
       if (res.ok) {
         const link = `${window.location.origin}/vendor/onboard?invite=${data.code}`;
         navigator.clipboard.writeText(link);
+        const emailNote = data.emailSent ? ' Email sent!' : '';
         toast.success(
-          data.existing ? 'Invite link copied (already existed)' : 'Invite created! Link copied.'
+          data.existing
+            ? `Invite link copied (already existed).${emailNote}`
+            : `Invite created! Link copied.${emailNote}`
         );
         setNewInviteWallet('');
         setNewInviteName('');
+        setNewInviteEmail('');
+        setInviteInterestId(null);
         fetchInvites();
+        if (inviteInterestId) fetchInterests();
       } else {
         toast.error(data.error || 'Failed to create invite');
       }
@@ -447,12 +461,23 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
               value={newInviteName}
               onChange={(e) => setNewInviteName(e.target.value)}
             />
+            <input
+              className={styles.searchInput}
+              type="email"
+              placeholder="Vendor email (sends invite automatically)"
+              value={newInviteEmail}
+              onChange={(e) => setNewInviteEmail(e.target.value)}
+            />
             <button
               className={styles.inviteBtn}
               disabled={creatingInvite || !newInviteWallet.trim()}
               onClick={createInvite}
             >
-              {creatingInvite ? 'Creating...' : 'Generate & Copy Link'}
+              {creatingInvite
+                ? 'Creating...'
+                : newInviteEmail.trim()
+                  ? 'Generate & Send Email'
+                  : 'Generate & Copy Link'}
             </button>
           </div>
 
@@ -516,26 +541,48 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
                   </div>
                   <p className={styles.interestMessage}>{int.message}</p>
                   <div className={styles.interestMeta}>
-                    {int.contact && <span>Contact: {int.contact}</span>}
+                    {int.email && <span>Email: {int.email}</span>}
+                    {int.phone && <span>Phone: {int.phone}</span>}
+                    {int.contact && <span>Social: {int.contact}</span>}
                     {int.wallet && (
                       <span className={styles.mono}>
                         Wallet: {int.wallet.slice(0, 6)}...{int.wallet.slice(-4)}
                       </span>
                     )}
                   </div>
-                  {int.wallet && (
-                    <button
-                      className={styles.inviteBtn}
-                      style={{ marginTop: '0.5rem', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                      onClick={() => {
-                        setNewInviteWallet(int.wallet || '');
-                        setNewInviteName(int.name);
-                        setAdminTab('invites');
-                      }}
-                    >
-                      <FiSend /> Send Invite
-                    </button>
-                  )}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '8px',
+                      marginTop: '0.5rem',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {int.wallet ? (
+                      <button
+                        className={styles.inviteBtn}
+                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                        onClick={() => {
+                          setNewInviteWallet(int.wallet || '');
+                          setNewInviteName(int.name);
+                          setNewInviteEmail(int.email || '');
+                          setInviteInterestId(int._id);
+                          setAdminTab('invites');
+                        }}
+                      >
+                        <FiSend /> Send Invite
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        No wallet — contact vendor to get their wallet address
+                      </span>
+                    )}
+                    {int.status === 'invited' && (
+                      <span className={styles.inviteStatusOpen} style={{ fontSize: '0.72rem' }}>
+                        Invited
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

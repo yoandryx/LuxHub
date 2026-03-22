@@ -8,6 +8,8 @@ const VendorInterestSchema = new Schema(
     wallet: { type: String, default: null, index: true },
     name: { type: String, required: true },
     category: { type: String, default: null },
+    email: { type: String, default: null },
+    phone: { type: String, default: null },
     message: { type: String, required: true },
     contact: { type: String, default: null },
     status: {
