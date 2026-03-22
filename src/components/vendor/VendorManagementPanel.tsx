@@ -243,12 +243,24 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
       if (res.ok) {
         const link = `${window.location.origin}/vendor/onboard?invite=${data.code}`;
         navigator.clipboard.writeText(link);
-        const emailNote = data.emailSent ? ' Email sent!' : '';
-        toast.success(
-          data.existing
-            ? `Invite link copied (already existed).${emailNote}`
-            : `Invite created! Link copied.${emailNote}`
-        );
+
+        // Show clear feedback about invite + email status
+        if (data.existing) {
+          toast.success('Invite link copied (already existed).');
+        } else {
+          toast.success('Invite created! Link copied to clipboard.');
+        }
+
+        if (newInviteEmail.trim()) {
+          if (data.emailSent) {
+            toast.success(`Invite email sent to ${newInviteEmail.trim()}`, { duration: 5000 });
+          } else {
+            toast.error(
+              `Email failed to send${data.emailError ? ': ' + data.emailError : ''}. Link was still copied — send it manually.`,
+              { duration: 8000 }
+            );
+          }
+        }
         setNewInviteWallet('');
         setNewInviteName('');
         setNewInviteEmail('');
