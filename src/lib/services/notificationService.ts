@@ -825,6 +825,93 @@ export async function notifyOfferAutoRejected(params: {
 }
 
 /**
+ * Notify vendor when buyer accepts their counter-offer
+ */
+export async function notifyCounterAcceptedByBuyer(params: {
+  vendorWallet: string;
+  buyerWallet: string;
+  offerId: string;
+  escrowId: string;
+  escrowPda: string;
+  assetTitle: string;
+  acceptedAmountUSD: number;
+}) {
+  const { vendorWallet, offerId, escrowId, escrowPda, assetTitle, acceptedAmountUSD } = params;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
+
+  return notifyUser({
+    userWallet: vendorWallet,
+    type: 'offer_accepted',
+    title: 'Counter-Offer Accepted!',
+    message: `The buyer accepted your counter-offer of $${acceptedAmountUSD.toFixed(2)} USD for "${assetTitle}". Awaiting buyer payment.`,
+    metadata: {
+      offerId,
+      escrowId,
+      escrowPda,
+      amountUSD: acceptedAmountUSD,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+    },
+  });
+}
+
+/**
+ * Notify vendor when buyer rejects their counter-offer
+ */
+export async function notifyCounterRejectedByBuyer(params: {
+  vendorWallet: string;
+  offerId: string;
+  escrowId: string;
+  escrowPda: string;
+  assetTitle: string;
+}) {
+  const { vendorWallet, offerId, escrowId, escrowPda, assetTitle } = params;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
+
+  return notifyUser({
+    userWallet: vendorWallet,
+    type: 'offer_rejected',
+    title: 'Counter-Offer Rejected',
+    message: `The buyer rejected your counter-offer for "${assetTitle}".`,
+    metadata: {
+      offerId,
+      escrowId,
+      escrowPda,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+    },
+  });
+}
+
+/**
+ * Notify vendor when buyer submits a counter-offer
+ */
+export async function notifyBuyerCounteredVendor(params: {
+  vendorWallet: string;
+  buyerWallet: string;
+  offerId: string;
+  escrowId: string;
+  escrowPda: string;
+  assetTitle: string;
+  counterAmountUSD: number;
+}) {
+  const { vendorWallet, offerId, escrowId, escrowPda, assetTitle, counterAmountUSD } = params;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
+
+  return notifyUser({
+    userWallet: vendorWallet,
+    type: 'offer_countered',
+    title: 'Buyer Counter-Offer Received',
+    message: `The buyer has countered with $${counterAmountUSD.toFixed(2)} USD for "${assetTitle}". Review and respond.`,
+    metadata: {
+      offerId,
+      escrowId,
+      escrowPda,
+      amountUSD: counterAmountUSD,
+      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+    },
+  });
+}
+
+/**
  * Notify vendor of application approval/rejection
  */
 export async function notifyVendorApplicationResult(params: {
