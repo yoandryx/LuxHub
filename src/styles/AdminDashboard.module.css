@@ -1516,88 +1516,7 @@
   }
 }
 
-/* Extra small mobile screens */
-@media screen and (max-width: 480px) {
-  .statsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Compact nav items on very small screens */
-  .sidebarNav {
-    padding: 6px 4px;
-    gap: 4px;
-  }
-
-  .navSection {
-    gap: 4px;
-  }
-
-  .navItem {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-  }
-
-  .navIcon {
-    width: 16px;
-    height: 16px;
-  }
-
-  .navSection:not(:last-child)::after {
-    height: 20px;
-    margin-left: 4px;
-  }
-
-  .contentHeader {
-    padding: 12px;
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-  }
-
-  .headerActions {
-    width: 100%;
-  }
-
-  .refreshBtn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .contentBody {
-    padding: 12px;
-  }
-
-  .pageTitle h1 {
-    font-size: 1rem;
-  }
-
-  .pageTitle p {
-    font-size: 0.7rem;
-  }
-
-  .cardFooter {
-    flex-direction: column;
-  }
-
-  .cardBtn {
-    width: 100%;
-  }
-
-  .statCard {
-    padding: 12px;
-  }
-
-  .statValue {
-    font-size: 1.25rem;
-  }
-
-  .statIcon {
-    width: 32px;
-    height: 32px;
-    margin-bottom: 10px;
-  }
-}
+/* 480px query moved after 768px for correct cascade — see below */
 
 @media screen and (max-width: 768px) {
   /* Mobile: Top horizontal navigation - LuxHub Glass Theme */
@@ -1608,7 +1527,7 @@
     right: 0;
     bottom: auto;
     width: 100%;
-    height: 52px;
+    height: 44px;
     flex-direction: row;
     border-right: none;
     border-bottom: 1px solid rgba(200, 161, 255, 0.15);
@@ -1627,12 +1546,12 @@
   .sidebarNav {
     display: flex;
     flex-direction: row;
-    padding: 6px 8px;
+    padding: 4px 8px;
     overflow-x: auto;
     overflow-y: hidden;
     align-items: center;
     justify-content: flex-start;
-    gap: 6px;
+    gap: 4px;
     height: 100%;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -1647,7 +1566,7 @@
     display: flex;
     flex-direction: row;
     margin: 0;
-    gap: 6px;
+    gap: 4px;
     flex-shrink: 0;
     height: auto;
   }
@@ -1661,15 +1580,15 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 0;
-    width: 40px;
-    height: 40px;
-    padding: 0;
+    gap: 6px;
+    width: auto;
+    height: 32px;
+    padding: 4px 10px;
     margin: 0;
     font-size: 0.75rem;
     white-space: nowrap;
     flex-shrink: 0;
-    border-radius: 10px;
+    border-radius: 16px;
     background: linear-gradient(135deg, rgba(30, 30, 35, 0.5) 0%, rgba(20, 20, 25, 0.6) 100%);
     border: 1px solid #222222;
     color: rgba(255, 255, 255, 0.6);
@@ -1703,8 +1622,8 @@
   }
 
   .navIcon {
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
     color: rgba(255, 255, 255, 0.6);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -1713,30 +1632,27 @@
     color: #c8a1ff;
   }
 
-  /* Hide text labels on mobile - icon only */
-  .navItem span:not(.navIcon) {
-    display: none;
+  /* Show text labels as pill labels */
+  .navItem span:not(.navBadge) {
+    display: inline;
+    font-size: 0.65rem;
+    white-space: nowrap;
   }
 
   .navBadge {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    min-width: 14px;
-    height: 14px;
-    font-size: 0.6rem;
+    position: static;
+    margin-left: 2px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.55rem;
     padding: 0 3px;
-    border-radius: 7px;
+    border-radius: 8px;
     background: #c8a1ff;
     color: #0a0a0c;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .navItem {
-    position: relative;
   }
 
   /* Subtle separator between nav sections */
@@ -1751,9 +1667,9 @@
 
   .mainContent {
     margin-left: 0;
-    margin-top: calc(var(--navbar-height) + 52px);
+    margin-top: calc(var(--navbar-height) + 44px);
     margin-bottom: 0;
-    min-height: calc(100vh - var(--navbar-height) - 52px);
+    min-height: calc(100vh - var(--navbar-height) - 44px);
   }
 
   .contentHeader {
@@ -1767,20 +1683,37 @@
   }
 
   .statsGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
   }
 
   .statCard {
-    padding: 14px 12px;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 120px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .statCard:hover {
+    transform: none;
+  }
+
+  .statIcon {
+    display: none;
   }
 
   .statValue {
-    font-size: 1.4rem;
+    font-size: 1.1rem;
+    margin-bottom: 0;
   }
 
   .statLabel {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
   }
 
   .pageTitle h1 {
@@ -1888,6 +1821,69 @@
 
   .activityMessage {
     font-size: 0.7rem;
+  }
+}
+
+/* Extra small mobile screens — AFTER 768px for correct max-width cascade */
+@media screen and (max-width: 480px) {
+  .navItem {
+    width: auto;
+    height: 28px;
+    padding: 3px 8px;
+    border-radius: 14px;
+  }
+
+  .navIcon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .navItem span:not(.navBadge) {
+    font-size: 0.6rem;
+  }
+
+  .statCard {
+    padding: 8px 10px;
+  }
+
+  .contentHeader {
+    padding: 12px;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .headerActions {
+    width: 100%;
+  }
+
+  .refreshBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .contentBody {
+    padding: 12px;
+  }
+
+  .pageTitle h1 {
+    font-size: 1rem;
+  }
+
+  .pageTitle p {
+    font-size: 0.7rem;
+  }
+
+  .cardFooter {
+    flex-direction: column;
+  }
+
+  .cardBtn {
+    width: 100%;
+  }
+
+  .statValue {
+    font-size: 1rem;
   }
 }
 
