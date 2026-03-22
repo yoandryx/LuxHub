@@ -556,9 +556,9 @@ export async function notifyUser(params: CreateNotificationParams): Promise<{
 
     if (!resolvedEmail) {
       // Try VendorProfile
-      const vendorProfile = await VendorProfileModel.findOne({ wallet: userWallet })
+      const vendorProfile = (await VendorProfileModel.findOne({ wallet: userWallet })
         .select('email')
-        .lean();
+        .lean()) as any;
       if (vendorProfile?.email) {
         resolvedEmail = vendorProfile.email as string;
         emailSource = 'VendorProfile.email';
@@ -567,12 +567,12 @@ export async function notifyUser(params: CreateNotificationParams): Promise<{
 
     if (!resolvedEmail) {
       // Try InviteCode (last resort -- vendor email stored at invite time)
-      const invite = await InviteCodeModel.findOne({
+      const invite = (await InviteCodeModel.findOne({
         vendorWallet: userWallet,
         vendorEmail: { $ne: null },
       })
         .select('vendorEmail')
-        .lean();
+        .lean()) as any;
       if (invite?.vendorEmail) {
         resolvedEmail = invite.vendorEmail as string;
         emailSource = 'InviteCode.vendorEmail';
