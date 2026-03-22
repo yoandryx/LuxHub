@@ -8,8 +8,9 @@ import { Asset } from '../../../lib/models/Assets';
 import { Transaction } from '../../../lib/models/Transaction';
 import {
   notifyUser,
-  notifyOfferAccepted,
-  notifyOfferCountered,
+  notifyCounterAcceptedByBuyer,
+  notifyCounterRejectedByBuyer,
+  notifyBuyerCounteredVendor,
 } from '../../../lib/services/notificationService';
 
 interface BuyerRespondRequest {
@@ -147,14 +148,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }).catch((err: any) => console.error('[buyer-respond] Transaction.create error:', err));
 
         // Notify vendor that buyer accepted their counter (non-blocking)
-        notifyOfferAccepted({
-          buyerWallet: escrow.sellerWallet, // notify the vendor
+        notifyCounterAcceptedByBuyer({
+          vendorWallet: escrow.sellerWallet,
+          buyerWallet: offer.buyerWallet,
           offerId: offer._id.toString(),
           escrowId: escrow._id.toString(),
           escrowPda: escrow.escrowPda,
           assetTitle,
           acceptedAmountUSD,
-        }).catch((err: any) => console.error('[buyer-respond] notifyOfferAccepted error:', err));
+        }).catch((err: any) =>
+          console.error('[buyer-respond] notifyCounterAcceptedByBuyer error:', err)
+        );
 
         return res.status(200).json({
           success: true,
@@ -195,19 +199,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         // Notify vendor that buyer rejected their counter (non-blocking)
-        notifyUser({
-          userWallet: escrow.sellerWallet,
-          type: 'offer_rejected',
-          title: 'Counter-Offer Rejected',
-          message: `The buyer rejected your counter-offer for "${assetTitle}".`,
-          metadata: {
-            offerId: offer._id.toString(),
-            escrowId: escrow._id.toString(),
-            escrowPda: escrow.escrowPda,
-            actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/vendor/offers`,
-          },
+        notifyCounterRejectedByBuyer({
+          vendorWallet: escrow.sellerWallet,
+          offerId: offer._id.toString(),
+          escrowId: escrow._id.toString(),
+          escrowPda: escrow.escrowPda,
+          assetTitle,
         }).catch((err: any) =>
-          console.error('[buyer-respond] notifyUser reject_counter error:', err)
+          console.error('[buyer-respond] notifyCounterRejectedByBuyer error:', err)
         );
 
         return res.status(200).json({
@@ -269,14 +268,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }).catch((err: any) => console.error('[buyer-respond] Transaction.create error:', err));
 
         // Notify vendor of buyer's counter (non-blocking)
-        notifyOfferCountered({
-          buyerWallet: escrow.sellerWallet, // notify the vendor
+        notifyBuyerCounteredVendor({
+          vendorWallet: escrow.sellerWallet,
+          buyerWallet: offer.buyerWallet,
           offerId: offer._id.toString(),
           escrowId: escrow._id.toString(),
           escrowPda: escrow.escrowPda,
           assetTitle,
           counterAmountUSD: counterAmountUSD!,
-        }).catch((err: any) => console.error('[buyer-respond] notifyOfferCountered error:', err));
+        }).catch((err: any) =>
+          console.error('[buyer-respond] notifyBuyerCounteredVendor error:', err)
+        );
 
         return res.status(200).json({
           success: true,
