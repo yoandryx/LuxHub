@@ -375,7 +375,7 @@ const MintRequestForm = () => {
               value={condition}
               onValueChange={setCondition}
               placeholder="Condition"
-              options={['New', 'Excellent', 'Good', 'Fair', 'Poor']}
+              options={['Unworn', 'Excellent', 'Very Good', 'Good', 'Fair']}
             />
           )}
         </div>

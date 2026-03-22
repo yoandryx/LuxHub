@@ -960,7 +960,7 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
                   <RadixSelect
                     value={single.condition}
                     onValueChange={(v) => setSingle((p) => ({ ...p, condition: v }))}
-                    options={['New', 'Mint', 'Excellent', 'Very Good', 'Good', 'Fair']}
+                    options={['Unworn', 'Excellent', 'Very Good', 'Good', 'Fair']}
                     placeholder={single.condition}
                   />
                 </div>

@@ -154,19 +154,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const vendor = ownerVendor || requesterVendor;
 
     // Map free-text condition to Asset enum values
-    const validConditions = [
-      'New',
-      'Excellent',
-      'Very Good',
-      'Good',
-      'Fair',
-      'Poor',
-      'Non-functional',
-    ];
+    // Legacy values ('New', 'Mint') map to 'Unworn' for backward compatibility
+    const conditionMap: Record<string, string> = {
+      new: 'Unworn',
+      mint: 'Unworn',
+      unworn: 'Unworn',
+    };
     let mappedCondition: string | undefined;
     if (mintRequest.condition) {
-      const condLower = mintRequest.condition.toLowerCase();
-      mappedCondition = validConditions.find((c) => condLower.includes(c.toLowerCase()));
+      const condLower = mintRequest.condition.toLowerCase().trim();
+      // Check explicit mappings first (legacy values)
+      mappedCondition = conditionMap[condLower];
+      if (!mappedCondition) {
+        // Then fuzzy match against valid values
+        const validConditions = ['Unworn', 'Excellent', 'Very Good', 'Good', 'Fair'];
+        mappedCondition = validConditions.find((c) => condLower.includes(c.toLowerCase()));
+      }
     }
 
     // Create Asset record
