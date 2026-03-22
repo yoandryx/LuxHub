@@ -101,6 +101,9 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Email nudge state
+  const [hasEmail, setHasEmail] = useState<boolean | null>(null);
+
   const rawAmount = parseFloat(offerAmount) || 0;
   const effectiveSolPrice = solPrice || 0;
 
@@ -144,6 +147,21 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
       setShowNewAddressForm(false);
     }
   }, [selectedSavedAddress]);
+
+  // Check if user has email for nudge display
+  useEffect(() => {
+    if (!publicKey) return;
+    const checkEmail = async () => {
+      try {
+        const res = await fetch(`/api/users/notification-prefs?wallet=${publicKey.toBase58()}`);
+        const data = await res.json();
+        setHasEmail(!!data.email);
+      } catch {
+        setHasEmail(true); // hide nudge on error
+      }
+    };
+    checkEmail();
+  }, [publicKey]);
 
   const handleShippingChange = (field: keyof ShippingForm, value: string) => {
     setShipping((prev) => ({ ...prev, [field]: value }));
@@ -585,6 +603,20 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
                         />
                       )}
                     </div>
+                  </div>
+                )}
+
+                {hasEmail === false && (
+                  <div className={styles.emailNudge}>
+                    <span>Want offer updates via email?</span>
+                    <a
+                      href="/settings"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.emailNudgeLink}
+                    >
+                      Add your email in Settings
+                    </a>
                   </div>
                 )}
 

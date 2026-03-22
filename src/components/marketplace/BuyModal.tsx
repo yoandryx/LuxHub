@@ -135,6 +135,9 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
   const [saveNewAddress, setSaveNewAddress] = useState(false);
   const [addressLabel, setAddressLabel] = useState('Home');
 
+  // Email nudge state
+  const [hasEmail, setHasEmail] = useState<boolean | null>(null);
+
   // Calculate prices
   const priceUSD = escrow.listingPriceUSD || 0;
   const priceUsdcAtomic = usdToUsdcAtomic(priceUSD);
@@ -161,6 +164,21 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
     };
     fetchBalances();
   }, [publicKey, connection]);
+
+  // Check if user has email for nudge display
+  useEffect(() => {
+    if (!publicKey) return;
+    const checkEmail = async () => {
+      try {
+        const res = await fetch(`/api/users/notification-prefs?wallet=${publicKey.toBase58()}`);
+        const data = await res.json();
+        setHasEmail(!!data.email);
+      } catch {
+        setHasEmail(true); // hide nudge on error
+      }
+    };
+    checkEmail();
+  }, [publicKey]);
 
   // Fetch Jupiter quote when SOL is selected
   useEffect(() => {
@@ -794,6 +812,20 @@ const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, on
                   </div>
                 </div>
               </>
+            )}
+
+            {hasEmail === false && (
+              <div className={styles.emailNudge}>
+                <span>Want order updates via email?</span>
+                <a
+                  href="/settings"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.emailNudgeLink}
+                >
+                  Add your email in Settings
+                </a>
+              </div>
             )}
 
             <div className={styles.buttonRow}>

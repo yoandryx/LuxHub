@@ -1534,3 +1534,27 @@
     font-size: 16px;
   }
 }
+
+/* Email Nudge */
+.emailNudge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  background: rgba(200, 161, 255, 0.06);
+  border: 1px solid rgba(200, 161, 255, 0.12);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.emailNudgeLink {
+  color: #c8a1ff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.emailNudgeLink:hover {
+  text-decoration: underline;
+}
