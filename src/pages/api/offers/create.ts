@@ -282,6 +282,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Notify owner/vendor of new offer (non-blocking)
     const assetTitle = asset?.model || 'Luxury Asset';
     if (vendorWallet) {
+      // Resolve asset image to full URL for rich email template
+      let imageUrl = asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || escrow?.imageUrl || '';
+      if (imageUrl && !imageUrl.startsWith('http')) {
+        const gateway = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
+        imageUrl = `${gateway}${imageUrl}`;
+      }
+
       notifyOfferReceived({
         vendorWallet,
         buyerWallet,
@@ -289,6 +296,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         escrowId: escrow?._id?.toString() || assetForOffer?._id?.toString() || '',
         assetTitle,
         offerAmountUSD: offerPriceUSD,
+        imageUrl,
       }).catch((err: any) => console.error('[offers/create] notifyOfferReceived error:', err));
     }
 
