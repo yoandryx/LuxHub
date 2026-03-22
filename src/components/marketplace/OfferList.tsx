@@ -1,7 +1,7 @@
 // src/components/marketplace/OfferList.tsx
 // List offers with filtering - supports buyer and vendor views
 import React, { useState, useEffect } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import OfferCard from './OfferCard';
 import styles from '../../styles/OfferList.module.css';
 
@@ -47,7 +47,7 @@ interface OfferListProps {
 type StatusFilter = 'all' | 'pending' | 'countered' | 'accepted' | 'rejected';
 
 const OfferList: React.FC<OfferListProps> = ({ viewMode, escrowPda, onOfferAction }) => {
-  const { publicKey, connected } = useWallet();
+  const { publicKey, connected } = useEffectiveWallet();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import {
@@ -93,9 +94,9 @@ const COUNTRIES = [
 ];
 
 const BuyModal: React.FC<BuyModalProps> = ({ escrow, solPrice = 100, onClose, onSuccess }) => {
-  const wallet = useWallet();
+  const wallet = useWallet(); // kept for getProgram(wallet)
   const { connection } = useConnection();
-  const { publicKey, connected, signTransaction } = wallet;
+  const { publicKey, connected, signTransaction } = useEffectiveWallet();
 
   const [step, setStep] = useState<'details' | 'shipping' | 'confirm' | 'signing' | 'success'>(
     'details'

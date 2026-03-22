@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { usePrivy } from '@privy-io/react-auth';
-import { useWallets } from '@privy-io/react-auth/solana';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import {
   PublicKey,
   Connection,
@@ -152,28 +151,20 @@ const fmtPrice = (price: number, prefix = '$'): string => {
 const fmtSol = (price: number): string => fmtPrice(price, '') + ' SOL';
 
 const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComplete }) => {
-  const wallet = useWallet();
-  const { authenticated } = usePrivy();
-  const { wallets: privyWallets } = useWallets();
-  const privyAddr = privyWallets?.[0]?.address;
-  const publicKey = useMemo(
-    () => wallet.publicKey || (privyAddr ? new PublicKey(privyAddr) : null),
-    [wallet.publicKey, privyAddr]
-  );
-  const connected = wallet.connected || (authenticated && !!privyAddr);
+  const wallet = useWallet(); // kept for sendTransaction
+  const { publicKey, connected, signTransaction } = useEffectiveWallet();
 
-  // Unified send: prefer wallet adapter, fallback to Privy
+  // Unified send: prefer wallet adapter sendTransaction, fallback to sign+sendRaw
   const sendTx = async (tx: Transaction, connection: Connection): Promise<string> => {
     if (wallet.connected && wallet.sendTransaction) {
       return wallet.sendTransaction(tx, connection);
     }
-    // Privy wallet fallback
-    const privyWallet = privyWallets?.[0];
-    if (privyWallet) {
+    // Privy wallet fallback via useEffectiveWallet bridged signTransaction
+    if (signTransaction && publicKey) {
       const { blockhash } = await connection.getLatestBlockhash();
       tx.recentBlockhash = blockhash;
-      tx.feePayer = publicKey!;
-      const signed = await (privyWallet as any).signTransaction(tx);
+      tx.feePayer = publicKey;
+      const signed = await signTransaction(tx);
       const sig = await connection.sendRawTransaction(signed.serialize());
       return sig;
     }
@@ -295,18 +286,12 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
         // 2. Deserialize and sign the transaction from Bags
         const txBuf = Buffer.from(buyData.transaction, 'base64');
         let sig: string;
+        if (!signTransaction) throw new Error('No wallet available');
         try {
           // Try VersionedTransaction first (Bags typically returns these)
           const vtx = VersionedTransaction.deserialize(txBuf);
-          if (wallet.connected && wallet.signTransaction) {
-            const signed = await wallet.signTransaction(vtx as any);
-            sig = await connection.sendRawTransaction((signed as any).serialize());
-          } else {
-            const privyWallet = privyWallets?.[0];
-            if (!privyWallet) throw new Error('No wallet available');
-            const signed = await (privyWallet as any).signTransaction(vtx);
-            sig = await connection.sendRawTransaction(signed.serialize());
-          }
+          const signed = await signTransaction(vtx);
+          sig = await connection.sendRawTransaction(signed.serialize());
         } catch {
           // Fallback to legacy Transaction
           const tx = Transaction.from(txBuf);
@@ -387,17 +372,11 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
         if (sellData.transaction) {
           const txBuf = Buffer.from(sellData.transaction, 'base64');
           let sig: string;
+          if (!signTransaction) throw new Error('No wallet available');
           try {
             const vtx = VersionedTransaction.deserialize(txBuf);
-            if (wallet.connected && wallet.signTransaction) {
-              const signed = await wallet.signTransaction(vtx as any);
-              sig = await connection.sendRawTransaction((signed as any).serialize());
-            } else {
-              const privyWallet = privyWallets?.[0];
-              if (!privyWallet) throw new Error('No wallet available');
-              const signed = await (privyWallet as any).signTransaction(vtx);
-              sig = await connection.sendRawTransaction(signed.serialize());
-            }
+            const signed = await signTransaction(vtx);
+            sig = await connection.sendRawTransaction(signed.serialize());
           } catch {
             const tx = Transaction.from(txBuf);
             sig = await sendTx(tx, connection);

@@ -2,7 +2,7 @@
 // Secondary market trading for pool shares via Bags API
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { Connection, VersionedTransaction } from '@solana/web3.js';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/BagsPoolTrading.module.css';
@@ -52,7 +52,7 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
   userShares = 0,
   onTradeComplete,
 }) => {
-  const { publicKey, signTransaction, connected } = useWallet();
+  const { publicKey, signTransaction, connected } = useEffectiveWallet();
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState<string>('1');
   const [outputToken, setOutputToken] = useState<'USDC' | 'SOL'>('USDC');

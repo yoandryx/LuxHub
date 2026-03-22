@@ -6,7 +6,7 @@ import { useMemo, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth/solana';
-import { PublicKey, Transaction } from '@solana/web3.js';
+import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 
 function isValidSolanaAddress(address: string | undefined): boolean {
   if (!address) return false;
@@ -45,8 +45,9 @@ export function useEffectiveWallet() {
   }, [walletAdapterPublicKey, authenticated, walletsReady, privyWallet]);
 
   // Bridge Privy signTransaction to match wallet adapter signature
+  // Accepts both Transaction and VersionedTransaction (same as wallet adapter)
   const signTransaction = useCallback(
-    async (tx: Transaction): Promise<Transaction> => {
+    async <T extends Transaction | VersionedTransaction>(tx: T): Promise<T> => {
       if (walletAdapterSignTransaction) {
         return walletAdapterSignTransaction(tx);
       }

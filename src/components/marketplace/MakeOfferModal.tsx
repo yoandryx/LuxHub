@@ -2,7 +2,7 @@
 // Multi-step modal for buyers to make offers on escrow listings
 // Steps: Offer Details → Shipping Address → Confirm & Submit
 import React, { useState, useEffect } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { SiSolana } from 'react-icons/si';
 import { resolveImageUrl, handleImageError, PLACEHOLDER_IMAGE } from '../../utils/imageUtils';
 import SavedAddressSelector, { SavedAddress } from '../common/SavedAddressSelector';
@@ -80,7 +80,7 @@ const MakeOfferModal: React.FC<MakeOfferModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { publicKey, connected } = useWallet();
+  const { publicKey, connected } = useEffectiveWallet();
   const [step, setStep] = useState<Step>('offer');
 
   // Offer state
