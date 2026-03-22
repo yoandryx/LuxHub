@@ -129,8 +129,9 @@ None yet.
 | 260321-wah | Replace admin dashboard sidebar with horizontal scrollable tab bar | 2026-03-22 | 616443c | [260321-wah-admin-dashboard-no-sidebar](./quick/260321-wah-admin-dashboard-no-sidebar/) |
 | 260321-wob | Replace admin dashboard tab bar with FAB + chrome glass nav panel | 2026-03-22 | d899205 | [260321-wob-admin-nav-fab-menu](./quick/260321-wob-admin-nav-fab-menu/) |
 | 260321-x6g | Vendor application notification pipeline (badges, overview card, invite email) | 2026-03-22 | 9b24863 | [260321-x6g-vendor-application-notification-pipeline](./quick/260321-x6g-vendor-application-notification-pipeline/) |
+| 260322-1w5 | Audit and fix create-listing/vendor-mint flow (condition enum + notifications) | 2026-03-22 | 1619b7b | [260322-1w5-audit-and-fix-create-listing-vendor-mint](./quick/260322-1w5-audit-and-fix-create-listing-vendor-mint/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 260321-x6g quick task
+Stopped at: Completed 260322-1w5 quick task
