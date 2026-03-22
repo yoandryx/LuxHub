@@ -130,8 +130,9 @@ None yet.
 | 260321-wob | Replace admin dashboard tab bar with FAB + chrome glass nav panel | 2026-03-22 | d899205 | [260321-wob-admin-nav-fab-menu](./quick/260321-wob-admin-nav-fab-menu/) |
 | 260321-x6g | Vendor application notification pipeline (badges, overview card, invite email) | 2026-03-22 | 9b24863 | [260321-x6g-vendor-application-notification-pipeline](./quick/260321-x6g-vendor-application-notification-pipeline/) |
 | 260322-1w5 | Audit and fix create-listing/vendor-mint flow (condition enum + notifications) | 2026-03-22 | 1619b7b | [260322-1w5-audit-and-fix-create-listing-vendor-mint](./quick/260322-1w5-audit-and-fix-create-listing-vendor-mint/) |
+| 260322-cpo | Fix prepare-mint 500 error: migrate Irys SDK + add diagnostic logging | 2026-03-22 | 16d7f53 | [260322-cpo-fix-prepare-mint-500-error-add-logging-m](./quick/260322-cpo-fix-prepare-mint-500-error-add-logging-m/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 260322-1w5 quick task
+Stopped at: Completed 260322-cpo quick task
