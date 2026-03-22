@@ -105,6 +105,60 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
 
   const adminWallet = wallet?.publicKey?.toBase58?.() || '';
 
+  const confirmAction = (message: string, onConfirm: () => void) => {
+    toast(
+      (t) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <span style={{ fontSize: '0.9rem' }}>{message}</span>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              style={{
+                padding: '6px 14px',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '6px',
+                color: '#a1a1a1',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                onConfirm();
+              }}
+              style={{
+                padding: '6px 14px',
+                background: 'linear-gradient(135deg, #c8a1ff, #a855f7)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#0a0a0c',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+              }}
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: 10000,
+        style: {
+          background: '#111',
+          color: '#fff',
+          border: '1px solid rgba(200, 161, 255, 0.2)',
+          borderRadius: '10px',
+          padding: '14px 16px',
+        },
+      }
+    );
+  };
+
   useEffect(() => {
     fetchPendingVendors();
     fetchApprovedVendors();
@@ -218,28 +272,31 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const deleteInvite = async (code: string) => {
-    if (!window.confirm('Delete this invite? The vendor will no longer be able to use this link.'))
-      return;
-    try {
-      const res = await fetch('/api/admin/invites', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-wallet-address': adminWallet,
-        },
-        body: JSON.stringify({ code }),
-      });
-      if (res.ok) {
-        toast.success('Invite deleted');
-        fetchInvites();
-      } else {
-        const data = await res.json();
-        toast.error(data.error || 'Failed to delete invite');
+  const deleteInvite = (code: string) => {
+    confirmAction(
+      'Delete this invite? The vendor will no longer be able to use this link.',
+      async () => {
+        try {
+          const res = await fetch('/api/admin/invites', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-wallet-address': adminWallet,
+            },
+            body: JSON.stringify({ code }),
+          });
+          if (res.ok) {
+            toast.success('Invite deleted');
+            fetchInvites();
+          } else {
+            const data = await res.json();
+            toast.error(data.error || 'Failed to delete invite');
+          }
+        } catch {
+          toast.error('Failed to delete invite');
+        }
       }
-    } catch {
-      toast.error('Failed to delete invite');
-    }
+    );
   };
 
   // Filter pending vendors
@@ -293,27 +350,27 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     setLoading(false);
   };
 
-  const approveVendor = async (vendorWallet: string) => {
-    if (!window.confirm('Approve this vendor? They will be able to list watches on LuxHub.'))
-      return;
-    setApprovingVendor(vendorWallet);
-    setLoading(true);
-    const res = await fetch('/api/vendor/approve', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wallet: vendorWallet, adminWallet }),
+  const approveVendor = (vendorWallet: string) => {
+    confirmAction('Approve this vendor? They will be able to list watches on LuxHub.', async () => {
+      setApprovingVendor(vendorWallet);
+      setLoading(true);
+      const res = await fetch('/api/vendor/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet: vendorWallet, adminWallet }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        navigator.clipboard.writeText(`${window.location.origin}/vendor/${vendorWallet}`);
+        setVendorMessage({ type: 'success', text: `Approved! Profile link copied.` });
+        fetchPendingVendors();
+        fetchApprovedVendors();
+      } else {
+        setVendorMessage({ type: 'error', text: data.error || 'Failed to approve vendor.' });
+      }
+      setApprovingVendor(null);
+      setLoading(false);
     });
-    const data = await res.json();
-    if (res.ok) {
-      navigator.clipboard.writeText(`${window.location.origin}/vendor/${vendorWallet}`);
-      setVendorMessage({ type: 'success', text: `Approved! Profile link copied.` });
-      fetchPendingVendors();
-      fetchApprovedVendors();
-    } else {
-      setVendorMessage({ type: 'error', text: data.error || 'Failed to approve vendor.' });
-    }
-    setApprovingVendor(null);
-    setLoading(false);
   };
 
   const rejectVendor = async (vendorWallet: string) => {
@@ -339,24 +396,25 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     setLoading(false);
   };
 
-  const revokeVendor = async (vendorWallet: string) => {
-    if (!confirm('Revoke this vendor? Their profile will be marked as rejected.')) return;
-    setLoading(true);
-    const res = await fetch('/api/vendor/reject', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        wallet: vendorWallet,
-        adminWallet,
-        reason: 'Approval revoked by admin',
-      }),
+  const revokeVendor = (vendorWallet: string) => {
+    confirmAction('Revoke this vendor? Their profile will be marked as rejected.', async () => {
+      setLoading(true);
+      const res = await fetch('/api/vendor/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: vendorWallet,
+          adminWallet,
+          reason: 'Approval revoked by admin',
+        }),
+      });
+      if (res.ok) {
+        setVendorMessage({ type: 'success', text: 'Vendor approval revoked.' });
+        fetchApprovedVendors();
+        fetchPendingVendors();
+      }
+      setLoading(false);
     });
-    if (res.ok) {
-      setVendorMessage({ type: 'success', text: 'Vendor approval revoked.' });
-      fetchApprovedVendors();
-      fetchPendingVendors();
-    }
-    setLoading(false);
   };
 
   const renderQuestionnaireDetails = (vendor: VendorProfile) => (
