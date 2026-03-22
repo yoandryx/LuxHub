@@ -2,6 +2,8 @@
 // Centralized notification service for in-app + email notifications
 import { Notification } from '../models/Notification';
 import { User } from '../models/User';
+import VendorProfileModel from '../models/VendorProfile';
+import InviteCodeModel from '../models/InviteCode';
 
 // ========== TYPES ==========
 export type NotificationType =
@@ -548,6 +550,41 @@ export async function notifyUser(params: CreateNotificationParams): Promise<{
       console.warn(`[NotificationService] User not found for wallet: ${userWallet}`);
     }
 
+    // Resolve email: User.email -> VendorProfile.email -> InviteCode.vendorEmail
+    let resolvedEmail = user?.email;
+    let emailSource = 'User.email';
+
+    if (!resolvedEmail) {
+      // Try VendorProfile
+      const vendorProfile = await VendorProfileModel.findOne({ wallet: userWallet })
+        .select('email')
+        .lean();
+      if (vendorProfile?.email) {
+        resolvedEmail = vendorProfile.email as string;
+        emailSource = 'VendorProfile.email';
+      }
+    }
+
+    if (!resolvedEmail) {
+      // Try InviteCode (last resort -- vendor email stored at invite time)
+      const invite = await InviteCodeModel.findOne({
+        vendorWallet: userWallet,
+        vendorEmail: { $ne: null },
+      })
+        .select('vendorEmail')
+        .lean();
+      if (invite?.vendorEmail) {
+        resolvedEmail = invite.vendorEmail as string;
+        emailSource = 'InviteCode.vendorEmail';
+      }
+    }
+
+    if (resolvedEmail && resolvedEmail !== user?.email) {
+      console.log(
+        `[NotificationService] Resolved email for ${userWallet.slice(0, 8)}... via ${emailSource}`
+      );
+    }
+
     // Check user notification preferences
     const prefs = user?.notificationPrefs || {};
     const category = getNotificationCategory(type);
@@ -574,8 +611,8 @@ export async function notifyUser(params: CreateNotificationParams): Promise<{
     let emailSent = false;
     let emailError: string | undefined;
 
-    if (shouldSendEmail && user?.email && emailEnabled && categoryEnabled) {
-      const result = await sendEmail(user.email, type, {
+    if (shouldSendEmail && resolvedEmail && emailEnabled && categoryEnabled) {
+      const result = await sendEmail(resolvedEmail, type, {
         title,
         message,
         actionUrl: metadata.actionUrl,
