@@ -1,6 +1,6 @@
 // pages/vendor/onboard.tsx
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useState, useLayoutEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import AvatarBannerUploader from '../../components/vendor/AvatarBannerUploader';
@@ -68,7 +68,68 @@ export default function VendorOnboard() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [usernameChecking, setUsernameChecking] = useState(false);
+
+  /* ---------- LOCALSTORAGE PERSISTENCE ---------- */
+  const ONBOARD_STORAGE_KEY = useMemo(
+    () => `luxhub_vendor_onboard_${publicKey?.toBase58() || 'anonymous'}`,
+    [publicKey]
+  );
+  const restoredRef = useRef(false);
+
+  // Restore saved progress on mount
+  useEffect(() => {
+    if (restoredRef.current) return;
+    try {
+      // Try wallet-specific key first, then anonymous fallback
+      const keys = publicKey
+        ? [ONBOARD_STORAGE_KEY, 'luxhub_vendor_onboard_anonymous']
+        : [ONBOARD_STORAGE_KEY];
+      for (const key of keys) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const saved = JSON.parse(raw);
+        if (saved.formData) {
+          setFormData((prev) => ({ ...prev, ...saved.formData }));
+        }
+        if (typeof saved.currentStep === 'number' && saved.currentStep > 0) {
+          setCurrentStep(saved.currentStep);
+        }
+        restoredRef.current = true;
+        toast.success('Welcome back. Your progress has been saved.');
+        // Migrate anonymous to wallet-specific if needed
+        if (publicKey && key === 'luxhub_vendor_onboard_anonymous') {
+          localStorage.removeItem('luxhub_vendor_onboard_anonymous');
+        }
+        break;
+      }
+    } catch {
+      // Corrupt data — ignore
+    }
+    restoredRef.current = true;
+  }, [ONBOARD_STORAGE_KEY, publicKey]);
+
+  // Save form data on change
+  useEffect(() => {
+    // Skip saving blank initial state
+    const hasData =
+      formData.name.trim() ||
+      formData.username.trim() ||
+      formData.bio.trim() ||
+      formData.avatarUrl ||
+      formData.bannerUrl ||
+      currentStep > 0;
+    if (!hasData) return;
+    try {
+      localStorage.setItem(
+        ONBOARD_STORAGE_KEY,
+        JSON.stringify({ formData, currentStep, savedAt: Date.now() })
+      );
+    } catch {
+      // Storage full or unavailable — ignore
+    }
+  }, [formData, currentStep, ONBOARD_STORAGE_KEY]);
 
   /* ---------- OPTIONAL TREASURY STATE ---------- */
   const [enableTreasury, setEnableTreasury] = useState(false);
@@ -376,8 +437,11 @@ export default function VendorOnboard() {
       console.log('API RESPONSE:', res.status, text);
 
       if (res.ok) {
+        // Clear saved draft from localStorage
+        localStorage.removeItem(ONBOARD_STORAGE_KEY);
+        localStorage.removeItem('luxhub_vendor_onboard_anonymous');
         toast.success('Application submitted! We will review your profile shortly.');
-        router.push('/vendor/pending');
+        setSubmitted(true);
       } else {
         const data = text ? JSON.parse(text) : {};
         toast.error(data?.error ?? 'Submission failed');
@@ -408,9 +472,48 @@ export default function VendorOnboard() {
   };
 
   /* ---------- RENDER ---------- */
+
+  // Post-submission success screen
+  if (submitted) {
+    return (
+      <div className={styles.onboardContainer}>
+        <div className={styles.wizardWrapper}>
+          <div className={styles.wizardCard}>
+            <div className={styles.pendingApproval}>
+              <FaCheckCircle className={styles.successIcon} />
+              <h2>Application Submitted</h2>
+              <p>Your application is under review. You will be notified once approved.</p>
+              <div className={styles.pendingBadge}>
+                <FaExclamationTriangle />
+                Pending Admin Approval
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: 320 }}>
+                Our team is reviewing your application. This typically takes less than 24 hours.
+              </p>
+              <button
+                className={styles.dashboardBtn}
+                onClick={() => router.push('/vendor/vendorDashboard')}
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.onboardContainer}>
       <div className={styles.wizardWrapper}>
+        {/* Wallet Disconnect Banner */}
+        {!publicKey && (
+          <div className={styles.walletDisconnectBanner}>
+            <FaExclamationTriangle />
+            Wallet disconnected. Reconnect to continue your application.
+          </div>
+        )}
+
         {/* Page Header */}
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Become a LuxHub Vendor</h1>
@@ -958,7 +1061,7 @@ export default function VendorOnboard() {
           {/* Navigation Buttons */}
           <div className={styles.navButtons}>
             {currentStep > 0 ? (
-              <button className={styles.backButton} onClick={handleBack}>
+              <button className={styles.backButton} onClick={handleBack} disabled={submitting}>
                 <FaArrowLeft />
                 Back
               </button>
@@ -989,7 +1092,7 @@ export default function VendorOnboard() {
                 ) : (
                   <>
                     <FaCheckCircle />
-                    Submit Profile
+                    Submit Application
                   </>
                 )}
               </button>

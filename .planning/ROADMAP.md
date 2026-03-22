@@ -99,10 +99,12 @@ Plans:
   2. Vendor can list a watch with multi-image gallery, condition grade, and pricing -- and convert that listing to a pool token via Bags integration
   3. Vendor dashboard clearly shows pending orders, active offers, and payout history with real data
   4. Admin can approve a vendor application and manage their listings from the admin dashboard without hitting errors
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md -- Vendor onboarding wizard polish: localStorage persistence, double-click protection, pending approval state (VEND-01)
+- [ ] 04-02-PLAN.md -- Vendor dashboard tabs: chrome glass styling, count badges, empty states, loading states (VEND-04)
+- [ ] 04-03-PLAN.md -- Listing progress overlay, vendor CTA hiding, admin approval polish, pool tokenization access (VEND-02, VEND-03, VEND-05)
 
 ## Progress
 
@@ -116,4 +118,4 @@ Note: Phase 3 depends on Phase 1 (not Phase 2), so Phases 2 and 3 could theoreti
 | 2. Security and Notification Hardening | 0/4 | Not started | - |
 | 2.1 Tokenomics & Multi-Treasury | 0/4 | Not started | - |
 | 3. Marketplace UX | 0/4 | Not started | - |
-| 4. Vendor Demo Readiness | 0/1 | Not started | - |
+| 4. Vendor Demo Readiness | 0/3 | Not started | - |
