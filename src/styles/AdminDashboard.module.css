@@ -95,61 +95,131 @@
   z-index: 0;
 }
 
-/* ==================== HORIZONTAL TAB BAR ==================== */
-.tabBar {
-  display: flex;
-  gap: 4px;
-  padding: 6px;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, rgba(30, 30, 35, 0.6) 0%, rgba(20, 20, 25, 0.8) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(200, 161, 255, 0.15);
-  border-radius: var(--radius-md);
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.tabBar::-webkit-scrollbar {
-  display: none;
-}
-
-.tabItem {
+/* ==================== FAB + NAV PANEL ==================== */
+.fabContainer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  font-size: 0.78rem;
+  gap: 12px;
+  z-index: 100;
+}
+
+.fabLabel {
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.75rem;
   font-weight: 600;
-  cursor: pointer;
+  color: var(--text-secondary);
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-border);
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.8) 0%, rgba(20, 20, 25, 0.9) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  color: var(--accent);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(200, 161, 255, 0.15);
+  transition: all var(--transition-fast);
+}
+.fab:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 32px rgba(200, 161, 255, 0.25);
+}
+
+.navBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+}
+
+.navPanel {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  width: 320px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.85) 0%, rgba(15, 15, 20, 0.95) 100%);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  z-index: 100;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-dim) transparent;
+}
+
+.navGroup {
+}
+
+.navGroupLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  padding: 8px 10px 4px;
+}
+
+.navGroupDivider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 8px 0;
+}
+
+.navPanelItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
   transition: all var(--transition-fast);
   font-family: inherit;
 }
-
-.tabItem:hover {
-  color: var(--text-primary);
+.navPanelItem:hover {
   background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
 }
 
-.tabItemActive {
+.navPanelItemActive {
   color: var(--accent);
-  background: rgba(200, 161, 255, 0.08);
-  border: 1px solid var(--accent-border);
+  background: var(--accent-glow);
+  border-color: var(--accent-border);
 }
 
-.tabIcon {
-  font-size: 1rem;
+.navPanelIcon {
+  font-size: 1.1rem;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
-.tabBadge {
+.navPanelBadge {
+  margin-left: auto;
   background: var(--accent);
   color: var(--bg-dark);
   font-size: 0.65rem;
@@ -159,15 +229,6 @@
   min-width: 18px;
   text-align: center;
   line-height: 1.4;
-}
-
-.tabDivider {
-  width: 1px;
-  height: 24px;
-  background: rgba(200, 161, 255, 0.12);
-  flex-shrink: 0;
-  align-self: center;
-  margin: 0 2px;
 }
 
 /* ==================== MAIN CONTENT AREA ==================== */
