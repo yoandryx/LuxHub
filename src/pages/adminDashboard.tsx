@@ -1440,9 +1440,109 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   const renderTabContent = () => {
     switch (tabIndex) {
-      case 1: // Dashboard Overview
+      case 1: {
+        // Dashboard Overview
+        const totalAttentionCount =
+          (pendingMintRequests > 0 ? 1 : 0) +
+          (saleRequests.length > 0 ? 1 : 0) +
+          (pendingVendorApprovals > 0 ? 1 : 0) +
+          (pendingDelistRequests > 0 ? 1 : 0) +
+          (squadsProposals.filter((p) => p.status === 'active').length > 0 ? 1 : 0) +
+          (activeEscrows.length > 0 ? 1 : 0);
+
         return (
           <div className={styles.section}>
+            {/* Needs Attention — ALWAYS visible, first section */}
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>
+                  <HiOutlineExclamation
+                    className="icon"
+                    style={{ color: totalAttentionCount > 0 ? '#fbbf24' : '#22c55e' }}
+                  />
+                  Needs Attention
+                </h2>
+                <span
+                  className={styles.sectionCount}
+                  style={{
+                    background: totalAttentionCount > 0 ? '#fbbf24' : '#22c55e',
+                    color: '#0a0a0c',
+                  }}
+                >
+                  {totalAttentionCount}
+                </span>
+              </div>
+              <div className={styles.quickActions}>
+                {pendingMintRequests > 0 && (
+                  <button onClick={() => setTabIndex(16)} className={styles.quickActionCard}>
+                    <HiOutlineCube />
+                    <span>Mint Requests</span>
+                    <span className={styles.quickActionBadge}>{pendingMintRequests}</span>
+                  </button>
+                )}
+                {saleRequests.length > 0 && (
+                  <button onClick={() => setTabIndex(5)} className={styles.quickActionCard}>
+                    <HiOutlineClipboardList />
+                    <span>Sale Requests</span>
+                    <span className={styles.quickActionBadge}>{saleRequests.length}</span>
+                  </button>
+                )}
+                {pendingVendorApprovals > 0 && (
+                  <button onClick={() => setTabIndex(8)} className={styles.quickActionCard}>
+                    <HiOutlineUserGroup />
+                    <span>Vendor Approvals</span>
+                    <span className={styles.quickActionBadge}>{pendingVendorApprovals}</span>
+                  </button>
+                )}
+                {pendingDelistRequests > 0 && (
+                  <button onClick={() => setTabIndex(15)} className={styles.quickActionCard}>
+                    <HiOutlineExclamation />
+                    <span>Delist Requests</span>
+                    <span className={styles.quickActionBadge}>{pendingDelistRequests}</span>
+                  </button>
+                )}
+                {squadsProposals.filter((p) => p.status === 'active').length > 0 && (
+                  <button onClick={() => setTabIndex(9)} className={styles.quickActionCard}>
+                    <HiOutlineShieldCheck />
+                    <span>Squads Proposals</span>
+                    <span className={styles.quickActionBadge}>
+                      {squadsProposals.filter((p) => p.status === 'active').length}
+                    </span>
+                  </button>
+                )}
+                {activeEscrows.length > 0 && (
+                  <button onClick={() => setTabIndex(2)} className={styles.quickActionCard}>
+                    <HiOutlineLockClosed />
+                    <span>Active Escrows</span>
+                    <span className={styles.quickActionBadge}>{activeEscrows.length}</span>
+                  </button>
+                )}
+                {/* Empty state when nothing needs attention */}
+                {totalAttentionCount === 0 && (
+                  <div
+                    style={{
+                      gridColumn: '1 / -1',
+                      textAlign: 'center',
+                      padding: '16px',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <HiOutlineCheckCircle
+                      style={{
+                        fontSize: '1.5rem',
+                        color: '#22c55e',
+                        marginBottom: '4px',
+                        display: 'block',
+                        margin: '0 auto 4px',
+                      }}
+                    />
+                    All clear — no items need attention
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Quick Stats Grid */}
             <div className={styles.statsGrid}>
               <div className={styles.statCard}>
@@ -1474,79 +1574,6 @@ const AdminDashboard: React.FC = () => {
                 <div className={styles.statLabel}>Active Admins</div>
               </div>
             </div>
-
-            {/* Needs Attention — FIRST, most actionable */}
-            {(saleRequests.length > 0 ||
-              pendingMintRequests > 0 ||
-              pendingDelistRequests > 0 ||
-              pendingVendorApprovals > 0 ||
-              squadsProposals.filter((p) => p.status === 'active').length > 0) && (
-              <div className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>
-                    <HiOutlineExclamation className="icon" style={{ color: '#fbbf24' }} />
-                    Needs Attention
-                  </h2>
-                  <span
-                    className={styles.sectionCount}
-                    style={{ background: '#fbbf24', color: '#0a0a0c' }}
-                  >
-                    {(pendingMintRequests > 0 ? 1 : 0) +
-                      (saleRequests.length > 0 ? 1 : 0) +
-                      (pendingVendorApprovals > 0 ? 1 : 0) +
-                      (pendingDelistRequests > 0 ? 1 : 0) +
-                      (squadsProposals.filter((p) => p.status === 'active').length > 0 ? 1 : 0) +
-                      (activeEscrows.length > 0 ? 1 : 0)}
-                  </span>
-                </div>
-                <div className={styles.quickActions}>
-                  {pendingMintRequests > 0 && (
-                    <button onClick={() => setTabIndex(16)} className={styles.quickActionCard}>
-                      <HiOutlineCube />
-                      <span>Mint Requests</span>
-                      <span className={styles.quickActionBadge}>{pendingMintRequests}</span>
-                    </button>
-                  )}
-                  {saleRequests.length > 0 && (
-                    <button onClick={() => setTabIndex(5)} className={styles.quickActionCard}>
-                      <HiOutlineClipboardList />
-                      <span>Sale Requests</span>
-                      <span className={styles.quickActionBadge}>{saleRequests.length}</span>
-                    </button>
-                  )}
-                  {pendingVendorApprovals > 0 && (
-                    <button onClick={() => setTabIndex(8)} className={styles.quickActionCard}>
-                      <HiOutlineUserGroup />
-                      <span>Vendor Approvals</span>
-                      <span className={styles.quickActionBadge}>{pendingVendorApprovals}</span>
-                    </button>
-                  )}
-                  {pendingDelistRequests > 0 && (
-                    <button onClick={() => setTabIndex(15)} className={styles.quickActionCard}>
-                      <HiOutlineExclamation />
-                      <span>Delist Requests</span>
-                      <span className={styles.quickActionBadge}>{pendingDelistRequests}</span>
-                    </button>
-                  )}
-                  {squadsProposals.filter((p) => p.status === 'active').length > 0 && (
-                    <button onClick={() => setTabIndex(9)} className={styles.quickActionCard}>
-                      <HiOutlineShieldCheck />
-                      <span>Squads Proposals</span>
-                      <span className={styles.quickActionBadge}>
-                        {squadsProposals.filter((p) => p.status === 'active').length}
-                      </span>
-                    </button>
-                  )}
-                  {activeEscrows.length > 0 && (
-                    <button onClick={() => setTabIndex(2)} className={styles.quickActionCard}>
-                      <HiOutlineLockClosed />
-                      <span>Active Escrows</span>
-                      <span className={styles.quickActionBadge}>{activeEscrows.length}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Recent Activity Feed — real notifications + session logs */}
             <div className={styles.section}>
@@ -1679,6 +1706,7 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
         );
+      }
       case 3: // Transaction History
         return (
           <Suspense fallback={<TabLoader />}>
