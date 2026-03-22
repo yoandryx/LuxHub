@@ -5,6 +5,7 @@ import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
 import AdminRole from '../../../../lib/models/AdminRole';
+import { notifyUser } from '../../../../lib/services/notificationService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -69,8 +70,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await mintRequest.save();
 
+    // Notify vendor about review decision (best-effort)
+    try {
+      await notifyUser({
+        userWallet: mintRequest.wallet,
+        type: action === 'approve' ? 'mint_request_approved' : 'mint_request_rejected',
+        title: action === 'approve' ? 'Mint Request Approved' : 'Mint Request Rejected',
+        message:
+          action === 'approve'
+            ? `Your ${mintRequest.title} has been approved and will be minted shortly.`
+            : `Your ${mintRequest.title} was not approved.${adminNotes ? ' Reason: ' + adminNotes : ''}`,
+        metadata: { actionUrl: '/vendor/vendorDashboard' },
+      }).catch(() => {});
+    } catch {
+      /* non-blocking */
+    }
+
     console.log(
-      `✅ Mint request ${action}d by ${requestingWallet.slice(0, 8)}...: ${mintRequest.title}`
+      `Mint request ${action}d by ${requestingWallet.slice(0, 8)}...: ${mintRequest.title}`
     );
 
     return res.status(200).json({

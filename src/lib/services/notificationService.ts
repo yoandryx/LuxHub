@@ -34,7 +34,11 @@ export type NotificationType =
   | 'vendor_application_submitted'
   | 'vendor_invite_sent'
   | 'dispute_created'
-  | 'delist_request_submitted';
+  | 'delist_request_submitted'
+  | 'mint_request_submitted'
+  | 'mint_request_approved'
+  | 'mint_request_rejected'
+  | 'mint_request_minted';
 
 export interface NotificationMetadata {
   escrowId?: string;
@@ -183,6 +187,22 @@ const emailTemplates: Record<
   },
   vendor_invite_sent: {
     subject: () => "You're Invited to Sell on LuxHub",
+    getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
+  },
+  mint_request_submitted: {
+    subject: () => 'New Mint Request Submitted',
+    getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
+  },
+  mint_request_approved: {
+    subject: () => 'Mint Request Approved',
+    getHtml: (p) => baseEmailTemplate(p, '#22c55e'),
+  },
+  mint_request_rejected: {
+    subject: () => 'Mint Request Not Approved',
+    getHtml: (p) => baseEmailTemplate(p, '#ef4444'),
+  },
+  mint_request_minted: {
+    subject: () => 'NFT Minted & Listed on Marketplace',
     getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
   },
 };
@@ -385,6 +405,10 @@ function getNotificationCategory(type: NotificationType): string {
     vendor_invite_sent: 'securityAlerts',
     dispute_created: 'securityAlerts',
     delist_request_submitted: 'orderUpdates',
+    mint_request_submitted: 'orderUpdates',
+    mint_request_approved: 'orderUpdates',
+    mint_request_rejected: 'orderUpdates',
+    mint_request_minted: 'orderUpdates',
   };
   return categoryMap[type] || 'orderUpdates';
 }

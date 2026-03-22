@@ -5,6 +5,8 @@ import dbConnect from '../../../lib/database/mongodb';
 import MintRequest from '../../../lib/models/MintRequest';
 import { Vendor } from '../../../lib/models/Vendor';
 import VendorProfile from '../../../lib/models/VendorProfile';
+import { notifyUser } from '../../../lib/services/notificationService';
+import { getAdminConfig } from '../../../lib/config/adminConfig';
 
 export const config = {
   api: {
@@ -172,6 +174,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         serialNumber: serialNumber || undefined, // Internal only — never on-chain
         status: 'pending',
       });
+
+      // Notify admins about new mint request (best-effort)
+      try {
+        const adminConfig = getAdminConfig();
+        const adminWallets = adminConfig.adminWallets;
+        const uniqueAdmins = [...new Set(adminWallets)];
+        await Promise.all(
+          uniqueAdmins.map(
+            (adminWallet) =>
+              notifyUser({
+                userWallet: adminWallet,
+                type: 'mint_request_submitted',
+                title: 'New Mint Request',
+                message: `${brand} ${model} submitted by vendor ${wallet.slice(0, 8)}...`,
+                metadata: { actionUrl: '/adminDashboard' },
+              }).catch(() => {}) // best-effort
+          )
+        );
+      } catch {
+        /* non-blocking */
+      }
 
       return res.status(201).json({
         success: true,

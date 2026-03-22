@@ -13,6 +13,7 @@ import { User } from '../../../../lib/models/User';
 import { getAdminConfig } from '../../../../lib/config/adminConfig';
 import AdminRole from '../../../../lib/models/AdminRole';
 import { getStorageConfig } from '../../../../utils/storage';
+import { notifyUser } from '../../../../lib/services/notificationService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -273,6 +274,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } else if (transferDestinationType === 'admin') {
       transferMessage = 'NFT minted and kept in admin wallet, listed on marketplace';
+    }
+
+    // Notify vendor that NFT was minted and listed (best-effort)
+    try {
+      await notifyUser({
+        userWallet: mintRequest.wallet,
+        type: 'mint_request_minted',
+        title: 'NFT Minted & Listed',
+        message: `Your ${mintRequest.title} has been minted and is now listed on the marketplace.`,
+        metadata: {
+          assetId: asset._id.toString(),
+          actionUrl: `/nft/${mintAddress}`,
+        },
+      }).catch(() => {});
+    } catch {
+      /* non-blocking */
     }
 
     return res.status(200).json({
