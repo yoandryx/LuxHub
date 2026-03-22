@@ -685,6 +685,34 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
                         Invited
                       </span>
                     )}
+                    <button
+                      className={styles.copyBtn}
+                      style={{ color: '#f87171', marginLeft: 'auto' }}
+                      onClick={() =>
+                        confirmAction(`Delete application from ${int.name}?`, async () => {
+                          try {
+                            const res = await fetch('/api/admin/interests', {
+                              method: 'DELETE',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'x-wallet-address': adminWallet,
+                              },
+                              body: JSON.stringify({ id: int._id }),
+                            });
+                            if (res.ok) {
+                              toast.success('Application deleted');
+                              fetchInterests();
+                            } else {
+                              toast.error('Failed to delete');
+                            }
+                          } catch {
+                            toast.error('Failed to delete');
+                          }
+                        })
+                      }
+                    >
+                      <FiTrash2 />
+                    </button>
                   </div>
                 </div>
               ))}
