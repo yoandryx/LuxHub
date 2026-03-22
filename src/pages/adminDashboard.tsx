@@ -250,6 +250,7 @@ const AdminDashboard: React.FC = () => {
   const [saleRequests, setSaleRequests] = useState<SaleRequest[]>([]);
   const [activeEscrows, setActiveEscrows] = useState<EscrowAccount[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const [dynamicSeeds, setDynamicSeeds] = useState<Map<string, number>>(new Map());
@@ -749,6 +750,18 @@ const AdminDashboard: React.FC = () => {
       refreshData();
     }
   }, [program]);
+
+  // Fetch recent notifications for admin activity feed
+  useEffect(() => {
+    const walletAddr = wallet.publicKey?.toBase58();
+    if (!walletAddr) return;
+    fetch(`/api/notifications/list?wallet=${walletAddr}&limit=10`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.notifications) setRecentNotifications(data.notifications);
+      })
+      .catch(() => {});
+  }, [wallet.publicKey]);
 
   // ------------------------------------------------
   // Admin Check Logic
@@ -1462,56 +1475,7 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Recent Activity Feed */}
-            <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>
-                  <HiOutlineClock className="icon" style={{ color: 'var(--accent)' }} />
-                  Recent Activity
-                </h2>
-                <span className={styles.sectionCount}>{logs.length}</span>
-              </div>
-              {logs.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <HiOutlineClock className={styles.emptyIcon} />
-                  <h3 className={styles.emptyTitle}>No Recent Activity</h3>
-                  <p className={styles.emptyDescription}>
-                    Admin actions will appear here as you work.
-                  </p>
-                </div>
-              ) : (
-                <div className={styles.activityFeed}>
-                  {logs
-                    .slice(-10)
-                    .reverse()
-                    .map((log, idx) => (
-                      <div key={idx} className={styles.activityItem}>
-                        <div className={styles.activityIcon}>
-                          {log.action.toLowerCase().includes('approve') && <HiOutlineCheckCircle />}
-                          {log.action.toLowerCase().includes('reject') && <HiOutlineXCircle />}
-                          {log.action.toLowerCase().includes('squads') && <HiOutlineShieldCheck />}
-                          {log.action.toLowerCase().includes('cancel') && <HiOutlineXCircle />}
-                          {log.action.toLowerCase().includes('confirm') && <HiOutlineCheckCircle />}
-                          {!log.action.toLowerCase().includes('approve') &&
-                            !log.action.toLowerCase().includes('reject') &&
-                            !log.action.toLowerCase().includes('squads') &&
-                            !log.action.toLowerCase().includes('cancel') &&
-                            !log.action.toLowerCase().includes('confirm') && (
-                              <HiOutlineLightningBolt />
-                            )}
-                        </div>
-                        <div className={styles.activityContent}>
-                          <div className={styles.activityTitle}>{log.action}</div>
-                          <div className={styles.activityMessage}>{log.message}</div>
-                        </div>
-                        <div className={styles.activityTime}>{log.timestamp}</div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-
-            {/* Pending Notifications */}
+            {/* Needs Attention — FIRST, most actionable */}
             {(saleRequests.length > 0 ||
               pendingMintRequests > 0 ||
               pendingDelistRequests > 0 ||
@@ -1520,9 +1484,20 @@ const AdminDashboard: React.FC = () => {
               <div className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>
-                    <HiOutlineExclamation className="icon" style={{ color: 'var(--accent)' }} />
+                    <HiOutlineExclamation className="icon" style={{ color: '#fbbf24' }} />
                     Needs Attention
                   </h2>
+                  <span
+                    className={styles.sectionCount}
+                    style={{ background: '#fbbf24', color: '#0a0a0c' }}
+                  >
+                    {(pendingMintRequests > 0 ? 1 : 0) +
+                      (saleRequests.length > 0 ? 1 : 0) +
+                      (pendingVendorApprovals > 0 ? 1 : 0) +
+                      (pendingDelistRequests > 0 ? 1 : 0) +
+                      (squadsProposals.filter((p) => p.status === 'active').length > 0 ? 1 : 0) +
+                      (activeEscrows.length > 0 ? 1 : 0)}
+                  </span>
                 </div>
                 <div className={styles.quickActions}>
                   {pendingMintRequests > 0 && (
@@ -1572,6 +1547,83 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Recent Activity Feed — real notifications + session logs */}
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>
+                  <HiOutlineClock className="icon" style={{ color: 'var(--accent)' }} />
+                  Recent Activity
+                </h2>
+                <span className={styles.sectionCount}>
+                  {recentNotifications.length + logs.length}
+                </span>
+              </div>
+              {recentNotifications.length === 0 && logs.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <HiOutlineClock className={styles.emptyIcon} />
+                  <h3 className={styles.emptyTitle}>No Recent Activity</h3>
+                  <p className={styles.emptyDescription}>
+                    Notifications and admin actions will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className={styles.activityFeed}>
+                  {/* Session logs first (most recent actions this session) */}
+                  {logs
+                    .slice(-5)
+                    .reverse()
+                    .map((log, idx) => (
+                      <div key={`log-${idx}`} className={styles.activityItem}>
+                        <div className={styles.activityIcon}>
+                          {log.action.toLowerCase().includes('approve') && <HiOutlineCheckCircle />}
+                          {log.action.toLowerCase().includes('reject') && <HiOutlineXCircle />}
+                          {log.action.toLowerCase().includes('squads') && <HiOutlineShieldCheck />}
+                          {!log.action.toLowerCase().includes('approve') &&
+                            !log.action.toLowerCase().includes('reject') &&
+                            !log.action.toLowerCase().includes('squads') && (
+                              <HiOutlineLightningBolt />
+                            )}
+                        </div>
+                        <div className={styles.activityContent}>
+                          <div className={styles.activityTitle}>{log.action}</div>
+                          <div className={styles.activityMessage}>{log.message}</div>
+                        </div>
+                        <div className={styles.activityTime}>{log.timestamp}</div>
+                      </div>
+                    ))}
+                  {/* Persistent notifications from DB */}
+                  {recentNotifications.map((notif: any) => (
+                    <div
+                      key={notif._id}
+                      className={`${styles.activityItem} ${!notif.read ? styles.activityUnread : ''}`}
+                    >
+                      <div className={styles.activityIcon}>
+                        {notif.type?.includes('vendor') && <HiOutlineUserGroup />}
+                        {notif.type?.includes('escrow') && <HiOutlineLockClosed />}
+                        {notif.type?.includes('purchase') && <HiOutlineCash />}
+                        {notif.type?.includes('dispute') && <HiOutlineExclamation />}
+                        {notif.type?.includes('shipment') && <HiOutlineTruck />}
+                        {!notif.type?.includes('vendor') &&
+                          !notif.type?.includes('escrow') &&
+                          !notif.type?.includes('purchase') &&
+                          !notif.type?.includes('dispute') &&
+                          !notif.type?.includes('shipment') && <HiOutlineLightningBolt />}
+                      </div>
+                      <div className={styles.activityContent}>
+                        <div className={styles.activityTitle}>
+                          {notif.title || notif.type?.replace(/_/g, ' ')}
+                        </div>
+                        <div className={styles.activityMessage}>{notif.message}</div>
+                      </div>
+                      <div className={styles.activityTime}>
+                        {new Date(notif.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Quick Actions */}
             <div className={styles.section}>

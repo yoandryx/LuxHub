@@ -1719,7 +1719,24 @@
   }
 
   .navBadge {
-    display: none;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 14px;
+    height: 14px;
+    font-size: 0.6rem;
+    padding: 0 3px;
+    border-radius: 7px;
+    background: #c8a1ff;
+    color: #0a0a0c;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .navItem {
+    position: relative;
   }
 
   /* Subtle separator between nav sections */
@@ -2110,6 +2127,11 @@
     rgba(185, 145, 255, 0.06),
     rgba(185, 145, 255, 0.35)
   );
+}
+
+.activityUnread {
+  border-left: 2px solid #c8a1ff;
+  background: rgba(200, 161, 255, 0.04);
 }
 
 .activityIcon {
