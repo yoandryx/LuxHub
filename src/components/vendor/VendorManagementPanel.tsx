@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { FiSend, FiCopy, FiCheck, FiUsers, FiMail } from 'react-icons/fi';
+import { FiSend, FiCopy, FiCheck, FiUsers, FiMail, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import styles from '../../styles/VendorManagementPanel.module.css';
 
@@ -216,6 +216,30 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     setCopiedCode(code);
     toast.success('Invite link copied!');
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const deleteInvite = async (code: string) => {
+    if (!window.confirm('Delete this invite? The vendor will no longer be able to use this link.'))
+      return;
+    try {
+      const res = await fetch('/api/admin/invites', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': adminWallet,
+        },
+        body: JSON.stringify({ code }),
+      });
+      if (res.ok) {
+        toast.success('Invite deleted');
+        fetchInvites();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to delete invite');
+      }
+    } catch {
+      toast.error('Failed to delete invite');
+    }
   };
 
   // Filter pending vendors
@@ -507,9 +531,18 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
                     </span>
                   </div>
                   {!inv.used && (
-                    <button className={styles.copyBtn} onClick={() => copyInviteLink(inv.code)}>
-                      {copiedCode === inv.code ? <FiCheck /> : <FiCopy />}
-                    </button>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button className={styles.copyBtn} onClick={() => copyInviteLink(inv.code)}>
+                        {copiedCode === inv.code ? <FiCheck /> : <FiCopy />}
+                      </button>
+                      <button
+                        className={styles.copyBtn}
+                        style={{ color: '#f87171' }}
+                        onClick={() => deleteInvite(inv.code)}
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

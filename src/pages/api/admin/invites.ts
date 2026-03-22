@@ -124,5 +124,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ code, existing: false, emailSent: !!vendorEmail });
   }
 
+  if (req.method === 'DELETE') {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ error: 'Invite code is required' });
+    }
+
+    const invite = await InviteCodeModel.findOne({ code });
+    if (!invite) {
+      return res.status(404).json({ error: 'Invite not found' });
+    }
+    if (invite.used) {
+      return res.status(400).json({ error: 'Cannot delete an invite that has already been used' });
+    }
+
+    await InviteCodeModel.deleteOne({ code });
+    return res.status(200).json({ deleted: true });
+  }
+
   return res.status(405).json({ error: 'Method not allowed' });
 }
