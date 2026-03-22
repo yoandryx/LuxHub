@@ -71,7 +71,7 @@ async function sendInviteEmail(
 
     <!-- CTA -->
     <div style="text-align:center;margin:0 0 32px;">
-      <a href="${link}" style="display:inline-block;padding:14px 44px;background:#c8a1ff;color:#0a0a0c;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.4px;">
+      <a href="${link}" style="display:inline-block;padding:14px 44px;background:rgba(200,161,255,0.12);border:1px solid rgba(200,161,255,0.3);color:#c8a1ff;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.4px;">
         Begin Onboarding
       </a>
     </div>
