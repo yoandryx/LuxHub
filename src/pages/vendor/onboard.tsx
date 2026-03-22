@@ -36,6 +36,38 @@ export default function VendorOnboard() {
   const { publicKey, signTransaction, signMessage } = useEffectiveWallet();
   const { connection } = useConnection();
 
+  // Invite code from URL query param
+  const inviteCode = (query.invite as string) || '';
+  const [inviteValid, setInviteValid] = useState<boolean | null>(null);
+  const [inviteError, setInviteError] = useState('');
+
+  // Validate invite code on mount
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (!inviteCode) {
+      setInviteValid(false);
+      setInviteError(
+        'No invite code provided. You need an invitation from a LuxHub admin to onboard.'
+      );
+      return;
+    }
+    // Validate invite exists and is unused
+    fetch(`/api/vendor/validate-invite?code=${encodeURIComponent(inviteCode)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.valid) {
+          setInviteValid(true);
+        } else {
+          setInviteValid(false);
+          setInviteError(data.error || 'Invalid or expired invite code.');
+        }
+      })
+      .catch(() => {
+        setInviteValid(false);
+        setInviteError('Failed to validate invite code.');
+      });
+  }, [router.isReady, inviteCode]);
+
   // Wizard step state (0: Account Info, 1: Images, 2: Review)
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -402,6 +434,7 @@ export default function VendorOnboard() {
 
     const payload = {
       wallet: publicKey?.toBase58(),
+      inviteCode,
       name: formData.name.trim(),
       username: formData.username.trim(),
       bio: formData.bio.trim(),
@@ -497,6 +530,50 @@ export default function VendorOnboard() {
                 Go to Dashboard
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Gate: invite validation
+  if (inviteValid === null) {
+    return (
+      <div className={styles.onboardContainer}>
+        <div className={styles.wizardWrapper}>
+          <div className={styles.pageHeader}>
+            <BiLoaderAlt
+              className={styles.spinner}
+              style={{ fontSize: '2rem', margin: '2rem auto', display: 'block' }}
+            />
+            <p className={styles.pageSubtitle}>Validating invite code...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (inviteValid === false) {
+    return (
+      <div className={styles.onboardContainer}>
+        <div className={styles.wizardWrapper}>
+          <div className={styles.pageHeader}>
+            <FaShieldAlt
+              style={{
+                fontSize: '2.5rem',
+                color: '#c8a1ff',
+                margin: '0 auto 1rem',
+                display: 'block',
+              }}
+            />
+            <h1 className={styles.pageTitle}>Invite Required</h1>
+            <p className={styles.pageSubtitle}>{inviteError}</p>
+            <p className={styles.pageSubtitle} style={{ marginTop: '1.5rem', opacity: 0.6 }}>
+              Interested in selling on LuxHub? Apply at{' '}
+              <a href="/vendor/apply" style={{ color: '#c8a1ff' }}>
+                /vendor/apply
+              </a>
+            </p>
           </div>
         </div>
       </div>

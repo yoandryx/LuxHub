@@ -1,15 +1,17 @@
 // pages/api/vendor/onboard-api.ts
-// Open vendor registration - no invite code required
-// Flow: Register → Pending → Admin Approval → (Optional) Verification
+// Invite-only vendor registration
+// Flow: Admin generates invite → Vendor onboards with invite code → Pending → Admin Approval
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import VendorProfileModel from '../../../lib/models/VendorProfile';
+import InviteCodeModel from '../../../lib/models/InviteCode';
 import { z } from 'zod';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
 import { notifyNewVendorApplication } from '../../../lib/services/notificationService';
 
 const onboardSchema = z.object({
   wallet: z.string().min(1, 'Wallet address is required'),
+  inviteCode: z.string().min(1, 'Invite code is required'),
   name: z.string().min(2, 'Business name must be at least 2 characters'),
   username: z.string().min(3, 'Username must be at least 3 characters'),
   bio: z.string().min(10, 'Bio must be at least 10 characters'),
@@ -62,6 +64,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     await dbConnect();
 
+    // Validate invite code
+    const invite = await InviteCodeModel.findOne({ code: parsed.inviteCode });
+    if (!invite) {
+      return res.status(403).json({ error: 'Invalid invite code' });
+    }
+    if (invite.used) {
+      return res.status(403).json({ error: 'This invite code has already been used' });
+    }
+    if (invite.vendorWallet && invite.vendorWallet !== parsed.wallet) {
+      return res.status(403).json({ error: 'This invite was issued for a different wallet' });
+    }
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+      return res.status(403).json({ error: 'This invite code has expired' });
+    }
+
     // Check if username is taken
     const existingUsername = await VendorProfileModel.findOne({ username: parsed.username });
     if (existingUsername) return res.status(400).json({ error: 'Username already taken' });
@@ -90,6 +107,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       hasPhysicalLocation: parsed.hasPhysicalLocation,
       additionalNotes: parsed.additionalNotes,
     });
+
+    // Mark invite as used
+    invite.used = true;
+    invite.uses = (invite.uses || 0) + 1;
+    await invite.save();
 
     // Notify admins of new application
     try {

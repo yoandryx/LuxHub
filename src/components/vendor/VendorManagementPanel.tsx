@@ -1,6 +1,28 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { FiSend, FiCopy, FiCheck, FiUsers, FiMail } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import styles from '../../styles/VendorManagementPanel.module.css';
+
+interface InviteEntry {
+  code: string;
+  vendorWallet: string;
+  vendorName?: string;
+  used: boolean;
+  createdBy: string;
+  createdAt?: string;
+}
+
+interface InterestEntry {
+  _id: string;
+  wallet?: string;
+  name: string;
+  category?: string;
+  message: string;
+  contact?: string;
+  status: string;
+  createdAt: string;
+}
 
 interface VendorProfile {
   wallet: string;
@@ -65,11 +87,26 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
   const [rejectingWallet, setRejectingWallet] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
+  // Invite management
+  const [invites, setInvites] = useState<InviteEntry[]>([]);
+  const [newInviteWallet, setNewInviteWallet] = useState('');
+  const [newInviteName, setNewInviteName] = useState('');
+  const [creatingInvite, setCreatingInvite] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Interest submissions
+  const [interests, setInterests] = useState<InterestEntry[]>([]);
+  const [showInterests, setShowInterests] = useState(false);
+
+  // Active tab for admin sections
+  const [adminTab, setAdminTab] = useState<'vendors' | 'invites' | 'interests'>('vendors');
+
   const adminWallet = wallet?.publicKey?.toBase58?.() || '';
 
   useEffect(() => {
     fetchPendingVendors();
     fetchApprovedVendors();
+    fetchInvites();
   }, []);
 
   useEffect(() => {
@@ -91,6 +128,80 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     const res = await fetch('/api/vendor/approved');
     const data = await res.json();
     setApprovedVendors(data.vendors || []);
+  };
+
+  const fetchInvites = async () => {
+    try {
+      const res = await fetch('/api/admin/invites', {
+        headers: { 'x-wallet-address': adminWallet },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInvites(data.invites || []);
+      }
+    } catch {
+      // silent
+    }
+  };
+
+  const fetchInterests = async () => {
+    try {
+      const res = await fetch('/api/admin/interests', {
+        headers: { 'x-wallet-address': adminWallet },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInterests(data.interests || []);
+        setShowInterests(true);
+      }
+    } catch {
+      // silent
+    }
+  };
+
+  const createInvite = async () => {
+    if (!newInviteWallet.trim()) {
+      toast.error('Vendor wallet address is required');
+      return;
+    }
+    setCreatingInvite(true);
+    try {
+      const res = await fetch('/api/admin/invites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': adminWallet,
+        },
+        body: JSON.stringify({
+          vendorWallet: newInviteWallet.trim(),
+          vendorName: newInviteName.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const link = `${window.location.origin}/vendor/onboard?invite=${data.code}`;
+        navigator.clipboard.writeText(link);
+        toast.success(
+          data.existing ? 'Invite link copied (already existed)' : 'Invite created! Link copied.'
+        );
+        setNewInviteWallet('');
+        setNewInviteName('');
+        fetchInvites();
+      } else {
+        toast.error(data.error || 'Failed to create invite');
+      }
+    } catch {
+      toast.error('Failed to create invite');
+    }
+    setCreatingInvite(false);
+  };
+
+  const copyInviteLink = (code: string) => {
+    const link = `${window.location.origin}/vendor/onboard?invite=${code}`;
+    navigator.clipboard.writeText(link);
+    setCopiedCode(code);
+    toast.success('Invite link copied!');
+    setTimeout(() => setCopiedCode(null), 2000);
   };
 
   // Filter pending vendors
@@ -291,187 +402,337 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
         </div>
       )}
 
-      {/* Search & Filters */}
-      <div className={styles.filterBar}>
-        <input
-          type="text"
-          className={styles.searchInput}
-          placeholder="Search by name, username, wallet, or notes..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <select
-          className={styles.filterSelect}
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+      {/* Admin Section Tabs */}
+      <div className={styles.adminTabs}>
+        <button
+          className={`${styles.adminTab} ${adminTab === 'vendors' ? styles.adminTabActive : ''}`}
+          onClick={() => setAdminTab('vendors')}
         >
-          <option value="">All Categories</option>
-          <option value="watches">Watches</option>
-          <option value="jewelry">Jewelry</option>
-          <option value="collectibles">Collectibles</option>
-          <option value="art">Art</option>
-          <option value="mixed">Mixed</option>
-        </select>
-        <select
-          className={styles.filterSelect}
-          value={businessTypeFilter}
-          onChange={(e) => setBusinessTypeFilter(e.target.value)}
+          <FiUsers /> Vendors
+        </button>
+        <button
+          className={`${styles.adminTab} ${adminTab === 'invites' ? styles.adminTabActive : ''}`}
+          onClick={() => setAdminTab('invites')}
         >
-          <option value="">All Types</option>
-          <option value="individual">Individual</option>
-          <option value="small_business">Small Business</option>
-          <option value="dealer">Dealer</option>
-          <option value="auction_house">Auction House</option>
-          <option value="brand_authorized">Brand Authorized</option>
-        </select>
+          <FiSend /> Invites
+          {invites.filter((i) => !i.used).length > 0 && (
+            <span className={styles.tabBadge}>{invites.filter((i) => !i.used).length}</span>
+          )}
+        </button>
+        <button
+          className={`${styles.adminTab} ${adminTab === 'interests' ? styles.adminTabActive : ''}`}
+          onClick={() => {
+            setAdminTab('interests');
+            if (!showInterests) fetchInterests();
+          }}
+        >
+          <FiMail /> Applications
+        </button>
       </div>
 
-      {/* Pending Applications */}
-      <h2 className={styles.subTitle}>
-        Pending Applications
-        <span className={styles.countBadge}>{filteredPending.length}</span>
-      </h2>
-
-      {filteredPending.length === 0 ? (
-        <p className={styles.emptyText}>
-          {pendingVendors.length === 0
-            ? 'No pending applications'
-            : 'No applications match your filters'}
-        </p>
-      ) : (
-        <div className={styles.grid}>
-          {filteredPending.map((vendor) => (
-            <div key={vendor.wallet} className={styles.card}>
-              {vendor.bannerUrl && <img src={vendor.bannerUrl} className={styles.banner} alt="" />}
-              <div className={styles.cardInfo}>
-                <p className={styles.username}>@{vendor.username}</p>
-                <p className={styles.name}>{vendor.name}</p>
-                {vendor.primaryCategory && (
-                  <span className={styles.categoryTag}>
-                    {CATEGORY_LABELS[vendor.primaryCategory] || vendor.primaryCategory}
-                  </span>
-                )}
-                {vendor.businessType && (
-                  <span className={styles.typeTag}>
-                    {BUSINESS_TYPE_LABELS[vendor.businessType] || vendor.businessType}
-                  </span>
-                )}
-              </div>
-
-              {/* Expandable details */}
-              <button
-                className={styles.detailsToggle}
-                onClick={() =>
-                  setExpandedCard(expandedCard === vendor.wallet ? null : vendor.wallet)
-                }
-              >
-                {expandedCard === vendor.wallet ? 'Hide Details' : 'View Application'}
-              </button>
-
-              {expandedCard === vendor.wallet && renderQuestionnaireDetails(vendor)}
-
-              {/* Action buttons */}
-              <div className={styles.buttonGroup}>
-                <button
-                  disabled={loading || approvingVendor === vendor.wallet}
-                  onClick={() => approveVendor(vendor.wallet)}
-                >
-                  {approvingVendor === vendor.wallet ? 'Approving...' : 'Approve'}
-                </button>
-                <button
-                  className={styles.rejectButton}
-                  disabled={loading || approvingVendor === vendor.wallet}
-                  onClick={() => setRejectingWallet(vendor.wallet)}
-                >
-                  Reject
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Rejection Modal */}
-      {rejectingWallet && (
-        <div className={styles.modalOverlay} onClick={() => setRejectingWallet(null)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h3>Reject Application</h3>
-            <p className={styles.modalSubtext}>
-              @{pendingVendors.find((v) => v.wallet === rejectingWallet)?.username || ''}
-            </p>
-            <textarea
-              className={styles.rejectionTextarea}
-              placeholder="Reason for rejection (optional, will be sent to applicant)..."
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              rows={3}
+      {/* INVITES TAB */}
+      {adminTab === 'invites' && (
+        <div className={styles.inviteSection}>
+          <h2 className={styles.subTitle}>Generate Vendor Invite</h2>
+          <div className={styles.inviteForm}>
+            <input
+              className={styles.searchInput}
+              placeholder="Vendor wallet address *"
+              value={newInviteWallet}
+              onChange={(e) => setNewInviteWallet(e.target.value)}
             />
-            <div className={styles.modalActions}>
-              <button
-                className={styles.modalCancel}
-                onClick={() => {
-                  setRejectingWallet(null);
-                  setRejectionReason('');
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className={styles.rejectButton}
-                disabled={loading}
-                onClick={() => rejectVendor(rejectingWallet)}
-              >
-                {loading ? 'Rejecting...' : 'Confirm Rejection'}
-              </button>
-            </div>
+            <input
+              className={styles.searchInput}
+              placeholder="Vendor name (optional)"
+              value={newInviteName}
+              onChange={(e) => setNewInviteName(e.target.value)}
+            />
+            <button
+              className={styles.inviteBtn}
+              disabled={creatingInvite || !newInviteWallet.trim()}
+              onClick={createInvite}
+            >
+              {creatingInvite ? 'Creating...' : 'Generate & Copy Link'}
+            </button>
           </div>
+
+          <h2 className={styles.subTitle} style={{ marginTop: '2rem' }}>
+            Invite History
+            <span className={styles.countBadge}>{invites.length}</span>
+          </h2>
+
+          {invites.length === 0 ? (
+            <p className={styles.emptyText}>No invites generated yet</p>
+          ) : (
+            <div className={styles.inviteList}>
+              {invites.map((inv) => (
+                <div
+                  key={inv.code}
+                  className={`${styles.inviteRow} ${inv.used ? styles.inviteUsed : ''}`}
+                >
+                  <div className={styles.inviteInfo}>
+                    <span className={styles.inviteName}>
+                      {inv.vendorName || inv.vendorWallet.slice(0, 8) + '...'}
+                    </span>
+                    <span className={styles.inviteWallet}>
+                      {inv.vendorWallet.slice(0, 6)}...{inv.vendorWallet.slice(-4)}
+                    </span>
+                    <span className={inv.used ? styles.inviteStatusUsed : styles.inviteStatusOpen}>
+                      {inv.used ? 'Used' : 'Open'}
+                    </span>
+                  </div>
+                  {!inv.used && (
+                    <button className={styles.copyBtn} onClick={() => copyInviteLink(inv.code)}>
+                      {copiedCode === inv.code ? <FiCheck /> : <FiCopy />}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Approved Vendors */}
-      <h2 className={styles.subTitle}>
-        Approved Vendors
-        <span className={styles.countBadge}>{filteredApproved.length}</span>
-      </h2>
+      {/* INTERESTS TAB */}
+      {adminTab === 'interests' && (
+        <div className={styles.interestSection}>
+          <h2 className={styles.subTitle}>
+            Vendor Applications
+            <span className={styles.countBadge}>{interests.length}</span>
+          </h2>
 
-      <div className={styles.grid}>
-        {filteredApproved.map((vendor) => (
-          <div key={vendor.wallet} className={styles.card}>
-            {vendor.bannerUrl && <img src={vendor.bannerUrl} className={styles.banner} alt="" />}
-            <div className={styles.cardInfo}>
-              <p className={styles.username}>
-                @{vendor.username}
-                {vendor.verified && <span className={styles.verifiedBadge}>Verified</span>}
-              </p>
-              <p className={styles.name}>{vendor.name}</p>
-              {vendor.reliabilityScore !== undefined && vendor.reliabilityScore < 100 && (
-                <span className={styles.reliabilityTag}>
-                  Reliability: {vendor.reliabilityScore}%
-                </span>
-              )}
+          {interests.length === 0 ? (
+            <p className={styles.emptyText}>No applications received yet</p>
+          ) : (
+            <div className={styles.interestList}>
+              {interests.map((int) => (
+                <div key={int._id} className={styles.interestCard}>
+                  <div className={styles.interestHeader}>
+                    <span className={styles.interestName}>{int.name}</span>
+                    {int.category && <span className={styles.categoryTag}>{int.category}</span>}
+                    <span className={styles.interestDate}>
+                      {new Date(int.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className={styles.interestMessage}>{int.message}</p>
+                  <div className={styles.interestMeta}>
+                    {int.contact && <span>Contact: {int.contact}</span>}
+                    {int.wallet && (
+                      <span className={styles.mono}>
+                        Wallet: {int.wallet.slice(0, 6)}...{int.wallet.slice(-4)}
+                      </span>
+                    )}
+                  </div>
+                  {int.wallet && (
+                    <button
+                      className={styles.inviteBtn}
+                      style={{ marginTop: '0.5rem', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                      onClick={() => {
+                        setNewInviteWallet(int.wallet || '');
+                        setNewInviteName(int.name);
+                        setAdminTab('invites');
+                      }}
+                    >
+                      <FiSend /> Send Invite
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className={styles.buttonGroup}>
-              <Link href={`/vendor/${vendor.wallet}`}>
-                <button>View</button>
-              </Link>
-              <button
-                className={styles.verifyButton}
-                disabled={loading}
-                onClick={() => toggleVerification(vendor.wallet, vendor.verified || false)}
-              >
-                {vendor.verified ? 'Unverify' : 'Verify'}
-              </button>
-              <button
-                className={styles.rejectButton}
-                disabled={loading}
-                onClick={() => revokeVendor(vendor.wallet)}
-              >
-                Revoke
-              </button>
-            </div>
+          )}
+        </div>
+      )}
+
+      {/* VENDORS TAB */}
+      {adminTab === 'vendors' && (
+        <>
+          {/* Search & Filters */}
+          <div className={styles.filterBar}>
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Search by name, username, wallet, or notes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <select
+              className={styles.filterSelect}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="">All Categories</option>
+              <option value="watches">Watches</option>
+              <option value="jewelry">Jewelry</option>
+              <option value="collectibles">Collectibles</option>
+              <option value="art">Art</option>
+              <option value="mixed">Mixed</option>
+            </select>
+            <select
+              className={styles.filterSelect}
+              value={businessTypeFilter}
+              onChange={(e) => setBusinessTypeFilter(e.target.value)}
+            >
+              <option value="">All Types</option>
+              <option value="individual">Individual</option>
+              <option value="small_business">Small Business</option>
+              <option value="dealer">Dealer</option>
+              <option value="auction_house">Auction House</option>
+              <option value="brand_authorized">Brand Authorized</option>
+            </select>
           </div>
-        ))}
-      </div>
+
+          {/* Pending Applications */}
+          <h2 className={styles.subTitle}>
+            Pending Applications
+            <span className={styles.countBadge}>{filteredPending.length}</span>
+          </h2>
+
+          {filteredPending.length === 0 ? (
+            <p className={styles.emptyText}>
+              {pendingVendors.length === 0
+                ? 'No pending applications'
+                : 'No applications match your filters'}
+            </p>
+          ) : (
+            <div className={styles.grid}>
+              {filteredPending.map((vendor) => (
+                <div key={vendor.wallet} className={styles.card}>
+                  {vendor.bannerUrl && (
+                    <img src={vendor.bannerUrl} className={styles.banner} alt="" />
+                  )}
+                  <div className={styles.cardInfo}>
+                    <p className={styles.username}>@{vendor.username}</p>
+                    <p className={styles.name}>{vendor.name}</p>
+                    {vendor.primaryCategory && (
+                      <span className={styles.categoryTag}>
+                        {CATEGORY_LABELS[vendor.primaryCategory] || vendor.primaryCategory}
+                      </span>
+                    )}
+                    {vendor.businessType && (
+                      <span className={styles.typeTag}>
+                        {BUSINESS_TYPE_LABELS[vendor.businessType] || vendor.businessType}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Expandable details */}
+                  <button
+                    className={styles.detailsToggle}
+                    onClick={() =>
+                      setExpandedCard(expandedCard === vendor.wallet ? null : vendor.wallet)
+                    }
+                  >
+                    {expandedCard === vendor.wallet ? 'Hide Details' : 'View Application'}
+                  </button>
+
+                  {expandedCard === vendor.wallet && renderQuestionnaireDetails(vendor)}
+
+                  {/* Action buttons */}
+                  <div className={styles.buttonGroup}>
+                    <button
+                      disabled={loading || approvingVendor === vendor.wallet}
+                      onClick={() => approveVendor(vendor.wallet)}
+                    >
+                      {approvingVendor === vendor.wallet ? 'Approving...' : 'Approve'}
+                    </button>
+                    <button
+                      className={styles.rejectButton}
+                      disabled={loading || approvingVendor === vendor.wallet}
+                      onClick={() => setRejectingWallet(vendor.wallet)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Rejection Modal */}
+          {rejectingWallet && (
+            <div className={styles.modalOverlay} onClick={() => setRejectingWallet(null)}>
+              <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                <h3>Reject Application</h3>
+                <p className={styles.modalSubtext}>
+                  @{pendingVendors.find((v) => v.wallet === rejectingWallet)?.username || ''}
+                </p>
+                <textarea
+                  className={styles.rejectionTextarea}
+                  placeholder="Reason for rejection (optional, will be sent to applicant)..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={3}
+                />
+                <div className={styles.modalActions}>
+                  <button
+                    className={styles.modalCancel}
+                    onClick={() => {
+                      setRejectingWallet(null);
+                      setRejectionReason('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={styles.rejectButton}
+                    disabled={loading}
+                    onClick={() => rejectVendor(rejectingWallet)}
+                  >
+                    {loading ? 'Rejecting...' : 'Confirm Rejection'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Approved Vendors */}
+          <h2 className={styles.subTitle}>
+            Approved Vendors
+            <span className={styles.countBadge}>{filteredApproved.length}</span>
+          </h2>
+
+          <div className={styles.grid}>
+            {filteredApproved.map((vendor) => (
+              <div key={vendor.wallet} className={styles.card}>
+                {vendor.bannerUrl && (
+                  <img src={vendor.bannerUrl} className={styles.banner} alt="" />
+                )}
+                <div className={styles.cardInfo}>
+                  <p className={styles.username}>
+                    @{vendor.username}
+                    {vendor.verified && <span className={styles.verifiedBadge}>Verified</span>}
+                  </p>
+                  <p className={styles.name}>{vendor.name}</p>
+                  {vendor.reliabilityScore !== undefined && vendor.reliabilityScore < 100 && (
+                    <span className={styles.reliabilityTag}>
+                      Reliability: {vendor.reliabilityScore}%
+                    </span>
+                  )}
+                </div>
+                <div className={styles.buttonGroup}>
+                  <Link href={`/vendor/${vendor.wallet}`}>
+                    <button>View</button>
+                  </Link>
+                  <button
+                    className={styles.verifyButton}
+                    disabled={loading}
+                    onClick={() => toggleVerification(vendor.wallet, vendor.verified || false)}
+                  >
+                    {vendor.verified ? 'Unverify' : 'Verify'}
+                  </button>
+                  <button
+                    className={styles.rejectButton}
+                    disabled={loading}
+                    onClick={() => revokeVendor(vendor.wallet)}
+                  >
+                    Revoke
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };
