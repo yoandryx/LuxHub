@@ -38,17 +38,97 @@ async function sendInviteEmail(
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [email],
-        subject: 'Your LuxHub Vendor Invite',
-        html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;border-radius:12px;">
-          <h2 style="color:#c8a1ff;margin:0 0 16px;">Welcome to LuxHub</h2>
-          <p>Hi ${name || 'there'},</p>
-          <p>You've been invited to become a vendor on LuxHub — the decentralized marketplace for luxury assets on Solana.</p>
-          <p>Click below to set up your vendor profile and start listing:</p>
-          <a href="${link}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#c8a1ff,#a855f7);color:#0a0a0c;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">Complete Onboarding</a>
-          <p style="color:#888;font-size:13px;">This invite is linked to your wallet and can only be used once. Make sure to connect the correct wallet when onboarding.</p>
-          <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
-          <p style="color:#666;font-size:12px;">Questions? Reply to this email or DM us on <a href="https://x.com/LuxHubStudio" style="color:#c8a1ff;">X @LuxHubStudio</a></p>
-        </div>`,
+        subject: `${name ? name + ', you' : 'You'}'re invited to sell on LuxHub`,
+        html: `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#000000;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#000000;">
+<tr><td align="center" style="padding:40px 20px;">
+<table role="presentation" width="520" cellspacing="0" cellpadding="0" style="max-width:520px;width:100%;">
+
+<!-- Logo -->
+<tr><td align="center" style="padding-bottom:32px;">
+  <img src="${APP_URL}/images/purpleLGG.png" alt="LuxHub" width="48" height="48" style="display:block;border:0;" />
+</td></tr>
+
+<!-- Main Card -->
+<tr><td style="background:#0d0d0d;border:1px solid rgba(200,161,255,0.12);border-radius:16px;overflow:hidden;">
+
+  <!-- Header accent line -->
+  <div style="height:2px;background:linear-gradient(90deg,transparent,#c8a1ff,transparent);"></div>
+
+  <!-- Content -->
+  <div style="padding:40px 36px;">
+
+    <!-- Greeting -->
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:600;color:#ffffff;letter-spacing:-0.5px;">
+      You're Invited
+    </h1>
+    <p style="margin:0 0 28px;font-size:14px;color:#666666;letter-spacing:0.3px;text-transform:uppercase;">
+      Vendor Partnership
+    </p>
+
+    <!-- Body -->
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#cccccc;">
+      Hi ${name || 'there'},
+    </p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#cccccc;">
+      We'd like to invite you to join LuxHub as a verified vendor. List authenticated luxury timepieces, backed by NFTs on Solana, with every transaction protected by on-chain escrow.
+    </p>
+
+    <!-- Value Props -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:24px 0;">
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #1a1a1a;">
+          <span style="color:#c8a1ff;font-size:13px;font-weight:600;letter-spacing:0.5px;">ESCROW PROTECTION</span>
+          <br/><span style="color:#888888;font-size:13px;">Funds held on-chain until buyer confirms delivery</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #1a1a1a;">
+          <span style="color:#c8a1ff;font-size:13px;font-weight:600;letter-spacing:0.5px;">97% TO YOU</span>
+          <br/><span style="color:#888888;font-size:13px;">Industry-low 3% platform fee, paid in USDC</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0;">
+          <span style="color:#c8a1ff;font-size:13px;font-weight:600;letter-spacing:0.5px;">VERIFIED PROVENANCE</span>
+          <br/><span style="color:#888888;font-size:13px;">Every piece minted as an NFT with permanent metadata</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA -->
+    <div style="text-align:center;margin:32px 0 24px;">
+      <a href="${link}" style="display:inline-block;padding:14px 40px;background:linear-gradient(135deg,#c8a1ff 0%,#a855f7 100%);color:#0a0a0c;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;letter-spacing:0.3px;">
+        Complete Onboarding
+      </a>
+    </div>
+
+    <!-- Fine print -->
+    <p style="margin:0;font-size:12px;line-height:1.5;color:#444444;text-align:center;">
+      This invite is linked to your wallet and can only be used once.
+    </p>
+
+  </div>
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="padding:28px 0;text-align:center;">
+  <p style="margin:0 0 8px;font-size:12px;color:#444444;">
+    <a href="https://luxhub.gold" style="color:#666666;text-decoration:none;">luxhub.gold</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://x.com/LuxHubStudio" style="color:#666666;text-decoration:none;">@LuxHubStudio</a>
+  </p>
+  <p style="margin:0;font-size:11px;color:#333333;">
+    The Luxury Protocol on Solana
+  </p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body></html>`,
       }),
     });
 
