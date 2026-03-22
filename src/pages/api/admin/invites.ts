@@ -23,32 +23,39 @@ async function sendInviteEmail(
   name: string | null,
   link: string
 ): Promise<{ sent: boolean; error?: string }> {
-  if (!process.env.RESEND_API_KEY) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
     return { sent: false, error: 'RESEND_API_KEY not configured' };
   }
 
   try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const result = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      subject: 'Your LuxHub Vendor Invite',
-      html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;border-radius:12px;">
-        <h2 style="color:#c8a1ff;margin:0 0 16px;">Welcome to LuxHub</h2>
-        <p>Hi ${name || 'there'},</p>
-        <p>You've been invited to become a vendor on LuxHub — the decentralized marketplace for luxury assets on Solana.</p>
-        <p>Click below to set up your vendor profile and start listing:</p>
-        <a href="${link}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#c8a1ff,#a855f7);color:#0a0a0c;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">Complete Onboarding</a>
-        <p style="color:#888;font-size:13px;">This invite is linked to your wallet and can only be used once. Make sure to connect the correct wallet when onboarding.</p>
-        <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
-        <p style="color:#666;font-size:12px;">Questions? Reply to this email or DM us on <a href="https://x.com/LuxHubStudio" style="color:#c8a1ff;">X @LuxHubStudio</a></p>
-      </div>`,
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: [email],
+        subject: 'Your LuxHub Vendor Invite',
+        html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;background:#0d0d0d;color:#fff;padding:32px;border-radius:12px;">
+          <h2 style="color:#c8a1ff;margin:0 0 16px;">Welcome to LuxHub</h2>
+          <p>Hi ${name || 'there'},</p>
+          <p>You've been invited to become a vendor on LuxHub — the decentralized marketplace for luxury assets on Solana.</p>
+          <p>Click below to set up your vendor profile and start listing:</p>
+          <a href="${link}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#c8a1ff,#a855f7);color:#0a0a0c;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">Complete Onboarding</a>
+          <p style="color:#888;font-size:13px;">This invite is linked to your wallet and can only be used once. Make sure to connect the correct wallet when onboarding.</p>
+          <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
+          <p style="color:#666;font-size:12px;">Questions? Reply to this email or DM us on <a href="https://x.com/LuxHubStudio" style="color:#c8a1ff;">X @LuxHubStudio</a></p>
+        </div>`,
+      }),
     });
 
-    if (result.error) {
-      console.error('[admin/invites] Resend API error:', result.error);
-      return { sent: false, error: result.error.message || 'Resend API error' };
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[admin/invites] Resend API error:', errorText);
+      return { sent: false, error: errorText };
     }
 
     return { sent: true };
