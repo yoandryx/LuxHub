@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { VendorProfile } from '../../lib/models/VendorProfile';
+import EmailPromptBanner from '../../components/common/EmailPromptBanner';
 import styles from '../../styles/VendorDashboard.module.css';
 import AvatarBannerUploader from '../../components/vendor/AvatarBannerUploader';
 import { SlArrowDown } from 'react-icons/sl';
@@ -154,6 +155,9 @@ const VendorDashboard = () => {
   // Delist/action menu state
   const [delistAsset, setDelistAsset] = useState<any>(null);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+
+  // Add inventory form state
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalInventoryValue: 0,
@@ -775,6 +779,7 @@ const VendorDashboard = () => {
               </div>
             </div>
           )}
+          {publicKey && <EmailPromptBanner wallet={publicKey.toBase58()} />}
           {/* Dashboard Tab */}
           {activeTab === 'dashboard' && (
             <>
@@ -852,7 +857,10 @@ const VendorDashboard = () => {
               <div className={styles.quickActions}>
                 <button
                   className={styles.quickActionButton}
-                  onClick={() => setActiveTab('inventory')}
+                  onClick={() => {
+                    setActiveTab('inventory');
+                    setShowAddForm(true);
+                  }}
                 >
                   <FiPlus /> Add New Item
                 </button>
@@ -898,34 +906,77 @@ const VendorDashboard = () => {
           {/* Inventory Tab */}
           {activeTab === 'inventory' && (
             <>
-              {/* Filter Tabs */}
-              <div className={styles.filterTabs}>
-                {(['all', 'pending', 'approved', 'minted', 'rejected'] as const).map((filter) => (
+              {/* Add Inventory Form (inline) */}
+              {showAddForm && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <AddInventoryForm
+                    onSuccess={() => {
+                      setShowAddForm(false);
+                      fetchMintRequests();
+                    }}
+                  />
                   <button
-                    key={filter}
-                    className={`${styles.filterTab} ${requestFilter === filter ? styles.activeFilter : ''}`}
-                    onClick={() => setRequestFilter(filter)}
+                    className={styles.emptyStateCta}
+                    style={{
+                      marginTop: '1rem',
+                      background: 'transparent',
+                      border: '1px solid var(--border, #222)',
+                    }}
+                    onClick={() => setShowAddForm(false)}
                   >
-                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                    {filter !== 'all' && (
-                      <span className={styles.filterCount}>
-                        {mintRequests.filter((r) => r.status === filter).length}
-                      </span>
-                    )}
-                    {filter === 'all' && (
-                      <span className={styles.filterCount}>{mintRequests.length}</span>
-                    )}
+                    <FiX /> Cancel
                   </button>
-                ))}
-              </div>
+                </div>
+              )}
 
-              {mintRequestsLoading ? (
+              {/* Filter Tabs + New Listing button */}
+              {!showAddForm && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <div className={styles.filterTabs} style={{ marginBottom: 0 }}>
+                    {(['all', 'pending', 'approved', 'minted', 'rejected'] as const).map(
+                      (filter) => (
+                        <button
+                          key={filter}
+                          className={`${styles.filterTab} ${requestFilter === filter ? styles.activeFilter : ''}`}
+                          onClick={() => setRequestFilter(filter)}
+                        >
+                          {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                          {filter !== 'all' && (
+                            <span className={styles.filterCount}>
+                              {mintRequests.filter((r) => r.status === filter).length}
+                            </span>
+                          )}
+                          {filter === 'all' && (
+                            <span className={styles.filterCount}>{mintRequests.length}</span>
+                          )}
+                        </button>
+                      )
+                    )}
+                  </div>
+                  <button
+                    className={styles.quickActionButton}
+                    onClick={() => setShowAddForm(true)}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <FiPlus /> New Listing
+                  </button>
+                </div>
+              )}
+
+              {!showAddForm && mintRequestsLoading ? (
                 <div className={styles.assetGrid}>
                   {[1, 2, 3, 4].map((i) => (
                     <AssetSkeleton key={i} />
                   ))}
                 </div>
-              ) : filteredRequests.length === 0 ? (
+              ) : !showAddForm && filteredRequests.length === 0 ? (
                 <div className={styles.emptyState}>
                   <FiPackage className={styles.emptyIcon} />
                   <h3>
@@ -937,15 +988,12 @@ const VendorDashboard = () => {
                       : `You don't have any ${requestFilter} requests.`}
                   </p>
                   {requestFilter === 'all' && (
-                    <button
-                      className={styles.emptyStateCta}
-                      onClick={() => (window.location.href = '/createNFT')}
-                    >
+                    <button className={styles.emptyStateCta} onClick={() => setShowAddForm(true)}>
                       <FiPlus /> List a Watch
                     </button>
                   )}
                 </div>
-              ) : (
+              ) : !showAddForm ? (
                 <div className={styles.assetGrid}>
                   {filteredRequests.map((request) => {
                     // Map request status to NFTStatus
@@ -1081,7 +1129,7 @@ const VendorDashboard = () => {
                     );
                   })}
                 </div>
-              )}
+              ) : null}
 
               {/* Detail Modal */}
               {selectedRequest && (

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { useRouter } from "next/router";
-import styles from "../../styles/UserDashboard.module.css"; // Adjust path as needed
-
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useRouter } from 'next/router';
+import { useWallet } from '@solana/wallet-adapter-react';
+import EmailPromptBanner from '../../components/common/EmailPromptBanner';
+import styles from '../../styles/UserDashboard.module.css'; // Adjust path as needed
 
 interface Listing {
   _id: string;
@@ -15,25 +16,26 @@ interface Listing {
 export default function UserDashboard() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<string>('');
   const router = useRouter();
+  const { publicKey } = useWallet();
 
   useEffect(() => {
     const fetchListings = async () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
       if (!token) {
-        router.push("/login");
+        router.push('/login');
         return;
       }
 
       try {
         // Calling the user-specific listings endpoint
-        const response = await axios.get("/api/users/listings", {
+        const response = await axios.get('/api/users/listings', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setListings(response.data);
       } catch (err: any) {
-        setError(err.response?.data?.error || "Failed to fetch listings");
+        setError(err.response?.data?.error || 'Failed to fetch listings');
       } finally {
         setLoading(false);
       }
@@ -43,11 +45,12 @@ export default function UserDashboard() {
   }, [router]);
 
   if (loading) return <p>Loading...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if (error) return <p style={{ color: 'red' }}>{error}</p>;
 
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Your Listings</h1>
+      {publicKey && <EmailPromptBanner wallet={publicKey.toBase58()} />}
       {error && <p className={styles.error}>{error}</p>}
       {loading ? (
         <p className={styles.loading}>Loading...</p>
@@ -57,9 +60,13 @@ export default function UserDashboard() {
         <ul className={styles.listingsList}>
           {listings.map((listing) => (
             <li key={listing._id} className={styles.listingItem}>
-              <span className={styles.listingTitle}>{listing.title}</span> -{" "}
+              <span className={styles.listingTitle}>{listing.title}</span> -{' '}
               <span className={styles.listingStatus}>
-                {listing.approved ? "Approved" : listing.status === "pending" ? "Pending" : "Rejected"}
+                {listing.approved
+                  ? 'Approved'
+                  : listing.status === 'pending'
+                    ? 'Pending'
+                    : 'Rejected'}
               </span>
             </li>
           ))}

@@ -1,0 +1,105 @@
+.banner {
+  background: rgba(10, 10, 14, 0.85);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  backdrop-filter: blur(20px);
+  margin-bottom: 20px;
+}
+
+.icon {
+  color: #c8a1ff;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.inputGroup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.emailInput {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 0.85rem;
+  width: 220px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.emailInput:focus {
+  border-color: #c8a1ff;
+}
+
+.emailInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.saveBtn {
+  background: rgba(200, 161, 255, 0.15);
+  color: #c8a1ff;
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  white-space: nowrap;
+}
+
+.saveBtn:hover {
+  background: rgba(200, 161, 255, 0.25);
+  border-color: rgba(200, 161, 255, 0.5);
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dismissBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.dismissBtn:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 640px) {
+  .banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .inputGroup {
+    width: 100%;
+  }
+
+  .emailInput {
+    flex: 1;
+  }
+}
