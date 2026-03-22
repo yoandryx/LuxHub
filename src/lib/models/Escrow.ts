@@ -213,8 +213,8 @@ EscrowSchema.pre('save', function (next) {
     this.royaltyAmount = this.listingPriceUSD * 0.03;
   }
 
-  // Auto-set acceptingOffers based on saleMode
-  if (this.isModified('saleMode')) {
+  // Auto-set acceptingOffers based on saleMode ONLY if acceptingOffers was not explicitly set
+  if (this.isModified('saleMode') && !this.isModified('acceptingOffers')) {
     this.acceptingOffers = this.saleMode === 'accepting_offers';
   }
 

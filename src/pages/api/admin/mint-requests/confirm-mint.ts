@@ -54,9 +54,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } = req.body;
 
   if (!mintRequestId || !mintAddress) {
-    console.error('[CONFIRM-MINT] ❌ Missing required fields');
+    console.error('[confirm-mint] Missing required fields');
     return res.status(400).json({ error: 'mintRequestId and mintAddress are required' });
   }
+
+  console.log(
+    `[confirm-mint] Starting for request=${mintRequestId}, mint=${mintAddress}, transferDest=${transferDestination}, type=${transferDestinationType}`
+  );
 
   try {
     const mintRequest = await MintRequest.findById(mintRequestId);
@@ -116,6 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     mintRequest.transferSuccess = transferSuccess;
 
     await mintRequest.save();
+    console.log(`[confirm-mint] MintRequest saved as minted, owner=${mintRequest.transferredTo}`);
 
     // Determine actual NFT owner based on transfer destination
     const actualOwner = transferSuccess && transferDestination ? transferDestination : signerWallet;
@@ -131,9 +136,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let ownerVendor = await Vendor.findOne({ user: ownerUser._id });
     if (!ownerVendor) {
       // Auto-create a basic vendor record so they can access the dashboard
+      const autoUsername = `vendor-${actualOwner.slice(0, 8).toLowerCase()}`;
+      console.log(
+        `[confirm-mint] Auto-creating vendor for ${actualOwner}, username=${autoUsername}`
+      );
       ownerVendor = await Vendor.create({
         user: ownerUser._id,
         wallet: actualOwner,
+        walletAddress: actualOwner,
+        username: autoUsername,
         businessName: mintRequest.brand
           ? `${mintRequest.brand} Dealer`
           : `Vendor ${actualOwner.slice(0, 6)}`,
@@ -174,6 +185,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Create Asset record
+    console.log(
+      `[confirm-mint] Creating Asset: mint=${mintAddress}, vendor=${vendor?._id}, owner=${actualOwner}`
+    );
     const asset = await Asset.create({
       vendor: vendor?._id || null,
       model: mintRequest.model,
@@ -232,9 +246,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    // Calculate listing price in lamports (1 SOL = 1e9 lamports)
-    // Use a rough SOL price estimate or fetch from API
-    const solPrice = 150; // Approximate SOL price in USD
+    // Calculate listing price in lamports using live SOL price
+    let solPrice = 150; // fallback
+    try {
+      const priceRes = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/price/sol`
+      );
+      if (priceRes.ok) {
+        const priceData = await priceRes.json();
+        solPrice = priceData.price || 150;
+      }
+    } catch {
+      /* use fallback */
+    }
     const listingPriceLamports = Math.floor((mintRequest.priceUSD / solPrice) * 1e9);
 
     // Create Escrow record for marketplace listing
@@ -242,6 +266,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Generate a placeholder escrowPda for listing purposes (actual on-chain escrow created on purchase)
     const listingEscrowPda = `listing-${mintAddress}-${Date.now()}`;
 
+    console.log(
+      `[confirm-mint] Creating Escrow listing: price=$${mintRequest.priceUSD}, SOL price=$${solPrice}`
+    );
     const escrow = await Escrow.create({
       asset: asset._id,
       seller: ownerVendor?._id || null, // Use the vendor who owns the NFT
@@ -253,7 +280,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       listingPriceUSD: mintRequest.priceUSD,
       acceptingOffers: true, // Allow offers
       minimumOfferUSD: Math.floor(mintRequest.priceUSD * 0.8), // 80% minimum offer
-      status: 'initiated', // Ready for sale
+      status: 'initiated', // Auto-promoted to 'listed' by Escrow pre-save hook when listingPrice is set
       createdAt: new Date(),
     });
 
@@ -288,9 +315,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           actionUrl: `/nft/${mintAddress}`,
         },
       }).catch(() => {});
+
+      // Send rich email with listing image to vendor
+      const resendKey = process.env.RESEND_API_KEY;
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'LuxHub <notifications@luxhub.gold>';
+      const vendorUser = await User.findOne({ wallet: mintRequest.wallet });
+      if (resendKey && vendorUser?.email) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
+        fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [vendorUser.email],
+            subject: `Your ${mintRequest.title} is now live on LuxHub`,
+            html: `<div style="font-family:sans-serif;background:#050507;color:#e0e0e0;padding:32px;max-width:600px;margin:0 auto;">
+              <h2 style="color:#c8a1ff;margin:0 0 8px;">Your NFT is Live</h2>
+              <p style="color:#999;margin:0 0 20px;">Minted, verified, and listed on the marketplace.</p>
+              ${imageUrl ? `<div style="margin:0 0 20px;border-radius:12px;overflow:hidden;border:1px solid #222;"><img src="${imageUrl}" alt="${mintRequest.title}" style="width:100%;max-height:320px;object-fit:cover;display:block;" /></div>` : ''}
+              <p style="font-size:18px;margin:0 0 8px;"><strong>${mintRequest.title}</strong></p>
+              <p style="color:#c8a1ff;font-size:20px;margin:0 0 12px;font-weight:600;">$${Number(mintRequest.priceUSD).toLocaleString()} USD</p>
+              <p style="color:#999;margin:0 0 4px;">Mint: <code style="background:#111;padding:2px 6px;border-radius:4px;font-size:12px;">${mintAddress.slice(0, 12)}...${mintAddress.slice(-4)}</code></p>
+              <div style="margin-top:20px;">
+                <a href="${appUrl}/nft/${mintAddress}" style="display:inline-block;padding:12px 28px;background:rgba(200,161,255,0.1);border:1px solid #c8a1ff50;color:#c8a1ff;border-radius:8px;text-decoration:none;font-weight:600;margin-right:8px;">View Listing</a>
+                <a href="${appUrl}/vendor/vendorDashboard" style="display:inline-block;padding:12px 28px;background:rgba(255,255,255,0.03);border:1px solid #333;color:#999;border-radius:8px;text-decoration:none;">Dashboard</a>
+              </div>
+            </div>`,
+          }),
+        }).catch((err) => console.error('[confirm-mint] Vendor email error:', err));
+      }
     } catch {
       /* non-blocking */
     }
+
+    console.log(
+      `[confirm-mint] Complete: asset=${asset._id}, escrow=${escrow._id}, notification sent to ${mintRequest.wallet}`
+    );
 
     return res.status(200).json({
       success: true,
