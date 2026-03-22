@@ -39,45 +39,58 @@ async function sendInviteEmail(
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [email],
-        subject: `You're invited to LuxHub`,
+        subject: `You have been selected — LuxHub Vendor Invitation`,
         html: `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background:#000000;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#000000;">
 <tr><td align="center" style="padding:48px 20px 32px;">
-<table role="presentation" width="480" cellspacing="0" cellpadding="0" style="max-width:480px;width:100%;">
+<table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;">
 
 <!-- Logo -->
 <tr><td align="center" style="padding-bottom:40px;">
-  <img src="${APP_URL}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" />
+  <img src="${APP_URL}/images/purpleLGG.png" alt="LuxHub" width="40" height="40" style="display:block;border:0;" />
 </td></tr>
 
 <!-- Card -->
-<tr><td style="background:#0d0d0d;border:1px solid rgba(200,161,255,0.1);border-radius:16px;overflow:hidden;">
+<tr><td style="background:#0a0a0c;border:1px solid rgba(200,161,255,0.08);border-radius:16px;overflow:hidden;">
   <div style="height:1px;background:linear-gradient(90deg,transparent 10%,#c8a1ff 50%,transparent 90%);"></div>
-  <div style="padding:44px 40px 36px;">
+  <div style="padding:44px 48px 36px;">
 
-    <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#b0b0b0;">
+    <p style="margin:0 0 24px;font-size:16px;font-weight:600;line-height:1.6;color:#ffffff;">
       ${name || 'Hello'},
     </p>
 
-    <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#b0b0b0;">
-      You've been selected to join LuxHub as a verified vendor.
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.75;color:#e0e0e0;">
+      You have been selected to join LuxHub as a verified vendor.
     </p>
 
-    <p style="margin:0 0 32px;font-size:15px;line-height:1.7;color:#b0b0b0;">
-      List real-world luxury assets on-chain. Every transaction is secured by smart contract escrow with automated fund distribution.
+    <p style="margin:0 0 36px;font-size:14px;line-height:1.75;color:#999999;">
+      List authenticated luxury assets on-chain. Every transaction is secured by smart contract escrow with automated settlement.
     </p>
 
     <!-- CTA -->
-    <div style="text-align:center;margin:0 0 32px;">
-      <a href="${link}" style="display:inline-block;padding:14px 44px;background:rgba(200,161,255,0.12);border:1px solid rgba(200,161,255,0.3);color:#c8a1ff;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.4px;">
+    <div style="text-align:center;margin:0 0 28px;">
+      <a href="${link}" style="display:inline-block;min-width:200px;padding:16px 44px;background:linear-gradient(135deg,rgba(200,161,255,0.15),rgba(200,161,255,0.08));border:1px solid rgba(200,161,255,0.35);color:#c8a1ff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.5px;">
         Begin Onboarding
       </a>
     </div>
 
-    <p style="margin:0;font-size:11px;line-height:1.5;color:#444;text-align:center;">
-      This link is tied to your wallet and can only be used once.
+    <!-- Divider -->
+    <div style="margin:0 32px;height:1px;background:rgba(255,255,255,0.04);"></div>
+
+    <!-- Feature Row -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:20px;margin-bottom:20px;">
+      <tr>
+        <td align="center" style="font-size:11px;color:#666666;text-transform:uppercase;letter-spacing:1px;font-weight:500;padding:8px 0;">Escrow Protected</td>
+        <td align="center" style="font-size:11px;color:#666666;text-transform:uppercase;letter-spacing:1px;font-weight:500;padding:8px 0;">Instant Settlement</td>
+        <td align="center" style="font-size:11px;color:#666666;text-transform:uppercase;letter-spacing:1px;font-weight:500;padding:8px 0;">Global Reach</td>
+      </tr>
+    </table>
+
+    <!-- Fine Print -->
+    <p style="margin:0;font-size:11px;line-height:1.5;color:#444444;text-align:center;">
+      This invitation is unique to your wallet and may only be used once.
     </p>
 
   </div>
@@ -85,17 +98,17 @@ async function sendInviteEmail(
 
 <!-- Footer -->
 <tr><td style="padding:32px 16px 0;text-align:center;">
-  <p style="margin:0 0 12px;font-size:11px;color:#444;">
-    <a href="https://luxhub.gold" style="color:#555;text-decoration:none;">luxhub.gold</a>
+  <p style="margin:0 0 16px;font-size:11px;color:#555555;">
+    <a href="https://luxhub.gold" style="color:#555555;text-decoration:none;">luxhub.gold</a>
     &nbsp;&middot;&nbsp;
-    <a href="https://x.com/LuxHubStudio" style="color:#555;text-decoration:none;">@LuxHubStudio</a>
+    <a href="https://x.com/LuxHubStudio" style="color:#555555;text-decoration:none;">@LuxHubStudio</a>
   </p>
 </td></tr>
 
 <!-- Legal -->
-<tr><td style="padding:16px 24px 0;text-align:center;">
-  <p style="margin:0;font-size:9px;line-height:1.6;color:#333;">
-    LuxHub is a technology platform that facilitates peer-to-peer transactions of physical assets using blockchain infrastructure. LuxHub does not take custody of funds or assets. All transactions are executed via on-chain escrow smart contracts on the Solana blockchain. Digital representations of assets (NFTs) serve as certificates of authenticity and do not constitute securities, financial instruments, or investment contracts. Vendors are independent sellers and not employees or agents of LuxHub. Platform fees are disclosed in the vendor agreement. By proceeding, you agree to our <a href="${APP_URL}/terms" style="color:#444;text-decoration:underline;">Terms of Service</a>.
+<tr><td style="padding:0 24px;text-align:center;">
+  <p style="margin:0;font-size:9px;line-height:1.6;color:#333333;">
+    LuxHub is a technology platform that facilitates peer-to-peer transactions of physical assets using blockchain infrastructure. LuxHub does not take custody of funds or assets. All transactions are executed via on-chain escrow smart contracts on the Solana blockchain. Digital representations of assets (NFTs) serve as certificates of authenticity and do not constitute securities, financial instruments, or investment contracts. Vendors are independent sellers and not employees or agents of LuxHub. Platform fees are disclosed in the vendor agreement. By proceeding, you agree to our <a href="${APP_URL}/terms" style="color:#444444;text-decoration:underline;">Terms of Service</a>.
   </p>
 </td></tr>
 
