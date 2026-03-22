@@ -53,6 +53,13 @@ export interface NotificationMetadata {
   actionUrl?: string;
   amount?: number;
   amountUSD?: number;
+  // Offer-specific rich email fields
+  imageUrl?: string;
+  amountLabel?: string;
+  counterpartyWallet?: string;
+  counterpartyLabel?: string;
+  ctaText?: string;
+  eventBadge?: string;
 }
 
 export interface CreateNotificationParams {
@@ -99,19 +106,19 @@ const emailTemplates: Record<
   },
   offer_received: {
     subject: () => 'New Offer on Your Listing',
-    getHtml: (p) => baseEmailTemplate(p, '#c8a1ff'),
+    getHtml: (p) => offerEmailTemplate(p, '#c8a1ff'),
   },
   offer_accepted: {
     subject: () => 'Your Offer Was Accepted!',
-    getHtml: (p) => baseEmailTemplate(p, '#22c55e'),
+    getHtml: (p) => offerEmailTemplate(p, '#22c55e'),
   },
   offer_rejected: {
     subject: () => 'Offer Update',
-    getHtml: (p) => baseEmailTemplate(p, '#ef4444'),
+    getHtml: (p) => offerEmailTemplate(p, '#ef4444'),
   },
   offer_countered: {
     subject: () => 'Counter Offer Received',
-    getHtml: (p) => baseEmailTemplate(p, '#f59e0b'),
+    getHtml: (p) => offerEmailTemplate(p, '#f59e0b'),
   },
   vendor_approved: {
     subject: () => 'Vendor Application Approved!',
@@ -212,6 +219,14 @@ interface EmailTemplateParams {
   message: string;
   actionUrl?: string;
   type: NotificationType;
+  // Offer-specific rich email fields
+  imageUrl?: string;
+  amountUSD?: number;
+  amountLabel?: string;
+  counterpartyWallet?: string;
+  counterpartyLabel?: string;
+  ctaText?: string;
+  eventBadge?: string;
 }
 
 function baseEmailTemplate(params: EmailTemplateParams, accentColor: string): string {
@@ -318,6 +333,96 @@ function baseEmailTemplate(params: EmailTemplateParams, accentColor: string): st
       <p style="font-size: 12px; margin-top: 10px;">
         You received this email because you have notifications enabled on your LuxHub account.
       </p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+function offerEmailTemplate(params: EmailTemplateParams, accentColor: string): string {
+  const {
+    title,
+    message,
+    actionUrl,
+    eventBadge,
+    imageUrl,
+    amountUSD,
+    amountLabel,
+    counterpartyWallet,
+    counterpartyLabel,
+    ctaText,
+  } = params;
+
+  const badge = eventBadge || params.type.replace(/_/g, ' ').toUpperCase();
+  const truncWallet = counterpartyWallet
+    ? `${counterpartyWallet.slice(0, 6)}...${counterpartyWallet.slice(-4)}`
+    : '';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #050507; color: #ffffff; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 40px auto; background: linear-gradient(135deg, rgba(17,17,17,0.95), rgba(13,13,13,0.9)); border: 1px solid rgba(200,161,255,0.15); border-radius: 16px; overflow: hidden;">
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #c8a1ff 0%, #8b5cf6 100%); padding: 28px; text-align: center;">
+      <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 600; letter-spacing: 3px;">LUXHUB</h1>
+    </div>
+    <!-- Content -->
+    <div style="padding: 36px 30px;">
+      <!-- Event badge -->
+      <div style="display: inline-block; background: ${accentColor}20; color: ${accentColor}; padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 24px;">${badge}</div>
+      ${
+        imageUrl
+          ? `
+      <!-- Asset image -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <img src="${imageUrl}" alt="Asset" style="max-width: 280px; width: 100%; border-radius: 12px; border: 1px solid rgba(200,161,255,0.15); display: block; margin: 0 auto;" />
+      </div>`
+          : ''
+      }
+      <!-- Title -->
+      <div style="font-size: 20px; font-weight: 600; margin-bottom: 12px; color: #ffffff;">${title}</div>
+      ${
+        amountUSD !== undefined
+          ? `
+      <!-- Amount -->
+      <div style="margin-bottom: 16px;">
+        <span style="font-size: 13px; color: #a1a1a1; text-transform: uppercase; letter-spacing: 0.5px;">${amountLabel || 'Amount'}</span>
+        <div style="font-size: 28px; font-weight: 700; color: #c8a1ff; margin-top: 4px;">$${amountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</div>
+      </div>`
+          : ''
+      }
+      ${
+        counterpartyWallet
+          ? `
+      <!-- Counterparty -->
+      <div style="margin-bottom: 20px; padding: 10px 14px; background: rgba(200,161,255,0.06); border-radius: 8px; border: 1px solid rgba(200,161,255,0.08);">
+        <span style="font-size: 12px; color: #a1a1a1;">${counterpartyLabel || 'Wallet'}</span>
+        <div style="font-size: 14px; color: #ffffff; font-family: 'SF Mono', 'Fira Code', monospace; margin-top: 2px;">${truncWallet}</div>
+      </div>`
+          : ''
+      }
+      <!-- Message -->
+      <div style="font-size: 15px; line-height: 1.7; color: #a1a1a1; margin-bottom: 28px;">${message}</div>
+      ${
+        actionUrl
+          ? `
+      <!-- CTA -->
+      <div style="text-align: center;">
+        <a href="${actionUrl}" style="display: inline-block; background: linear-gradient(135deg, #c8a1ff 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; padding: 14px 36px; border-radius: 8px; font-weight: 600; font-size: 15px;">${ctaText || 'View Details'}</a>
+      </div>`
+          : ''
+      }
+    </div>
+    <!-- Footer -->
+    <div style="padding: 24px 30px; text-align: center; font-size: 13px; color: #666666; border-top: 1px solid rgba(200,161,255,0.08);">
+      <p style="margin: 0 0 8px 0;">Decentralized Luxury Marketplace on Solana</p>
+      <p style="margin: 0; font-size: 11px;">You received this email because you have notifications enabled on your LuxHub account.</p>
     </div>
   </div>
 </body>
@@ -475,6 +580,14 @@ export async function notifyUser(params: CreateNotificationParams): Promise<{
         message,
         actionUrl: metadata.actionUrl,
         type,
+        // Forward offer-specific fields from metadata for rich email templates
+        imageUrl: metadata.imageUrl,
+        amountUSD: metadata.amountUSD,
+        amountLabel: metadata.amountLabel,
+        counterpartyWallet: metadata.counterpartyWallet,
+        counterpartyLabel: metadata.counterpartyLabel,
+        ctaText: metadata.ctaText,
+        eventBadge: metadata.eventBadge,
       });
 
       emailSent = result.success;
@@ -697,20 +810,28 @@ export async function notifyOfferReceived(params: {
   escrowId: string;
   assetTitle: string;
   offerAmountUSD: number;
+  imageUrl?: string;
 }) {
-  const { vendorWallet, offerId, escrowId, assetTitle, offerAmountUSD } = params;
+  const { vendorWallet, buyerWallet, offerId, escrowId, assetTitle, offerAmountUSD, imageUrl } =
+    params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: vendorWallet,
     type: 'offer_received',
-    title: 'New Offer Received!',
+    title: `New Offer — ${assetTitle}`,
     message: `You received an offer of $${offerAmountUSD.toFixed(2)} USD for "${assetTitle}".`,
     metadata: {
       offerId,
       escrowId,
       amountUSD: offerAmountUSD,
       actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+      imageUrl,
+      amountLabel: 'Offer Amount',
+      counterpartyWallet: buyerWallet,
+      counterpartyLabel: 'From Buyer',
+      ctaText: 'Review Offer',
+      eventBadge: 'NEW OFFER',
     },
   });
 }
@@ -725,14 +846,16 @@ export async function notifyOfferAccepted(params: {
   escrowPda: string;
   assetTitle: string;
   acceptedAmountUSD: number;
+  imageUrl?: string;
 }) {
-  const { buyerWallet, offerId, escrowId, escrowPda, assetTitle, acceptedAmountUSD } = params;
+  const { buyerWallet, offerId, escrowId, escrowPda, assetTitle, acceptedAmountUSD, imageUrl } =
+    params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: buyerWallet,
     type: 'offer_accepted',
-    title: 'Your Offer Was Accepted!',
+    title: `Offer Accepted — ${assetTitle}`,
     message: `Congratulations! Your offer of $${acceptedAmountUSD.toFixed(2)} USD for "${assetTitle}" has been accepted. Complete your purchase now!`,
     metadata: {
       offerId,
@@ -740,6 +863,11 @@ export async function notifyOfferAccepted(params: {
       escrowPda,
       amountUSD: acceptedAmountUSD,
       actionUrl: `${appUrl}/marketplace?pay=${escrowPda}`,
+      imageUrl,
+      amountLabel: 'Accepted Amount',
+      counterpartyLabel: 'Vendor',
+      ctaText: 'Complete Purchase',
+      eventBadge: 'OFFER ACCEPTED',
     },
   });
 }
@@ -753,21 +881,24 @@ export async function notifyOfferRejected(params: {
   escrowId: string;
   assetTitle: string;
   reason?: string;
+  imageUrl?: string;
 }) {
-  const { buyerWallet, offerId, escrowId, assetTitle, reason } = params;
+  const { buyerWallet, offerId, escrowId, assetTitle, reason, imageUrl } = params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: buyerWallet,
     type: 'offer_rejected',
-    title: 'Offer Not Accepted',
+    title: `Offer Not Accepted — ${assetTitle}`,
     message: reason
       ? `Your offer for "${assetTitle}" was not accepted. Reason: ${reason}`
       : `Your offer for "${assetTitle}" was not accepted by the vendor.`,
     metadata: {
       offerId,
       escrowId,
-      actionUrl: `${appUrl}/marketplace`,
+      actionUrl: `${appUrl}/user/userDashboard?tab=offers`,
+      imageUrl,
+      eventBadge: 'OFFER REJECTED',
     },
   });
 }
@@ -782,21 +913,28 @@ export async function notifyOfferCountered(params: {
   escrowPda: string;
   assetTitle: string;
   counterAmountUSD: number;
+  imageUrl?: string;
 }) {
-  const { buyerWallet, offerId, escrowId, escrowPda, assetTitle, counterAmountUSD } = params;
+  const { buyerWallet, offerId, escrowId, escrowPda, assetTitle, counterAmountUSD, imageUrl } =
+    params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: buyerWallet,
     type: 'offer_countered',
-    title: 'Counter Offer Received',
+    title: `Counter Offer — ${assetTitle}`,
     message: `The vendor has countered with $${counterAmountUSD.toFixed(2)} USD for "${assetTitle}". Review and respond to the offer.`,
     metadata: {
       offerId,
       escrowId,
       escrowPda,
       amountUSD: counterAmountUSD,
-      actionUrl: `${appUrl}/orders`,
+      actionUrl: `${appUrl}/user/userDashboard?tab=offers`,
+      imageUrl,
+      amountLabel: 'Counter Amount',
+      counterpartyLabel: 'From Vendor',
+      ctaText: 'Review Counter',
+      eventBadge: 'COUNTER OFFER',
     },
   });
 }
@@ -835,14 +973,24 @@ export async function notifyCounterAcceptedByBuyer(params: {
   escrowPda: string;
   assetTitle: string;
   acceptedAmountUSD: number;
+  imageUrl?: string;
 }) {
-  const { vendorWallet, offerId, escrowId, escrowPda, assetTitle, acceptedAmountUSD } = params;
+  const {
+    vendorWallet,
+    buyerWallet,
+    offerId,
+    escrowId,
+    escrowPda,
+    assetTitle,
+    acceptedAmountUSD,
+    imageUrl,
+  } = params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
     userWallet: vendorWallet,
     type: 'offer_accepted',
-    title: 'Counter-Offer Accepted!',
+    title: `Counter-Offer Accepted — ${assetTitle}`,
     message: `The buyer accepted your counter-offer of $${acceptedAmountUSD.toFixed(2)} USD for "${assetTitle}". Awaiting buyer payment.`,
     metadata: {
       offerId,
@@ -850,6 +998,12 @@ export async function notifyCounterAcceptedByBuyer(params: {
       escrowPda,
       amountUSD: acceptedAmountUSD,
       actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+      imageUrl,
+      amountLabel: 'Accepted Amount',
+      counterpartyWallet: buyerWallet,
+      counterpartyLabel: 'Buyer',
+      ctaText: 'View Order',
+      eventBadge: 'COUNTER ACCEPTED',
     },
   });
 }
