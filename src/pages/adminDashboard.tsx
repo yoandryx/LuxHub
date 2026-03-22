@@ -291,6 +291,7 @@ const AdminDashboard: React.FC = () => {
   const [pendingMintRequests, setPendingMintRequests] = useState<number>(0);
   const [pendingDelistRequests, setPendingDelistRequests] = useState<number>(0);
   const [pendingVendorApprovals, setPendingVendorApprovals] = useState<number>(0);
+  const [newApplications, setNewApplications] = useState<number>(0);
 
   const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
 
@@ -503,10 +504,11 @@ const AdminDashboard: React.FC = () => {
     const headers: Record<string, string> = { 'x-wallet-address': walletAddr };
 
     try {
-      const [mintRes, delistRes, vendorRes] = await Promise.all([
+      const [mintRes, delistRes, vendorRes, interestsRes] = await Promise.all([
         fetch('/api/admin/mint-requests?status=pending&limit=1&offset=0', { headers }),
         fetch('/api/admin/delist-requests?status=pending', { headers }),
         fetch(`/api/vendor/pending?adminWallet=${walletAddr}`, { headers }),
+        fetch('/api/admin/interests', { headers }),
       ]);
 
       if (mintRes.ok) {
@@ -522,6 +524,10 @@ const AdminDashboard: React.FC = () => {
       if (vendorRes.ok) {
         const data = await vendorRes.json();
         setPendingVendorApprovals(Array.isArray(data.vendors) ? data.vendors.length : 0);
+      }
+      if (interestsRes.ok) {
+        const data = await interestsRes.json();
+        setNewApplications(data.newCount || 0);
       }
     } catch (err) {
       console.error('[fetchPendingCounts] Error:', err);
@@ -1457,6 +1463,12 @@ const AdminDashboard: React.FC = () => {
       case 1: {
         // Dashboard Overview — Stripe-inspired dense layout
         const attentionItems = [
+          newApplications > 0 && {
+            label: 'New Applications',
+            count: newApplications,
+            tab: 8,
+            icon: <HiOutlineUserGroup />,
+          },
           pendingMintRequests > 0 && {
             label: 'Mint Requests',
             count: pendingMintRequests,
@@ -2499,7 +2511,12 @@ const AdminDashboard: React.FC = () => {
   const securityNavItems = [
     { id: 13, label: 'Platform Settings', icon: HiOutlineCog },
     { id: 9, label: 'Squads Multisig', icon: HiOutlineShieldCheck, badge: squadsProposals.length },
-    { id: 8, label: 'Vendor Approvals', icon: HiOutlineUserGroup, badge: pendingVendorApprovals },
+    {
+      id: 8,
+      label: 'Vendor Approvals',
+      icon: HiOutlineUserGroup,
+      badge: pendingVendorApprovals + newApplications,
+    },
     { id: 3, label: 'Transactions', icon: HiOutlineCash },
     { id: 0, label: 'Escrow Config', icon: HiOutlineDatabase },
   ];
@@ -2589,63 +2606,67 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className={styles.dashboard}>
+      {/* FAB + Nav Panel — outside main to avoid stacking context */}
+      <div className={styles.fabContainer}>
+        <div className={styles.fabLabel}>
+          {[...navItems, ...nftNavItems, ...securityNavItems].find((i) => i.id === tabIndex)
+            ?.label ?? 'Menu'}
+        </div>
+        <motion.button
+          className={styles.fab}
+          onClick={() => setNavOpen((prev) => !prev)}
+          animate={{ rotate: navOpen ? 45 : 0 }}
+          transition={{ duration: 0.2 }}
+          aria-label="Navigation menu"
+          aria-expanded={navOpen}
+        >
+          {navOpen ? <HiOutlineX /> : <HiOutlineViewGrid />}
+        </motion.button>
+      </div>
+
+      <AnimatePresence>
+        {navOpen && (
+          <motion.div
+            key="nav-backdrop"
+            className={styles.navBackdrop}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setNavOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {navOpen && (
+          <motion.div
+            key="nav-panel"
+            className={styles.navPanel}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            role="menu"
+          >
+            <div className={styles.navGroup}>
+              <div className={styles.navGroupLabel}>Operations</div>
+              {navItems.map((item) => renderNavPanelItem(item))}
+            </div>
+            <div className={styles.navGroupDivider} />
+            <div className={styles.navGroup}>
+              <div className={styles.navGroupLabel}>NFT Management</div>
+              {nftNavItems.map((item) => renderNavPanelItem(item))}
+            </div>
+            <div className={styles.navGroupDivider} />
+            <div className={styles.navGroup}>
+              <div className={styles.navGroupLabel}>Security &amp; Config</div>
+              {securityNavItems.map((item) => renderNavPanelItem(item))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Content Area */}
       <main className={styles.mainContent}>
-        {/* FAB + Nav Panel */}
-        <div className={styles.fabContainer}>
-          <div className={styles.fabLabel}>
-            {[...navItems, ...nftNavItems, ...securityNavItems].find((i) => i.id === tabIndex)
-              ?.label ?? 'Menu'}
-          </div>
-          <motion.button
-            className={styles.fab}
-            onClick={() => setNavOpen((prev) => !prev)}
-            animate={{ rotate: navOpen ? 45 : 0 }}
-            transition={{ duration: 0.2 }}
-            aria-label="Navigation menu"
-            aria-expanded={navOpen}
-          >
-            {navOpen ? <HiOutlineX /> : <HiOutlineViewGrid />}
-          </motion.button>
-        </div>
-
-        <AnimatePresence>
-          {navOpen && (
-            <>
-              <motion.div
-                className={styles.navBackdrop}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setNavOpen(false)}
-              />
-              <motion.div
-                className={styles.navPanel}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                role="menu"
-              >
-                <div className={styles.navGroup}>
-                  <div className={styles.navGroupLabel}>Operations</div>
-                  {navItems.map((item) => renderNavPanelItem(item))}
-                </div>
-                <div className={styles.navGroupDivider} />
-                <div className={styles.navGroup}>
-                  <div className={styles.navGroupLabel}>NFT Management</div>
-                  {nftNavItems.map((item) => renderNavPanelItem(item))}
-                </div>
-                <div className={styles.navGroupDivider} />
-                <div className={styles.navGroup}>
-                  <div className={styles.navGroupLabel}>Security &amp; Config</div>
-                  {securityNavItems.map((item) => renderNavPanelItem(item))}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
         <div className={styles.contentBody}>
           {/* Quick Stats Overview */}
           {tabIndex === 5 && (

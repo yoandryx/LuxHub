@@ -22,8 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await dbConnect();
 
   if (req.method === 'GET') {
-    const interests = await VendorInterest.find().sort({ createdAt: -1 }).limit(50).lean();
-    return res.status(200).json({ interests });
+    const [interests, newCount] = await Promise.all([
+      VendorInterest.find().sort({ createdAt: -1 }).limit(50).lean(),
+      VendorInterest.countDocuments({ status: 'new' }),
+    ]);
+    return res.status(200).json({ interests, newCount });
   }
 
   if (req.method === 'DELETE') {

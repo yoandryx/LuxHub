@@ -99,6 +99,7 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
   // Interest submissions
   const [interests, setInterests] = useState<InterestEntry[]>([]);
   const [showInterests, setShowInterests] = useState(false);
+  const [newInterestCount, setNewInterestCount] = useState<number>(0);
 
   // Active tab for admin sections
   const [adminTab, setAdminTab] = useState<'vendors' | 'invites' | 'interests'>('vendors');
@@ -163,6 +164,7 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
     fetchPendingVendors();
     fetchApprovedVendors();
     fetchInvites();
+    fetchInterests();
   }, []);
 
   useEffect(() => {
@@ -208,6 +210,7 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
       if (res.ok) {
         const data = await res.json();
         setInterests(data.interests || []);
+        setNewInterestCount(data.newCount || 0);
         setShowInterests(true);
       }
     } catch {
@@ -535,6 +538,7 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
           }}
         >
           <FiMail /> Applications
+          {newInterestCount > 0 && <span className={styles.newBadge}>{newInterestCount}</span>}
         </button>
       </div>
 

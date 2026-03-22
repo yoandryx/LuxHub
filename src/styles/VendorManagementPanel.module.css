@@ -52,6 +52,18 @@
   font-weight: 700;
 }
 
+.newBadge {
+  margin-left: 6px;
+  background: var(--accent);
+  color: var(--bg-dark);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+}
+
 /* Search & Filter Bar */
 .filterBar {
   display: flex;
