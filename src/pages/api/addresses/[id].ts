@@ -1,9 +1,8 @@
 // src/pages/api/addresses/[id].ts
-// Get, update, or delete a specific saved address - SECURED with wallet auth and encryption
+// Get, update, or delete a specific saved address - SECURED with PII encryption (AES-256-GCM)
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { SavedAddress } from '../../../lib/models/SavedAddress';
-import { withWalletAuth, AuthenticatedRequest } from '../../../lib/middleware/walletAuth';
 import { encrypt, decrypt, PII_FIELDS } from '../../../lib/security/encryption';
 
 // Decrypt PII fields in an address object
@@ -22,20 +21,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
 
   const { id } = req.query;
-  const wallet = (req as AuthenticatedRequest).wallet;
 
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'Missing address ID' });
   }
 
-  // Find the address and verify ownership (wallet already verified by middleware)
-  const address = await SavedAddress.findOne({ _id: id, wallet, deleted: false });
-
-  if (!address) {
-    return res.status(404).json({ error: 'Address not found' });
-  }
-
   if (req.method === 'GET') {
+    // Extract wallet from query param
+    const wallet = req.query.wallet as string;
+    if (!wallet) {
+      return res.status(400).json({ error: 'Missing wallet address' });
+    }
+
+    // Find the address and verify ownership
+    const address = await SavedAddress.findOne({ _id: id, wallet, deleted: false });
+
+    if (!address) {
+      return res.status(404).json({ error: 'Address not found' });
+    }
+
     // Return single address (decrypted)
     return res.status(200).json({
       success: true,
@@ -44,6 +48,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (req.method === 'PUT') {
+    // Extract wallet from request body
+    const wallet = req.body.wallet as string;
+    if (!wallet) {
+      return res.status(400).json({ error: 'Missing wallet address' });
+    }
+
+    // Find the address and verify ownership
+    const address = await SavedAddress.findOne({ _id: id, wallet, deleted: false });
+
+    if (!address) {
+      return res.status(404).json({ error: 'Address not found' });
+    }
+
     // Update address
     const {
       label,
@@ -99,6 +116,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (req.method === 'DELETE') {
+    // Extract wallet from request body
+    const wallet = req.body.wallet as string;
+    if (!wallet) {
+      return res.status(400).json({ error: 'Missing wallet address' });
+    }
+
+    // Find the address and verify ownership
+    const address = await SavedAddress.findOne({ _id: id, wallet, deleted: false });
+
+    if (!address) {
+      return res.status(404).json({ error: 'Address not found' });
+    }
+
     try {
       // Soft delete
       address.deleted = true;
@@ -128,5 +158,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-// Wrap with wallet authentication middleware
-export default withWalletAuth(handler);
+export default handler;

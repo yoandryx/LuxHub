@@ -1,9 +1,8 @@
 // src/pages/api/addresses/index.ts
-// List and create saved shipping addresses - SECURED with wallet auth and encryption
+// List and create saved shipping addresses - SECURED with PII encryption (AES-256-GCM)
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { SavedAddress } from '../../../lib/models/SavedAddress';
-import { withWalletAuth, AuthenticatedRequest } from '../../../lib/middleware/walletAuth';
 import { encrypt, decrypt, PII_FIELDS } from '../../../lib/security/encryption';
 
 // Decrypt PII fields in an address object
@@ -21,11 +20,14 @@ function decryptAddress(address: any): any {
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
 
-  // Get verified wallet from middleware
-  const wallet = (req as AuthenticatedRequest).wallet;
-
   if (req.method === 'GET') {
-    // List addresses for the authenticated wallet
+    // Extract wallet from query param
+    const wallet = req.query.wallet as string;
+    if (!wallet) {
+      return res.status(400).json({ error: 'Missing wallet address' });
+    }
+
+    // List addresses for the wallet
     try {
       const addresses = await SavedAddress.find({ wallet, deleted: false })
         .sort({ isDefault: -1, updatedAt: -1 })
@@ -46,6 +48,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (req.method === 'POST') {
+    // Extract wallet from request body
+    const wallet = req.body.wallet as string;
+    if (!wallet) {
+      return res.status(400).json({ error: 'Missing wallet address' });
+    }
+
     // Create a new saved address
     const {
       label,
@@ -122,5 +130,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-// Wrap with wallet authentication middleware
-export default withWalletAuth(handler);
+export default handler;

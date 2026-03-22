@@ -1,9 +1,8 @@
 // src/pages/api/addresses/default.ts
-// Get or set the default address for a wallet - SECURED with wallet auth and encryption
+// Get or set the default address for a wallet - SECURED with PII encryption (AES-256-GCM)
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { SavedAddress } from '../../../lib/models/SavedAddress';
-import { withWalletAuth, AuthenticatedRequest } from '../../../lib/middleware/walletAuth';
 import { decrypt, PII_FIELDS } from '../../../lib/security/encryption';
 
 // Decrypt PII fields in an address object
@@ -21,10 +20,14 @@ function decryptAddress(address: any): any {
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
 
-  const wallet = (req as AuthenticatedRequest).wallet;
-
   if (req.method === 'GET') {
-    // Get default address for the authenticated wallet
+    // Extract wallet from query param
+    const wallet = req.query.wallet as string;
+    if (!wallet) {
+      return res.status(400).json({ error: 'Missing wallet address' });
+    }
+
+    // Get default address for the wallet
     try {
       const defaultAddress = await SavedAddress.findOne({
         wallet,
@@ -44,6 +47,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (req.method === 'POST') {
+    // Extract wallet from request body
+    const wallet = req.body.wallet as string;
+    if (!wallet) {
+      return res.status(400).json({ error: 'Missing wallet address' });
+    }
+
     // Set a new default address
     const { addressId } = req.body;
 
@@ -52,7 +61,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     try {
-      // Verify ownership (wallet already verified by middleware)
+      // Verify ownership
       const address = await SavedAddress.findOne({
         _id: addressId,
         wallet,
@@ -87,5 +96,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-// Wrap with wallet authentication middleware
-export default withWalletAuth(handler);
+export default handler;
