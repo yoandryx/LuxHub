@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 260322-pz2 quick task
-last_updated: "2026-03-22T22:58:12.415Z"
+stopped_at: Completed 260322-qkv quick task
+last_updated: "2026-03-22T23:19:33.244Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 5
@@ -136,8 +136,9 @@ None yet.
 | 260322-nwk | Rich offer emails with watch image + purple pulse navbar badge | 2026-03-22 | 55e6b68 | [260322-nwk-offer-notification-ux-emails-navbar-badg](./quick/260322-nwk-offer-notification-ux-emails-navbar-badg/) |
 | 260322-opr | Fix vendor email notifications: 3-step fallback chain in notifyUser | 2026-03-22 | 4bcf820 | [260322-opr-fix-vendor-email-notifications-resolve-e](./quick/260322-opr-fix-vendor-email-notifications-resolve-e/) |
 | 260322-pz2 | Email prompt banner on dashboards + nudge in offer/buy modals | 2026-03-22 | d45a04f | [260322-pz2-prompt-users-to-add-email-banner-on-dash](./quick/260322-pz2-prompt-users-to-add-email-banner-on-dash/) |
+| 260322-qkv | Fix saved address auth: remove withWalletAuth, use wallet from body/query | 2026-03-22 | 5132cc7 | [260322-qkv-fix-saved-address-auth-remove-walletauth](./quick/260322-qkv-fix-saved-address-auth-remove-walletauth/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 260322-pz2 quick task
+Stopped at: Completed 260322-qkv quick task
