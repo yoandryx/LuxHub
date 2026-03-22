@@ -134,8 +134,9 @@ None yet.
 | 260322-my2 | Fix offer button not showing (Escrow pre-save hook + NFT detail page) | 2026-03-22 | 710304a | [260322-my2-fix-offer-button-not-showing-and-buyer-a](./quick/260322-my2-fix-offer-button-not-showing-and-buyer-a/) |
 | 260322-nmo | Fix offer lifecycle notifications: vendor-specific helpers + buyer-respond rewiring | 2026-03-22 | cebf1fb | [260322-nmo-audit-fix-offer-buy-modal-shipping-notif](./quick/260322-nmo-audit-fix-offer-buy-modal-shipping-notif/) |
 | 260322-nwk | Rich offer emails with watch image + purple pulse navbar badge | 2026-03-22 | 55e6b68 | [260322-nwk-offer-notification-ux-emails-navbar-badg](./quick/260322-nwk-offer-notification-ux-emails-navbar-badg/) |
+| 260322-opr | Fix vendor email notifications: 3-step fallback chain in notifyUser | 2026-03-22 | 4bcf820 | [260322-opr-fix-vendor-email-notifications-resolve-e](./quick/260322-opr-fix-vendor-email-notifications-resolve-e/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 260322-nwk quick task
+Stopped at: Completed 260322-opr quick task
