@@ -1,70 +1,64 @@
 // src/utils/irys.ts
-import Irys from '@irys/sdk';
+// Irys upload utilities using @irys/upload + @irys/upload-solana (replaces deprecated @irys/sdk)
+import { Uploader } from '@irys/upload';
+import { Solana } from '@irys/upload-solana';
 import { getAdminConfig } from '../lib/config/adminConfig';
+import { getClusterConfig } from '@/lib/solana/clusterConfig';
 
 // Irys network configuration
 // Use 'devnet' for testing (free uploads), 'mainnet' for production
 const IRYS_NETWORK = process.env.IRYS_NETWORK || 'devnet';
-import { getClusterConfig } from '@/lib/solana/clusterConfig';
 const getIrysRpc = () => getClusterConfig().endpoint;
 
 // Gateway URL for accessing uploaded content
 const IRYS_GATEWAY = 'https://gateway.irys.xyz';
 
-// Token used for payment (Solana)
-const IRYS_TOKEN = 'solana';
-
-// Cache the Irys instance
-let _irysInstance: Irys | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _irysInstance: any = null;
 
 /**
  * Get Irys instance configured with Solana wallet.
  * Uses ADMIN_SECRET (existing admin keypair) - no extra config needed!
  * Falls back to IRYS_PRIVATE_KEY if set explicitly.
  */
-async function getIrys(): Promise<Irys | null> {
+async function getIrys() {
   // Return cached instance if available
   if (_irysInstance) {
     return _irysInstance;
   }
 
   try {
-    // Option 1: Use explicit IRYS_PRIVATE_KEY if set (base58 encoded)
+    // Determine the wallet key
+    let key: string | Uint8Array;
+
     if (process.env.IRYS_PRIVATE_KEY) {
-      _irysInstance = new Irys({
-        network: IRYS_NETWORK,
-        token: IRYS_TOKEN,
-        key: process.env.IRYS_PRIVATE_KEY,
-        config: {
-          providerUrl: getIrysRpc(),
-        },
-      });
-      return _irysInstance;
+      // Option 1: Use explicit IRYS_PRIVATE_KEY (base58 encoded)
+      key = process.env.IRYS_PRIVATE_KEY;
+    } else {
+      // Option 2: Use existing ADMIN_SECRET keypair (same one used for minting)
+      const adminConfig = getAdminConfig();
+      const adminKeypair = adminConfig.getAdminKeypair();
+
+      if (!adminKeypair) {
+        console.warn('Irys: No keypair available. Set ADMIN_SECRET or IRYS_PRIVATE_KEY');
+        return null;
+      }
+
+      key = adminKeypair.secretKey;
     }
 
-    // Option 2: Use existing ADMIN_SECRET keypair (same one used for minting)
-    const adminConfig = getAdminConfig();
-    const adminKeypair = adminConfig.getAdminKeypair();
-
-    if (!adminKeypair) {
-      console.warn('Irys: No keypair available. Set ADMIN_SECRET or IRYS_PRIVATE_KEY');
-      return null;
+    // Build the uploader using the fluent builder API
+    let builder = Uploader(Solana).withWallet(key).withRpc(getIrysRpc());
+    if (IRYS_NETWORK === 'devnet') {
+      builder = builder.devnet();
     }
+    _irysInstance = await builder;
 
-    // Irys SDK accepts the secret key as Uint8Array directly
-    _irysInstance = new Irys({
-      network: IRYS_NETWORK,
-      token: IRYS_TOKEN,
-      key: adminKeypair.secretKey, // Pass the Uint8Array directly
-      config: {
-        providerUrl: getIrysRpc(),
-      },
-    });
-
-    console.log(`✅ Irys initialized using admin keypair (${IRYS_NETWORK})`);
+    console.log(`Irys initialized (${IRYS_NETWORK})`);
     return _irysInstance;
   } catch (error) {
     console.error('Failed to initialize Irys:', error);
+    _irysInstance = null;
     return null;
   }
 }
@@ -105,6 +99,8 @@ export function getIrysNetwork(): string {
  * @returns The Irys transaction ID
  */
 export async function uploadImageToIrys(fileBuffer: Buffer, contentType: string): Promise<string> {
+  console.log(`[irys] uploadImage: starting, size=${fileBuffer.length} bytes, type=${contentType}`);
+
   const irys = await getIrys();
   if (!irys) {
     throw new Error(
@@ -121,13 +117,16 @@ export async function uploadImageToIrys(fileBuffer: Buffer, contentType: string)
       { name: 'Type', value: 'image' },
     ];
 
-    // Upload the file
+    console.log(
+      `[irys] uploadImage: uploading ${fileBuffer.length} bytes to Irys (${IRYS_NETWORK})`
+    );
     const receipt = await irys.upload(fileBuffer, { tags });
 
-    console.log(`✅ Irys upload successful: ${receipt.id}`);
+    console.log(`[irys] uploadImage: success, txId=${receipt.id}`);
     return receipt.id;
   } catch (error) {
-    console.error('Irys image upload error:', error);
+    console.error('[irys] uploadImage: failed:', error);
+    _irysInstance = null; // Clear cached instance so retries re-initialize
     throw new Error(
       `Failed to upload image to Irys: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -141,6 +140,11 @@ export async function uploadImageToIrys(fileBuffer: Buffer, contentType: string)
  * @returns The Irys transaction ID
  */
 export async function uploadMetadataToIrys(metadata: object, name?: string): Promise<string> {
+  const metadataJson = JSON.stringify(metadata);
+  console.log(
+    `[irys] uploadMetadata: starting, name=${name || 'unnamed'}, size=${metadataJson.length} chars`
+  );
+
   const irys = await getIrys();
   if (!irys) {
     throw new Error(
@@ -149,8 +153,6 @@ export async function uploadMetadataToIrys(metadata: object, name?: string): Pro
   }
 
   try {
-    const metadataJson = JSON.stringify(metadata);
-
     // Create tags
     const tags = [
       { name: 'Content-Type', value: 'application/json' },
@@ -163,13 +165,16 @@ export async function uploadMetadataToIrys(metadata: object, name?: string): Pro
       tags.push({ name: 'Name', value: name });
     }
 
-    // Upload the metadata
+    console.log(
+      `[irys] uploadMetadata: uploading ${metadataJson.length} chars to Irys (${IRYS_NETWORK})`
+    );
     const receipt = await irys.upload(metadataJson, { tags });
 
-    console.log(`✅ Irys metadata upload successful: ${receipt.id}`);
+    console.log(`[irys] uploadMetadata: success, txId=${receipt.id}`);
     return receipt.id;
   } catch (error) {
-    console.error('Irys metadata upload error:', error);
+    console.error('[irys] uploadMetadata: failed:', error);
+    _irysInstance = null; // Clear cached instance so retries re-initialize
     throw new Error(
       `Failed to upload metadata to Irys: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -191,6 +196,7 @@ export async function getIrysBalance(): Promise<string> {
     return balance.toString();
   } catch (error) {
     console.error('Failed to get Irys balance:', error);
+    _irysInstance = null;
     throw new Error('Failed to get Irys balance');
   }
 }
@@ -211,6 +217,7 @@ export async function estimateIrysUploadCost(byteSize: number): Promise<string> 
     return price.toString();
   } catch (error) {
     console.error('Failed to estimate upload cost:', error);
+    _irysInstance = null;
     throw new Error('Failed to estimate Irys upload cost');
   }
 }
@@ -227,9 +234,10 @@ export async function fundIrysAccount(amount: number): Promise<void> {
 
   try {
     await irys.fund(amount);
-    console.log(`✅ Funded Irys account with ${amount} lamports`);
+    console.log(`Funded Irys account with ${amount} lamports`);
   } catch (error) {
     console.error('Failed to fund Irys account:', error);
+    _irysInstance = null;
     throw new Error('Failed to fund Irys account');
   }
 }
