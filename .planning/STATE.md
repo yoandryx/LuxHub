@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed quick-260322-s2x useEffectiveWallet rollout to all 14 remaining pages
-last_updated: "2026-03-23T01:04:55.105Z"
+stopped_at: Completed quick-260322-trj unify orders page as central hub for all roles
+last_updated: "2026-03-23T01:44:38.872Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 5
@@ -62,6 +62,7 @@ Plan: 3 of 3
 | Phase 04 P02 | 3min | 1 tasks | 2 files |
 | Phase 04 P03 | 13min | 2 tasks | 6 files |
 | Phase quick-260322-s2x P01 | 8min | 2 tasks | 14 files |
+| Phase quick-260322-trj P01 | 11min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,7 @@ Recent decisions affecting current work:
 - [Phase 04]: Fetch /api/escrow/list in nft/[mint].tsx for sellerWallet since DAS API does not return it
 - [Phase quick-260322-qkw]: useEffectiveWallet deployed app-wide; useWallet retained only for Anchor getProgram() and sendTransaction
 - [Phase quick-260322-rpg]: latestCounter resolution pattern in vendor accept matches buyer-respond.ts for consistency
+- [Phase quick-260322-trj]: Role detection uses /api/vendor/profile; vendor offer management consolidated at /orders page
 
 ### Roadmap Evolution
 
@@ -144,8 +146,9 @@ None yet.
 | 260322-re1 | Redesign all email templates to chrome glass design | 2026-03-22 | d41d404 | [260322-re1-redesign-all-email-templates-to-chrome-g](./quick/260322-re1-redesign-all-email-templates-to-chrome-g/) |
 | 260322-rpg | Fix counter-offer amount bug on accept + unify notification URLs | 2026-03-22 | 621f858 | [260322-rpg-fix-counter-offer-amount-bug-on-accept-u](./quick/260322-rpg-fix-counter-offer-amount-bug-on-accept-u/) |
 | 260322-s2x | Complete useEffectiveWallet rollout to all 14 remaining pages | 2026-03-23 | 677c399 | [260322-s2x-complete-useeffectivewallet-rollout-12-r](./quick/260322-s2x-complete-useeffectivewallet-rollout-12-r/) |
+| 260322-trj | Unify /orders page as central hub for buyer + vendor roles | 2026-03-23 | bd7206f | [260322-trj-unify-orders-page-as-central-hub-for-all](./quick/260322-trj-unify-orders-page-as-central-hub-for-all/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed quick-260322-s2x useEffectiveWallet rollout to all 14 remaining pages
+Stopped at: Completed quick-260322-trj unify orders page as central hub for all roles
