@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed quick-260322-re1 email redesign
-last_updated: "2026-03-22T23:50:44.236Z"
+stopped_at: Completed quick-260322-rpg counter-offer amount fix + notification URLs
+last_updated: "2026-03-23T00:04:19.704Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 5
@@ -106,6 +106,7 @@ Recent decisions affecting current work:
 - [Phase 04]: ConvertToPoolModal already wired in vendor/[wallet].tsx -- no additional work for VEND-03
 - [Phase 04]: Fetch /api/escrow/list in nft/[mint].tsx for sellerWallet since DAS API does not return it
 - [Phase quick-260322-qkw]: useEffectiveWallet deployed app-wide; useWallet retained only for Anchor getProgram() and sendTransaction
+- [Phase quick-260322-rpg]: latestCounter resolution pattern in vendor accept matches buyer-respond.ts for consistency
 
 ### Roadmap Evolution
 
@@ -140,8 +141,9 @@ None yet.
 | 260322-qkv | Fix saved address auth: remove withWalletAuth, use wallet from body/query | 2026-03-22 | 5132cc7 | [260322-qkv-fix-saved-address-auth-remove-walletauth](./quick/260322-qkv-fix-saved-address-auth-remove-walletauth/) |
 | 260322-qkw | Roll out useEffectiveWallet hook app-wide (12 files, Privy recognition) | 2026-03-22 | 872e8ac | [260322-qkw-roll-out-useeffectivewallet-hook-app-wid](./quick/260322-qkw-roll-out-useeffectivewallet-hook-app-wid/) |
 | 260322-re1 | Redesign all email templates to chrome glass design | 2026-03-22 | d41d404 | [260322-re1-redesign-all-email-templates-to-chrome-g](./quick/260322-re1-redesign-all-email-templates-to-chrome-g/) |
+| 260322-rpg | Fix counter-offer amount bug on accept + unify notification URLs | 2026-03-22 | 621f858 | [260322-rpg-fix-counter-offer-amount-bug-on-accept-u](./quick/260322-rpg-fix-counter-offer-amount-bug-on-accept-u/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed quick-260322-re1 email redesign
+Stopped at: Completed quick-260322-rpg counter-offer amount fix + notification URLs
