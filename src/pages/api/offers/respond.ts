@@ -112,6 +112,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Handle each action
     switch (action) {
       case 'accept': {
+        // Resolve the actual accepted amount (latest counter-offer or original)
+        const latestCounter =
+          offer.counterOffers?.length > 0
+            ? offer.counterOffers[offer.counterOffers.length - 1]
+            : null;
+        const acceptedAmountUSD = latestCounter?.amountUSD || offer.offerPriceUSD;
+        const acceptedAmountLamports = latestCounter?.amount || offer.offerAmount;
+
         // Accept the offer
         await Offer.findByIdAndUpdate(offerId, {
           $set: {
@@ -126,9 +134,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           $set: {
             status: 'offer_accepted',
             acceptedOfferId: offer._id,
-            amountUSD: offer.offerPriceUSD,
-            listingPrice: offer.offerAmount,
-            listingPriceUSD: offer.offerPriceUSD,
+            amountUSD: acceptedAmountUSD,
+            listingPrice: acceptedAmountLamports,
+            listingPriceUSD: acceptedAmountUSD,
           },
         });
 
@@ -150,7 +158,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           asset: escrow.asset,
           fromWallet: offer.buyerWallet,
           toWallet: vendorWallet,
-          amountUSD: offer.offerPriceUSD,
+          amountUSD: acceptedAmountUSD,
           status: 'success',
         }).catch((err: any) => console.error('[offers/respond] Transaction.create error:', err));
 
@@ -161,7 +169,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           escrowId: escrow._id.toString(),
           escrowPda: escrow.escrowPda,
           assetTitle,
-          acceptedAmountUSD: offer.offerPriceUSD,
+          acceptedAmountUSD: acceptedAmountUSD,
         }).catch((err: any) => console.error('[offers/respond] notifyOfferAccepted error:', err));
 
         return res.status(200).json({
@@ -170,7 +178,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           offer: {
             _id: offer._id,
             status: 'accepted',
-            offerPriceUSD: offer.offerPriceUSD,
+            acceptedAmountUSD: acceptedAmountUSD,
             buyerWallet: offer.buyerWallet,
           },
           escrow: {

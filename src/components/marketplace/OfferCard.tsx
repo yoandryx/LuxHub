@@ -74,17 +74,36 @@ const OfferCard: React.FC<OfferCardProps> = memo(
       []
     );
 
-    // Memoized price difference calculation
+    // Compute display amount based on negotiation state
+    const displayAmount = useMemo(() => {
+      // If accepted with counter-offers, show the accepted (latest counter) amount
+      if (offer.status === 'accepted' && offer.counterOffers && offer.counterOffers.length > 0) {
+        return {
+          label: 'Accepted Amount',
+          amount: offer.counterOffers[offer.counterOffers.length - 1].amountUSD,
+        };
+      }
+      // If countered, show the latest counter as "Current" alongside original
+      if (offer.status === 'countered' && offer.counterOffers && offer.counterOffers.length > 0) {
+        return {
+          label: 'Latest Counter',
+          amount: offer.counterOffers[offer.counterOffers.length - 1].amountUSD,
+        };
+      }
+      return { label: 'Offer', amount: offer.offerPriceUSD };
+    }, [offer.status, offer.counterOffers, offer.offerPriceUSD]);
+
+    // Memoized price difference calculation (uses display amount for accurate diff)
     const priceDiff = useMemo(() => {
       if (!offer.escrowListingPrice) return null;
-      const diff = offer.offerPriceUSD - offer.escrowListingPrice;
+      const diff = displayAmount.amount - offer.escrowListingPrice;
       const percent = ((diff / offer.escrowListingPrice) * 100).toFixed(1);
       return {
         amount: Math.abs(diff),
         percent: Math.abs(parseFloat(percent)),
         isBelow: diff < 0,
       };
-    }, [offer.offerPriceUSD, offer.escrowListingPrice]);
+    }, [displayAmount.amount, offer.escrowListingPrice]);
 
     const canRespond = ['pending', 'countered'].includes(offer.status);
 
@@ -111,9 +130,17 @@ const OfferCard: React.FC<OfferCardProps> = memo(
         <div className={styles.offerDetails}>
           <div className={styles.priceRow}>
             <div className={styles.priceBlock}>
-              <span className={styles.priceLabel}>Offer</span>
-              <span className={styles.priceValue}>${offer.offerPriceUSD.toLocaleString()}</span>
+              <span className={styles.priceLabel}>{displayAmount.label}</span>
+              <span className={styles.priceValue}>${displayAmount.amount.toLocaleString()}</span>
             </div>
+            {displayAmount.label !== 'Offer' && (
+              <div className={styles.priceBlock}>
+                <span className={styles.priceLabel}>Original Offer</span>
+                <span className={styles.priceValue} style={{ opacity: 0.6, fontSize: '0.85em' }}>
+                  ${offer.offerPriceUSD.toLocaleString()}
+                </span>
+              </div>
+            )}
             {offer.escrowListingPrice && (
               <div className={styles.priceBlock}>
                 <span className={styles.priceLabel}>List Price</span>
