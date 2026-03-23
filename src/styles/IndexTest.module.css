@@ -107,9 +107,9 @@
   cursor: grab;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
   user-select: none;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
+  will-change: scroll-position;
 }
 
 .heroSliderTrack::-webkit-scrollbar {

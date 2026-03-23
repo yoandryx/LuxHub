@@ -92,14 +92,15 @@ export default function IndexTest() {
   const DRAG_THRESHOLD = 5; // px before we treat it as a drag
 
   // Infinite auto-scroll + drag-to-scroll for hero slider
-  const resetScrollLoop = useCallback(() => {
-    const el = sliderRef.current;
-    if (!el) return;
+  const resetScrollLoop = useCallback((el: HTMLDivElement) => {
     const half = el.scrollWidth / 2;
     if (el.scrollLeft >= half) {
       el.scrollLeft -= half;
+      // Update drag origin so position stays consistent during drag
+      scrollStartRef.current -= half;
     } else if (el.scrollLeft <= 0) {
       el.scrollLeft += half;
+      scrollStartRef.current += half;
     }
   }, []);
 
@@ -107,17 +108,17 @@ export default function IndexTest() {
     const el = sliderRef.current;
     if (!el || featuredNFTs.length === 0) return;
 
-    // Start scrolled to the beginning of the second copy for seamless backward drag
+    // Start scrolled past 0 so backward drag wraps correctly
     const half = el.scrollWidth / 2;
     if (half > 0 && el.scrollLeft === 0) {
-      el.scrollLeft = 1; // just past 0 so reset logic works
+      el.scrollLeft = 1;
     }
 
     let rafId: number;
     const tick = () => {
       if (!isDraggingRef.current && !pointerDownRef.current && el) {
         el.scrollLeft += autoScrollSpeed;
-        resetScrollLoop();
+        resetScrollLoop(el);
       }
       rafId = requestAnimationFrame(tick);
     };
@@ -125,7 +126,6 @@ export default function IndexTest() {
 
     // Pointer drag handlers — use a threshold so clicks pass through to NFT cards
     const onPointerDown = (e: globalThis.PointerEvent) => {
-      // Only handle primary button / touch
       if (e.button !== 0) return;
       pointerDownRef.current = true;
       isDraggingRef.current = false;
@@ -138,7 +138,6 @@ export default function IndexTest() {
       const dx = e.clientX - dragStartXRef.current;
       dragDistanceRef.current = Math.abs(dx);
 
-      // Only start dragging after passing threshold
       if (!isDraggingRef.current && dragDistanceRef.current > DRAG_THRESHOLD) {
         isDraggingRef.current = true;
         el.setPointerCapture(e.pointerId);
@@ -148,7 +147,7 @@ export default function IndexTest() {
       if (isDraggingRef.current) {
         e.preventDefault();
         el.scrollLeft = scrollStartRef.current - dx;
-        resetScrollLoop();
+        resetScrollLoop(el);
       }
     };
     const onPointerUp = (e: globalThis.PointerEvent) => {
@@ -164,10 +163,9 @@ export default function IndexTest() {
         }
         el.style.cursor = 'grab';
       }
-      // If we never exceeded the threshold, this was a click — let it propagate naturally
     };
 
-    // Block click events that happen right after a drag to prevent accidental navigation
+    // Block click events that happen right after a drag
     const onClickCapture = (e: MouseEvent) => {
       if (dragDistanceRef.current > DRAG_THRESHOLD) {
         e.preventDefault();
