@@ -23,6 +23,7 @@ import {
   FiStar,
   FiMessageSquare,
   FiShoppingBag,
+  FiArrowLeft,
   FiInfo,
   FiCheck,
   FiTag,
@@ -921,6 +922,17 @@ const MyOrdersPage: React.FC = () => {
 
         {/* Page Header */}
         <header className={styles.pageHeader}>
+          <div className={styles.headerRow}>
+            <Link href="/marketplace" className={styles.backLink}>
+              <FiArrowLeft />
+            </Link>
+            <h1 className={styles.pageTitle}>Orders</h1>
+            {actionCount > 0 && (
+              <span className={styles.actionBadge}>
+                {actionCount} action{actionCount > 1 ? 's' : ''} needed
+              </span>
+            )}
+          </div>
 
           {/* Role Toggle */}
           {!roleLoading && (
@@ -1141,6 +1153,8 @@ const MyOrdersPage: React.FC = () => {
                       style={{ '--card-accent': statusInfo.color } as React.CSSProperties}
                       layout
                     >
+                      {/* Accent Bar */}
+                      <div className={styles.orderCardAccent} />
                       {/* Compact Order Row */}
                       <div
                         className={styles.orderRow}
@@ -1403,6 +1417,7 @@ const MyOrdersPage: React.FC = () => {
                   const statusInfo = getVendorOrderStatusInfo(order.status);
                   return (
                     <div key={order._id} className={styles.orderCard} style={{ '--card-accent': statusInfo.color } as React.CSSProperties}>
+                      <div className={styles.orderCardAccent} />
                       <div className={styles.orderRow}>
                         <div className={styles.orderThumb}>
                           {order.assetImage ? (
@@ -1476,6 +1491,7 @@ const MyOrdersPage: React.FC = () => {
 
                   return (
                     <div key={offer._id} className={styles.offerCard} style={{ '--card-accent': statusInfo.color } as React.CSSProperties}>
+                      <div className={styles.orderCardAccent} />
                       {/* Offer Row */}
                       <div className={styles.offerRow}>
                         <div className={styles.orderThumb}>
@@ -1637,6 +1653,7 @@ const MyOrdersPage: React.FC = () => {
 
                   return (
                     <div key={offer._id} className={styles.offerCard} style={{ '--card-accent': statusInfo.color } as React.CSSProperties}>
+                      <div className={styles.orderCardAccent} />
                       <div className={styles.offerRow}>
                         <div className={styles.orderThumb}>
                           {offer.assetImage ? (

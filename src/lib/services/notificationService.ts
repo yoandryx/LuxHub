@@ -255,7 +255,8 @@ function baseEmailTemplate(params: EmailTemplateParams, accentColor: string): st
 <tr><td align="center" style="padding:48px 16px 40px;background-color:#050507;">
 <table role="presentation" width="560" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;width:100%;">
 <tr><td align="center" style="padding-bottom:44px;"><img src="${appUrl}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" /></td></tr>
-<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-left:3px solid ${accentColor};border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 1px ${accentColor}18;">
+<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 1px ${accentColor}18;">
+<div style="height:2px;background:linear-gradient(90deg,transparent 5%,${accentColor} 30%,${accentColor}90 50%,${accentColor} 70%,transparent 95%);"></div>
 <div style="padding:44px 40px 36px;">
 <div style="display:inline-block;background:${accentColor}18;color:${accentColor};padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;border:1px solid ${accentColor}25;">${typeBadge}</div>
 ${imageBlock}
@@ -324,7 +325,8 @@ ${counterpartyWallet ? `<div style="margin-top:14px;display:flex;justify-content
 <tr><td align="center" style="padding:48px 16px 40px;background-color:#050507;">
 <table role="presentation" width="560" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;width:100%;">
 <tr><td align="center" style="padding-bottom:44px;"><img src="${appUrl}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" /></td></tr>
-<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-left:3px solid ${accentColor};border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 1px rgba(200,161,255,0.1);">
+<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 1px rgba(200,161,255,0.1);">
+<div style="height:2px;background:linear-gradient(90deg,transparent 5%,${accentColor} 30%,#a855f7 50%,${accentColor} 70%,transparent 95%);"></div>
 <div style="padding:44px 40px 36px;">
 <div style="display:inline-block;background:${accentColor}18;color:${accentColor};padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;border:1px solid ${accentColor}25;">${badge}</div>
 ${imageBlock}
