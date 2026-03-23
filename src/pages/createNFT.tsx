@@ -1,6 +1,7 @@
 // src/pages/createNFT.tsx
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
@@ -193,8 +194,9 @@ const MINT_STEPS = [
 ] as const;
 
 const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
-  const wallet = useWallet();
-  const adminWallet = wallet.publicKey?.toBase58() || '';
+  const anchorWallet = useWallet();
+  const { publicKey, connected, signTransaction } = useEffectiveWallet();
+  const adminWallet = publicKey?.toBase58() || '';
 
   // Form state
   const [features, setFeatures] = useState<string>('');
@@ -405,8 +407,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
   // Create UMI instance (memoized)
   const getUmi = useCallback(() => {
-    return createUmi(getClusterConfig().endpoint).use(walletAdapterIdentity(wallet)).use(mplCore());
-  }, [wallet]);
+    return createUmi(getClusterConfig().endpoint)
+      .use(walletAdapterIdentity(anchorWallet))
+      .use(mplCore());
+  }, [anchorWallet]);
 
   // AI Verification function
   const verifyListing = async (): Promise<boolean> => {
@@ -459,10 +463,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const mintNFT = async () => {
     console.log('[MINT] ========== SINGLE MINT STARTED ==========');
     console.log('[MINT] Timestamp:', new Date().toISOString());
-    console.log('[MINT] Wallet connected:', !!wallet.publicKey);
-    console.log('[MINT] Wallet address:', wallet.publicKey?.toBase58() || 'N/A');
+    console.log('[MINT] Wallet connected:', !!publicKey);
+    console.log('[MINT] Wallet address:', publicKey?.toBase58() || 'N/A');
 
-    if (!wallet.publicKey) return alert('Connect wallet');
+    if (!publicKey) return alert('Connect wallet');
     if (!fileCid) {
       console.log('[MINT] ERROR: No image CID provided');
       return alert('Please upload an image first');
@@ -516,7 +520,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         title,
         description,
         fileCid,
-        wallet.publicKey.toBase58(),
+        publicKey.toBase58(),
         brand,
         model,
         serialNumber,
@@ -532,7 +536,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         dialColor,
         country,
         releaseDate,
-        wallet.publicKey.toBase58(),
+        publicKey.toBase58(),
         marketStatus,
         priceSol,
         boxPapers,
@@ -545,7 +549,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           ? {
               isVaultMint: true, // Marks as LuxHub verified even if not auto-transferred
               vaultAddress: vaultConfig?.vaultPda,
-              mintedBy: wallet.publicKey.toBase58(),
+              mintedBy: publicKey.toBase58(),
               collectionName: 'LuxHub Verified Timepieces',
             }
           : undefined
@@ -575,7 +579,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
       // NFT owner is always the minter - transfer to vault/vendor happens manually after
       const nftOwner = umi.identity.publicKey;
-      console.log('[MINT] NFT Owner: Admin Wallet (minter)', wallet.publicKey.toBase58());
+      console.log('[MINT] NFT Owner: Admin Wallet (minter)', publicKey.toBase58());
       console.log('[MINT] Sending createAsset transaction...');
 
       const txStartTime = Date.now();
@@ -602,7 +606,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       const newImage = imageUri || resolveImageUrl(fileCid, gateway);
 
       // NFT owner is always the minter initially
-      const actualOwner = wallet.publicKey.toBase58();
+      const actualOwner = publicKey.toBase58();
 
       // Optimistic update
       const newNft: MintedNFT = {
@@ -613,7 +617,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         metadataUri,
         mintAddress,
         currentOwner: actualOwner,
-        mintedBy: wallet.publicKey.toBase58(), // Track who minted this NFT
+        mintedBy: publicKey.toBase58(), // Track who minted this NFT
         ipfs_pin_hash: fileCid,
         marketStatus,
         updatedAt: new Date().toISOString(),
@@ -650,13 +654,13 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         metadataIpfsUrl: metadataUri,
         nftMint: mintAddress,
         nftOwnerWallet: actualOwner,
-        mintedBy: wallet.publicKey.toBase58(), // Track original minter
+        mintedBy: publicKey.toBase58(), // Track original minter
         status: marketStatus,
         poolEligible,
         category: 'watches',
         // Store metadata attributes for display
         metaplexMetadata: {
-          creator: wallet.publicKey.toBase58(),
+          creator: publicKey.toBase58(),
           attributes: {
             brand,
             material,
@@ -984,7 +988,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       setBulkMintResults((prev) => prev.map((r, i) => (i === index ? result : r)));
 
       try {
-        if (!wallet.publicKey) {
+        if (!publicKey) {
           console.error(`[BULK-MINT] Row ${index + 1}: Wallet not connected`);
           throw new Error('Wallet not connected');
         }
@@ -1012,7 +1016,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           row.title,
           row.description || '',
           row.imageCid || '',
-          wallet.publicKey.toBase58(),
+          publicKey.toBase58(),
           row.brand,
           row.model,
           refNumber,
@@ -1021,14 +1025,14 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           row.limitedEdition || '',
           row.certificate || '',
           row.warrantyInfo || '',
-          wallet.publicKey.toBase58(),
+          publicKey.toBase58(),
           row.movement || '',
           row.caseSize || '',
           row.waterResistance || '',
           row.dialColor || '',
           row.country || '',
           row.releaseDate || '',
-          wallet.publicKey.toBase58(),
+          publicKey.toBase58(),
           'pending',
           priceSolConverted, // SOL equivalent at mint time (for display)
           row.boxPapers || '',
@@ -1079,7 +1083,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         // Vendor ID for DB record (if selected)
         const vendorId = currentVendorId || undefined;
         // NFT owner is always the minter initially
-        const actualOwnerBulk = wallet.publicKey.toBase58();
+        const actualOwnerBulk = publicKey.toBase58();
 
         // Resolve full image URL for display
         const bulkImageUrl = row.imageCid ? resolveImageUrl(row.imageCid, gateway) : '';
@@ -1095,7 +1099,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           metadataIpfsUrl: metadataUri,
           nftMint: mintAddress,
           nftOwnerWallet: actualOwnerBulk,
-          mintedBy: wallet.publicKey.toBase58(), // Track original minter
+          mintedBy: publicKey.toBase58(), // Track original minter
           status: 'pending',
           poolEligible: true,
           // Additional metadata for the asset
@@ -1173,8 +1177,8 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
           priceSol: priceSolConverted,
           metadataUri,
           mintAddress,
-          currentOwner: wallet.publicKey.toBase58(),
-          mintedBy: wallet.publicKey.toBase58(), // Track original minter
+          currentOwner: publicKey.toBase58(),
+          mintedBy: publicKey.toBase58(), // Track original minter
           ipfs_pin_hash: row.imageCid || null,
           marketStatus: 'pending',
           updatedAt: new Date().toISOString(),
@@ -1196,7 +1200,17 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         return { ...result, status: 'error', error: err.message };
       }
     },
-    [wallet, getUmi, gateway, currentVendorId, solPrice, vaultConfig, luxhubVendor, bulkCsvFile]
+    [
+      anchorWallet,
+      publicKey,
+      getUmi,
+      gateway,
+      currentVendorId,
+      solPrice,
+      vaultConfig,
+      luxhubVendor,
+      bulkCsvFile,
+    ]
   );
 
   // Bulk mint from CSV
@@ -1205,13 +1219,13 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     console.log('[BULK-MINT] Timestamp:', new Date().toISOString());
     console.log('[BULK-MINT] Total rows to process:', parsedCsvRows.length);
     console.log('[BULK-MINT] CSV file:', bulkCsvFile?.name);
-    console.log('[BULK-MINT] Wallet:', wallet.publicKey?.toBase58() || 'N/A');
+    console.log('[BULK-MINT] Wallet:', publicKey?.toBase58() || 'N/A');
 
     if (!bulkCsvFile || parsedCsvRows.length === 0) {
       console.log('[BULK-MINT] ERROR: No CSV file or no rows parsed');
       return;
     }
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       console.log('[BULK-MINT] ERROR: Wallet not connected');
       return alert('Connect wallet');
     }
@@ -1287,7 +1301,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
   // Transfer NFT with confirmation dialog
   const transferNft = async (mintAddress: string, newOwner: string, vendorId?: string) => {
-    if (!wallet.publicKey || !wallet.signTransaction) {
+    if (!publicKey || !signTransaction) {
       return alert('Connect wallet');
     }
 
@@ -1323,7 +1337,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       const asset = await fetchAsset(umi, umiPublicKey(mintAddress));
 
       // Verify the connected wallet is the owner
-      const connectedWallet = wallet.publicKey?.toBase58();
+      const connectedWallet = publicKey?.toBase58();
       const assetOwner = asset.owner.toString();
 
       if (assetOwner !== connectedWallet) {
@@ -1392,7 +1406,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
   // Sync on-chain ownership with database
   const syncOwnership = async () => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       return alert('Connect wallet first');
     }
 
@@ -1403,7 +1417,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminWallet: wallet.publicKey.toBase58(),
+          adminWallet: publicKey.toBase58(),
         }),
       });
 
@@ -1447,7 +1461,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
   // Create escrow for NFT
   const createEscrowForNft = async (nft: MintedNFT) => {
-    if (!wallet.publicKey || !nft.mintAddress || !nft.assetId) {
+    if (!publicKey || !nft.mintAddress || !nft.assetId) {
       return alert('Missing required data for escrow creation');
     }
 
@@ -1467,7 +1481,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          vendorWallet: wallet.publicKey.toBase58(),
+          vendorWallet: publicKey.toBase58(),
           assetId: nft.assetId,
           nftMint: nft.mintAddress,
           saleMode: 'fixed_price',
@@ -1518,7 +1532,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         title,
         description,
         fileCid,
-        wallet.publicKey?.toBase58() || '',
+        publicKey?.toBase58() || '',
         brand,
         model,
         serialNumber,
@@ -1534,7 +1548,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         dialColor,
         country,
         releaseDate,
-        wallet.publicKey?.toBase58() || '',
+        publicKey?.toBase58() || '',
         marketStatus,
         priceSol,
         boxPapers,

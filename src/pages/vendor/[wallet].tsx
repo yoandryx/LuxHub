@@ -12,6 +12,7 @@ import styles from '../../styles/VendorProfilePage.module.css';
 import { NftDetailCard } from '../../components/marketplace/NftDetailCard';
 import NFTCard from '../../components/marketplace/NFTCard';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { getProgram } from '../../utils/programUtils';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import {
@@ -91,7 +92,8 @@ interface ProfileStats {
 const VendorProfilePage = () => {
   const router = useRouter();
   const { query } = router;
-  const wallet = useWallet();
+  const anchorWallet = useWallet();
+  const { publicKey, connected } = useEffectiveWallet();
   const [profile, setProfile] = useState<any>(null);
   const [nftData, setNftData] = useState<NFT[]>([]);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
@@ -143,9 +145,12 @@ const VendorProfilePage = () => {
   const [offerMessage, setOfferMessage] = useState<string>('');
 
   const connection = useMemo(() => new Connection(getClusterConfig().endpoint), []);
-  const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
+  const program = useMemo(
+    () => (publicKey ? getProgram(anchorWallet) : null),
+    [publicKey, anchorWallet]
+  );
 
-  const isOwnProfile = wallet.publicKey?.toBase58() === profile?.wallet;
+  const isOwnProfile = publicKey?.toBase58() === profile?.wallet;
   const isVendor = profile?.verified || profile?.businessName;
 
   useEffect(() => {
@@ -291,13 +296,13 @@ const VendorProfilePage = () => {
   }, [profile, activeFilter, pooledAssets.length]);
 
   const _handlePurchase = async (nft: NFT) => {
-    if (!wallet.publicKey || !program) return alert('Connect wallet first.');
+    if (!publicKey || !program) return alert('Connect wallet first.');
     if (!confirm(`Purchase ${nft.title} for ${nft.priceSol} SOL?`)) return;
 
     setLoadingMint(nft.mintAddress);
 
     try {
-      const buyer = wallet.publicKey;
+      const buyer = publicKey;
       const nftMint = new PublicKey(nft.mintAddress);
       const fundsMint = new PublicKey(FUNDS_MINT);
       const priceLamports = Math.floor(nft.priceSol * LAMPORTS_PER_SOL);
@@ -383,7 +388,7 @@ const VendorProfilePage = () => {
   };
 
   const handleListForSale = async (nft: NFT) => {
-    if (!wallet.publicKey || !nft._id) return;
+    if (!publicKey || !nft._id) return;
 
     const confirmed = window.confirm(
       `List "${nft.title}" for sale at $${nft.priceUSD?.toLocaleString() || nft.priceSol} ?`
@@ -398,7 +403,7 @@ const VendorProfilePage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           assetId: nft._id,
-          wallet: wallet.publicKey.toBase58(),
+          wallet: publicKey.toBase58(),
         }),
       });
 
@@ -476,7 +481,7 @@ const VendorProfilePage = () => {
 
   // Pin/Unpin an NFT (max 3)
   const togglePin = async (nftId: string) => {
-    if (!wallet.publicKey || !profile?.wallet) return;
+    if (!publicKey || !profile?.wallet) return;
 
     const isPinned = pinnedIds.includes(nftId);
     const newPinnedIds = isPinned
@@ -497,7 +502,7 @@ const VendorProfilePage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          wallet: wallet.publicKey.toBase58(),
+          wallet: publicKey.toBase58(),
           pinnedAssets: newPinnedIds,
         }),
       });
@@ -520,12 +525,12 @@ const VendorProfilePage = () => {
 
   // Open buy modal
   const handleBuyNow = (nft: NFT) => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       toast.error('Please connect your wallet');
       return;
     }
 
-    if (wallet.publicKey.toBase58() === profile?.wallet) {
+    if (publicKey.toBase58() === profile?.wallet) {
       toast.error("You can't buy your own NFT");
       return;
     }
@@ -536,13 +541,7 @@ const VendorProfilePage = () => {
 
   // Execute the actual purchase
   const executePurchase = async () => {
-    if (
-      !wallet.publicKey ||
-      !program ||
-      !selectedNftForAction ||
-      !shippingAddress ||
-      !isShippingValid
-    ) {
+    if (!publicKey || !program || !selectedNftForAction || !shippingAddress || !isShippingValid) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -551,7 +550,7 @@ const VendorProfilePage = () => {
     setBuyingMint(nft.mintAddress);
 
     try {
-      const buyer = wallet.publicKey;
+      const buyer = publicKey;
       const nftMint = new PublicKey(nft.mintAddress);
       const fundsMint = new PublicKey(FUNDS_MINT);
       const priceLamports = Math.floor(nft.priceSol * LAMPORTS_PER_SOL);
@@ -662,12 +661,12 @@ const VendorProfilePage = () => {
 
   // Open offer modal
   const handleMakeOffer = (nft: NFT) => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       toast.error('Please connect your wallet');
       return;
     }
 
-    if (wallet.publicKey.toBase58() === profile?.wallet) {
+    if (publicKey.toBase58() === profile?.wallet) {
       toast.error("You can't make an offer on your own NFT");
       return;
     }
@@ -680,7 +679,7 @@ const VendorProfilePage = () => {
 
   // Execute the offer submission
   const executeOffer = async () => {
-    if (!wallet.publicKey || !selectedNftForAction || !shippingAddress || !isShippingValid) {
+    if (!publicKey || !selectedNftForAction || !shippingAddress || !isShippingValid) {
       toast.error('Please fill in all required fields including shipping address');
       return;
     }
@@ -701,7 +700,7 @@ const VendorProfilePage = () => {
         body: JSON.stringify({
           mintAddress: nft.mintAddress,
           offerPriceUSD: offerAmountUSD,
-          buyerWallet: wallet.publicKey.toBase58(),
+          buyerWallet: publicKey.toBase58(),
           message: offerMessage || `Offer on ${nft.title}`,
           shippingAddress: shippingAddress,
         }),
@@ -1418,7 +1417,7 @@ const VendorProfilePage = () => {
                 }}
                 priceSol={selectedNFT.priceSol}
                 owner={selectedNFT.currentOwner}
-                buyerWallet={wallet.publicKey?.toBase58()}
+                buyerWallet={publicKey?.toBase58()}
                 status={selectedNFT.marketStatus === 'listed' ? 'listed' : 'verified'}
                 acceptingOffers={true}
                 onBuy={() => {

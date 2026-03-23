@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import Head from 'next/head';
 import Image from 'next/image';
 
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage } from 'react-icons/fi';
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
 import PoolDetail from '../components/marketplace/PoolDetail';
@@ -292,7 +292,7 @@ const PoolCard = memo(
       'idle'
     );
     const [tradeMsg, setTradeMsg] = useState('');
-    const { publicKey, signTransaction } = useWallet();
+    const { publicKey, signTransaction } = useEffectiveWallet();
 
     // Reset local override when global mode changes
     useEffect(() => {
@@ -675,7 +675,7 @@ PoolCard.displayName = 'PoolCard';
 
 // ─── Main Page ──────────────────────────────────────────────────
 const PoolsPage: React.FC = () => {
-  const wallet = useWallet();
+  const wallet = useEffectiveWallet();
   const [filter, setFilter] = useState<FilterKey>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'progress' | 'value' | 'volume'>('newest');
   const [selectedPool, setSelectedPool] = useState<Pool | null>(null);

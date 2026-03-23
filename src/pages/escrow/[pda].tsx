@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/EscrowDetail.module.css';
 import {
@@ -90,7 +90,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 const EscrowDetailPage: React.FC = () => {
   const router = useRouter();
   const { pda } = router.query;
-  const wallet = useWallet();
+  const wallet = useEffectiveWallet();
 
   const [escrow, setEscrow] = useState<EscrowData | null>(null);
   const [loading, setLoading] = useState(true);

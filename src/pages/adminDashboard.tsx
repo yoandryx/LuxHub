@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Connection, Keypair } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { BN } from '@coral-xyz/anchor';
@@ -227,7 +228,8 @@ const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: strin
 };
 
 const AdminDashboard: React.FC = () => {
-  const wallet = useWallet();
+  const anchorWallet = useWallet();
+  const { publicKey, connected } = useEffectiveWallet();
   const [tabIndex, setTabIndex] = useState<number>(1);
   const [navOpen, setNavOpen] = useState(false);
   const [status, setStatus] = useState<string>('');
@@ -293,7 +295,10 @@ const AdminDashboard: React.FC = () => {
   const [pendingVendorApprovals, setPendingVendorApprovals] = useState<number>(0);
   const [newApplications, setNewApplications] = useState<number>(0);
 
-  const program = useMemo(() => (wallet.publicKey ? getProgram(wallet) : null), [wallet.publicKey]);
+  const program = useMemo(
+    () => (publicKey ? getProgram(anchorWallet) : null),
+    [publicKey, anchorWallet]
+  );
 
   // Use correct seed 'luxhub-config' to match the Anchor program
   const escrowConfigPda = useMemo(() => {
@@ -499,7 +504,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   const fetchPendingCounts = async () => {
-    const walletAddr = wallet.publicKey?.toBase58();
+    const walletAddr = publicKey?.toBase58();
     if (!walletAddr) return;
     const headers: Record<string, string> = { 'x-wallet-address': walletAddr };
 
@@ -771,9 +776,30 @@ const AdminDashboard: React.FC = () => {
     }
   }, [program]);
 
+  // Auto-refresh every 30s so admin stays up to date
+  useEffect(() => {
+    if (!program || !publicKey) return;
+    const interval = setInterval(() => {
+      // Silent refresh — no loading spinner
+      const walletAddr = publicKey!.toBase58();
+      Promise.all([
+        fetchSaleRequests(),
+        fetchPendingCounts(),
+        fetchActiveEscrowsByMint(),
+        fetch(`/api/notifications/list?wallet=${walletAddr}&limit=10`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.notifications) setRecentNotifications(data.notifications);
+          })
+          .catch(() => {}),
+      ]).catch(() => {});
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [program, publicKey]);
+
   // Fetch recent notifications for admin activity feed
   useEffect(() => {
-    const walletAddr = wallet.publicKey?.toBase58();
+    const walletAddr = publicKey?.toBase58();
     if (!walletAddr) return;
     fetch(`/api/notifications/list?wallet=${walletAddr}&limit=10`)
       .then((r) => r.json())
@@ -781,18 +807,18 @@ const AdminDashboard: React.FC = () => {
         if (data.notifications) setRecentNotifications(data.notifications);
       })
       .catch(() => {});
-  }, [wallet.publicKey]);
+  }, [publicKey]);
 
   // ------------------------------------------------
   // Admin Check Logic
   // ------------------------------------------------
   useEffect(() => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       setIsAdmin(false);
       return;
     }
 
-    const walletAddress = wallet.publicKey.toBase58();
+    const walletAddress = publicKey.toBase58();
 
     // Check against authorized admins from VaultConfig (MongoDB)
     if (authorizedAdmins.length > 0) {
@@ -815,13 +841,13 @@ const AdminDashboard: React.FC = () => {
     }
 
     // If authorizedAdmins hasn't loaded yet but wallet is connected, wait
-  }, [wallet.publicKey, authorizedAdmins, adminsFetched]);
+  }, [publicKey, authorizedAdmins, adminsFetched]);
 
   // ------------------------------------------------
   // Initialize Escrow Config Logic
   // ------------------------------------------------
   const initializeEscrowConfig = async () => {
-    if (!wallet.publicKey || !program || !escrowConfigPda) {
+    if (!publicKey || !program || !escrowConfigPda) {
       alert('Wallet not connected or program not ready.');
       return;
     }
@@ -836,7 +862,7 @@ const AdminDashboard: React.FC = () => {
       const tx = await program.methods
         .initializeConfig(squadsMultisig, squadsAuthority)
         .accounts({
-          payer: wallet.publicKey,
+          payer: publicKey,
           config: escrowConfigPda,
           systemProgram: SystemProgram.programId,
         })
@@ -861,7 +887,7 @@ const AdminDashboard: React.FC = () => {
     newFeeBps?: number;
     newPaused?: boolean;
   }) => {
-    if (!wallet.publicKey || !program || !escrowConfigPda) {
+    if (!publicKey || !program || !escrowConfigPda) {
       alert('Wallet not connected or program not ready.');
       return;
     }
@@ -875,7 +901,7 @@ const AdminDashboard: React.FC = () => {
       const tx = await program.methods
         .updateConfig(newAuthorityPk, newTreasuryPk, feeBpsUpdate, pausedUpdate)
         .accounts({
-          admin: wallet.publicKey,
+          admin: publicKey,
           config: escrowConfigPda,
         })
         .rpc();
@@ -900,7 +926,7 @@ const AdminDashboard: React.FC = () => {
   // Update Escrow Config Logic (off-chain via VaultConfig API)
   // ------------------------------------------------
   const updateEscrowConfig = async () => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       alert('Wallet not connected.');
       return;
     }
@@ -910,7 +936,7 @@ const AdminDashboard: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           treasuryWallet: newLuxhubWallet,
-          updatedBy: wallet.publicKey.toBase58(),
+          updatedBy: publicKey.toBase58(),
         }),
       });
       if (!res.ok) throw new Error('Failed to update config');
@@ -928,7 +954,7 @@ const AdminDashboard: React.FC = () => {
   // Add Admin Logic (off-chain via VaultConfig API)
   // ------------------------------------------------
   const addAdmin = async () => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       alert('Wallet not connected.');
       return;
     }
@@ -939,7 +965,7 @@ const AdminDashboard: React.FC = () => {
         body: JSON.stringify({
           walletAddress: newAdmin,
           role: 'admin',
-          addedBy: wallet.publicKey.toBase58(),
+          addedBy: publicKey.toBase58(),
         }),
       });
       if (!res.ok) {
@@ -961,7 +987,7 @@ const AdminDashboard: React.FC = () => {
   // Remove Admin Logic (off-chain via VaultConfig API)
   // ------------------------------------------------
   const removeAdmin = async () => {
-    if (!wallet.publicKey) {
+    if (!publicKey) {
       alert('Wallet not connected.');
       return;
     }
@@ -971,7 +997,7 @@ const AdminDashboard: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           walletAddress: removeAdminAddr,
-          removedBy: wallet.publicKey.toBase58(),
+          removedBy: publicKey.toBase58(),
         }),
       });
       if (!res.ok) {
@@ -998,7 +1024,7 @@ const AdminDashboard: React.FC = () => {
     );
     if (!confirm) return;
 
-    if (!wallet.publicKey || !program || !currentEscrowConfig) {
+    if (!publicKey || !program || !currentEscrowConfig) {
       toast.error('Wallet not connected or program not ready.');
       return;
     }
@@ -1135,7 +1161,7 @@ const AdminDashboard: React.FC = () => {
     );
     if (!confirm) return;
 
-    if (!wallet.publicKey || !program) {
+    if (!publicKey || !program) {
       toast.error('Wallet not connected or program not ready.');
       return;
     }
@@ -1217,7 +1243,7 @@ const AdminDashboard: React.FC = () => {
       return;
     }
 
-    if (!wallet.publicKey || !program || !escrowConfigPda) {
+    if (!publicKey || !program || !escrowConfigPda) {
       alert('Wallet not connected or program not ready.');
       return;
     }
@@ -1251,7 +1277,7 @@ const AdminDashboard: React.FC = () => {
       if (escrowInfo !== null) {
         // Already initialized
         setStatus('Escrow already initialized — updating metadata and cleaning up.');
-        await updateNFTMarketStatus(req.nftId, 'active', wallet);
+        await updateNFTMarketStatus(req.nftId, 'active', anchorWallet);
         await fetch('/api/nft/updateStatus', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1282,7 +1308,7 @@ const AdminDashboard: React.FC = () => {
       }
 
       // ---------- Check if admin is the seller (can sign directly) ----------
-      const adminIsSeller = wallet.publicKey.toBase58() === req.seller;
+      const adminIsSeller = publicKey.toBase58() === req.seller;
 
       if (adminIsSeller) {
         // ============ ADMIN OWNS THE NFT - SIGN DIRECTLY ============
@@ -1303,15 +1329,12 @@ const AdminDashboard: React.FC = () => {
             new BN(req.salePrice)
           )
           .accounts({
-            admin: wallet.publicKey,
-            seller: wallet.publicKey,
+            admin: publicKey,
+            seller: publicKey,
             config: escrowConfigPda!,
             mintA: new PublicKey(FUNDS_MINT),
             mintB: nftMint,
-            sellerAtaA: await getAssociatedTokenAddress(
-              new PublicKey(FUNDS_MINT),
-              wallet.publicKey
-            ),
+            sellerAtaA: await getAssociatedTokenAddress(new PublicKey(FUNDS_MINT), publicKey),
             sellerAtaB: sellerNftAta,
             escrow: escrowPda,
             nftVault: nftVaultKeypair.publicKey,
@@ -1327,7 +1350,7 @@ const AdminDashboard: React.FC = () => {
         addLog('Approve Sale', tx, `Escrow created for seed ${seed}`);
 
         // Update NFT status
-        await updateNFTMarketStatus(req.nftId, 'active', wallet);
+        await updateNFTMarketStatus(req.nftId, 'active', anchorWallet);
         await fetch('/api/nft/updateStatus', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1405,7 +1428,7 @@ const AdminDashboard: React.FC = () => {
       }
 
       // Optionally update NFT metadata to mark as available
-      await updateNFTMarketStatus(req.nftId, 'listed', wallet);
+      await updateNFTMarketStatus(req.nftId, 'listed', anchorWallet);
 
       toast.success('Sale request rejected');
       setStatus('Sale request rejected successfully');
@@ -1508,160 +1531,159 @@ const AdminDashboard: React.FC = () => {
         ].filter(Boolean) as { label: string; count: number; tab: number; icon: React.ReactNode }[];
 
         return (
-          <div className={styles.overviewGrid}>
-            {/* LEFT COLUMN — Stats + Attention */}
-            <div className={styles.overviewLeft}>
-              {/* Inline Stats Row */}
-              <div className={styles.statsRow}>
-                <button className={styles.statPill} onClick={() => setTabIndex(5)}>
-                  <span className={styles.statPillValue}>{saleRequests.length}</span>
-                  <span className={styles.statPillLabel}>Requests</span>
-                </button>
-                <button className={styles.statPill} onClick={() => setTabIndex(2)}>
-                  <span className={styles.statPillValue}>{activeEscrows.length}</span>
-                  <span className={styles.statPillLabel}>Escrows</span>
-                </button>
-                <button className={styles.statPill} onClick={() => setTabIndex(9)}>
-                  <span className={styles.statPillValue}>{squadsProposals.length}</span>
-                  <span className={styles.statPillLabel}>Proposals</span>
-                </button>
-                <button className={styles.statPill} onClick={() => setTabIndex(8)}>
-                  <span className={styles.statPillValue}>{adminList.length}</span>
-                  <span className={styles.statPillLabel}>Admins</span>
-                </button>
-              </div>
+          <>
+            {/* Stats Row — full width above grid */}
+            <div className={styles.statsRow}>
+              <button className={styles.statPill} onClick={() => setTabIndex(5)}>
+                <span className={styles.statPillValue}>{saleRequests.length}</span>
+                <span className={styles.statPillLabel}>Requests</span>
+              </button>
+              <button className={styles.statPill} onClick={() => setTabIndex(2)}>
+                <span className={styles.statPillValue}>{activeEscrows.length}</span>
+                <span className={styles.statPillLabel}>Escrows</span>
+              </button>
+              <button className={styles.statPill} onClick={() => setTabIndex(9)}>
+                <span className={styles.statPillValue}>{squadsProposals.length}</span>
+                <span className={styles.statPillLabel}>Proposals</span>
+              </button>
+              <button className={styles.statPill} onClick={() => setTabIndex(8)}>
+                <span className={styles.statPillValue}>{adminList.length}</span>
+                <span className={styles.statPillLabel}>Admins</span>
+              </button>
+            </div>
 
-              {/* Needs Attention — list rows, not cards */}
-              <div className={styles.attentionSection}>
-                <div className={styles.attentionHeader}>
-                  <span className={styles.attentionTitle}>
-                    {attentionItems.length > 0 ? 'Needs Attention' : 'All Clear'}
-                  </span>
-                  <span
-                    className={styles.attentionBadge}
-                    style={{ background: attentionItems.length > 0 ? '#fbbf24' : '#22c55e' }}
-                  >
-                    {attentionItems.length}
-                  </span>
+            <div className={styles.overviewGrid}>
+              {/* LEFT COLUMN — Recent Activity (compact) */}
+              <div className={styles.overviewLeft}>
+                <div className={styles.attentionSection}>
+                  <div className={styles.attentionHeader}>
+                    <span className={styles.attentionTitle}>Recent Activity</span>
+                    <span className={styles.attentionBadge} style={{ background: 'var(--accent)' }}>
+                      {recentNotifications.length + logs.length}
+                    </span>
+                  </div>
+                  {recentNotifications.length === 0 && logs.length === 0 ? (
+                    <p className={styles.attentionEmpty}>
+                      <HiOutlineClock style={{ color: 'var(--text-muted)' }} /> No recent activity
+                    </p>
+                  ) : (
+                    <div className={styles.activityFeed}>
+                      {recentNotifications.slice(0, 6).map((notif: any) => (
+                        <div
+                          key={notif._id}
+                          className={`${styles.activityItem} ${!notif.read ? styles.activityUnread : ''}`}
+                        >
+                          <div className={styles.activityIcon}>
+                            {notif.type?.includes('vendor') ? (
+                              <HiOutlineUserGroup />
+                            ) : notif.type?.includes('escrow') ? (
+                              <HiOutlineLockClosed />
+                            ) : notif.type?.includes('purchase') ? (
+                              <HiOutlineCash />
+                            ) : notif.type?.includes('dispute') ? (
+                              <HiOutlineExclamation />
+                            ) : notif.type?.includes('shipment') ? (
+                              <HiOutlineTruck />
+                            ) : (
+                              <HiOutlineLightningBolt />
+                            )}
+                          </div>
+                          <div className={styles.activityContent}>
+                            <div className={styles.activityTitle}>
+                              {notif.title || notif.type?.replace(/_/g, ' ')}
+                            </div>
+                            <div className={styles.activityMessage}>{notif.message}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {logs
+                        .slice(-3)
+                        .reverse()
+                        .map((log, idx) => (
+                          <div key={`log-${idx}`} className={styles.activityItem}>
+                            <div className={styles.activityIcon}>
+                              {log.action.toLowerCase().includes('approve') ? (
+                                <HiOutlineCheckCircle />
+                              ) : log.action.toLowerCase().includes('reject') ? (
+                                <HiOutlineXCircle />
+                              ) : (
+                                <HiOutlineLightningBolt />
+                              )}
+                            </div>
+                            <div className={styles.activityContent}>
+                              <div className={styles.activityTitle}>{log.action}</div>
+                              <div className={styles.activityMessage}>{log.message}</div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
-                {attentionItems.length === 0 ? (
-                  <p className={styles.attentionEmpty}>
-                    <HiOutlineCheckCircle style={{ color: '#22c55e' }} /> No pending items
-                  </p>
-                ) : (
-                  <div className={styles.attentionList}>
-                    {attentionItems.map((item) => (
+
+                {/* Quick Navigate */}
+                <div className={styles.attentionSection}>
+                  <div className={styles.attentionHeader}>
+                    <span className={styles.attentionTitle}>Navigate</span>
+                  </div>
+                  <div className={styles.navigateGrid}>
+                    {[
+                      { label: 'Mint', icon: <HiOutlineCube />, tab: 16 },
+                      { label: 'Sales', icon: <HiOutlineClipboardList />, tab: 5 },
+                      { label: 'Escrows', icon: <HiOutlineLockClosed />, tab: 2 },
+                      { label: 'Vendors', icon: <HiOutlineUserGroup />, tab: 8 },
+                      { label: 'Shipping', icon: <HiOutlineTruck />, tab: 10 },
+                      { label: 'Multisig', icon: <HiOutlineShieldCheck />, tab: 9 },
+                    ].map((item) => (
                       <button
                         key={item.tab}
-                        className={styles.attentionRow}
+                        className={styles.navigateBtn}
                         onClick={() => setTabIndex(item.tab)}
                       >
-                        <span className={styles.attentionIcon}>{item.icon}</span>
-                        <span className={styles.attentionLabel}>{item.label}</span>
-                        <span className={styles.attentionCount}>{item.count}</span>
+                        {item.icon}
+                        <span>{item.label}</span>
                       </button>
                     ))}
                   </div>
-                )}
-              </div>
-
-              {/* Quick Navigate */}
-              <div className={styles.attentionSection}>
-                <div className={styles.attentionHeader}>
-                  <span className={styles.attentionTitle}>Navigate</span>
-                </div>
-                <div className={styles.navigateGrid}>
-                  {[
-                    { label: 'Mint', icon: <HiOutlineCube />, tab: 16 },
-                    { label: 'Sales', icon: <HiOutlineClipboardList />, tab: 5 },
-                    { label: 'Escrows', icon: <HiOutlineLockClosed />, tab: 2 },
-                    { label: 'Vendors', icon: <HiOutlineUserGroup />, tab: 8 },
-                    { label: 'Shipping', icon: <HiOutlineTruck />, tab: 10 },
-                    { label: 'Multisig', icon: <HiOutlineShieldCheck />, tab: 9 },
-                  ].map((item) => (
-                    <button
-                      key={item.tab}
-                      className={styles.navigateBtn}
-                      onClick={() => setTabIndex(item.tab)}
-                    >
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* RIGHT COLUMN — Activity Feed */}
-            <div className={styles.overviewRight}>
-              <div className={styles.attentionHeader}>
-                <span className={styles.attentionTitle}>Recent Activity</span>
-                <span className={styles.attentionBadge} style={{ background: 'var(--accent)' }}>
-                  {recentNotifications.length + logs.length}
-                </span>
-              </div>
-              {recentNotifications.length === 0 && logs.length === 0 ? (
-                <p className={styles.attentionEmpty}>
-                  <HiOutlineClock style={{ color: 'var(--text-muted)' }} /> No recent activity
-                </p>
-              ) : (
-                <div className={styles.activityFeed}>
-                  {logs
-                    .slice(-5)
-                    .reverse()
-                    .map((log, idx) => (
-                      <div key={`log-${idx}`} className={styles.activityItem}>
-                        <div className={styles.activityIcon}>
-                          {log.action.toLowerCase().includes('approve') ? (
-                            <HiOutlineCheckCircle />
-                          ) : log.action.toLowerCase().includes('reject') ? (
-                            <HiOutlineXCircle />
-                          ) : (
-                            <HiOutlineLightningBolt />
-                          )}
-                        </div>
-                        <div className={styles.activityContent}>
-                          <div className={styles.activityTitle}>{log.action}</div>
-                          <div className={styles.activityMessage}>{log.message}</div>
-                        </div>
-                        <div className={styles.activityTime}>{log.timestamp}</div>
-                      </div>
-                    ))}
-                  {recentNotifications.map((notif: any) => (
-                    <div
-                      key={notif._id}
-                      className={`${styles.activityItem} ${!notif.read ? styles.activityUnread : ''}`}
+              {/* RIGHT COLUMN — Needs Attention (detailed) */}
+              <div className={styles.overviewRight}>
+                <div className={styles.attentionSection}>
+                  <div className={styles.attentionHeader}>
+                    <span className={styles.attentionTitle}>
+                      {attentionItems.length > 0 ? 'Needs Attention' : 'All Clear'}
+                    </span>
+                    <span
+                      className={styles.attentionBadge}
+                      style={{ background: attentionItems.length > 0 ? '#fbbf24' : '#22c55e' }}
                     >
-                      <div className={styles.activityIcon}>
-                        {notif.type?.includes('vendor') ? (
-                          <HiOutlineUserGroup />
-                        ) : notif.type?.includes('escrow') ? (
-                          <HiOutlineLockClosed />
-                        ) : notif.type?.includes('purchase') ? (
-                          <HiOutlineCash />
-                        ) : notif.type?.includes('dispute') ? (
-                          <HiOutlineExclamation />
-                        ) : notif.type?.includes('shipment') ? (
-                          <HiOutlineTruck />
-                        ) : (
-                          <HiOutlineLightningBolt />
-                        )}
-                      </div>
-                      <div className={styles.activityContent}>
-                        <div className={styles.activityTitle}>
-                          {notif.title || notif.type?.replace(/_/g, ' ')}
-                        </div>
-                        <div className={styles.activityMessage}>{notif.message}</div>
-                      </div>
-                      <div className={styles.activityTime}>
-                        {new Date(notif.createdAt).toLocaleDateString()}
-                      </div>
+                      {attentionItems.length}
+                    </span>
+                  </div>
+                  {attentionItems.length === 0 ? (
+                    <p className={styles.attentionEmpty}>
+                      <HiOutlineCheckCircle style={{ color: '#22c55e' }} /> No pending items
+                    </p>
+                  ) : (
+                    <div className={styles.attentionList}>
+                      {attentionItems.map((item) => (
+                        <button
+                          key={item.tab}
+                          className={styles.attentionRow}
+                          onClick={() => setTabIndex(item.tab)}
+                        >
+                          <span className={styles.attentionIcon}>{item.icon}</span>
+                          <span className={styles.attentionLabel}>{item.label}</span>
+                          <span className={styles.attentionCount}>{item.count}</span>
+                        </button>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          </>
         );
       }
       case 3: // Transaction History
@@ -1931,7 +1953,7 @@ const AdminDashboard: React.FC = () => {
       case 7:
         return (
           <Suspense fallback={<TabLoader />}>
-            <MetadataChangeRequestsTab wallet={wallet} />
+            <MetadataChangeRequestsTab wallet={anchorWallet} />
           </Suspense>
         );
       case 0:
@@ -2192,7 +2214,7 @@ const AdminDashboard: React.FC = () => {
       case 8:
         return (
           <Suspense fallback={<TabLoader />}>
-            <VendorManagementPanel wallet={wallet} />
+            <VendorManagementPanel wallet={anchorWallet} />
           </Suspense>
         );
       case 9:
@@ -2521,24 +2543,6 @@ const AdminDashboard: React.FC = () => {
     { id: 0, label: 'Escrow Config', icon: HiOutlineDatabase },
   ];
 
-  // Render horizontal tab item
-  const renderTabItem = (item: { id: number; label: string; icon: any; badge?: number }) => {
-    const Icon = item.icon;
-    return (
-      <button
-        key={item.id}
-        className={`${styles.tabItem} ${tabIndex === item.id ? styles.tabItemActive : ''}`}
-        onClick={() => setTabIndex(item.id)}
-      >
-        <Icon className={styles.tabIcon} />
-        <span>{item.label}</span>
-        {item.badge !== undefined && item.badge > 0 && (
-          <span className={styles.tabBadge}>{item.badge}</span>
-        )}
-      </button>
-    );
-  };
-
   // Render nav panel item for FAB overlay
   const renderNavPanelItem = (item: { id: number; label: string; icon: any; badge?: number }) => {
     const Icon = item.icon;
@@ -2562,7 +2566,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   // Not connected state
-  if (!wallet.publicKey) {
+  if (!publicKey) {
     return (
       <div className={styles.dashboard}>
         <div className={styles.accessDenied}>
@@ -2606,7 +2610,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className={styles.dashboard}>
-      {/* FAB + Nav Panel — outside main to avoid stacking context */}
+      {/* FAB Nav Bubble — gradient-border pill matching AI Assistant & WalletNavbar */}
       <div className={styles.fabContainer}>
         <div className={styles.fabLabel}>
           {[...navItems, ...nftNavItems, ...securityNavItems].find((i) => i.id === tabIndex)
@@ -2615,12 +2619,12 @@ const AdminDashboard: React.FC = () => {
         <motion.button
           className={styles.fab}
           onClick={() => setNavOpen((prev) => !prev)}
-          animate={{ rotate: navOpen ? 45 : 0 }}
-          transition={{ duration: 0.2 }}
-          aria-label="Navigation menu"
+          whileTap={{ scale: 0.95 }}
+          aria-label="Admin navigation menu"
           aria-expanded={navOpen}
         >
           {navOpen ? <HiOutlineX /> : <HiOutlineViewGrid />}
+          <span className={styles.fabIconLabel}>{navOpen ? 'Close' : 'Nav'}</span>
         </motion.button>
       </div>
 

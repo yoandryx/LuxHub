@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { PublicKey } from '@solana/web3.js';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/PoolDetailNew.module.css';
@@ -113,7 +113,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 const PoolDetailPage: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
-  const wallet = useWallet();
+  const wallet = useEffectiveWallet();
 
   const [pool, setPool] = useState<PoolData | null>(null);
   const [loading, setLoading] = useState(true);
