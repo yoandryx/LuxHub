@@ -3893,8 +3893,8 @@
 /* ==================== RESPONSIVE GRID OVERRIDES (Plan 04) ==================== */
 @media screen and (max-width: 600px) {
   .nftGrid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 }
 
