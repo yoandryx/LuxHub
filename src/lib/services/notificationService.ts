@@ -279,6 +279,32 @@ function offerEmailTemplate(params: EmailTemplateParams, accentColor: string): s
     ? `${counterpartyWallet.slice(0, 6)}...${counterpartyWallet.slice(-4)}`
     : '';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
+  const formattedAmount = amountUSD !== undefined
+    ? `$${amountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : '';
+
+  // Image block — asset photo with glass border effect
+  const imageBlock = imageUrl
+    ? `<div style="text-align:center;margin:0 0 28px;">
+<div style="display:inline-block;border-radius:14px;overflow:hidden;border:1px solid rgba(200,161,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.4),0 0 20px rgba(200,161,255,0.06);">
+<img src="${imageUrl}" alt="Asset" style="display:block;max-width:320px;width:100%;height:auto;object-fit:cover;" />
+</div></div>`
+    : '';
+
+  // Chrome glass amount card — the financial centerpiece
+  const amountBlock = amountUSD !== undefined
+    ? `<div style="margin:0 0 24px;padding:24px 28px;background:linear-gradient(135deg,rgba(200,161,255,0.06) 0%,rgba(168,85,247,0.03) 100%);border:1px solid rgba(200,161,255,0.12);border-radius:14px;text-align:center;">
+<div style="font-size:11px;color:#a1a1a1;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:8px;">${amountLabel || 'Amount'}</div>
+<div style="font-size:36px;font-weight:700;color:#c8a1ff;letter-spacing:-0.5px;line-height:1.1;">${formattedAmount}</div>
+<div style="font-size:13px;color:#777;margin-top:4px;letter-spacing:0.5px;">USD</div>
+<div style="height:1px;background:linear-gradient(90deg,transparent,rgba(200,161,255,0.15),transparent);margin:16px 0 0;"></div>
+${counterpartyWallet ? `<div style="margin-top:14px;display:flex;justify-content:center;">
+<div style="display:inline-block;padding:6px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+<span style="font-size:11px;color:#888;margin-right:6px;">${counterpartyLabel || 'Wallet'}</span>
+<span style="font-size:13px;color:#e0e0e0;font-family:'SF Mono','Fira Code','Courier New',monospace;">${truncWallet}</span>
+</div></div>` : ''}
+</div>`
+    : '';
 
   return `<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -286,21 +312,20 @@ function offerEmailTemplate(params: EmailTemplateParams, accentColor: string): s
 <meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
 <style>:root{color-scheme:dark only;}body,html{background-color:#050507!important;}u+.body{background-color:#050507!important;}[data-ogsc] body{background-color:#050507!important;}@media(prefers-color-scheme:light){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}@media(prefers-color-scheme:dark){body,html,.cbg{background-color:#050507!important;}.t1{color:#ffffff!important;}.t2{color:#e0e0e0!important;}.t3{color:#999999!important;}}</style></head>
 <body class="cbg" style="margin:0;padding:0;background-color:#050507;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-<div style="display:none;font-size:0;color:#050507;line-height:0;max-height:0;overflow:hidden;">${title}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<div style="display:none;font-size:0;color:#050507;line-height:0;max-height:0;overflow:hidden;">${title} ${formattedAmount}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="cbg" style="background-color:#050507;">
 <tr><td align="center" style="padding:48px 16px 40px;background-color:#050507;">
 <table role="presentation" width="560" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;width:100%;">
 <tr><td align="center" style="padding-bottom:44px;"><img src="${appUrl}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" /></td></tr>
-<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;">
-<div style="height:2px;background:linear-gradient(90deg,transparent 5%,#c8a1ff 30%,#a855f7 50%,#c8a1ff 70%,transparent 95%);"></div>
-<div style="padding:48px 44px 40px;">
-<div style="display:inline-block;background:${accentColor}20;color:${accentColor};padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:24px;">${badge}</div>
-${imageUrl ? `<div style="text-align:center;margin:0 0 24px;"><div style="display:inline-block;border-radius:12px;overflow:hidden;border:1px solid rgba(200,161,255,0.15);"><img src="${imageUrl}" alt="Asset" style="display:block;max-width:280px;width:100%;object-fit:cover;" /></div></div>` : ''}
-<p class="t1" style="font-size:20px;font-weight:600;margin:0 0 12px;color:#ffffff;">${title}</p>
-${amountUSD !== undefined ? `<div style="margin:0 0 16px;"><span style="font-size:13px;color:#a1a1a1;text-transform:uppercase;letter-spacing:0.5px;">${amountLabel || 'Amount'}</span><div style="font-size:28px;font-weight:700;color:#c8a1ff;margin-top:4px;">$${amountUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</div></div>` : ''}
-${counterpartyWallet ? `<div style="margin:0 0 20px;padding:10px 14px;background:rgba(200,161,255,0.06);border-radius:8px;border:1px solid rgba(200,161,255,0.08);"><span style="font-size:12px;color:#a1a1a1;">${counterpartyLabel || 'Wallet'}</span><div style="font-size:14px;color:#ffffff;font-family:'SF Mono','Fira Code',monospace;margin-top:2px;">${truncWallet}</div></div>` : ''}
-<p class="t2" style="font-size:15px;line-height:1.75;color:#e0e0e0;margin:0 0 28px;">${message}</p>
-${actionUrl ? `<div style="text-align:center;margin:0 0 12px;"><a href="${actionUrl}" style="display:inline-block;min-width:200px;padding:16px 44px;background:linear-gradient(135deg,rgba(200,161,255,0.12),rgba(168,85,247,0.08));border:1px solid #c8a1ff50;color:#c8a1ff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;">${ctaText || 'View Details'}</a></div>` : ''}
+<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 1px rgba(200,161,255,0.1);">
+<div style="height:2px;background:linear-gradient(90deg,transparent 5%,${accentColor} 30%,#a855f7 50%,${accentColor} 70%,transparent 95%);"></div>
+<div style="padding:44px 40px 36px;">
+<div style="display:inline-block;background:${accentColor}18;color:${accentColor};padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;border:1px solid ${accentColor}25;">${badge}</div>
+${imageBlock}
+<p class="t1" style="font-size:20px;font-weight:600;margin:0 0 16px;color:#ffffff;line-height:1.3;">${title}</p>
+${amountBlock}
+<p class="t2" style="font-size:14px;line-height:1.75;color:#c0c0c0;margin:0 0 28px;">${message}</p>
+${actionUrl ? `<div style="text-align:center;margin:0 0 8px;"><a href="${actionUrl}" style="display:inline-block;min-width:220px;padding:16px 48px;background:linear-gradient(135deg,rgba(200,161,255,0.15),rgba(168,85,247,0.1));border:1px solid rgba(200,161,255,0.3);color:#c8a1ff;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;box-shadow:0 4px 16px rgba(200,161,255,0.08);">${ctaText || 'View Details'}</a></div>` : ''}
 </div></td></tr>
 <tr><td style="padding:36px 16px 0;text-align:center;"><p style="margin:0;font-size:11px;color:#555555;"><a href="https://luxhub.gold" style="color:#777;text-decoration:none;">luxhub.gold</a>&nbsp;&nbsp;&#183;&nbsp;&nbsp;<a href="https://x.com/LuxHubStudio" style="color:#777;text-decoration:none;">@LuxHubStudio</a></p></td></tr>
 </table></td></tr></table></body></html>`.trim();
@@ -928,8 +953,9 @@ export async function notifyCounterRejectedByBuyer(params: {
   escrowId: string;
   escrowPda: string;
   assetTitle: string;
+  imageUrl?: string;
 }) {
-  const { vendorWallet, offerId, escrowId, escrowPda, assetTitle } = params;
+  const { vendorWallet, offerId, escrowId, escrowPda, assetTitle, imageUrl } = params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
@@ -942,6 +968,8 @@ export async function notifyCounterRejectedByBuyer(params: {
       escrowId,
       escrowPda,
       actionUrl: `${appUrl}/orders?tab=offers`,
+      imageUrl,
+      eventBadge: 'COUNTER REJECTED',
     },
   });
 }
@@ -957,8 +985,9 @@ export async function notifyBuyerCounteredVendor(params: {
   escrowPda: string;
   assetTitle: string;
   counterAmountUSD: number;
+  imageUrl?: string;
 }) {
-  const { vendorWallet, offerId, escrowId, escrowPda, assetTitle, counterAmountUSD } = params;
+  const { vendorWallet, buyerWallet, offerId, escrowId, escrowPda, assetTitle, counterAmountUSD, imageUrl } = params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
   return notifyUser({
@@ -972,6 +1001,12 @@ export async function notifyBuyerCounteredVendor(params: {
       escrowPda,
       amountUSD: counterAmountUSD,
       actionUrl: `${appUrl}/orders?tab=offers`,
+      imageUrl,
+      amountLabel: 'Counter Amount',
+      counterpartyWallet: buyerWallet,
+      counterpartyLabel: 'From Buyer',
+      ctaText: 'Review Counter',
+      eventBadge: 'BUYER COUNTER',
     },
   });
 }

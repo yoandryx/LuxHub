@@ -165,6 +165,7 @@ export default function Navbar() {
               Pools
             </Link>
             <Link href="/vendors">Vendors</Link>
+            {isConnected && <Link href="/orders">Orders</Link>}
             {isAdmin && <Link href="/createNFT">Mint NFT</Link>}
             {isAdmin && <Link href="/adminDashboard">Admins</Link>}
             {isVendor && walletAddress && <Link href={`/vendor/${walletAddress}`}>Profile</Link>}

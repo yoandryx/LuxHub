@@ -12,6 +12,7 @@ import {
   notifyCounterRejectedByBuyer,
   notifyBuyerCounteredVendor,
 } from '../../../lib/services/notificationService';
+import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../../../utils/imageUtils';
 
 interface BuyerRespondRequest {
   offerId: string;
@@ -85,9 +86,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Associated escrow not found' });
     }
 
-    // Fetch asset title for notifications
+    // Fetch asset title + image for notifications
     const asset = escrow.asset ? await Asset.findById(escrow.asset) : null;
     const assetTitle = asset?.model || 'Luxury Asset';
+    // Resolve asset image to full URL for rich email template (handles Irys + IPFS)
+    const rawImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || escrow?.imageUrl || '';
+    const notifImageUrl = rawImage ? resolveImageUrl(rawImage) : '';
+    const emailImageUrl = notifImageUrl && notifImageUrl !== PLACEHOLDER_IMAGE ? notifImageUrl : undefined;
 
     switch (action) {
       case 'accept_counter': {
@@ -156,6 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           escrowPda: escrow.escrowPda,
           assetTitle,
           acceptedAmountUSD,
+          imageUrl: emailImageUrl,
         }).catch((err: any) =>
           console.error('[buyer-respond] notifyCounterAcceptedByBuyer error:', err)
         );
@@ -205,6 +211,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           escrowId: escrow._id.toString(),
           escrowPda: escrow.escrowPda,
           assetTitle,
+          imageUrl: emailImageUrl,
         }).catch((err: any) =>
           console.error('[buyer-respond] notifyCounterRejectedByBuyer error:', err)
         );
@@ -276,6 +283,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           escrowPda: escrow.escrowPda,
           assetTitle,
           counterAmountUSD: counterAmountUSD!,
+          imageUrl: emailImageUrl,
         }).catch((err: any) =>
           console.error('[buyer-respond] notifyBuyerCounteredVendor error:', err)
         );

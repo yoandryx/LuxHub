@@ -122,6 +122,7 @@ interface VendorOffer {
   _id: string;
   assetTitle?: string;
   assetBrand?: string;
+  assetImage?: string;
   offerPriceUSD: number;
   offerAmount?: number;
   listPriceUSD?: number;
@@ -393,6 +394,14 @@ const MyOrdersPage: React.FC = () => {
     countered: vendorOffers.filter((o) => o.status === 'countered').length,
     accepted: vendorOffers.filter((o) => o.status === 'accepted').length,
     rejected: vendorOffers.filter((o) => o.status === 'rejected').length,
+  };
+
+  const vendorOrderCounts = {
+    total: vendorOrders.length,
+    funded: vendorOrders.filter((o) => o.status === 'funded' || o.status === 'in_escrow').length,
+    shipped: vendorOrders.filter((o) => o.status === 'shipped').length,
+    delivered: vendorOrders.filter((o) => o.status === 'delivered').length,
+    released: vendorOrders.filter((o) => o.status === 'released').length,
   };
 
   // ==================== BUYER: ORDER HANDLERS ====================
@@ -809,7 +818,7 @@ const MyOrdersPage: React.FC = () => {
             </div>
           )}
 
-          {/* Quick Stats Bar (buyer only) */}
+          {/* Quick Stats Bar (buyer) */}
           {role === 'buyer' && (
             <div className={styles.statsBar}>
               {[
@@ -840,6 +849,33 @@ const MyOrdersPage: React.FC = () => {
                     setTopTab('orders');
                     setActiveFilter(stat.filter);
                   }}
+                >
+                  <span className={styles.statNum}>{stat.value}</span>
+                  <span className={styles.statLbl}>{stat.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Quick Stats Bar (vendor) */}
+          {role === 'vendor' && (
+            <div className={styles.statsBar}>
+              {[
+                { label: 'Orders', value: vendorOrderCounts.total, tab: 'orders' as TopTab },
+                ...(vendorOrderCounts.funded > 0
+                  ? [{ label: 'To Ship', value: vendorOrderCounts.funded, tab: 'orders' as TopTab, urgent: true }]
+                  : []),
+                { label: 'Shipped', value: vendorOrderCounts.shipped, tab: 'orders' as TopTab },
+                { label: 'Complete', value: vendorOrderCounts.released, tab: 'orders' as TopTab },
+                { label: 'Offers', value: vendorOfferCounts.total, tab: 'offers' as TopTab },
+                ...(vendorOfferCounts.pending > 0
+                  ? [{ label: 'Pending', value: vendorOfferCounts.pending, tab: 'offers' as TopTab, urgent: true }]
+                  : []),
+              ].map((stat) => (
+                <button
+                  key={stat.label}
+                  className={`${styles.statPill} ${topTab === stat.tab && stat.label === (stat.tab === 'orders' ? 'Orders' : 'Offers') ? styles.statPillActive : ''} ${'urgent' in stat && stat.urgent ? styles.statPillUrgent : ''}`}
+                  onClick={() => setTopTab(stat.tab)}
                 >
                   <span className={styles.statNum}>{stat.value}</span>
                   <span className={styles.statLbl}>{stat.label}</span>
@@ -989,7 +1025,7 @@ const MyOrdersPage: React.FC = () => {
                       >
                         <div className={styles.orderThumb}>
                           {order.assetImage ? (
-                            <img src={order.assetImage} alt={order.assetTitle} />
+                            <img src={resolveImageUrl(order.assetImage)} alt={order.assetTitle} />
                           ) : (
                             <FiPackage />
                           )}
@@ -1247,7 +1283,7 @@ const MyOrdersPage: React.FC = () => {
                       <div className={styles.orderRow}>
                         <div className={styles.orderThumb}>
                           {order.assetImage ? (
-                            <img src={order.assetImage} alt={order.assetTitle || 'Asset'} />
+                            <img src={resolveImageUrl(order.assetImage)} alt={order.assetTitle || 'Asset'} />
                           ) : (
                             <FiPackage />
                           )}
@@ -1480,7 +1516,14 @@ const MyOrdersPage: React.FC = () => {
                     <div key={offer._id} className={styles.offerCard}>
                       <div className={styles.offerRow}>
                         <div className={styles.orderThumb}>
-                          <FiTag />
+                          {offer.assetImage ? (
+                            <img
+                              src={resolveImageUrl(offer.assetImage)}
+                              alt={offer.assetTitle || 'Asset'}
+                            />
+                          ) : (
+                            <FiTag />
+                          )}
                         </div>
                         <div className={styles.orderInfo}>
                           <div className={styles.orderTopLine}>
@@ -1670,7 +1713,7 @@ const MyOrdersPage: React.FC = () => {
                     <div className={styles.orderSummary}>
                       <div className={styles.summaryImage}>
                         {selectedOrder.assetImage ? (
-                          <img src={selectedOrder.assetImage} alt={selectedOrder.assetTitle} />
+                          <img src={resolveImageUrl(selectedOrder.assetImage)} alt={selectedOrder.assetTitle} />
                         ) : (
                           <FiPackage />
                         )}

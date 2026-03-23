@@ -10,6 +10,7 @@ import { Vendor } from '../../../lib/models/Vendor';
 import { Asset } from '../../../lib/models/Assets';
 import { Transaction } from '../../../lib/models/Transaction';
 import { notifyOfferReceived } from '../../../lib/services/notificationService';
+import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../../../utils/imageUtils';
 
 interface ShippingAddress {
   fullName: string;
@@ -282,12 +283,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Notify owner/vendor of new offer (non-blocking)
     const assetTitle = asset?.model || 'Luxury Asset';
     if (vendorWallet) {
-      // Resolve asset image to full URL for rich email template
-      let imageUrl = asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || escrow?.imageUrl || '';
-      if (imageUrl && !imageUrl.startsWith('http')) {
-        const gateway = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
-        imageUrl = `${gateway}${imageUrl}`;
-      }
+      // Resolve asset image to full URL for rich email template (handles Irys + IPFS)
+      const rawImg = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || escrow?.imageUrl || '';
+      const imageUrl = rawImg ? resolveImageUrl(rawImg) : '';
+      const emailImg = imageUrl && imageUrl !== PLACEHOLDER_IMAGE ? imageUrl : undefined;
 
       notifyOfferReceived({
         vendorWallet,
@@ -296,7 +295,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         escrowId: escrow?._id?.toString() || assetForOffer?._id?.toString() || '',
         assetTitle,
         offerAmountUSD: offerPriceUSD,
-        imageUrl,
+        imageUrl: emailImg,
       }).catch((err: any) => console.error('[offers/create] notifyOfferReceived error:', err));
     }
 

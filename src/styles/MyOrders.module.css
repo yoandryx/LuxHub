@@ -492,11 +492,13 @@
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 14px;
   overflow: hidden;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .orderCard:hover {
   border-color: var(--accent-border);
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.04);
+  transform: translateY(-1px);
 }
 
 .orderCardExpanded {
@@ -518,11 +520,11 @@
 }
 
 .orderThumb {
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.4);
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
@@ -530,12 +532,25 @@
   justify-content: center;
   color: var(--text-dim);
   font-size: 1.2rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.orderRow:hover .orderThumb,
+.offerRow:hover .orderThumb {
+  border-color: rgba(200, 161, 255, 0.2);
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.08);
 }
 
 .orderThumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.orderRow:hover .orderThumb img,
+.offerRow:hover .orderThumb img {
+  transform: scale(1.05);
 }
 
 .orderInfo {
@@ -907,11 +922,13 @@
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 14px;
   overflow: hidden;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .offerCard:hover {
   border-color: var(--accent-border);
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.04);
+  transform: translateY(-1px);
 }
 
 .offerRow {

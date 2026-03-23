@@ -14,6 +14,7 @@ import {
   notifyOfferRejected,
   notifyOfferCountered,
 } from '../../../lib/services/notificationService';
+import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../../../utils/imageUtils';
 
 interface RespondOfferRequest {
   offerId: string;
@@ -105,9 +106,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(403).json({ error: 'Not authorized to respond to this offer' });
     }
 
-    // Fetch asset title for notifications
+    // Fetch asset title + image for notifications
     const asset = escrow.asset ? await Asset.findById(escrow.asset) : null;
     const assetTitle = asset?.model || 'Luxury Asset';
+    // Resolve asset image to full URL for rich email template (handles Irys + IPFS)
+    const rawImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || escrow?.imageUrl || '';
+    const notifImageUrl = rawImage ? resolveImageUrl(rawImage) : '';
+    // Don't send placeholder as email image
+    const emailImageUrl = notifImageUrl && notifImageUrl !== PLACEHOLDER_IMAGE ? notifImageUrl : undefined;
 
     // Handle each action
     switch (action) {
@@ -170,6 +176,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           escrowPda: escrow.escrowPda,
           assetTitle,
           acceptedAmountUSD: acceptedAmountUSD,
+          imageUrl: emailImageUrl,
         }).catch((err: any) => console.error('[offers/respond] notifyOfferAccepted error:', err));
 
         return res.status(200).json({
@@ -229,6 +236,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           escrowId: escrow._id.toString(),
           assetTitle,
           reason: rejectionReason,
+          imageUrl: emailImageUrl,
         }).catch((err: any) => console.error('[offers/respond] notifyOfferRejected error:', err));
 
         return res.status(200).json({
@@ -301,6 +309,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           escrowPda: escrow.escrowPda,
           assetTitle,
           counterAmountUSD: counterAmountUSD!,
+          imageUrl: emailImageUrl,
         }).catch((err: any) => console.error('[offers/respond] notifyOfferCountered error:', err));
 
         return res.status(200).json({
