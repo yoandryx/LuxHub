@@ -50,6 +50,9 @@ The $350B+ luxury resale market lacks trustless infrastructure. Buyers can't ver
 | **On-Chain Escrow** | Anchor smart contract locks NFT + funds until delivery |
 | **AI Watch Analysis** | Upload a photo — Claude Vision identifies brand, model, condition, estimated price |
 | **Vendor Verification** | KYC-lite onboarding with invite codes and admin approval |
+| **Multi-Image Gallery** | 5+ photos per listing with lightbox and swipe navigation |
+| **Condition Grading** | 5-grade scale (Unworn → Fair) with filter support |
+| **Search & Filter** | Brand, model, price range, and condition filters |
 | **Offers & Negotiation** | Buyers can make offers with counter-offer support |
 | **Dispute Resolution** | 7-day SLA buyer disputes with admin escalation |
 | **Shipping Integration** | EasyPost carrier tracking and label generation |
@@ -146,7 +149,7 @@ LuxHub/
 </tr>
 <tr>
 <td><strong>Integrations</strong></td>
-<td>Squads Protocol v4 (multisig) &middot; Bags API (tokenization + DEX) &middot; Anthropic Claude (AI analysis) &middot; EasyPost (shipping) &middot; Sentry (monitoring)</td>
+<td>Squads Protocol v4 (multisig) &middot; Bags API (tokenization + DEX) &middot; Anthropic Claude (AI analysis) &middot; EasyPost (shipping) &middot; Sentry (monitoring) &middot; Resend (transactional email)</td>
 </tr>
 <tr>
 <td><strong>Wallets</strong></td>
@@ -171,7 +174,7 @@ The Anchor program manages atomic escrow for NFT-backed luxury asset sales:
 | `initialize_config` | Configure Squads multisig as treasury authority |
 | `initialize` | Create escrow PDA, lock NFT in vault |
 | `exchange` | Buyer deposits SOL to escrow |
-| `confirm_delivery` | Release NFT to buyer, split funds (95% seller / 5% treasury) |
+| `confirm_delivery` | Release NFT to buyer, split funds (97% seller / 3% treasury) |
 | `refund_buyer` | Refund on dispute or timeout |
 | `cancel_escrow` | Cancel sale, return NFT + funds |
 | `mint_nft` | Admin-gated NFT creation |
@@ -229,32 +232,30 @@ See [SECURITY.md](SECURITY.md) for our vulnerability disclosure policy.
 
 ## Roadmap
 
-### Phase 1: Foundation ✅
-- [x] Core marketplace with escrow smart contract
-- [x] Vendor verification and buyer flows
-- [x] MongoDB data layer with 18 models
-- [x] JWT authentication
+### v1.0: Launch Readiness ✅ (shipped 2026-03-23)
+- [x] End-to-end buy, offer, vendor, and pool flows validated on devnet
+- [x] Security hardening — centralized cluster config, TX verification with replay prevention, Sentry monitoring
+- [x] Multi-treasury tokenomics — 3-wallet revenue routing (Marketplace, Pools, Partner)
+- [x] Marketplace UX — multi-image galleries, 5-grade condition grading, search/filter, drag-and-drop uploads
+- [x] Mobile responsive — 2-column grids, bottom-sheet modals, human-verified at 430px
+- [x] Vendor demo readiness — polished onboarding wizard, chrome glass dashboard, admin approval flow
+- [x] Chrome glass email templates via Resend (17 notification types)
+- [x] useEffectiveWallet hook deployed app-wide (Privy + wallet adapter bridge)
+- [x] 47 requirements satisfied across 6 phases, 20 plans, 152 commits
 
-### Phase 2: MVP Prep ✅
-- [x] Squads Protocol multisig integration
-- [x] Bags API tokenization + DEX trading
-- [x] AI watch analysis (Claude Vision)
-- [x] Helius DAS API for on-chain data
-- [x] TX verification on all fund-moving endpoints
-- [x] Dispute system with 7-day SLA
-- [x] Chrome glass design system across all pages
-- [x] Real-time platform stats (SWR)
-
-### Phase 3: Launch (Current)
-- [ ] Mainnet deployment
-- [ ] First vendor onboarding
-- [ ] Mobile optimization
+### v1.1: Mainnet Launch (Current)
+- [ ] Deploy Anchor program to mainnet-beta
+- [ ] Initialize EscrowConfig + Bags partner config PDA on mainnet
+- [ ] Switch Irys to mainnet storage
+- [ ] Offer countdown timers and withdrawal UI
+- [ ] Squads multisig end-to-end on mainnet
+- [ ] First vendor onboarding (JC Gold Jewelers, Miami)
 - [ ] Community building
 
-### Phase 4: Scale
+### v2.0: Scale
 - [ ] Advanced analytics dashboards
 - [ ] API for third-party integrations
-- [ ] International expansion
+- [ ] Multi-vendor support
 - [ ] Enhanced vendor KYC
 
 ---

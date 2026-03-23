@@ -241,7 +241,7 @@ async function createConfirmDeliverySquadsProposal(
 
     // Build confirm_delivery instruction
     // Discriminator for 'confirm_delivery'
-    const discriminator = Buffer.from([226, 5, 118, 189, 4, 34, 48, 212]); // anchor discriminator
+    const discriminator = Buffer.from([11, 109, 227, 53, 179, 190, 88, 155]); // anchor discriminator for confirm_delivery
 
     const WSOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
     const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');

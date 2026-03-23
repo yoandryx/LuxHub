@@ -147,6 +147,7 @@ TestjEC7K2sveRCUUCf9asbGjKXGcw9s3kUekHZXQwf.json
 
 # Solana Anchor build artifacts
 Solana-Anchor/keys/
+keys/
 Solana-Anchor/target/
 Solana-Anchor/test-ledger/
 Solana-Anchor/.anchor/
@@ -187,6 +188,9 @@ scripts/.simulation-results.json
 
 # GSD planning docs (local-only)
 .planning/
+
+# Claude Code tooling (local-only)
+.claude/
 
 # Large 3D model files (use optimized versions only)
 # RolexSub.glb is 19MB - only the 2MB optimized version should be committed

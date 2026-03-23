@@ -210,7 +210,7 @@ type PageType =
 
 const getPageType = (pathname: string): PageType => {
   if (pathname === '/' || pathname === '/index') return 'home';
-  if (pathname === '/watchMarket' || pathname === '/marketplace') return 'marketplace';
+  if (pathname === '/marketplace') return 'marketplace';
   if (pathname.startsWith('/pools') || pathname === '/bagsPoolsPage') return 'pools';
   if (pathname.startsWith('/nft/') || pathname.startsWith('/asset/')) return 'nft-detail';
   if (pathname === '/vendor/vendorDashboard' || pathname === '/vendorDashboard')

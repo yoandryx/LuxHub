@@ -146,8 +146,8 @@ const VendorProfilePage = () => {
 
   const connection = useMemo(() => new Connection(getClusterConfig().endpoint), []);
   const program = useMemo(
-    () => (publicKey ? getProgram(anchorWallet) : null),
-    [publicKey, anchorWallet]
+    () => (anchorWallet.publicKey ? getProgram(anchorWallet) : null),
+    [anchorWallet]
   );
 
   const isOwnProfile = publicKey?.toBase58() === profile?.wallet;

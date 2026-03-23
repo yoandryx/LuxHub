@@ -669,15 +669,51 @@ const VendorManagementPanel: React.FC<Props> = ({ wallet }) => {
                       <button
                         className={styles.inviteBtn}
                         style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                        onClick={() => {
-                          setNewInviteWallet(int.wallet || '');
-                          setNewInviteName(int.name);
-                          setNewInviteEmail(int.email || '');
-                          setInviteInterestId(int._id);
-                          setAdminTab('invites');
+                        onClick={async () => {
+                          // Auto-send invite directly if we have wallet + email
+                          if (int.wallet && int.email) {
+                            try {
+                              const res = await fetch('/api/admin/invites', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'x-wallet-address': adminWallet,
+                                },
+                                body: JSON.stringify({
+                                  vendorWallet: int.wallet,
+                                  vendorName: int.name,
+                                  vendorEmail: int.email,
+                                  interestId: int._id,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (res.ok) {
+                                const link = `${window.location.origin}/vendor/onboard?invite=${data.code}`;
+                                navigator.clipboard.writeText(link);
+                                if (data.emailSent) {
+                                  toast.success(`Invite sent to ${int.email}`, { duration: 5000 });
+                                } else {
+                                  toast.success('Invite created & link copied. Email failed — send link manually.', { duration: 6000 });
+                                }
+                                fetchInterests();
+                                fetchInvites();
+                              } else {
+                                toast.error(data.error || 'Failed to create invite');
+                              }
+                            } catch {
+                              toast.error('Failed to send invite');
+                            }
+                          } else {
+                            // No email — pre-fill form for manual entry
+                            setNewInviteWallet(int.wallet || '');
+                            setNewInviteName(int.name);
+                            setNewInviteEmail(int.email || '');
+                            setInviteInterestId(int._id);
+                            setAdminTab('invites');
+                          }
                         }}
                       >
-                        <FiSend /> Send Invite
+                        <FiSend /> {int.email ? 'Send Invite' : 'Create Invite'}
                       </button>
                     ) : (
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>

@@ -296,8 +296,8 @@ const AdminDashboard: React.FC = () => {
   const [newApplications, setNewApplications] = useState<number>(0);
 
   const program = useMemo(
-    () => (publicKey ? getProgram(anchorWallet) : null),
-    [publicKey, anchorWallet]
+    () => (anchorWallet.publicKey ? getProgram(anchorWallet) : null),
+    [anchorWallet]
   );
 
   // Use correct seed 'luxhub-config' to match the Anchor program

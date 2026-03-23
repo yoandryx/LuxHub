@@ -513,15 +513,23 @@ export default function VendorOnboard() {
         <div className={styles.wizardWrapper}>
           <div className={styles.wizardCard}>
             <div className={styles.pendingApproval}>
-              <FaCheckCircle className={styles.successIcon} />
+              <div className={styles.checkmarkCircle}>
+                <svg className={styles.checkmarkSvg} viewBox="0 0 52 52">
+                  <circle className={styles.checkmarkRing} cx="26" cy="26" r="24" fill="none" />
+                  <path className={styles.checkmarkPath} fill="none" d="M14 27l7 7 16-16" />
+                </svg>
+              </div>
               <h2>Application Submitted</h2>
-              <p>Your application is under review. You will be notified once approved.</p>
+              <p>Thank you for completing your vendor profile. Our team will review and verify your account.</p>
+              <p style={{ fontSize: '14px', color: 'var(--accent)', fontWeight: 500 }}>
+                Start preparing your listings to request onto LuxHub.
+              </p>
               <div className={styles.pendingBadge}>
                 <FaExclamationTriangle />
-                Pending Admin Approval
+                Pending Admin Review
               </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: 320 }}>
-                Our team is reviewing your application. This typically takes less than 24 hours.
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: 320 }}>
+                Review typically takes less than 24 hours. You will receive an email once approved.
               </p>
               <button
                 className={styles.dashboardBtn}

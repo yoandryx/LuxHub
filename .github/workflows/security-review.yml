@@ -1,0 +1,35 @@
+name: Claude Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Security Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          model: claude-sonnet-4-20250514
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            Review this PR for security vulnerabilities relevant to a Solana DeFi marketplace:
+
+            1. **Fund Safety**: Any path where funds could be lost, stolen, or locked
+            2. **Input Validation**: Missing Zod validation, SQL/NoSQL injection, XSS
+            3. **Auth Bypass**: JWT issues, missing middleware, wallet signature forgery
+            4. **On-chain**: Transaction verification gaps, PDA seed collisions, missing signer checks
+            5. **Secrets**: Exposed keys, hardcoded addresses, missing env validation
+            6. **Rate Limiting**: Missing on fund-moving endpoints
+
+            Focus on HIGH and CRITICAL only. Skip style nits.
+            Post findings as a PR comment with severity labels.

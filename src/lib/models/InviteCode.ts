@@ -7,6 +7,7 @@ const InviteCodeSchema = new mongoose.Schema(
     expiresAt: { type: Date, default: null },
     vendorWallet: { type: String, required: true },
     vendorName: { type: String, default: null },
+    vendorEmail: { type: String, default: null },
     createdBy: { type: String, required: true },
     maxUses: { type: Number, default: 1 },
     uses: { type: Number, default: 0 },
@@ -24,6 +25,7 @@ export type InviteCode = {
   used: boolean;
   expiresAt?: Date | null;
   vendorWallet: string;
+  vendorEmail?: string | null;
   createdBy: string;
   maxUses?: number;
   uses?: number;
