@@ -656,7 +656,7 @@ export async function notifyOfferReceived(params: {
       offerId,
       escrowId,
       amountUSD: offerAmountUSD,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+      actionUrl: `${appUrl}/orders?tab=offers`,
     },
   });
 }

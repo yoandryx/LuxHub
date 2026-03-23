@@ -204,7 +204,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             offerId: offer._id.toString(),
             escrowId: escrow._id.toString(),
             escrowPda: escrow.escrowPda,
-            actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/vendor/offers`,
+            actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/orders?tab=offers`,
           },
         }).catch((err: any) =>
           console.error('[buyer-respond] notifyUser reject_counter error:', err)
@@ -352,7 +352,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             offerId: offer._id.toString(),
             escrowId: escrow._id.toString(),
             escrowPda: escrow.escrowPda,
-            actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/vendor/vendorDashboard?tab=offers`,
+            actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/orders?tab=offers`,
           },
         }).catch((err: any) => console.error('[buyer-respond] notifyUser withdraw error:', err));
 
