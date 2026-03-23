@@ -354,7 +354,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             offerId: offer._id.toString(),
             escrowId: escrow._id.toString(),
             escrowPda: escrow.escrowPda,
-            actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/order/${escrow._id.toString()}`,
+            actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/orders?tab=offers`,
           },
         }).catch((err: any) => console.error('[buyer-respond] notifyUser withdraw error:', err));
 

@@ -736,7 +736,7 @@ export async function notifyOfferReceived(params: {
       offerId,
       escrowId,
       amountUSD: offerAmountUSD,
-      actionUrl: `${appUrl}/order/${escrowId}`,
+      actionUrl: `${appUrl}/orders?tab=offers`,
       imageUrl,
       amountLabel: 'Offer Amount',
       counterpartyWallet: buyerWallet,
@@ -941,7 +941,7 @@ export async function notifyCounterRejectedByBuyer(params: {
       offerId,
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/order/${escrowId}`,
+      actionUrl: `${appUrl}/orders?tab=offers`,
     },
   });
 }
@@ -971,7 +971,7 @@ export async function notifyBuyerCounteredVendor(params: {
       escrowId,
       escrowPda,
       amountUSD: counterAmountUSD,
-      actionUrl: `${appUrl}/order/${escrowId}`,
+      actionUrl: `${appUrl}/orders?tab=offers`,
     },
   });
 }
