@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { useState } from 'react';
 import {
   FaShieldAlt,
@@ -16,7 +16,7 @@ import toast from 'react-hot-toast';
 import styles from '../../styles/VendorApply.module.css';
 
 export default function VendorApply() {
-  const { publicKey } = useWallet();
+  const { publicKey } = useEffectiveWallet();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({

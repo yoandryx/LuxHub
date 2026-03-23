@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { FaLock, FaArrowRight, FaChartLine } from 'react-icons/fa';
 import { HiCube } from 'react-icons/hi2';
 import { MdVerified } from 'react-icons/md';
@@ -74,7 +74,7 @@ const features = [
 ];
 
 export default function IndexTest() {
-  const { connected } = useWallet();
+  const { connected } = useEffectiveWallet();
   const { price: solPrice } = useSolPrice();
   const [featuredNFTs, setFeaturedNFTs] = useState<NFT[]>([]);
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);

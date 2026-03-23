@@ -1,7 +1,7 @@
 // pages/vendor/pending.tsx
 // Shows vendor that their application is pending admin approval
 import { useRouter } from 'next/router';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { useEffect, useState } from 'react';
 import { FaClock, FaCheckCircle, FaTimesCircle, FaArrowRight } from 'react-icons/fa';
 import styles from '../../styles/VendorOnboard.module.css';
@@ -10,7 +10,7 @@ type ApplicationStatus = 'pending' | 'approved' | 'rejected' | 'not_found' | 'lo
 
 export default function VendorPending() {
   const router = useRouter();
-  const { publicKey } = useWallet();
+  const { publicKey } = useEffectiveWallet();
   const [status, setStatus] = useState<ApplicationStatus>('loading');
   const [vendorData, setVendorData] = useState<any>(null);
 

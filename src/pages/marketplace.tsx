@@ -6,7 +6,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   HiOutlineSearch,
@@ -457,7 +457,7 @@ MarketplaceTour.displayName = 'MarketplaceTour';
 
 // Marketplace Page Component
 export default function Marketplace() {
-  const wallet = useWallet();
+  const wallet = useEffectiveWallet();
   const router = useRouter();
 
   // SWR hooks for data fetching with caching

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { motion } from 'framer-motion';
 import {
   FaCheck,
@@ -101,7 +101,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function OrderStatusPage() {
   const router = useRouter();
   const { id } = router.query;
-  const { publicKey } = useWallet();
+  const { publicKey } = useEffectiveWallet();
   const wallet = publicKey?.toBase58() || '';
 
   const [order, setOrder] = useState<OrderData | null>(null);

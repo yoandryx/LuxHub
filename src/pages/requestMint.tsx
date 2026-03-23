@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import styles from '../styles/CreateNFT.module.css';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 
 const RequestMint = () => {
-  const wallet = useWallet();
+  const wallet = useEffectiveWallet();
   const router = useRouter();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);

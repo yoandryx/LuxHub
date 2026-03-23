@@ -1,7 +1,7 @@
 // src/pages/orders.tsx
 // Buyer's order tracking + offers management — modern luxury dashboard
 import React, { useState, useEffect, useCallback } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -144,7 +144,7 @@ const TIMELINE_STEPS = [
 
 // ==================== COMPONENT ====================
 const MyOrdersPage: React.FC = () => {
-  const wallet = useWallet();
+  const wallet = useEffectiveWallet();
   const walletAddress = wallet.publicKey?.toBase58();
 
   // Top-level tab

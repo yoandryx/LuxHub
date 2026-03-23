@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import Navbar from '../components/common/Navbar';
 import BagsPartnerDashboard from '../components/admin/BagsPartnerDashboard';
 import styles from '../styles/BagsPage.module.css';
@@ -16,7 +16,7 @@ interface PoolStats {
 }
 
 const BagsPage: React.FC = () => {
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey } = useEffectiveWallet();
   const [activeSection, setActiveSection] = useState<'overview' | 'tokenomics' | 'dashboard'>(
     'overview'
   );
