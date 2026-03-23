@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { VendorProfile } from '../../lib/models/VendorProfile';
 import EmailPromptBanner from '../../components/common/EmailPromptBanner';
@@ -19,11 +20,11 @@ import {
   FiTruck,
   FiInbox,
   FiUser,
-  FiRefreshCw,
   FiKey,
   FiLock,
   FiX,
   FiAlertCircle,
+  FiExternalLink,
 } from 'react-icons/fi';
 import AddInventoryForm from '../../components/vendor/AddInventoryForm';
 import DelistRequestModal from '../../components/vendor/DelistRequestModal';
@@ -86,14 +87,14 @@ interface DashboardMetrics {
   pendingReview: number;
   listedCount: number;
   activeEscrows: number;
-  pendingOffers: number;
   totalSales: number;
   pendingPayouts: number;
 }
 
-type TabId = 'dashboard' | 'inventory' | 'orders' | 'offers' | 'payouts' | 'profile';
+type TabId = 'dashboard' | 'inventory' | 'orders' | 'payouts' | 'profile';
 
 const VendorDashboard = () => {
+  const router = useRouter();
   const { publicKey } = useEffectiveWallet();
   const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [formData, setFormData] = useState<any>({});
@@ -106,10 +107,7 @@ const VendorDashboard = () => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab') as TabId;
-      if (
-        tab &&
-        ['dashboard', 'inventory', 'orders', 'offers', 'payouts', 'profile'].includes(tab)
-      ) {
+      if (tab && ['dashboard', 'inventory', 'orders', 'payouts', 'profile'].includes(tab)) {
         return tab;
       }
     }
@@ -132,23 +130,6 @@ const VendorDashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
-  const [offers, setOffers] = useState<any[]>([]);
-  const [offersLoading, setOffersLoading] = useState(false);
-  const [offerFilter, setOfferFilter] = useState<
-    'all' | 'pending' | 'accepted' | 'rejected' | 'countered'
-  >('all');
-  const [selectedOffer, setSelectedOffer] = useState<any | null>(null);
-  const [offerActionLoading, setOfferActionLoading] = useState(false);
-
-  // Counter offer modal state
-  const [showCounterModal, setShowCounterModal] = useState(false);
-  const [counterAmount, setCounterAmount] = useState<string>('');
-  const [counterMessage, setCounterMessage] = useState<string>('');
-
-  // Reject offer modal state
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState<string>('');
-
   const [payouts, setPayouts] = useState<any[]>([]);
   const [payoutsLoading, setPayoutsLoading] = useState(false);
 
@@ -164,7 +145,6 @@ const VendorDashboard = () => {
     pendingReview: 0,
     listedCount: 0,
     activeEscrows: 0,
-    pendingOffers: 0,
     totalSales: 0,
     pendingPayouts: 0,
   });
@@ -298,26 +278,6 @@ const VendorDashboard = () => {
     }
   };
 
-  const fetchOffers = async () => {
-    if (!publicKey) return;
-    setOffersLoading(true);
-    try {
-      const res = await fetch(`/api/vendor/offers?wallet=${publicKey.toBase58()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setOffers(data.offers || []);
-        setMetrics((prev) => ({
-          ...prev,
-          pendingOffers: (data.offers || []).filter((o: any) => o.status === 'pending').length,
-        }));
-      }
-    } catch (err) {
-      console.error('Failed to fetch offers:', err);
-    } finally {
-      setOffersLoading(false);
-    }
-  };
-
   const fetchPayouts = async () => {
     if (!publicKey) return;
     setPayoutsLoading(true);
@@ -339,139 +299,6 @@ const VendorDashboard = () => {
     }
   };
 
-  // Offer action handlers
-  const handleAcceptOffer = async (offer: any) => {
-    if (!publicKey) return;
-
-    setOfferActionLoading(true);
-    toast(
-      `Accepting offer of $${offer.offerPriceUSD?.toLocaleString() || offer.offerAmount?.toLocaleString()}...`,
-      { icon: '⏳' }
-    );
-    try {
-      const res = await fetch('/api/offers/respond', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offerId: offer._id,
-          vendorWallet: publicKey.toBase58(),
-          action: 'accept',
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success('Offer accepted! The buyer will be notified.');
-        fetchOffers();
-      } else {
-        toast.error(data.error || 'Failed to accept offer');
-      }
-    } catch (err) {
-      console.error('Error accepting offer:', err);
-      toast.error('Failed to accept offer');
-    } finally {
-      setOfferActionLoading(false);
-    }
-  };
-
-  const openRejectModal = (offer: any) => {
-    setSelectedOffer(offer);
-    setRejectReason('');
-    setShowRejectModal(true);
-  };
-
-  const handleRejectOffer = async () => {
-    if (!publicKey || !selectedOffer) return;
-    if (!rejectReason.trim()) {
-      toast.error('Please provide a reason for rejection');
-      return;
-    }
-
-    setOfferActionLoading(true);
-    try {
-      const res = await fetch('/api/offers/respond', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offerId: selectedOffer._id,
-          vendorWallet: publicKey.toBase58(),
-          action: 'reject',
-          rejectionReason: rejectReason.trim(),
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success('Offer rejected');
-        setShowRejectModal(false);
-        setSelectedOffer(null);
-        setRejectReason('');
-        fetchOffers();
-      } else {
-        toast.error(data.error || 'Failed to reject offer');
-      }
-    } catch (err) {
-      console.error('Error rejecting offer:', err);
-      toast.error('Failed to reject offer');
-    } finally {
-      setOfferActionLoading(false);
-    }
-  };
-
-  const openCounterModal = (offer: any) => {
-    setSelectedOffer(offer);
-    setCounterAmount('');
-    setCounterMessage('');
-    setShowCounterModal(true);
-  };
-
-  const handleCounterOffer = async () => {
-    if (!publicKey || !selectedOffer) return;
-
-    const counterAmountNum = parseFloat(counterAmount);
-    if (!counterAmountNum || counterAmountNum <= 0) {
-      toast.error('Please enter a valid counter amount');
-      return;
-    }
-
-    setOfferActionLoading(true);
-    try {
-      const res = await fetch('/api/offers/respond', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offerId: selectedOffer._id,
-          vendorWallet: publicKey.toBase58(),
-          action: 'counter',
-          counterAmountUSD: counterAmountNum,
-          counterMessage: counterMessage.trim() || undefined,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success('Counter offer sent! Awaiting buyer response.');
-        setShowCounterModal(false);
-        setSelectedOffer(null);
-        setCounterAmount('');
-        setCounterMessage('');
-        fetchOffers();
-      } else {
-        toast.error(data.error || 'Failed to send counter offer');
-      }
-    } catch (err) {
-      console.error('Error sending counter offer:', err);
-      toast.error('Failed to send counter offer');
-    } finally {
-      setOfferActionLoading(false);
-    }
-  };
-
-  // Filter offers by status
-  const filteredOffers = offers.filter((o) =>
-    offerFilter === 'all' ? true : o.status === offerFilter
-  );
-
   // Load data based on active tab + auto-refresh every 30s
   useEffect(() => {
     if (!publicKey) return;
@@ -480,14 +307,11 @@ const VendorDashboard = () => {
       if (activeTab === 'dashboard') {
         fetchVendorAssets();
         fetchOrders();
-        fetchOffers();
         fetchPayouts();
       } else if (activeTab === 'inventory') {
         fetchMintRequests();
       } else if (activeTab === 'orders') {
         fetchOrders();
-      } else if (activeTab === 'offers') {
-        fetchOffers();
       } else if (activeTab === 'payouts') {
         fetchPayouts();
       }
@@ -675,7 +499,6 @@ const VendorDashboard = () => {
     { id: 'dashboard' as TabId, label: 'Dashboard', icon: FiTrendingUp },
     { id: 'inventory' as TabId, label: 'Inventory', icon: FiPackage, badge: metrics.pendingReview },
     { id: 'orders' as TabId, label: 'Orders', icon: FiTruck, badge: metrics.activeEscrows },
-    { id: 'offers' as TabId, label: 'Offers', icon: FiInbox, badge: metrics.pendingOffers },
   ];
 
   const financeNavItems: typeof navItems = [
@@ -691,7 +514,6 @@ const VendorDashboard = () => {
     dashboard: { title: 'Vendor Dashboard', subtitle: 'Overview of your sales and inventory' },
     inventory: { title: 'Inventory Management', subtitle: 'Add and manage your listed assets' },
     orders: { title: 'Orders & Escrows', subtitle: 'Track active orders and shipments' },
-    offers: { title: 'Incoming Offers', subtitle: 'Review and respond to buyer offers' },
     payouts: { title: 'Earnings & Payouts', subtitle: 'Track your sales and pending payouts' },
     profile: { title: 'Vendor Profile', subtitle: 'Manage your public vendor profile' },
   };
@@ -827,13 +649,18 @@ const VendorDashboard = () => {
                   </div>
                 </div>
 
-                <div className={styles.metricCard} onClick={() => setActiveTab('offers')}>
+                <div
+                  className={styles.metricCard}
+                  onClick={() => router.push('/orders?tab=offers')}
+                >
                   <div className={styles.metricIcon}>
                     <FiInbox />
                   </div>
                   <div className={styles.metricContent}>
-                    <span className={styles.metricValue}>{metrics.pendingOffers}</span>
-                    <span className={styles.metricLabel}>Pending Offers</span>
+                    <span className={styles.metricValue}>
+                      <FiExternalLink style={{ fontSize: '0.8rem' }} />
+                    </span>
+                    <span className={styles.metricLabel}>View Offers</span>
                   </div>
                 </div>
 
@@ -864,7 +691,10 @@ const VendorDashboard = () => {
                 >
                   <FiPlus /> Add New Item
                 </button>
-                <button className={styles.quickActionButton} onClick={() => setActiveTab('offers')}>
+                <button
+                  className={styles.quickActionButton}
+                  onClick={() => router.push('/orders?tab=offers')}
+                >
                   <FiEye /> View Offers
                 </button>
                 <button className={styles.quickActionButton} onClick={() => setActiveTab('orders')}>
@@ -1225,265 +1055,7 @@ const VendorDashboard = () => {
               <OrderShipmentPanel />
             ))}
 
-          {/* Offers Tab */}
-          {activeTab === 'offers' && (
-            <>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Incoming Offers</h2>
-              </div>
-
-              {/* Offer Filter Tabs */}
-              <div className={styles.filterTabs}>
-                {(['all', 'pending', 'countered', 'accepted', 'rejected'] as const).map(
-                  (filter) => (
-                    <button
-                      key={filter}
-                      className={`${styles.filterTab} ${offerFilter === filter ? styles.activeFilter : ''}`}
-                      onClick={() => setOfferFilter(filter)}
-                    >
-                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                      {filter !== 'all' && (
-                        <span className={styles.filterCount}>
-                          {offers.filter((o) => o.status === filter).length}
-                        </span>
-                      )}
-                      {filter === 'all' && (
-                        <span className={styles.filterCount}>{offers.length}</span>
-                      )}
-                    </button>
-                  )
-                )}
-              </div>
-
-              {offersLoading ? (
-                <div className={styles.tabLoading}>
-                  <FiLoader className={styles.spinner} />
-                </div>
-              ) : filteredOffers.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <FiInbox className={styles.emptyIcon} />
-                  <h3>{offerFilter === 'all' ? 'No offers yet' : `No ${offerFilter} offers`}</h3>
-                  <p>
-                    {offerFilter === 'all'
-                      ? 'Buyers can make offers on your listings. You will see them here.'
-                      : `You don't have any ${offerFilter} offers.`}
-                  </p>
-                </div>
-              ) : (
-                <div className={styles.offersList}>
-                  {filteredOffers.map((offer: any) => (
-                    <div key={offer._id} className={styles.offerCard}>
-                      <div className={styles.offerHeader}>
-                        <span className={styles.offerAsset}>
-                          {offer.assetTitle || offer.asset?.model || 'Asset'}
-                        </span>
-                        <span
-                          className={`${styles.offerStatus} ${
-                            offer.status === 'pending'
-                              ? styles.statusPending
-                              : offer.status === 'accepted'
-                                ? styles.statusListed
-                                : offer.status === 'rejected'
-                                  ? styles.statusRejected
-                                  : offer.status === 'countered'
-                                    ? styles.statusInfo
-                                    : ''
-                          }`}
-                        >
-                          {offer.status?.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className={styles.offerBody}>
-                        <div className={styles.offerPrices}>
-                          <div className={styles.offerPrice}>
-                            <span className={styles.offerPriceLabel}>Offer</span>
-                            <span className={styles.offerPriceValue}>
-                              ${(offer.offerPriceUSD || offer.offerAmount)?.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className={styles.offerPrice}>
-                            <span className={styles.offerPriceLabel}>Listed</span>
-                            <span className={styles.offerPriceOriginal}>
-                              ${(offer.listPriceUSD || offer.listPrice)?.toLocaleString()}
-                            </span>
-                          </div>
-                          {offer.status === 'countered' && offer.counterOffers?.length > 0 && (
-                            <div className={styles.offerPrice}>
-                              <span className={styles.offerPriceLabel}>Counter</span>
-                              <span className={styles.offerPriceCounter}>
-                                $
-                                {offer.counterOffers[
-                                  offer.counterOffers.length - 1
-                                ]?.amountUSD?.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className={styles.offerMeta}>
-                          <span>From: {offer.buyerWallet?.slice(0, 8)}...</span>
-                          <span>
-                            {offer.createdAt ? new Date(offer.createdAt).toLocaleDateString() : ''}
-                          </span>
-                        </div>
-                        {offer.message && (
-                          <div className={styles.offerMessage}>
-                            <span className={styles.offerMessageLabel}>Message:</span>
-                            <p>{offer.message}</p>
-                          </div>
-                        )}
-                        {offer.status === 'rejected' && offer.rejectionReason && (
-                          <div className={styles.offerRejection}>
-                            <FiAlertCircle />
-                            <span>Rejected: {offer.rejectionReason}</span>
-                          </div>
-                        )}
-                      </div>
-                      {(offer.status === 'pending' || offer.status === 'countered') && (
-                        <div className={styles.offerActions}>
-                          <button
-                            className={styles.acceptButton}
-                            onClick={() => handleAcceptOffer(offer)}
-                            disabled={offerActionLoading}
-                          >
-                            <FiCheckCircle /> Accept
-                          </button>
-                          <button
-                            className={styles.counterButton}
-                            onClick={() => openCounterModal(offer)}
-                            disabled={offerActionLoading}
-                          >
-                            <FiRefreshCw /> Counter
-                          </button>
-                          <button
-                            className={styles.rejectButton}
-                            onClick={() => openRejectModal(offer)}
-                            disabled={offerActionLoading}
-                          >
-                            <FiX /> Reject
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Counter Offer Modal */}
-              {showCounterModal && selectedOffer && (
-                <div className={styles.modalOverlay} onClick={() => setShowCounterModal(false)}>
-                  <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                    <button
-                      className={styles.modalClose}
-                      onClick={() => setShowCounterModal(false)}
-                    >
-                      <FiX />
-                    </button>
-                    <h2 className={styles.modalTitle}>Counter Offer</h2>
-                    <p className={styles.modalSubtitle}>
-                      Counter the offer of $
-                      {(selectedOffer.offerPriceUSD || selectedOffer.offerAmount)?.toLocaleString()}{' '}
-                      for {selectedOffer.assetTitle || 'this item'}
-                    </p>
-
-                    <div className={styles.formField}>
-                      <label>Counter Amount (USD) *</label>
-                      <input
-                        type="number"
-                        placeholder="Enter your counter price"
-                        value={counterAmount}
-                        onChange={(e) => setCounterAmount(e.target.value)}
-                        min={0}
-                        step="0.01"
-                      />
-                    </div>
-
-                    <div className={styles.formField}>
-                      <label>Message (optional)</label>
-                      <textarea
-                        placeholder="Add a message for the buyer..."
-                        value={counterMessage}
-                        onChange={(e) => setCounterMessage(e.target.value)}
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className={styles.modalActions}>
-                      <button
-                        className={styles.cancelButton}
-                        onClick={() => setShowCounterModal(false)}
-                        disabled={offerActionLoading}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className={styles.primaryButton}
-                        onClick={handleCounterOffer}
-                        disabled={offerActionLoading || !counterAmount}
-                      >
-                        {offerActionLoading ? (
-                          <>
-                            <FiLoader className={styles.buttonSpinner} /> Sending...
-                          </>
-                        ) : (
-                          'Send Counter Offer'
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Reject Offer Modal */}
-              {showRejectModal && selectedOffer && (
-                <div className={styles.modalOverlay} onClick={() => setShowRejectModal(false)}>
-                  <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                    <button className={styles.modalClose} onClick={() => setShowRejectModal(false)}>
-                      <FiX />
-                    </button>
-                    <h2 className={styles.modalTitle}>Reject Offer</h2>
-                    <p className={styles.modalSubtitle}>
-                      Reject the offer of $
-                      {(selectedOffer.offerPriceUSD || selectedOffer.offerAmount)?.toLocaleString()}{' '}
-                      for {selectedOffer.assetTitle || 'this item'}
-                    </p>
-
-                    <div className={styles.formField}>
-                      <label>Reason for Rejection *</label>
-                      <textarea
-                        placeholder="Please provide a reason for rejecting this offer..."
-                        value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className={styles.modalActions}>
-                      <button
-                        className={styles.cancelButton}
-                        onClick={() => setShowRejectModal(false)}
-                        disabled={offerActionLoading}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className={styles.rejectButton}
-                        onClick={handleRejectOffer}
-                        disabled={offerActionLoading || !rejectReason.trim()}
-                      >
-                        {offerActionLoading ? (
-                          <>
-                            <FiLoader className={styles.buttonSpinner} /> Rejecting...
-                          </>
-                        ) : (
-                          'Reject Offer'
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+          {/* Offers Tab — removed, now managed at /orders?tab=offers */}
 
           {/* Payouts Tab */}
           {activeTab === 'payouts' && (
