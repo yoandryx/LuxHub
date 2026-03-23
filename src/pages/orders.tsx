@@ -817,21 +817,21 @@ const MyOrdersPage: React.FC = () => {
   const getOfferStatusInfo = (status: string) => {
     switch (status) {
       case 'pending':
-        return { label: 'Pending', className: styles.offerStatusPending };
+        return { label: 'Pending', className: styles.offerStatusPending, color: '#c8a1ff' };
       case 'countered':
-        return { label: 'Counter-Offer', className: styles.offerStatusCountered };
+        return { label: 'Counter-Offer', className: styles.offerStatusCountered, color: '#fbbf24' };
       case 'accepted':
-        return { label: 'Accepted', className: styles.offerStatusAccepted };
+        return { label: 'Accepted', className: styles.offerStatusAccepted, color: '#4ade80' };
       case 'rejected':
-        return { label: 'Rejected', className: styles.offerStatusRejected };
+        return { label: 'Rejected', className: styles.offerStatusRejected, color: '#ff6b6b' };
       case 'auto_rejected':
-        return { label: 'Auto-Rejected', className: styles.offerStatusRejected };
+        return { label: 'Auto-Rejected', className: styles.offerStatusRejected, color: '#ff6b6b' };
       case 'withdrawn':
-        return { label: 'Withdrawn', className: styles.offerStatusWithdrawn };
+        return { label: 'Withdrawn', className: styles.offerStatusWithdrawn, color: '#a1a1a1' };
       case 'expired':
-        return { label: 'Expired', className: styles.offerStatusRejected };
+        return { label: 'Expired', className: styles.offerStatusRejected, color: '#a1a1a1' };
       default:
-        return { label: status, className: '' };
+        return { label: status, className: '', color: '#a1a1a1' };
     }
   };
 
@@ -868,17 +868,17 @@ const MyOrdersPage: React.FC = () => {
   const getVendorOrderStatusInfo = (status: string) => {
     switch (status) {
       case 'funded':
-        return { label: 'Funded', className: styles.statusAwaiting };
+        return { label: 'Funded', className: styles.statusAwaiting, color: '#fbbf24' };
       case 'shipped':
-        return { label: 'Shipped', className: styles.statusShipped };
+        return { label: 'Shipped', className: styles.statusShipped, color: '#60a5fa' };
       case 'delivered':
-        return { label: 'Delivered', className: styles.statusDelivered };
+        return { label: 'Delivered', className: styles.statusDelivered, color: '#4ade80' };
       case 'released':
-        return { label: 'Released', className: styles.statusCompleted };
+        return { label: 'Released', className: styles.statusCompleted, color: '#c8a1ff' };
       case 'in_escrow':
-        return { label: 'In Escrow', className: styles.statusAwaiting };
+        return { label: 'In Escrow', className: styles.statusAwaiting, color: '#fbbf24' };
       default:
-        return { label: status, className: '' };
+        return { label: status, className: '', color: '#a1a1a1' };
     }
   };
 
@@ -1150,6 +1150,7 @@ const MyOrdersPage: React.FC = () => {
                     <motion.div
                       key={order._id}
                       className={`${styles.orderCard} ${isExpanded ? styles.orderCardExpanded : ''}`}
+                      style={{ '--card-accent': statusInfo.color } as React.CSSProperties}
                       layout
                     >
                       {/* Compact Order Row */}
@@ -1413,7 +1414,7 @@ const MyOrdersPage: React.FC = () => {
                 {vendorOrders.map((order) => {
                   const statusInfo = getVendorOrderStatusInfo(order.status);
                   return (
-                    <div key={order._id} className={styles.orderCard}>
+                    <div key={order._id} className={styles.orderCard} style={{ '--card-accent': statusInfo.color } as React.CSSProperties}>
                       <div className={styles.orderRow}>
                         <div className={styles.orderThumb}>
                           {order.assetImage ? (
@@ -1486,7 +1487,7 @@ const MyOrdersPage: React.FC = () => {
                   const lastCounter = offer.latestCounterOffer;
 
                   return (
-                    <div key={offer._id} className={styles.offerCard}>
+                    <div key={offer._id} className={styles.offerCard} style={{ '--card-accent': statusInfo.color } as React.CSSProperties}>
                       {/* Offer Row */}
                       <div className={styles.offerRow}>
                         <div className={styles.orderThumb}>
@@ -1647,7 +1648,7 @@ const MyOrdersPage: React.FC = () => {
                       : null;
 
                   return (
-                    <div key={offer._id} className={styles.offerCard}>
+                    <div key={offer._id} className={styles.offerCard} style={{ '--card-accent': statusInfo.color } as React.CSSProperties}>
                       <div className={styles.offerRow}>
                         <div className={styles.orderThumb}>
                           {offer.assetImage ? (

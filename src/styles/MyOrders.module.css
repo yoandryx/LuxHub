@@ -490,6 +490,7 @@
 .orderCard {
   background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.04);
+  border-left: 2px solid var(--card-accent, rgba(255, 255, 255, 0.06));
   border-radius: 14px;
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -497,12 +498,14 @@
 
 .orderCard:hover {
   border-color: var(--accent-border);
+  border-left-color: var(--card-accent, var(--accent-border));
   box-shadow: 0 4px 20px rgba(200, 161, 255, 0.04);
   transform: translateY(-1px);
 }
 
 .orderCardExpanded {
   border-color: rgba(200, 161, 255, 0.2);
+  border-left-color: var(--card-accent, rgba(200, 161, 255, 0.2));
 }
 
 /* Order Row — The compact clickable row */
@@ -920,6 +923,7 @@
 .offerCard {
   background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.04);
+  border-left: 2px solid var(--card-accent, rgba(255, 255, 255, 0.06));
   border-radius: 14px;
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -927,6 +931,7 @@
 
 .offerCard:hover {
   border-color: var(--accent-border);
+  border-left-color: var(--card-accent, var(--accent-border));
   box-shadow: 0 4px 20px rgba(200, 161, 255, 0.04);
   transform: translateY(-1px);
 }
