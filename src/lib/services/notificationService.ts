@@ -545,7 +545,7 @@ export async function notifyNewOrder(params: {
       escrowId,
       escrowPda,
       amountUSD,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 }
@@ -583,7 +583,7 @@ export async function notifyOrderShipped(params: {
       escrowPda,
       trackingNumber,
       trackingCarrier,
-      actionUrl: trackingUrl || `${appUrl}/orders`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 }
@@ -640,7 +640,7 @@ export async function notifyShipmentVerified(params: {
     metadata: {
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 }
@@ -666,7 +666,7 @@ export async function notifyShipmentRejected(params: {
     metadata: {
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 }
@@ -693,7 +693,7 @@ export async function notifyDeliveryConfirmed(params: {
     metadata: {
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/orders`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 
@@ -706,7 +706,7 @@ export async function notifyDeliveryConfirmed(params: {
     metadata: {
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 }
@@ -736,7 +736,7 @@ export async function notifyOfferReceived(params: {
       offerId,
       escrowId,
       amountUSD: offerAmountUSD,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
       imageUrl,
       amountLabel: 'Offer Amount',
       counterpartyWallet: buyerWallet,
@@ -807,7 +807,7 @@ export async function notifyOfferRejected(params: {
     metadata: {
       offerId,
       escrowId,
-      actionUrl: `${appUrl}/user/userDashboard?tab=offers`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
       imageUrl,
       eventBadge: 'OFFER REJECTED',
     },
@@ -840,7 +840,7 @@ export async function notifyOfferCountered(params: {
       escrowId,
       escrowPda,
       amountUSD: counterAmountUSD,
-      actionUrl: `${appUrl}/user/userDashboard?tab=offers`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
       imageUrl,
       amountLabel: 'Counter Amount',
       counterpartyLabel: 'From Vendor',
@@ -908,7 +908,7 @@ export async function notifyCounterAcceptedByBuyer(params: {
       escrowId,
       escrowPda,
       amountUSD: acceptedAmountUSD,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
       imageUrl,
       amountLabel: 'Accepted Amount',
       counterpartyWallet: buyerWallet,
@@ -941,7 +941,7 @@ export async function notifyCounterRejectedByBuyer(params: {
       offerId,
       escrowId,
       escrowPda,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 }
@@ -971,7 +971,7 @@ export async function notifyBuyerCounteredVendor(params: {
       escrowId,
       escrowPda,
       amountUSD: counterAmountUSD,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=offers`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 }
@@ -1044,7 +1044,7 @@ export async function notifyOrderRefunded(params: {
       escrowId,
       escrowPda,
       amountUSD,
-      actionUrl: `${appUrl}/orders`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 
@@ -1058,7 +1058,7 @@ export async function notifyOrderRefunded(params: {
       escrowId,
       escrowPda,
       amountUSD,
-      actionUrl: `${appUrl}/vendor/vendorDashboard?tab=orders`,
+      actionUrl: `${appUrl}/order/${escrowId}`,
     },
   });
 }
