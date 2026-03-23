@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useBuyerOffers } from '../hooks/useSWR';
 import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
 import toast from 'react-hot-toast';
+import type { Toast } from 'react-hot-toast';
 import styles from '../styles/MyOrders.module.css';
 import {
   FiPackage,
@@ -173,6 +174,110 @@ const TIMELINE_STEPS = [
   { key: 'delivered', label: 'Delivered', icon: FiPackage },
   { key: 'released', label: 'Complete', icon: FiCheckCircle },
 ];
+
+// ==================== OFFER TOAST ====================
+type OfferToastType = 'accepted' | 'rejected' | 'countered';
+const TOAST_CONFIG: Record<OfferToastType, { badge: string; color: string; icon: string }> = {
+  accepted: { badge: 'ACCEPTED', color: '#4ade80', icon: '\u2713' },
+  rejected: { badge: 'REJECTED', color: '#ff6b6b', icon: '\u2717' },
+  countered: { badge: 'COUNTER SENT', color: '#c8a1ff', icon: '\u21c4' },
+};
+
+function showOfferToast(
+  type: OfferToastType,
+  opts: { title: string; amount?: number; wallet?: string }
+) {
+  const cfg = TOAST_CONFIG[type];
+  const truncWallet = opts.wallet ? `${opts.wallet.slice(0, 6)}...${opts.wallet.slice(-4)}` : '';
+
+  toast.custom(
+    (t: Toast) => (
+      <div
+        onClick={() => toast.dismiss(t.id)}
+        style={{
+          maxWidth: 380,
+          width: '100%',
+          background: 'rgba(10, 10, 14, 0.94)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          border: `1px solid ${cfg.color}30`,
+          borderRadius: 14,
+          padding: 0,
+          overflow: 'hidden',
+          boxShadow: `0 12px 40px rgba(0,0,0,0.5), 0 0 20px ${cfg.color}10`,
+          cursor: 'pointer',
+          opacity: t.visible ? 1 : 0,
+          transform: t.visible ? 'translateX(0)' : 'translateX(100px)',
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${cfg.color}, transparent)` }} />
+        <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: `${cfg.color}15`,
+              border: `1px solid ${cfg.color}30`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 18,
+              color: cfg.color,
+              flexShrink: 0,
+              fontWeight: 700,
+            }}
+          >
+            {cfg.icon}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                  color: cfg.color,
+                  background: `${cfg.color}15`,
+                  padding: '2px 8px',
+                  borderRadius: 10,
+                }}
+              >
+                {cfg.badge}
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: '#fff',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                marginBottom: 2,
+              }}
+            >
+              {opts.title}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              {opts.amount !== undefined && (
+                <span style={{ color: '#c8a1ff', fontWeight: 700 }}>
+                  ${opts.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              )}
+              {truncWallet && (
+                <span style={{ color: '#777', fontFamily: 'monospace', fontSize: 11 }}>{truncWallet}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    { duration: 5000, position: 'top-right' }
+  );
+}
 
 // ==================== COMPONENT ====================
 const MyOrdersPage: React.FC = () => {
@@ -471,6 +576,23 @@ const MyOrdersPage: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        // Show rich toast for the action
+        const offer = (offers as BuyerOffer[]).find((o) => o._id === offerId);
+        const toastType: OfferToastType | null =
+          action === 'accept_counter' ? 'accepted' :
+          action === 'reject_counter' ? 'rejected' :
+          action === 'counter' ? 'countered' :
+          null;
+        if (toastType && offer) {
+          showOfferToast(toastType, {
+            title: offer.assetModel || 'Offer',
+            amount: action === 'counter' ? parseFloat(extra?.counterAmountUSD || '0') :
+                    offer.latestCounterOffer?.amountUSD || offer.offerPriceUSD,
+            wallet: offer.vendorName || undefined,
+          });
+        } else if (action === 'withdraw') {
+          toast.success('Offer withdrawn');
+        }
         mutateOffers();
         setShowCounterModal(false);
         setSelectedOffer(null);
@@ -519,7 +641,11 @@ const MyOrdersPage: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast.success('Offer accepted! The buyer will be notified.');
+        showOfferToast('accepted', {
+          title: offer.assetTitle || 'Offer',
+          amount: offer.offerPriceUSD || offer.offerAmount,
+          wallet: offer.buyerWallet,
+        });
         fetchVendorOffers();
       } else {
         toast.error(data.error || 'Failed to accept offer');
@@ -558,7 +684,11 @@ const MyOrdersPage: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast.success('Offer rejected');
+        showOfferToast('rejected', {
+          title: vendorSelectedOffer.assetTitle || 'Offer',
+          amount: vendorSelectedOffer.offerPriceUSD || vendorSelectedOffer.offerAmount,
+          wallet: vendorSelectedOffer.buyerWallet,
+        });
         setShowVendorRejectModal(false);
         setVendorSelectedOffer(null);
         setVendorRejectReason('');
@@ -603,7 +733,11 @@ const MyOrdersPage: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast.success('Counter offer sent! Awaiting buyer response.');
+        showOfferToast('countered', {
+          title: vendorSelectedOffer.assetTitle || 'Offer',
+          amount: parseFloat(vendorCounterAmount),
+          wallet: vendorSelectedOffer.buyerWallet,
+        });
         setShowVendorCounterModal(false);
         setVendorSelectedOffer(null);
         setVendorCounterAmount('');
