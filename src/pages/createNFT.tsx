@@ -2291,7 +2291,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
             </div>
           )}
 
-          {/* Mode Switcher - WatchMarket Style */}
+          {/* Mode Switcher */}
           <div className={styles.modeTabs}>
             <button
               className={mintMode === 'single' ? styles.active : ''}

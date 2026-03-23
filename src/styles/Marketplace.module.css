@@ -3154,7 +3154,7 @@
   );
 }
 
-/* ==================== NFT GRID (WatchMarket Style) ==================== */
+/* ==================== NFT GRID ==================== */
 .nftGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

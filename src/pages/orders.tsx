@@ -23,7 +23,6 @@ import {
   FiStar,
   FiMessageSquare,
   FiShoppingBag,
-  FiArrowLeft,
   FiInfo,
   FiCheck,
   FiTag,
@@ -922,17 +921,6 @@ const MyOrdersPage: React.FC = () => {
 
         {/* Page Header */}
         <header className={styles.pageHeader}>
-          <div className={styles.headerRow}>
-            <Link href="/marketplace" className={styles.backLink}>
-              <FiArrowLeft />
-            </Link>
-            <h1 className={styles.pageTitle}>Orders</h1>
-            {actionCount > 0 && (
-              <span className={styles.actionBadge}>
-                {actionCount} action{actionCount > 1 ? 's' : ''} needed
-              </span>
-            )}
-          </div>
 
           {/* Role Toggle */}
           {!roleLoading && (

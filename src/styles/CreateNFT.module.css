@@ -57,7 +57,7 @@
   z-index: 0;
 }
 
-/* ========== TAB NAVIGATION - WatchMarket Style ========== */
+/* ========== TAB NAVIGATION ========== */
 .tabContainer {
   display: flex;
   justify-content: center;
@@ -2293,7 +2293,7 @@
   background: var(--accent-glow);
 }
 
-/* ========== MODE TABS (Manual/Bulk) - Fixed WatchMarket Style ========== */
+/* ========== MODE TABS (Manual/Bulk) ========== */
 .modeTabs {
   position: fixed;
   bottom: 80px;

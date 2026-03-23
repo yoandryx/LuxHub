@@ -148,9 +148,11 @@ None yet.
 | 260322-s2x | Complete useEffectiveWallet rollout to all 14 remaining pages | 2026-03-23 | 677c399 | [260322-s2x-complete-useeffectivewallet-rollout-12-r](./quick/260322-s2x-complete-useeffectivewallet-rollout-12-r/) |
 | 260322-trj | Unify /orders page as central hub for buyer + vendor roles | 2026-03-23 | bd7206f | [260322-trj-unify-orders-page-as-central-hub-for-all](./quick/260322-trj-unify-orders-page-as-central-hub-for-all/) |
 | 260322-v86 | Coordinate notifications and emails with unified orders page | 2026-03-23 | 01a26b6 | [260322-v86-coordinate-notifications-and-emails-with](./quick/260322-v86-coordinate-notifications-and-emails-with/) |
-| 260322-w3x | Fix counter email images and upgrade amount styling to chrome glass | 2026-03-23 | pending | [260322-w3x-fix-counter-email-images-and-upgrade-amo](./quick/260322-w3x-fix-counter-email-images-and-upgrade-amo/) |
+| 260322-w3x | Fix counter email images and upgrade amount styling to chrome glass | 2026-03-23 | e987764 | [260322-w3x-fix-counter-email-images-and-upgrade-amo](./quick/260322-w3x-fix-counter-email-images-and-upgrade-amo/) |
+| 260322-wse | Apply color-coded accent borders to all email templates + preview page | 2026-03-23 | pending | [260322-wse-apply-color-coded-accent-borders-to-all-](./quick/260322-wse-apply-color-coded-accent-borders-to-all-/) |
+| 260322-x95 | Match email templates to order/offer card left-border styling + orders page cleanup + remove watchMarket dead code | 2026-03-23 | pending | [260322-x95-match-email-templates-to-order-offer-car](./quick/260322-x95-match-email-templates-to-order-offer-car/) |
 
 ## Session Continuity
 
 Last activity: 2026-03-23
-Stopped at: Completed quick-260322-w3x fix counter email images and upgrade styling
+Stopped at: Completed quick-260322-x95 email left-border styling + orders header removal + watchMarket cleanup
