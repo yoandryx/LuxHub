@@ -1,5 +1,5 @@
 // src/pages/orders.tsx
-// Buyer's order tracking + offers management — modern luxury dashboard
+// Role-aware order tracking + offers management — buyer & vendor hub
 import React, { useState, useEffect, useCallback } from 'react';
 import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +7,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useBuyerOffers } from '../hooks/useSWR';
 import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
+import toast from 'react-hot-toast';
 import styles from '../styles/MyOrders.module.css';
 import {
   FiPackage,
@@ -117,6 +118,36 @@ interface BuyerOffer {
   expiresAt?: string;
 }
 
+interface VendorOffer {
+  _id: string;
+  assetTitle?: string;
+  assetBrand?: string;
+  offerPriceUSD: number;
+  offerAmount?: number;
+  listPriceUSD?: number;
+  listPrice?: number;
+  status: string;
+  buyerWallet?: string;
+  message?: string;
+  counterOffers?: CounterOffer[];
+  rejectionReason?: string;
+  createdAt: string;
+}
+
+interface VendorOrder {
+  _id: string;
+  assetTitle?: string;
+  assetBrand?: string;
+  assetImage?: string;
+  amount?: number;
+  status: string;
+  buyerWallet?: string;
+  createdAt: string;
+  fundedAt?: string;
+  shippedAt?: string;
+}
+
+type Role = 'buyer' | 'vendor';
 type TopTab = 'orders' | 'offers';
 type FilterTab = 'all' | 'payment' | 'awaiting' | 'shipped' | 'delivered' | 'completed';
 type OfferFilter = 'all' | 'pending' | 'countered' | 'accepted' | 'rejected';
@@ -147,10 +178,21 @@ const MyOrdersPage: React.FC = () => {
   const wallet = useEffectiveWallet();
   const walletAddress = wallet.publicKey?.toBase58();
 
-  // Top-level tab
-  const [topTab, setTopTab] = useState<TopTab>('orders');
+  // Role detection
+  const [role, setRole] = useState<Role>('buyer');
+  const [roleLoading, setRoleLoading] = useState(true);
 
-  // Orders state
+  // Top-level tab (read from URL query on mount)
+  const [topTab, setTopTab] = useState<TopTab>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'offers' || tab === 'orders') return tab;
+    }
+    return 'orders';
+  });
+
+  // Orders state (buyer)
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<OrderStats>({
     total: 0,
@@ -165,7 +207,7 @@ const MyOrdersPage: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
-  // Offers state (via SWR)
+  // Offers state (buyer — via SWR)
   const {
     offers,
     stats: offerStats,
@@ -174,7 +216,7 @@ const MyOrdersPage: React.FC = () => {
   } = useBuyerOffers(walletAddress);
   const [offerFilter, setOfferFilter] = useState<OfferFilter>('all');
 
-  // Confirm delivery modal state
+  // Confirm delivery modal state (buyer)
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [rating, setRating] = useState<number>(5);
@@ -183,14 +225,50 @@ const MyOrdersPage: React.FC = () => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmSuccess, setConfirmSuccess] = useState(false);
 
-  // Counter-offer modal state
+  // Counter-offer modal state (buyer)
   const [showCounterModal, setShowCounterModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<BuyerOffer | null>(null);
   const [counterAmount, setCounterAmount] = useState('');
   const [counterMessage, setCounterMessage] = useState('');
   const [isResponding, setIsResponding] = useState(false);
 
-  // Fetch orders
+  // ==================== VENDOR STATE ====================
+  const [vendorOffers, setVendorOffers] = useState<VendorOffer[]>([]);
+  const [vendorOffersLoading, setVendorOffersLoading] = useState(false);
+  const [vendorOfferFilter, setVendorOfferFilter] = useState<OfferFilter>('all');
+
+  const [vendorOrders, setVendorOrders] = useState<VendorOrder[]>([]);
+  const [vendorOrdersLoading, setVendorOrdersLoading] = useState(false);
+
+  // Vendor offer action modals
+  const [showVendorCounterModal, setShowVendorCounterModal] = useState(false);
+  const [showVendorRejectModal, setShowVendorRejectModal] = useState(false);
+  const [vendorSelectedOffer, setVendorSelectedOffer] = useState<VendorOffer | null>(null);
+  const [vendorCounterAmount, setVendorCounterAmount] = useState('');
+  const [vendorCounterMessage, setVendorCounterMessage] = useState('');
+  const [vendorRejectReason, setVendorRejectReason] = useState('');
+  const [vendorOfferActionLoading, setVendorOfferActionLoading] = useState(false);
+
+  // ==================== ROLE DETECTION ====================
+  useEffect(() => {
+    if (!walletAddress) {
+      setRoleLoading(false);
+      return;
+    }
+    setRoleLoading(true);
+    fetch(`/api/vendor/profile?wallet=${walletAddress}`)
+      .then((res) => {
+        if (res.ok) {
+          setRole('vendor');
+        } else {
+          setRole('buyer');
+        }
+      })
+      .catch(() => setRole('buyer'))
+      .finally(() => setRoleLoading(false));
+  }, [walletAddress]);
+
+  // ==================== BUYER: FETCH ORDERS ====================
   const fetchOrders = useCallback(async () => {
     if (!wallet.publicKey) return;
     setIsLoading(true);
@@ -222,14 +300,55 @@ const MyOrdersPage: React.FC = () => {
   }, [wallet.publicKey]);
 
   useEffect(() => {
-    if (wallet.connected) {
+    if (wallet.connected && role === 'buyer') {
       fetchOrders();
     } else {
       setIsLoading(false);
     }
-  }, [wallet.connected, fetchOrders]);
+  }, [wallet.connected, role, fetchOrders]);
 
-  // Filter orders
+  // ==================== VENDOR: FETCH OFFERS ====================
+  const fetchVendorOffers = useCallback(async () => {
+    if (!walletAddress) return;
+    setVendorOffersLoading(true);
+    try {
+      const res = await fetch(`/api/vendor/offers?wallet=${walletAddress}`);
+      if (res.ok) {
+        const data = await res.json();
+        setVendorOffers(data.offers || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch vendor offers:', err);
+    } finally {
+      setVendorOffersLoading(false);
+    }
+  }, [walletAddress]);
+
+  // ==================== VENDOR: FETCH ORDERS ====================
+  const fetchVendorOrders = useCallback(async () => {
+    if (!walletAddress) return;
+    setVendorOrdersLoading(true);
+    try {
+      const res = await fetch(`/api/vendor/orders?wallet=${walletAddress}`);
+      if (res.ok) {
+        const data = await res.json();
+        setVendorOrders(data.orders || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch vendor orders:', err);
+    } finally {
+      setVendorOrdersLoading(false);
+    }
+  }, [walletAddress]);
+
+  // Load vendor data when role is vendor
+  useEffect(() => {
+    if (role !== 'vendor' || !walletAddress) return;
+    if (topTab === 'offers') fetchVendorOffers();
+    if (topTab === 'orders') fetchVendorOrders();
+  }, [role, walletAddress, topTab, fetchVendorOffers, fetchVendorOrders]);
+
+  // ==================== BUYER: FILTER ORDERS ====================
   const filteredOrders = orders.filter((order) => {
     switch (activeFilter) {
       case 'payment':
@@ -247,7 +366,7 @@ const MyOrdersPage: React.FC = () => {
     }
   });
 
-  // Filter offers
+  // ==================== BUYER: FILTER OFFERS ====================
   const filteredOffers = (offers as BuyerOffer[]).filter((offer) => {
     switch (offerFilter) {
       case 'pending':
@@ -263,7 +382,20 @@ const MyOrdersPage: React.FC = () => {
     }
   });
 
-  // ==================== ORDER HANDLERS ====================
+  // ==================== VENDOR: FILTER OFFERS ====================
+  const filteredVendorOffers = vendorOffers.filter((o) =>
+    vendorOfferFilter === 'all' ? true : o.status === vendorOfferFilter
+  );
+
+  const vendorOfferCounts = {
+    total: vendorOffers.length,
+    pending: vendorOffers.filter((o) => o.status === 'pending').length,
+    countered: vendorOffers.filter((o) => o.status === 'countered').length,
+    accepted: vendorOffers.filter((o) => o.status === 'accepted').length,
+    rejected: vendorOffers.filter((o) => o.status === 'rejected').length,
+  };
+
+  // ==================== BUYER: ORDER HANDLERS ====================
   const openConfirmModal = (order: Order) => {
     setSelectedOrder(order);
     setRating(5);
@@ -308,7 +440,7 @@ const MyOrdersPage: React.FC = () => {
     }
   };
 
-  // ==================== OFFER HANDLERS ====================
+  // ==================== BUYER: OFFER HANDLERS ====================
   const handleOfferAction = async (
     offerId: string,
     action: string,
@@ -356,6 +488,127 @@ const MyOrdersPage: React.FC = () => {
       counterAmountUSD: parseFloat(counterAmount),
       counterMessage: counterMessage.trim() || undefined,
     });
+  };
+
+  // ==================== VENDOR: OFFER HANDLERS ====================
+  const handleVendorAcceptOffer = async (offer: VendorOffer) => {
+    if (!walletAddress) return;
+    setVendorOfferActionLoading(true);
+    toast(
+      `Accepting offer of $${offer.offerPriceUSD?.toLocaleString() || offer.offerAmount?.toLocaleString()}...`,
+      { icon: '...' }
+    );
+    try {
+      const res = await fetch('/api/offers/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: offer._id,
+          vendorWallet: walletAddress,
+          action: 'accept',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Offer accepted! The buyer will be notified.');
+        fetchVendorOffers();
+      } else {
+        toast.error(data.error || 'Failed to accept offer');
+      }
+    } catch (err) {
+      console.error('Error accepting offer:', err);
+      toast.error('Failed to accept offer');
+    } finally {
+      setVendorOfferActionLoading(false);
+    }
+  };
+
+  const openVendorRejectModal = (offer: VendorOffer) => {
+    setVendorSelectedOffer(offer);
+    setVendorRejectReason('');
+    setShowVendorRejectModal(true);
+  };
+
+  const handleVendorRejectOffer = async () => {
+    if (!walletAddress || !vendorSelectedOffer) return;
+    if (!vendorRejectReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+    setVendorOfferActionLoading(true);
+    try {
+      const res = await fetch('/api/offers/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: vendorSelectedOffer._id,
+          vendorWallet: walletAddress,
+          action: 'reject',
+          rejectionReason: vendorRejectReason.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Offer rejected');
+        setShowVendorRejectModal(false);
+        setVendorSelectedOffer(null);
+        setVendorRejectReason('');
+        fetchVendorOffers();
+      } else {
+        toast.error(data.error || 'Failed to reject offer');
+      }
+    } catch (err) {
+      console.error('Error rejecting offer:', err);
+      toast.error('Failed to reject offer');
+    } finally {
+      setVendorOfferActionLoading(false);
+    }
+  };
+
+  const openVendorCounterModal = (offer: VendorOffer) => {
+    setVendorSelectedOffer(offer);
+    setVendorCounterAmount('');
+    setVendorCounterMessage('');
+    setShowVendorCounterModal(true);
+  };
+
+  const handleVendorCounterOffer = async () => {
+    if (!walletAddress || !vendorSelectedOffer) return;
+    const counterAmountNum = parseFloat(vendorCounterAmount);
+    if (!counterAmountNum || counterAmountNum <= 0) {
+      toast.error('Please enter a valid counter amount');
+      return;
+    }
+    setVendorOfferActionLoading(true);
+    try {
+      const res = await fetch('/api/offers/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: vendorSelectedOffer._id,
+          vendorWallet: walletAddress,
+          action: 'counter',
+          counterAmountUSD: counterAmountNum,
+          counterMessage: vendorCounterMessage.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Counter offer sent! Awaiting buyer response.');
+        setShowVendorCounterModal(false);
+        setVendorSelectedOffer(null);
+        setVendorCounterAmount('');
+        setVendorCounterMessage('');
+        fetchVendorOffers();
+      } else {
+        toast.error(data.error || 'Failed to send counter offer');
+      }
+    } catch (err) {
+      console.error('Error sending counter offer:', err);
+      toast.error('Failed to send counter offer');
+    } finally {
+      setVendorOfferActionLoading(false);
+    }
   };
 
   // ==================== HELPERS ====================
@@ -469,11 +722,30 @@ const MyOrdersPage: React.FC = () => {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const getVendorOrderStatusInfo = (status: string) => {
+    switch (status) {
+      case 'funded':
+        return { label: 'Funded', className: styles.statusAwaiting };
+      case 'shipped':
+        return { label: 'Shipped', className: styles.statusShipped };
+      case 'delivered':
+        return { label: 'Delivered', className: styles.statusDelivered };
+      case 'released':
+        return { label: 'Released', className: styles.statusCompleted };
+      case 'in_escrow':
+        return { label: 'In Escrow', className: styles.statusAwaiting };
+      default:
+        return { label: status, className: '' };
+    }
+  };
+
   const actionCount =
-    stats.awaitingPayment +
-    stats.delivered +
-    (offerStats?.pending || 0) +
-    (offerStats?.countered || 0);
+    role === 'buyer'
+      ? stats.awaitingPayment +
+        stats.delivered +
+        (offerStats?.pending || 0) +
+        (offerStats?.countered || 0)
+      : vendorOfferCounts.pending + vendorOfferCounts.countered;
 
   // ==================== RENDER: NOT CONNECTED ====================
   if (!wallet.connected) {
@@ -505,7 +777,7 @@ const MyOrdersPage: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.ambientBg} />
 
-        {/* Page Header — Compact */}
+        {/* Page Header */}
         <header className={styles.pageHeader}>
           <div className={styles.headerRow}>
             <Link href="/marketplace" className={styles.backLink}>
@@ -519,42 +791,62 @@ const MyOrdersPage: React.FC = () => {
             )}
           </div>
 
-          {/* Quick Stats Bar */}
-          <div className={styles.statsBar}>
-            {[
-              { label: 'Total', value: stats.total, filter: 'all' as FilterTab },
-              ...(stats.awaitingPayment > 0
-                ? [
-                    {
-                      label: 'To Pay',
-                      value: stats.awaitingPayment,
-                      filter: 'payment' as FilterTab,
-                      urgent: true,
-                    },
-                  ]
-                : []),
-              {
-                label: 'Awaiting Ship',
-                value: stats.awaitingShipment,
-                filter: 'awaiting' as FilterTab,
-              },
-              { label: 'In Transit', value: stats.inTransit, filter: 'shipped' as FilterTab },
-              { label: 'Delivered', value: stats.delivered, filter: 'delivered' as FilterTab },
-              { label: 'Completed', value: stats.completed, filter: 'completed' as FilterTab },
-            ].map((stat) => (
+          {/* Role Toggle */}
+          {!roleLoading && (
+            <div className={styles.roleToggle}>
               <button
-                key={stat.label}
-                className={`${styles.statPill} ${activeFilter === stat.filter && topTab === 'orders' ? styles.statPillActive : ''} ${'urgent' in stat && stat.urgent ? styles.statPillUrgent : ''}`}
-                onClick={() => {
-                  setTopTab('orders');
-                  setActiveFilter(stat.filter);
-                }}
+                className={`${styles.roleButton} ${role === 'buyer' ? styles.roleButtonActive : ''}`}
+                onClick={() => setRole('buyer')}
               >
-                <span className={styles.statNum}>{stat.value}</span>
-                <span className={styles.statLbl}>{stat.label}</span>
+                Buying
               </button>
-            ))}
-          </div>
+              <button
+                className={`${styles.roleButton} ${role === 'vendor' ? styles.roleButtonActive : ''}`}
+                onClick={() => setRole('vendor')}
+              >
+                Selling
+              </button>
+            </div>
+          )}
+
+          {/* Quick Stats Bar (buyer only) */}
+          {role === 'buyer' && (
+            <div className={styles.statsBar}>
+              {[
+                { label: 'Total', value: stats.total, filter: 'all' as FilterTab },
+                ...(stats.awaitingPayment > 0
+                  ? [
+                      {
+                        label: 'To Pay',
+                        value: stats.awaitingPayment,
+                        filter: 'payment' as FilterTab,
+                        urgent: true,
+                      },
+                    ]
+                  : []),
+                {
+                  label: 'Awaiting Ship',
+                  value: stats.awaitingShipment,
+                  filter: 'awaiting' as FilterTab,
+                },
+                { label: 'In Transit', value: stats.inTransit, filter: 'shipped' as FilterTab },
+                { label: 'Delivered', value: stats.delivered, filter: 'delivered' as FilterTab },
+                { label: 'Completed', value: stats.completed, filter: 'completed' as FilterTab },
+              ].map((stat) => (
+                <button
+                  key={stat.label}
+                  className={`${styles.statPill} ${activeFilter === stat.filter && topTab === 'orders' ? styles.statPillActive : ''} ${'urgent' in stat && stat.urgent ? styles.statPillUrgent : ''}`}
+                  onClick={() => {
+                    setTopTab('orders');
+                    setActiveFilter(stat.filter);
+                  }}
+                >
+                  <span className={styles.statNum}>{stat.value}</span>
+                  <span className={styles.statLbl}>{stat.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </header>
 
         {/* Tab Switcher */}
@@ -565,23 +857,36 @@ const MyOrdersPage: React.FC = () => {
               onClick={() => setTopTab('orders')}
             >
               <FiShoppingBag /> Orders
-              {stats.total > 0 && <span className={styles.tabCount}>{stats.total}</span>}
+              {role === 'buyer' && stats.total > 0 && (
+                <span className={styles.tabCount}>{stats.total}</span>
+              )}
+              {role === 'vendor' && vendorOrders.length > 0 && (
+                <span className={styles.tabCount}>{vendorOrders.length}</span>
+              )}
             </button>
             <button
               className={`${styles.tab} ${topTab === 'offers' ? styles.tabActive : ''}`}
               onClick={() => setTopTab('offers')}
             >
               <FiTag /> Offers
-              {offerStats && (offerStats.pending > 0 || offerStats.countered > 0) && (
-                <span className={styles.tabBadge}>
-                  {(offerStats.pending || 0) + (offerStats.countered || 0)}
-                </span>
-              )}
+              {role === 'buyer' &&
+                offerStats &&
+                (offerStats.pending > 0 || offerStats.countered > 0) && (
+                  <span className={styles.tabBadge}>
+                    {(offerStats.pending || 0) + (offerStats.countered || 0)}
+                  </span>
+                )}
+              {role === 'vendor' &&
+                (vendorOfferCounts.pending > 0 || vendorOfferCounts.countered > 0) && (
+                  <span className={styles.tabBadge}>
+                    {vendorOfferCounts.pending + vendorOfferCounts.countered}
+                  </span>
+                )}
             </button>
           </div>
 
-          {/* Sub-filter for offers */}
-          {topTab === 'offers' && (
+          {/* Sub-filter for buyer offers */}
+          {topTab === 'offers' && role === 'buyer' && (
             <div className={styles.subFilters}>
               {(['all', 'pending', 'countered', 'accepted', 'rejected'] as OfferFilter[]).map(
                 (f) => {
@@ -605,6 +910,28 @@ const MyOrdersPage: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Sub-filter for vendor offers */}
+          {topTab === 'offers' && role === 'vendor' && (
+            <div className={styles.subFilters}>
+              {(['all', 'pending', 'countered', 'accepted', 'rejected'] as OfferFilter[]).map(
+                (f) => {
+                  const count =
+                    f === 'all' ? vendorOfferCounts.total : (vendorOfferCounts as any)[f] || 0;
+                  return (
+                    <button
+                      key={f}
+                      className={`${styles.subFilter} ${vendorOfferFilter === f ? styles.subFilterActive : ''}`}
+                      onClick={() => setVendorOfferFilter(f)}
+                    >
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                      {count > 0 && <span className={styles.subFilterCount}>{count}</span>}
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          )}
         </div>
 
         {/* Error Banner */}
@@ -618,8 +945,8 @@ const MyOrdersPage: React.FC = () => {
           </div>
         )}
 
-        {/* ===== ORDERS TAB ===== */}
-        {topTab === 'orders' && (
+        {/* ===== BUYER: ORDERS TAB ===== */}
+        {topTab === 'orders' && role === 'buyer' && (
           <div className={styles.content}>
             {isLoading ? (
               <div className={styles.loadingState}>
@@ -897,8 +1224,73 @@ const MyOrdersPage: React.FC = () => {
           </div>
         )}
 
-        {/* ===== MY OFFERS TAB ===== */}
-        {topTab === 'offers' && (
+        {/* ===== VENDOR: ORDERS TAB ===== */}
+        {topTab === 'orders' && role === 'vendor' && (
+          <div className={styles.content}>
+            {vendorOrdersLoading ? (
+              <div className={styles.loadingState}>
+                <FiLoader className={styles.spinner} />
+                <p>Loading your orders...</p>
+              </div>
+            ) : vendorOrders.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiPackage className={styles.emptyIcon} />
+                <h2>No Vendor Orders Yet</h2>
+                <p>Once buyers purchase your listings, orders will appear here.</p>
+              </div>
+            ) : (
+              <div className={styles.ordersList}>
+                {vendorOrders.map((order) => {
+                  const statusInfo = getVendorOrderStatusInfo(order.status);
+                  return (
+                    <div key={order._id} className={styles.orderCard}>
+                      <div className={styles.orderRow}>
+                        <div className={styles.orderThumb}>
+                          {order.assetImage ? (
+                            <img src={order.assetImage} alt={order.assetTitle || 'Asset'} />
+                          ) : (
+                            <FiPackage />
+                          )}
+                        </div>
+                        <div className={styles.orderInfo}>
+                          <div className={styles.orderTopLine}>
+                            <h3>{order.assetTitle || 'Listing'}</h3>
+                            {order.amount != null && (
+                              <span className={styles.orderAmount}>
+                                ${order.amount.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          <div className={styles.orderBottomLine}>
+                            <span className={styles.orderMeta}>
+                              {order.assetBrand && (
+                                <span className={styles.brand}>{order.assetBrand}</span>
+                              )}
+                              {order.buyerWallet && (
+                                <>
+                                  <span className={styles.dot} />
+                                  <span>Buyer: {order.buyerWallet.slice(0, 6)}...</span>
+                                </>
+                              )}
+                              <span className={styles.dot} />
+                              <span>{formatTimeAgo(order.fundedAt || order.createdAt)}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`${styles.statusChip} ${statusInfo.className}`}>
+                          <span>{statusInfo.label}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== BUYER: OFFERS TAB ===== */}
+        {topTab === 'offers' && role === 'buyer' && (
           <div className={styles.content}>
             {isLoadingOffers ? (
               <div className={styles.loadingState}>
@@ -1057,7 +1449,186 @@ const MyOrdersPage: React.FC = () => {
           </div>
         )}
 
-        {/* ===== CONFIRM DELIVERY MODAL ===== */}
+        {/* ===== VENDOR: OFFERS TAB ===== */}
+        {topTab === 'offers' && role === 'vendor' && (
+          <div className={styles.content}>
+            {vendorOffersLoading ? (
+              <div className={styles.loadingState}>
+                <FiLoader className={styles.spinner} />
+                <p>Loading incoming offers...</p>
+              </div>
+            ) : filteredVendorOffers.length === 0 ? (
+              <div className={styles.emptyState}>
+                <FiTag className={styles.emptyIcon} />
+                <h2>
+                  {vendorOfferFilter === 'all'
+                    ? 'No Incoming Offers'
+                    : `No ${vendorOfferFilter} offers`}
+                </h2>
+                <p>Buyers can make offers on your listings. They will appear here.</p>
+              </div>
+            ) : (
+              <div className={styles.ordersList}>
+                {filteredVendorOffers.map((offer) => {
+                  const statusInfo = getOfferStatusInfo(offer.status);
+                  const lastCounter =
+                    offer.counterOffers && offer.counterOffers.length > 0
+                      ? offer.counterOffers[offer.counterOffers.length - 1]
+                      : null;
+
+                  return (
+                    <div key={offer._id} className={styles.offerCard}>
+                      <div className={styles.offerRow}>
+                        <div className={styles.orderThumb}>
+                          <FiTag />
+                        </div>
+                        <div className={styles.orderInfo}>
+                          <div className={styles.orderTopLine}>
+                            <h3>{offer.assetTitle || 'Asset'}</h3>
+                            <div className={styles.priceStack}>
+                              <span className={styles.offerPrice}>
+                                ${(offer.offerPriceUSD || offer.offerAmount || 0).toLocaleString()}
+                              </span>
+                              {(offer.listPriceUSD || offer.listPrice) && (
+                                <span className={styles.listPrice}>
+                                  List: $
+                                  {(offer.listPriceUSD || offer.listPrice || 0).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className={styles.orderBottomLine}>
+                            <span className={styles.orderMeta}>
+                              {offer.buyerWallet && (
+                                <span>Buyer: {offer.buyerWallet.slice(0, 8)}...</span>
+                              )}
+                              <span className={styles.dot} />
+                              <span>{formatTimeAgo(offer.createdAt)}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`${styles.statusChip} ${statusInfo.className}`}>
+                          <span>{statusInfo.label}</span>
+                        </div>
+                      </div>
+
+                      {/* Message */}
+                      {offer.message && (
+                        <div className={styles.counterSection}>
+                          <div className={styles.counterLabel}>
+                            <FiMessageSquare /> Buyer Message
+                          </div>
+                          <p
+                            style={{
+                              fontSize: '0.85rem',
+                              color: 'var(--text-secondary)',
+                              margin: 0,
+                            }}
+                          >
+                            {offer.message}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Counter history */}
+                      {offer.counterOffers && offer.counterOffers.length > 0 && (
+                        <div className={styles.counterSection}>
+                          <div className={styles.counterLabel}>
+                            <FiRefreshCw /> Negotiation
+                          </div>
+                          <div className={styles.counterChain}>
+                            <div className={styles.counterStep}>
+                              <span className={styles.counterWho}>Buyer</span>
+                              <span className={styles.counterAmt}>
+                                ${(offer.offerPriceUSD || offer.offerAmount || 0).toLocaleString()}
+                              </span>
+                            </div>
+                            {offer.counterOffers.map((co, idx) => (
+                              <React.Fragment key={idx}>
+                                <FiChevronRight className={styles.counterArrow} />
+                                <div className={styles.counterStep}>
+                                  <span className={styles.counterWho}>
+                                    {co.fromType === 'vendor' ? 'You' : 'Buyer'}
+                                  </span>
+                                  <span className={styles.counterAmt}>
+                                    ${co.amountUSD.toLocaleString()}
+                                  </span>
+                                  {co.message && (
+                                    <span className={styles.counterNote}>{co.message}</span>
+                                  )}
+                                </div>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Rejection reason */}
+                      {offer.status === 'rejected' && offer.rejectionReason && (
+                        <div className={styles.counterSection}>
+                          <div className={styles.counterLabel}>
+                            <FiAlertCircle /> Rejection Reason
+                          </div>
+                          <p
+                            style={{
+                              fontSize: '0.85rem',
+                              color: 'var(--error)',
+                              margin: 0,
+                            }}
+                          >
+                            {offer.rejectionReason}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Vendor Offer Actions */}
+                      {(offer.status === 'pending' || offer.status === 'countered') && (
+                        <div className={styles.offerActions}>
+                          <button
+                            className={styles.vendorAcceptBtn}
+                            onClick={() => handleVendorAcceptOffer(offer)}
+                            disabled={vendorOfferActionLoading}
+                          >
+                            <FiCheckCircle /> Accept
+                          </button>
+                          <button
+                            className={styles.vendorCounterBtn}
+                            onClick={() => openVendorCounterModal(offer)}
+                            disabled={vendorOfferActionLoading}
+                          >
+                            <FiRefreshCw /> Counter
+                          </button>
+                          <button
+                            className={styles.vendorRejectBtn}
+                            onClick={() => openVendorRejectModal(offer)}
+                            disabled={vendorOfferActionLoading}
+                          >
+                            <FiX /> Reject
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Countered waiting for buyer */}
+                      {offer.status === 'countered' && lastCounter?.fromType === 'vendor' && (
+                        <div
+                          className={styles.offerActions}
+                          style={{ borderTop: 'none', paddingTop: 0 }}
+                        >
+                          <div className={styles.awaitingMsg}>
+                            <FiClock /> Awaiting buyer response to your counter of $
+                            {lastCounter.amountUSD.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== BUYER: CONFIRM DELIVERY MODAL ===== */}
         <AnimatePresence>
           {showConfirmModal && selectedOrder && (
             <motion.div
@@ -1194,7 +1765,7 @@ const MyOrdersPage: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* ===== COUNTER-OFFER MODAL ===== */}
+        {/* ===== BUYER: COUNTER-OFFER MODAL ===== */}
         <AnimatePresence>
           {showCounterModal && selectedOffer && (
             <motion.div
@@ -1306,6 +1877,147 @@ const MyOrdersPage: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ===== VENDOR: COUNTER-OFFER MODAL ===== */}
+        {showVendorCounterModal && vendorSelectedOffer && (
+          <div className={styles.modalOverlay} onClick={() => setShowVendorCounterModal(false)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <button
+                className={styles.modalClose}
+                onClick={() => setShowVendorCounterModal(false)}
+              >
+                <FiX />
+              </button>
+              <div className={styles.modalHeader}>
+                <FiRefreshCw className={styles.modalIcon} />
+                <div>
+                  <h2>Counter Offer</h2>
+                  <p>
+                    Counter the offer of $
+                    {(
+                      vendorSelectedOffer.offerPriceUSD ||
+                      vendorSelectedOffer.offerAmount ||
+                      0
+                    ).toLocaleString()}{' '}
+                    for {vendorSelectedOffer.assetTitle || 'this item'}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.modalForm}>
+                <div className={styles.formGroup}>
+                  <label>Counter Amount (USD)</label>
+                  <div className={styles.counterInputWrap}>
+                    <span className={styles.counterCurrency}>$</span>
+                    <input
+                      type="number"
+                      className={styles.counterInput}
+                      placeholder="0.00"
+                      value={vendorCounterAmount}
+                      onChange={(e) => setVendorCounterAmount(e.target.value)}
+                      min={0}
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Message (optional)</label>
+                  <textarea
+                    placeholder="Add a message for the buyer..."
+                    value={vendorCounterMessage}
+                    onChange={(e) => setVendorCounterMessage(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <div className={styles.modalActions}>
+                  <button
+                    className={styles.cancelButton}
+                    onClick={() => setShowVendorCounterModal(false)}
+                    disabled={vendorOfferActionLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={styles.confirmSubmitButton}
+                    onClick={handleVendorCounterOffer}
+                    disabled={vendorOfferActionLoading || !vendorCounterAmount}
+                  >
+                    {vendorOfferActionLoading ? (
+                      <>
+                        <FiLoader className={styles.spinner} /> Sending...
+                      </>
+                    ) : (
+                      <>
+                        <FiRefreshCw /> Send Counter
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== VENDOR: REJECT OFFER MODAL ===== */}
+        {showVendorRejectModal && vendorSelectedOffer && (
+          <div className={styles.modalOverlay} onClick={() => setShowVendorRejectModal(false)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <button className={styles.modalClose} onClick={() => setShowVendorRejectModal(false)}>
+                <FiX />
+              </button>
+              <div className={styles.modalHeader}>
+                <FiAlertCircle className={styles.modalIcon} style={{ color: 'var(--error)' }} />
+                <div>
+                  <h2>Reject Offer</h2>
+                  <p>
+                    Reject the offer of $
+                    {(
+                      vendorSelectedOffer.offerPriceUSD ||
+                      vendorSelectedOffer.offerAmount ||
+                      0
+                    ).toLocaleString()}{' '}
+                    for {vendorSelectedOffer.assetTitle || 'this item'}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.modalForm}>
+                <div className={styles.formGroup}>
+                  <label>Reason for Rejection *</label>
+                  <textarea
+                    placeholder="Please provide a reason for rejecting this offer..."
+                    value={vendorRejectReason}
+                    onChange={(e) => setVendorRejectReason(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <div className={styles.modalActions}>
+                  <button
+                    className={styles.cancelButton}
+                    onClick={() => setShowVendorRejectModal(false)}
+                    disabled={vendorOfferActionLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={styles.dangerAction}
+                    style={{ flex: 1, justifyContent: 'center' }}
+                    onClick={handleVendorRejectOffer}
+                    disabled={vendorOfferActionLoading || !vendorRejectReason.trim()}
+                  >
+                    {vendorOfferActionLoading ? (
+                      <>
+                        <FiLoader className={styles.spinner} /> Rejecting...
+                      </>
+                    ) : (
+                      <>
+                        <FiX /> Reject Offer
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

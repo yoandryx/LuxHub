@@ -136,6 +136,45 @@
   letter-spacing: 0.3px;
 }
 
+/* ==================== ROLE TOGGLE ==================== */
+.roleToggle {
+  display: flex;
+  gap: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.roleButton {
+  padding: 8px 20px;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.roleButton:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.roleButtonActive {
+  background: var(--accent);
+  color: #0a0a0a;
+  font-weight: 600;
+}
+
+.roleButtonActive:hover {
+  background: var(--accent);
+  color: #0a0a0a;
+}
+
 /* ==================== STATS BAR ==================== */
 .statsBar {
   display: flex;
@@ -1476,6 +1515,79 @@
   font-size: 0.9rem;
 }
 
+/* ==================== VENDOR OFFER ACTION BUTTONS ==================== */
+.vendorAcceptBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 8px;
+  color: var(--success);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.vendorAcceptBtn:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.18);
+  border-color: rgba(74, 222, 128, 0.4);
+  transform: translateY(-1px);
+}
+
+.vendorCounterBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(200, 161, 255, 0.06);
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.vendorCounterBtn:hover:not(:disabled) {
+  background: rgba(200, 161, 255, 0.12);
+  border-color: rgba(200, 161, 255, 0.3);
+}
+
+.vendorRejectBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 107, 107, 0.06);
+  border: 1px solid rgba(255, 107, 107, 0.15);
+  border-radius: 8px;
+  color: var(--error);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.vendorRejectBtn:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.12);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.vendorAcceptBtn:disabled,
+.vendorCounterBtn:disabled,
+.vendorRejectBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* ==================== RESPONSIVE: Mobile (600px) ==================== */
 @media (max-width: 600px) {
   .container {
@@ -1615,7 +1727,10 @@
 
   .offerActions .primaryAction,
   .offerActions .secondaryAction,
-  .offerActions .dangerAction {
+  .offerActions .dangerAction,
+  .offerActions .vendorAcceptBtn,
+  .offerActions .vendorCounterBtn,
+  .offerActions .vendorRejectBtn {
     width: 100%;
     justify-content: center;
     min-height: 44px;
