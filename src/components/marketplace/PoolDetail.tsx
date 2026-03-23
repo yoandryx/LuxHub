@@ -304,7 +304,7 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
       } else {
         // ── Fallback: direct SOL transfer for pools without Bags token ──
         const treasury = new PublicKey(
-          process.env.NEXT_PUBLIC_LUXHUB_WALLET || p.vendorWallet || ''
+          process.env.NEXT_PUBLIC_TREASURY_POOLS || p.vendorWallet || ''
         );
         const tx = new Transaction().add(
           (await import('@solana/web3.js')).SystemProgram.transfer({
