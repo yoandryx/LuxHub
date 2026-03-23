@@ -35,14 +35,28 @@ export interface ClusterConfig {
  */
 export function getClusterConfig(): ClusterConfig {
   const endpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
-  if (!endpoint) {
-    throw new Error(
-      '[LuxHub] NEXT_PUBLIC_SOLANA_ENDPOINT is not configured. Set this environment variable to your Helius RPC URL.'
-    );
-  }
-
   const networkStr = process.env.NEXT_PUBLIC_SOLANA_NETWORK;
-  if (!networkStr || !VALID_NETWORKS.includes(networkStr as SolanaChain)) {
+
+  // During Next.js static generation (build), env vars may not be available.
+  // Return safe defaults so prerendering succeeds; real values are used at runtime.
+  if (!endpoint || !networkStr || !VALID_NETWORKS.includes(networkStr as SolanaChain)) {
+    if (typeof window === 'undefined') {
+      // Build-time: return devnet defaults so SSG pages can prerender
+      return {
+        network: WalletAdapterNetwork.Devnet,
+        endpoint: 'https://api.devnet.solana.com',
+        chain: 'devnet',
+        explorerUrl: (address: string) => `https://solscan.io/account/${address}?cluster=devnet`,
+        explorerTxUrl: (txSignature: string) => `https://solscan.io/tx/${txSignature}?cluster=devnet`,
+        usdcMint: USDC_MINTS['devnet'],
+      };
+    }
+    // Client-side: env vars are truly missing — throw
+    if (!endpoint) {
+      throw new Error(
+        '[LuxHub] NEXT_PUBLIC_SOLANA_ENDPOINT is not configured. Set this environment variable to your Helius RPC URL.'
+      );
+    }
     throw new Error('[LuxHub] NEXT_PUBLIC_SOLANA_NETWORK must be "devnet" or "mainnet-beta".');
   }
 

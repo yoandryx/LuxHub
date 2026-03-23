@@ -37,6 +37,7 @@ import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
 import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/next';
 
 // Privy Solana wallet connectors for external wallets
 const solanaConnectors = toSolanaWalletConnectors({
@@ -126,6 +127,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             <LuxuryAssistant />
             <Footer />
             <SpeedInsights />
+            <Analytics />
           </WalletModalProvider>
         </WalletProvider>
       </ConnectionProvider>
