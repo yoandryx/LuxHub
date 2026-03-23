@@ -236,6 +236,14 @@ function baseEmailTemplate(params: EmailTemplateParams, accentColor: string): st
   const typeBadge = params.eventBadge || type.replace(/_/g, ' ').toUpperCase();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold';
 
+  // Image block with glass border
+  const imageBlock = params.imageUrl
+    ? `<div style="text-align:center;margin:0 0 28px;">
+<div style="display:inline-block;border-radius:14px;overflow:hidden;border:1px solid ${accentColor}30;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 0 20px ${accentColor}08;">
+<img src="${params.imageUrl}" alt="${title}" style="display:block;max-width:320px;width:100%;height:auto;object-fit:cover;" />
+</div></div>`
+    : '';
+
   return `<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -247,14 +255,14 @@ function baseEmailTemplate(params: EmailTemplateParams, accentColor: string): st
 <tr><td align="center" style="padding:48px 16px 40px;background-color:#050507;">
 <table role="presentation" width="560" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;width:100%;">
 <tr><td align="center" style="padding-bottom:44px;"><img src="${appUrl}/images/purpleLGG.png" alt="LuxHub" width="44" height="44" style="display:block;border:0;" /></td></tr>
-<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;">
-<div style="height:2px;background:linear-gradient(90deg,transparent 5%,#c8a1ff 30%,#a855f7 50%,#c8a1ff 70%,transparent 95%);"></div>
-<div style="padding:48px 44px 40px;">
-<div style="display:inline-block;background:${accentColor}20;color:${accentColor};padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:24px;">${typeBadge}</div>
-${params.imageUrl ? `<div style="text-align:center;margin:0 0 24px;"><div style="display:inline-block;border-radius:12px;overflow:hidden;border:1px solid rgba(200,161,255,0.15);"><img src="${params.imageUrl}" alt="${title}" style="display:block;max-width:280px;width:100%;object-fit:cover;" /></div></div>` : ''}
-<p class="t1" style="font-size:20px;font-weight:600;margin:0 0 12px;color:#ffffff;">${title}</p>
-<p class="t2" style="font-size:15px;line-height:1.75;color:#e0e0e0;margin:0 0 28px;">${message}</p>
-${actionUrl ? `<div style="text-align:center;margin:0 0 12px;"><a href="${actionUrl}" style="display:inline-block;min-width:200px;padding:16px 44px;background:linear-gradient(135deg,rgba(200,161,255,0.12),rgba(168,85,247,0.08));border:1px solid #c8a1ff50;color:#c8a1ff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;">${params.ctaText || 'View Details'}</a></div>` : ''}
+<tr><td class="cbg" style="background-color:#0a0a0c;border:1px solid #1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 1px ${accentColor}18;">
+<div style="height:2px;background:linear-gradient(90deg,transparent 5%,${accentColor} 30%,${accentColor}90 50%,${accentColor} 70%,transparent 95%);"></div>
+<div style="padding:44px 40px 36px;">
+<div style="display:inline-block;background:${accentColor}18;color:${accentColor};padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;border:1px solid ${accentColor}25;">${typeBadge}</div>
+${imageBlock}
+<p class="t1" style="font-size:20px;font-weight:600;margin:0 0 16px;color:#ffffff;line-height:1.3;">${title}</p>
+<p class="t2" style="font-size:14px;line-height:1.75;color:#c0c0c0;margin:0 0 28px;">${message}</p>
+${actionUrl ? `<div style="text-align:center;margin:0 0 8px;"><a href="${actionUrl}" style="display:inline-block;min-width:220px;padding:16px 48px;background:linear-gradient(135deg,${accentColor}18,${accentColor}0c);border:1px solid ${accentColor}40;color:${accentColor};border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;box-shadow:0 4px 16px ${accentColor}10;">${params.ctaText || 'View Details'}</a></div>` : ''}
 </div></td></tr>
 <tr><td style="padding:36px 16px 0;text-align:center;"><p style="margin:0;font-size:11px;color:#555555;"><a href="https://luxhub.gold" style="color:#777;text-decoration:none;">luxhub.gold</a>&nbsp;&nbsp;&#183;&nbsp;&nbsp;<a href="https://x.com/LuxHubStudio" style="color:#777;text-decoration:none;">@LuxHubStudio</a></p></td></tr>
 </table></td></tr></table></body></html>`.trim();
@@ -1235,6 +1243,33 @@ export async function notifyDelistRequestSubmitted(params: {
   return results;
 }
 
+/**
+ * Generate HTML preview of an email template for a given notification type.
+ * Used by /api/email-preview for visual testing.
+ */
+function generateEmailPreview(type: NotificationType): string {
+  const template = emailTemplates[type];
+  if (!template) return '<p>Unknown type</p>';
+
+  // Mock data that covers all template fields
+  const mockParams: EmailTemplateParams = {
+    title: template.subject('Mock Title'),
+    message: 'This is a preview of how this notification email will look. The watch has been verified as authentic and is ready for the next step in the escrow process.',
+    actionUrl: 'https://luxhub.gold/orders',
+    type,
+    ctaText: 'View on LuxHub',
+    eventBadge: type.replace(/_/g, ' ').toUpperCase(),
+    imageUrl: 'https://luxhub.gold/images/purpleLGG.png',
+    // Offer-specific fields
+    amountUSD: 12500.00,
+    amountLabel: type.includes('counter') ? 'Counter Amount' : type.includes('offer') ? 'Offer Amount' : undefined,
+    counterpartyWallet: 'Hx7Rq...9vKm',
+    counterpartyLabel: type.includes('offer') ? 'From Buyer' : undefined,
+  };
+
+  return template.getHtml(mockParams);
+}
+
 export default {
   notifyUser,
   notifyNewOrder,
@@ -1253,4 +1288,5 @@ export default {
   notifyNewVendorApplication,
   notifyDisputeCreated,
   notifyDelistRequestSubmitted,
+  generateEmailPreview,
 };
