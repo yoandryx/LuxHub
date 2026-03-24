@@ -135,11 +135,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           },
         });
 
-        // Update escrow to reflect accepted offer
+        // Update escrow to reflect accepted offer — set buyerWallet so /buyer/orders can find it
         await Escrow.findByIdAndUpdate(escrow._id, {
           $set: {
             status: 'offer_accepted',
             acceptedOfferId: offer._id,
+            buyerWallet: offer.buyerWallet,
             amountUSD: acceptedAmountUSD,
             listingPrice: acceptedAmountLamports,
             listingPriceUSD: acceptedAmountUSD,

@@ -3,6 +3,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Offer } from '../../../lib/models/Offer';
+// Register models for populate
+import '../../../lib/models/User';
+import '../../../lib/models/Assets';
+import '../../../lib/models/Vendor';
+import '../../../lib/models/Escrow';
 
 interface ListOffersQuery {
   // For escrow-specific listing (vendor view)

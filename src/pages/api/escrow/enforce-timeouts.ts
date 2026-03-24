@@ -67,6 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             $set: {
               status: 'listed',
               acceptedOfferId: null,
+              buyerWallet: null,
             },
           }
         );
