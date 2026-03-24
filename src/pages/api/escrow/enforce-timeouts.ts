@@ -12,6 +12,8 @@ const FUNDED_TIMEOUT_DAYS = 14; // Auto-cancel if funded but not shipped in 14 d
 const SHIPPED_TIMEOUT_DAYS = 30; // Flag for admin review if shipped but not delivered in 30 days
 const DISPUTE_SLA_DAYS = 7; // Escalate disputes not resolved within SLA
 const OFFER_ACCEPTED_TIMEOUT_HOURS = 48; // Safety net: auto-relist if offer_accepted but no payment in 48h
+const INITIATED_TIMEOUT_DAYS = 7; // Auto-cancel if stuck in initiated (no listing price set) for 7 days
+const DELIVERED_TIMEOUT_DAYS = 14; // Flag for admin if delivered but funds not released in 14 days
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -35,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
     const now = new Date();
-    const results = { cancelled: 0, flagged: 0, escalated: 0, expiredOffers: 0, relistedStale: 0 };
+    const results = { cancelled: 0, flagged: 0, escalated: 0, expiredOffers: 0, relistedStale: 0, staleInitiated: 0, deliveredUnreleased: 0 };
 
     // 0. Expire accepted offers past payment deadline (24h) — revert escrow to listed
     const expiredAcceptedOffers = await Offer.find({
@@ -151,6 +153,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
     results.escalated = overdueDisputes.modifiedCount;
 
+    // 4. Auto-cancel escrows stuck in 'initiated' (no listing price set) for too long
+    const initiatedCutoff = new Date(now.getTime() - INITIATED_TIMEOUT_DAYS * 24 * 60 * 60 * 1000);
+    const staleInitiated = await Escrow.updateMany(
+      {
+        status: 'initiated',
+        createdAt: { $lt: initiatedCutoff },
+        deleted: false,
+      },
+      {
+        $set: {
+          status: 'cancelled',
+          cancelledAt: now,
+          cancelReason: `Auto-cancelled: stuck in initiated state for ${INITIATED_TIMEOUT_DAYS}+ days`,
+        },
+      }
+    );
+    results.staleInitiated = staleInitiated.modifiedCount;
+
+    // 5. Flag delivered escrows where funds haven't been released (admin needs to confirm delivery)
+    const deliveredCutoff = new Date(now.getTime() - DELIVERED_TIMEOUT_DAYS * 24 * 60 * 60 * 1000);
+    const unreleased = await Escrow.updateMany(
+      {
+        status: 'delivered',
+        deliveredAt: { $lt: deliveredCutoff },
+        deleted: false,
+        overdueFlag: { $ne: true },
+      },
+      {
+        $set: { overdueFlag: true, overdueFlaggedAt: now },
+      }
+    );
+    results.deliveredUnreleased = unreleased.modifiedCount;
+
     return res.status(200).json({
       success: true,
       results,
@@ -159,8 +194,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         shippedTimeoutDays: SHIPPED_TIMEOUT_DAYS,
         disputeSlaDays: DISPUTE_SLA_DAYS,
         offerAcceptedTimeoutHours: OFFER_ACCEPTED_TIMEOUT_HOURS,
+        initiatedTimeoutDays: INITIATED_TIMEOUT_DAYS,
+        deliveredTimeoutDays: DELIVERED_TIMEOUT_DAYS,
       },
-      message: `Processed: ${results.expiredOffers} expired offers, ${results.relistedStale} relisted stale, ${results.cancelled} cancelled, ${results.flagged} flagged, ${results.escalated} escalated`,
+      message: `Processed: ${results.expiredOffers} expired offers, ${results.relistedStale} relisted stale, ${results.cancelled} cancelled, ${results.staleInitiated} stale initiated, ${results.flagged} flagged, ${results.deliveredUnreleased} delivered unreleased, ${results.escalated} escalated`,
     });
   } catch (error: any) {
     console.error('[enforce-timeouts] Error:', error);
