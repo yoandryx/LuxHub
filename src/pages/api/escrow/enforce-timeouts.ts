@@ -11,6 +11,7 @@ import { getAdminConfig } from '../../../lib/config/adminConfig';
 const FUNDED_TIMEOUT_DAYS = 14; // Auto-cancel if funded but not shipped in 14 days
 const SHIPPED_TIMEOUT_DAYS = 30; // Flag for admin review if shipped but not delivered in 30 days
 const DISPUTE_SLA_DAYS = 7; // Escalate disputes not resolved within SLA
+const OFFER_ACCEPTED_TIMEOUT_HOURS = 48; // Safety net: auto-relist if offer_accepted but no payment in 48h
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -34,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
     const now = new Date();
-    const results = { cancelled: 0, flagged: 0, escalated: 0, expiredOffers: 0 };
+    const results = { cancelled: 0, flagged: 0, escalated: 0, expiredOffers: 0, relistedStale: 0 };
 
     // 0. Expire accepted offers past payment deadline (24h) — revert escrow to listed
     const expiredAcceptedOffers = await Offer.find({
@@ -69,6 +70,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
       }
       results.expiredOffers++;
+    }
+
+    // 0.5 Safety net: relist escrows stuck in offer_accepted for 48h+
+    // Catches edge cases where the accepted offer has no paymentDeadline or was missed by Section 0
+    const offerAcceptedCutoff = new Date(now.getTime() - OFFER_ACCEPTED_TIMEOUT_HOURS * 60 * 60 * 1000);
+    const staleOfferAccepted = await Escrow.find({
+      status: 'offer_accepted',
+      updatedAt: { $lt: offerAcceptedCutoff },
+      deleted: false,
+    });
+
+    for (const escrow of staleOfferAccepted) {
+      // Expire the associated accepted offer if one exists
+      if (escrow.acceptedOfferId) {
+        await Offer.findByIdAndUpdate(escrow.acceptedOfferId, {
+          $set: {
+            status: 'expired',
+            autoRejectedReason: 'Escrow auto-relisted: buyer did not pay within 48 hours',
+            respondedAt: now,
+          },
+        });
+      }
+
+      // Revert escrow back to listed
+      await Escrow.findByIdAndUpdate(escrow._id, {
+        $set: {
+          status: 'listed',
+          acceptedOfferId: null,
+        },
+      });
+
+      results.relistedStale++;
     }
 
     // 1. Auto-cancel funded escrows that haven't been shipped in FUNDED_TIMEOUT_DAYS
@@ -125,8 +158,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         fundedTimeoutDays: FUNDED_TIMEOUT_DAYS,
         shippedTimeoutDays: SHIPPED_TIMEOUT_DAYS,
         disputeSlaDays: DISPUTE_SLA_DAYS,
+        offerAcceptedTimeoutHours: OFFER_ACCEPTED_TIMEOUT_HOURS,
       },
-      message: `Processed: ${results.expiredOffers} expired offers, ${results.cancelled} cancelled, ${results.flagged} flagged, ${results.escalated} escalated`,
+      message: `Processed: ${results.expiredOffers} expired offers, ${results.relistedStale} relisted stale, ${results.cancelled} cancelled, ${results.flagged} flagged, ${results.escalated} escalated`,
     });
   } catch (error: any) {
     console.error('[enforce-timeouts] Error:', error);
