@@ -3,8 +3,8 @@
 
 import { SyntheticEvent } from 'react';
 
-// Gateway configurations - Irys is the primary gateway
-export const IRYS_GATEWAY = 'https://gateway.irys.xyz/';
+// Gateway configurations - Irys devnet (gateway.irys.xyz redirects here via 302)
+export const IRYS_GATEWAY = 'https://devnet.irys.xyz/';
 // Fallback Pinata gateway for legacy IPFS CIDs
 export const PINATA_GATEWAY =
   process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://teal-working-frog-718.mypinata.cloud/ipfs/';
@@ -41,9 +41,9 @@ export function resolveImageUrl(idOrUrl: string | undefined | null): string {
 
   const trimmed = idOrUrl.trim();
 
-  // Already a full URL
+  // Already a full URL — rewrite old gateway.irys.xyz to devnet.irys.xyz (avoids 302 redirect)
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return trimmed;
+    return trimmed.replace('https://gateway.irys.xyz/', IRYS_GATEWAY);
   }
 
   // Base64 data URI (from file upload previews)
