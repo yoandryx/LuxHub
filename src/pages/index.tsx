@@ -124,8 +124,23 @@ export default function IndexTest() {
     };
     rafId = requestAnimationFrame(tick);
 
-    // Pointer drag handlers — use a threshold so clicks pass through to NFT cards
-    const onPointerDown = (e: globalThis.PointerEvent) => {
+    // Detect touch device — use native scroll on mobile, custom drag on desktop
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    // Touch: pause auto-scroll while touching, reset loop on scroll end
+    const onTouchStart = () => {
+      pointerDownRef.current = true;
+    };
+    const onTouchEnd = () => {
+      pointerDownRef.current = false;
+      resetScrollLoop(el);
+    };
+    const onScroll = () => {
+      resetScrollLoop(el);
+    };
+
+    // Mouse drag handlers (desktop only) — threshold so clicks pass through
+    const onMouseDown = (e: MouseEvent) => {
       if (e.button !== 0) return;
       pointerDownRef.current = true;
       isDraggingRef.current = false;
@@ -133,14 +148,13 @@ export default function IndexTest() {
       dragStartXRef.current = e.clientX;
       scrollStartRef.current = el.scrollLeft;
     };
-    const onPointerMove = (e: globalThis.PointerEvent) => {
+    const onMouseMove = (e: MouseEvent) => {
       if (!pointerDownRef.current) return;
       const dx = e.clientX - dragStartXRef.current;
       dragDistanceRef.current = Math.abs(dx);
 
       if (!isDraggingRef.current && dragDistanceRef.current > DRAG_THRESHOLD) {
         isDraggingRef.current = true;
-        el.setPointerCapture(e.pointerId);
         el.style.cursor = 'grabbing';
       }
 
@@ -150,19 +164,10 @@ export default function IndexTest() {
         resetScrollLoop(el);
       }
     };
-    const onPointerUp = (e: globalThis.PointerEvent) => {
-      const wasDragging = isDraggingRef.current;
+    const onMouseUp = () => {
       pointerDownRef.current = false;
       isDraggingRef.current = false;
-
-      if (wasDragging) {
-        try {
-          el.releasePointerCapture(e.pointerId);
-        } catch {
-          /* already released */
-        }
-        el.style.cursor = 'grab';
-      }
+      el.style.cursor = 'grab';
     };
 
     // Block click events that happen right after a drag
@@ -173,18 +178,29 @@ export default function IndexTest() {
       }
     };
 
-    el.addEventListener('pointerdown', onPointerDown);
-    el.addEventListener('pointermove', onPointerMove);
-    el.addEventListener('pointerup', onPointerUp);
-    el.addEventListener('pointercancel', onPointerUp);
+    if (isTouchDevice) {
+      // Mobile: native scroll + touch listeners for auto-scroll pause & loop reset
+      el.addEventListener('touchstart', onTouchStart, { passive: true });
+      el.addEventListener('touchend', onTouchEnd, { passive: true });
+      el.addEventListener('scroll', onScroll, { passive: true });
+    } else {
+      // Desktop: custom mouse drag
+      el.addEventListener('mousedown', onMouseDown);
+      el.addEventListener('mousemove', onMouseMove);
+      el.addEventListener('mouseup', onMouseUp);
+      el.addEventListener('mouseleave', onMouseUp);
+    }
     el.addEventListener('click', onClickCapture, true);
 
     return () => {
       cancelAnimationFrame(rafId);
-      el.removeEventListener('pointerdown', onPointerDown);
-      el.removeEventListener('pointermove', onPointerMove);
-      el.removeEventListener('pointerup', onPointerUp);
-      el.removeEventListener('pointercancel', onPointerUp);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('scroll', onScroll);
+      el.removeEventListener('mousedown', onMouseDown);
+      el.removeEventListener('mousemove', onMouseMove);
+      el.removeEventListener('mouseup', onMouseUp);
+      el.removeEventListener('mouseleave', onMouseUp);
       el.removeEventListener('click', onClickCapture, true);
     };
   }, [featuredNFTs.length, resetScrollLoop]);
@@ -509,6 +525,34 @@ export default function IndexTest() {
             <NftDetailCard
               mintAddress={selectedNFT.mintAddress || selectedNFT.nftId}
               onClose={() => setSelectedNFT(null)}
+              previewData={{
+                title: selectedNFT.title || 'Untitled',
+                image: selectedNFT.image || selectedNFT.imageUrl || '',
+                imageUrl: selectedNFT.imageUrl,
+                imageIpfsUrls: selectedNFT.imageIpfsUrls,
+                images: selectedNFT.images,
+                description: selectedNFT.attributes?.find((a) => a.trait_type === 'Description')?.value || '',
+                priceSol: selectedNFT.salePrice || 0,
+                attributes: selectedNFT.attributes || [],
+              }}
+              status={selectedNFT.marketStatus === 'listed' ? 'listed' : 'verified'}
+              acceptingOffers={selectedNFT.acceptingOffers}
+              onBuy={
+                connected && selectedNFT.escrowPda
+                  ? () => {
+                      setSelectedNFT(null);
+                      setSelectedBuyNFT(selectedNFT);
+                    }
+                  : undefined
+              }
+              onOffer={
+                connected && selectedNFT.acceptingOffers && selectedNFT.escrowPda
+                  ? () => {
+                      setSelectedNFT(null);
+                      setSelectedOfferNFT(selectedNFT);
+                    }
+                  : undefined
+              }
               showContactButton
             />
           </div>

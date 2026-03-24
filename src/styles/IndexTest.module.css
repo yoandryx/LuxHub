@@ -108,7 +108,7 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   user-select: none;
-  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
   will-change: scroll-position;
 }
 
