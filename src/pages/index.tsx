@@ -88,7 +88,7 @@ export default function IndexTest() {
   const dragStartXRef = useRef(0);
   const scrollStartRef = useRef(0);
   const dragDistanceRef = useRef(0);
-  const autoScrollSpeed = 0.8; // px per frame
+  const autoScrollSpeed = 0.35; // px per frame
   const DRAG_THRESHOLD = 5; // px before we treat it as a drag
 
   // Infinite auto-scroll + drag-to-scroll for hero slider
