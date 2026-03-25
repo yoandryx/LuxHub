@@ -145,12 +145,8 @@ id.json
 luxhub-squads-member.json
 TestjEC7K2sveRCUUCf9asbGjKXGcw9s3kUekHZXQwf.json
 
-# Solana Anchor build artifacts
-Solana-Anchor/keys/
-keys/
-Solana-Anchor/target/
-Solana-Anchor/test-ledger/
-Solana-Anchor/.anchor/
+# Solana Anchor (separate repo, kept locally for builds)
+Solana-Anchor/
 
 # IDE and editor files
 .vscode/

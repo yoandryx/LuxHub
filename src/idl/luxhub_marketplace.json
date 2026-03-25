@@ -81,7 +81,9 @@
         {
           "name": "config",
           "docs": [
-            "The PDA seeds verification ensures this is the correct config account."
+            "The PDA seeds verification ensures this is the correct config account.",
+            "Authority check is performed in the handler by reading the first 40 bytes",
+            "(8-byte discriminator + 32-byte authority pubkey)."
           ],
           "writable": true,
           "pda": {
