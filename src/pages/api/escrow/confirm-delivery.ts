@@ -12,6 +12,7 @@ import { notifyDeliveryConfirmed } from '../../../lib/services/notificationServi
 import { Transaction } from '../../../lib/models/Transaction';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
 import { getTreasury } from '../../../lib/config/treasuryConfig';
+import { verifyTransactionEnhanced } from '../../../lib/services/txVerification';
 import { getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 interface ConfirmDeliveryRequest {
@@ -22,6 +23,7 @@ interface ConfirmDeliveryRequest {
   deliveryNotes?: string; // Optional notes
   rating?: number; // Optional 1-5 rating for vendor
   reviewText?: string; // Optional review
+  txSignature?: string; // Optional on-chain TX proof for delivery confirmation
 }
 
 async function _handler(req: NextApiRequest, res: NextApiResponse) {
@@ -38,6 +40,7 @@ async function _handler(req: NextApiRequest, res: NextApiResponse) {
       deliveryNotes,
       rating,
       reviewText,
+      txSignature,
     } = req.body as ConfirmDeliveryRequest;
 
     // Validation
@@ -92,6 +95,24 @@ async function _handler(req: NextApiRequest, res: NextApiResponse) {
             ? 'Only the buyer can confirm delivery'
             : 'Admin access required',
       });
+    }
+
+    // ========== ON-CHAIN TX VERIFICATION (per D-17, matches purchase.ts pattern) ==========
+    // When txSignature is provided, verify the caller signed an on-chain transaction
+    // This adds proof-of-action for admin confirm_delivery calls
+    if (txSignature) {
+      const txResult = await verifyTransactionEnhanced({
+        txSignature,
+        expectedWallet: wallet,
+        endpoint: '/api/escrow/confirm-delivery',
+      });
+      if (!txResult.verified) {
+        return res.status(400).json({
+          error: 'Transaction verification failed',
+          details: txResult.error,
+          message: 'The on-chain transaction could not be verified.',
+        });
+      }
     }
 
     // Check escrow status - must be shipped
