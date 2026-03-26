@@ -1,6 +1,7 @@
 // src/lib/services/squadsTransferService.ts
 // Builds Squads vault transaction proposals for SOL and SPL token transfers
-// Used by pay-vendor.ts and distribute.ts for real on-chain fund movements
+// Also provides helpers for confirm_delivery and refund_buyer inner instruction keys
+// Used by pay-vendor.ts, distribute.ts, and confirm-delivery.ts
 import {
   Connection,
   Keypair,
@@ -213,6 +214,111 @@ export async function buildMultiTransferProposal(
     console.error('[buildMultiTransferProposal] Error:', error);
     return { success: false, error: error?.message || 'Unknown error' };
   }
+}
+
+/**
+ * Build the account keys for the confirm_delivery inner instruction.
+ * Matches the new on-chain account layout (with seller, associatedTokenProgram, systemProgram).
+ *
+ * Mint ordering: mint_a = funds (USDC), mint_b = NFT
+ * Vault derivation: PDA-derived ATAs of escrow PDA (allowOwnerOffCurve = true)
+ *
+ * @param escrowPda - The escrow PDA public key
+ * @param fundsMint - The funds/USDC mint (mint_a)
+ * @param nftMint - The NFT mint (mint_b)
+ * @param buyerWallet - The buyer's wallet public key
+ * @param sellerWallet - The seller's wallet public key (escrow.initializer)
+ * @param treasuryWallet - The treasury wallet for fee collection
+ * @param authorityPubkey - The authority (Squads vault PDA) that signs via CPI
+ */
+export function buildConfirmDeliveryKeys(
+  escrowPda: PublicKey,
+  fundsMint: PublicKey,
+  nftMint: PublicKey,
+  buyerWallet: PublicKey,
+  sellerWallet: PublicKey,
+  treasuryWallet: PublicKey,
+  authorityPubkey: PublicKey
+): { pubkey: PublicKey; isSigner: boolean; isWritable: boolean }[] {
+  const SYSVAR_INSTRUCTIONS = new PublicKey('Sysvar1nstructions1111111111111111111111111');
+  const programId = new PublicKey(process.env.PROGRAM_ID!);
+
+  // Derive PDAs
+  const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('luxhub-config')], programId);
+  const nftVault = getAssociatedTokenAddressSync(nftMint, escrowPda, true);
+  const wsolVault = getAssociatedTokenAddressSync(fundsMint, escrowPda, true);
+  const buyerNftAta = getAssociatedTokenAddressSync(nftMint, buyerWallet, false);
+  const sellerFundsAta = getAssociatedTokenAddressSync(fundsMint, sellerWallet, false);
+  const luxhubFeeAta = getAssociatedTokenAddressSync(fundsMint, treasuryWallet, false);
+
+  // Account order matches IDL: escrow, config, buyer_nft_ata, nft_vault, wsol_vault,
+  // mint_a (funds), mint_b (NFT), seller_funds_ata, luxhub_fee_ata,
+  // seller (receives rent), authority, instructions_sysvar,
+  // token_program, associated_token_program, system_program
+  return [
+    { pubkey: escrowPda, isSigner: false, isWritable: true },
+    { pubkey: configPda, isSigner: false, isWritable: false },
+    { pubkey: buyerNftAta, isSigner: false, isWritable: true },
+    { pubkey: nftVault, isSigner: false, isWritable: true },
+    { pubkey: wsolVault, isSigner: false, isWritable: true },
+    { pubkey: fundsMint, isSigner: false, isWritable: false },
+    { pubkey: nftMint, isSigner: false, isWritable: false },
+    { pubkey: sellerFundsAta, isSigner: false, isWritable: true },
+    { pubkey: luxhubFeeAta, isSigner: false, isWritable: true },
+    { pubkey: sellerWallet, isSigner: false, isWritable: true },
+    { pubkey: authorityPubkey, isSigner: true, isWritable: true },
+    { pubkey: SYSVAR_INSTRUCTIONS, isSigner: false, isWritable: false },
+    { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ];
+}
+
+/**
+ * Build the account keys for the refund_buyer inner instruction.
+ * Matches the new on-chain account layout (with buyer_account, associatedTokenProgram, systemProgram).
+ *
+ * @param escrowPda - The escrow PDA public key
+ * @param fundsMint - The funds/USDC mint (escrow.mint_a)
+ * @param nftMint - The NFT mint (escrow.mint_b)
+ * @param buyerWallet - The buyer's wallet public key (receives refund + rent)
+ * @param sellerWallet - The seller's wallet public key (gets NFT back)
+ * @param authorityPubkey - The authority (Squads vault PDA) that signs via CPI
+ */
+export function buildRefundBuyerKeys(
+  escrowPda: PublicKey,
+  fundsMint: PublicKey,
+  nftMint: PublicKey,
+  buyerWallet: PublicKey,
+  sellerWallet: PublicKey,
+  authorityPubkey: PublicKey
+): { pubkey: PublicKey; isSigner: boolean; isWritable: boolean }[] {
+  const SYSVAR_INSTRUCTIONS = new PublicKey('Sysvar1nstructions1111111111111111111111111');
+  const programId = new PublicKey(process.env.PROGRAM_ID!);
+
+  const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('luxhub-config')], programId);
+  const buyerFundsAta = getAssociatedTokenAddressSync(fundsMint, buyerWallet, false);
+  const fundsVault = getAssociatedTokenAddressSync(fundsMint, escrowPda, true);
+  const nftVault = getAssociatedTokenAddressSync(nftMint, escrowPda, true);
+  const sellerNftAta = getAssociatedTokenAddressSync(nftMint, sellerWallet, false);
+
+  // Account order matches IDL: escrow, config, buyer_funds_ata, funds_vault, nft_vault,
+  // seller_nft_ata, buyer_account (receives rent), authority, instructions_sysvar,
+  // token_program, associated_token_program, system_program
+  return [
+    { pubkey: escrowPda, isSigner: false, isWritable: true },
+    { pubkey: configPda, isSigner: false, isWritable: false },
+    { pubkey: buyerFundsAta, isSigner: false, isWritable: true },
+    { pubkey: fundsVault, isSigner: false, isWritable: true },
+    { pubkey: nftVault, isSigner: false, isWritable: true },
+    { pubkey: sellerNftAta, isSigner: false, isWritable: true },
+    { pubkey: buyerWallet, isSigner: false, isWritable: true },
+    { pubkey: authorityPubkey, isSigner: true, isWritable: true },
+    { pubkey: SYSVAR_INSTRUCTIONS, isSigner: false, isWritable: false },
+    { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ];
 }
 
 /**
