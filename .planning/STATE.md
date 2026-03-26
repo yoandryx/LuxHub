@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Phase complete — ready for verification
-stopped_at: Completed 05.1-03-PLAN.md
-last_updated: "2026-03-26T03:12:11.103Z"
+stopped_at: Completed 05.1-04-PLAN.md
+last_updated: "2026-03-26T03:40:05.741Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 7
-  completed_plans: 3
+  total_plans: 8
+  completed_plans: 4
 ---
 
 # Project State
@@ -50,6 +50,7 @@ Plan: 3 of 3
 | Phase 5.1 P01 | 5min | 2 tasks | 13 files |
 | Phase 5.1 P02 | 3min | 1 tasks | 2 files |
 | Phase 5.1 P03 | 3min | 2 tasks | 5 files |
+| Phase 5.1 P04 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - [Phase 5.1]: seller_share = sale_price - fee_share eliminates integer division remainder loss
 - [Phase 5.1]: Squads CPI gate tested via negative testing (rejection without CPI); full flow deferred to devnet per D-07
 - [Phase 5.1]: API routes updated to match new ATA vault layout: mint_a=funds, mint_b=NFT, seller account for rent return
+- [Phase 5.1]: txSignature optional on confirm-delivery.ts (defense-in-depth for admin calls, not required for buyer confirmations)
+- [Phase 5.1]: confirm_delivery happy-path test verifies preconditions only; full CPI flow deferred to devnet per D-07
 
 ### Roadmap Evolution
 
@@ -86,5 +89,5 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Completed 05.1-03-PLAN.md
+Stopped at: Completed 05.1-04-PLAN.md
 Resume file: None
