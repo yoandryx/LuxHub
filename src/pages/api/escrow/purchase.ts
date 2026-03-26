@@ -1,6 +1,12 @@
 // src/pages/api/escrow/purchase.ts
 // Buyer initiates a direct purchase at the listed price
 // Creates a pending purchase record and stores shipping address
+//
+// NOTE: The Exchange instruction is built client-side by the buyer's wallet.
+// Vault addresses (wsolVault, nftVault) are now PDA-derived ATAs of the escrow PDA:
+//   wsolVault = getAssociatedTokenAddressSync(fundsMint, escrowPda, true)
+//   nftVault  = getAssociatedTokenAddressSync(nftMint, escrowPda, true)
+// The server verifies the buyer's on-chain TX signature, not the TX construction.
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
@@ -17,6 +23,7 @@ import { strictLimiter } from '../../../lib/middleware/rateLimit';
 import { verifyTransactionEnhanced } from '../../../lib/services/txVerification';
 import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import { getClusterConfig } from '../../../lib/solana/clusterConfig';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 
 interface ShippingAddress {
   fullName: string;

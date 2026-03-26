@@ -12,6 +12,7 @@ import { notifyDeliveryConfirmed } from '../../../lib/services/notificationServi
 import { Transaction } from '../../../lib/models/Transaction';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
 import { getTreasury } from '../../../lib/config/treasuryConfig';
+import { getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 interface ConfirmDeliveryRequest {
   escrowId?: string;
@@ -261,7 +262,7 @@ async function createConfirmDeliverySquadsProposal(
   _adminWallet: string
 ): Promise<{ success: boolean; transactionIndex?: string; error?: string }> {
   try {
-    const { PublicKey } = await import('@solana/web3.js');
+    const { PublicKey, SystemProgram } = await import('@solana/web3.js');
 
     const rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
     const multisigPda = process.env.NEXT_PUBLIC_SQUADS_MSIG;
@@ -280,9 +281,7 @@ async function createConfirmDeliverySquadsProposal(
     // confirm_delivery discriminator from IDL
     const discriminator = Buffer.from([11, 109, 227, 53, 179, 190, 88, 155]);
 
-    const WSOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
     const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-    const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
     const SYSVAR_INSTRUCTIONS = new PublicKey('Sysvar1nstructions1111111111111111111111111');
 
     const buyerPk = new PublicKey(escrow.buyer?.wallet || escrow.buyerWallet);
@@ -290,49 +289,46 @@ async function createConfirmDeliverySquadsProposal(
     const nftMintPk = new PublicKey(escrow.nftMint);
     const luxhubWallet = new PublicKey(getTreasury('marketplace'));
 
-    // Derive PDAs
+    // Correct mint ordering: mint_a = funds (USDC), mint_b = NFT
+    // The escrow stores fundsMint (mint_a) and nftMint (mint_b)
+    // Use USDC mint from cluster config as the funds mint
+    const { getClusterConfig } = await import('../../../lib/solana/clusterConfig');
+    const fundsMintPk = new PublicKey(escrow.paymentMint || getClusterConfig().usdcMint);
+
+    // Derive PDAs - vault addresses are ATAs of escrow PDA (allowOwnerOffCurve = true)
     const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('luxhub-config')], programPk);
-    const [nftVault] = PublicKey.findProgramAddressSync(
-      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), nftMintPk.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    const [wsolVault] = PublicKey.findProgramAddressSync(
-      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    const [buyerNftAta] = PublicKey.findProgramAddressSync(
-      [buyerPk.toBuffer(), TOKEN_PROGRAM.toBuffer(), nftMintPk.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    const [sellerFundsAta] = PublicKey.findProgramAddressSync(
-      [sellerPk.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    const [luxhubFeeAta] = PublicKey.findProgramAddressSync(
-      [luxhubWallet.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
+    const nftVault = getAssociatedTokenAddressSync(nftMintPk, escrowPda, true);
+    const wsolVault = getAssociatedTokenAddressSync(fundsMintPk, escrowPda, true);
+    const buyerNftAta = getAssociatedTokenAddressSync(nftMintPk, buyerPk, false);
+    const sellerFundsAta = getAssociatedTokenAddressSync(fundsMintPk, sellerPk, false);
+    const luxhubFeeAta = getAssociatedTokenAddressSync(fundsMintPk, luxhubWallet, false);
 
     const multisig = await import('@sqds/multisig');
     const msigPk = new PublicKey(multisigPda);
     const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: 0 });
 
-    // Account keys matching confirm_delivery IDL order:
-    // escrow, config, buyer_nft_ata, nft_vault, wsol_vault, mint_a (nft), mint_b (wsol),
-    // seller_funds_ata, luxhub_fee_ata, authority, instructions_sysvar, token_program
+    // Account keys matching confirm_delivery IDL order (updated for new account layout):
+    // escrow, config, buyer_nft_ata, nft_vault, wsol_vault,
+    // mint_a (funds/USDC), mint_b (NFT),
+    // seller_funds_ata, luxhub_fee_ata, seller (NEW - receives rent from closed escrow),
+    // authority, instructions_sysvar, token_program,
+    // associated_token_program (NEW), system_program (NEW)
     const keys = [
       { pubkey: escrowPda.toBase58(), isSigner: false, isWritable: true },
       { pubkey: configPda.toBase58(), isSigner: false, isWritable: false },
       { pubkey: buyerNftAta.toBase58(), isSigner: false, isWritable: true },
       { pubkey: nftVault.toBase58(), isSigner: false, isWritable: true },
       { pubkey: wsolVault.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: fundsMintPk.toBase58(), isSigner: false, isWritable: false },
       { pubkey: nftMintPk.toBase58(), isSigner: false, isWritable: false },
-      { pubkey: WSOL_MINT.toBase58(), isSigner: false, isWritable: false },
       { pubkey: sellerFundsAta.toBase58(), isSigner: false, isWritable: true },
       { pubkey: luxhubFeeAta.toBase58(), isSigner: false, isWritable: true },
+      { pubkey: sellerPk.toBase58(), isSigner: false, isWritable: true },
       { pubkey: vaultPda.toBase58(), isSigner: true, isWritable: true },
       { pubkey: SYSVAR_INSTRUCTIONS.toBase58(), isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId.toBase58(), isSigner: false, isWritable: false },
     ];
 
     // Call Squads propose API
