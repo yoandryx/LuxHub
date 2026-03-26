@@ -23,6 +23,7 @@
 
 **Milestone Goal:** Deploy to mainnet, validate all on-chain flows with real SOL, get pool tokenization fully working end-to-end, and polish UX for production users.
 
+- [ ] **Phase 5.1: Anchor Program Security Hardening** (URGENT) - Fix 2 critical + 5 high vulnerabilities before mainnet deploy
 - [ ] **Phase 6: Mainnet Deployment & Production Ops** - Deploy Anchor program, switch all infra to mainnet, configure production monitoring and automation
 - [ ] **Phase 7: On-Chain Flow Validation** - Verify buy, delivery, and notification flows work with real SOL on mainnet
 - [ ] **Phase 8: Pool Lifecycle** - Validate full pool tokenization from launch through graduation to distribution on mainnet
@@ -113,6 +114,7 @@ Phases execute in numeric order: 6 → 7 → 8/9/10 (8, 9, and 10 can run in par
 | 3. Marketplace UX | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 4. Vendor Demo Readiness | v1.0 | 3/3 | Complete | 2026-03-22 |
 | 5. Mobile Polish & Verification | v1.0 | 2/2 | Complete | 2026-03-23 |
+| 5.1 Anchor Security Hardening | v1.1 | 1/3 | Executing | - |
 | 6. Mainnet Deployment & Production Ops | v1.1 | 0/4 | Planning | - |
 | 7. On-Chain Flow Validation | v1.1 | 0/? | Not started | - |
 | 8. Pool Lifecycle | v1.1 | 0/? | Not started | - |
