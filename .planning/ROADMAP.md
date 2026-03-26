@@ -47,7 +47,7 @@
   8. `confirm_delivery` and `refund_buyer` have passing test coverage
   9. Leaked Alchemy API key rotated, stale `anchor_escrow.json` removed
   10. `confirm-delivery.ts` API has on-chain TX verification and correct mint ordering
-**Plans:** 3 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 05.1-01-PLAN.md — Fix all Rust security vulnerabilities, regenerate IDL, cleanup stale files
@@ -135,7 +135,7 @@ Phases execute in numeric order: 5.1 → 6 → 7 → 8/9/10 (8, 9, and 10 can ru
 | 2.1 Tokenomics & Multi-Treasury | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 3. Marketplace UX | v1.0 | 4/4 | Complete | 2026-03-21 |
 | 4. Vendor Demo Readiness | v1.0 | 3/3 | Complete | 2026-03-22 |
-| 5. Mobile Polish & Verification | v1.0 | 2/2 | Complete | 2026-03-23 |
+| 5. Mobile Polish & Verification | v1.0 | 2/2 | Complete   | 2026-03-26 |
 | 5.1 Anchor Security Hardening | v1.1 | 1/3 | Executing | - |
 | 6. Mainnet Deployment & Production Ops | v1.1 | 0/4 | Planning | - |
 | 7. On-Chain Flow Validation | v1.1 | 0/? | Not started | - |
