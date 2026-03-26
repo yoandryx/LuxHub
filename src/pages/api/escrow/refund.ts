@@ -184,75 +184,46 @@ async function createRefundSquadsProposal(
 ): Promise<{ success: boolean; transactionIndex?: string; error?: string }> {
   try {
     const { PublicKey } = await import('@solana/web3.js');
+    const { buildRefundBuyerKeys } = await import('../../../lib/services/squadsTransferService');
+    const { getClusterConfig } = await import('../../../lib/solana/clusterConfig');
 
-    const rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
     const multisigPda = process.env.NEXT_PUBLIC_SQUADS_MSIG;
     const programId = process.env.PROGRAM_ID;
 
-    if (!rpc || !multisigPda || !programId) {
+    if (!multisigPda || !programId) {
       return {
         success: false,
-        error: 'Missing environment configuration (RPC, SQUADS_MSIG, or PROGRAM_ID)',
+        error: 'Missing environment configuration (SQUADS_MSIG or PROGRAM_ID)',
       };
     }
 
     const programPk = new PublicKey(programId);
     const escrowPda = new PublicKey(escrow.escrowPda);
-
-    // refund_buyer discriminator from IDL
-    const discriminator = Buffer.from([199, 139, 203, 146, 192, 150, 53, 218]);
-
-    const WSOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
-    const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-    const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
-    const SYSVAR_INSTRUCTIONS = new PublicKey('Sysvar1nstructions1111111111111111111111111');
-
     const buyerPk = new PublicKey(escrow.buyer?.wallet || escrow.buyerWallet);
     const sellerPk = new PublicKey(escrow.sellerWallet);
     const nftMintPk = new PublicKey(escrow.nftMint);
 
-    // Derive PDAs
-    const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('luxhub-config')], programPk);
+    // Use correct USDC mint from cluster config (NOT hardcoded WSOL)
+    const fundsMintPk = new PublicKey(escrow.paymentMint || getClusterConfig().usdcMint);
 
-    // buyer_funds_ata (USDC/WSOL ATA for buyer to receive refund)
-    const [buyerFundsAta] = PublicKey.findProgramAddressSync(
-      [buyerPk.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    // funds_vault (escrow's USDC/WSOL vault)
-    const [fundsVault] = PublicKey.findProgramAddressSync(
-      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), WSOL_MINT.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    // nft_vault (escrow's NFT vault)
-    const [nftVault] = PublicKey.findProgramAddressSync(
-      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), nftMintPk.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    // seller_nft_ata (seller receives NFT back)
-    const [sellerNftAta] = PublicKey.findProgramAddressSync(
-      [sellerPk.toBuffer(), TOKEN_PROGRAM.toBuffer(), nftMintPk.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-
+    // Derive Squads vault PDA
     const multisig = await import('@sqds/multisig');
     const msigPk = new PublicKey(multisigPda);
     const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: 0 });
 
-    // Account keys matching refund_buyer IDL order:
-    // escrow, config, buyer_funds_ata, funds_vault, nft_vault, seller_nft_ata,
-    // authority, instructions_sysvar, token_program
-    const keys = [
-      { pubkey: escrowPda.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: configPda.toBase58(), isSigner: false, isWritable: false },
-      { pubkey: buyerFundsAta.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: fundsVault.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: nftVault.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: sellerNftAta.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: vaultPda.toBase58(), isSigner: true, isWritable: true },
-      { pubkey: SYSVAR_INSTRUCTIONS.toBase58(), isSigner: false, isWritable: false },
-      { pubkey: TOKEN_PROGRAM.toBase58(), isSigner: false, isWritable: false },
-    ];
+    // Use the correct key builder (12 accounts, IDL-matched order)
+    const accountKeys = buildRefundBuyerKeys(
+      escrowPda, fundsMintPk, nftMintPk, buyerPk, sellerPk, vaultPda
+    );
+
+    // refund_buyer discriminator from IDL
+    const discriminator = Buffer.from([199, 139, 203, 146, 192, 150, 53, 218]);
+
+    const keys = accountKeys.map((k) => ({
+      pubkey: k.pubkey.toBase58(),
+      isSigner: k.isSigner,
+      isWritable: k.isWritable,
+    }));
 
     // Call Squads propose API
     const proposeResponse = await fetch(

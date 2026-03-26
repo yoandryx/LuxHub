@@ -137,9 +137,11 @@ dist
 .env.staging
 .env.vercel
 
-# Solana keypair files
+# Solana keypair and wallet files
+keys/
 *-keypair.json
 *keypair*.json
+*wallet*.json
 id.json
 *.keypair
 luxhub-squads-member.json

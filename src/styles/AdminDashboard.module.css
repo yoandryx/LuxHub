@@ -913,6 +913,17 @@
   border-color: rgba(16, 185, 129, 0.4);
 }
 
+.cardBtn.warning {
+  background: var(--warning-dim);
+  border-color: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+}
+
+.cardBtn.warning:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
 /* ==================== NFT PREVIEW IN CARDS ==================== */
 .cardWithImage {
   display: grid;

@@ -165,39 +165,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
 
     // Build account keys for initialize instruction
-    // This matches the Initialize context in the Anchor program
-    // Use USDC as the payment mint (instead of wSOL)
-    const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+    // Must match Initialize context in lib.rs:
+    // admin, seller, config, mint_a, mint_b, seller_ata_b, escrow, nft_vault, wsol_vault,
+    // token_program, associated_token_program, system_program
+    const { getClusterConfig } = await import('../../../lib/solana/clusterConfig');
+    const { getAssociatedTokenAddressSync } = await import('@solana/spl-token');
+
+    const USDC_MINT = new PublicKey(getClusterConfig().usdcMint);
     const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
     const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
     const SYSTEM_PROGRAM = new PublicKey('11111111111111111111111111111111');
 
-    // Derive ATAs
-    const [sellerAtaB] = PublicKey.findProgramAddressSync(
-      [sellerPk.toBuffer(), TOKEN_PROGRAM.toBuffer(), mintPk.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    const [nftVault] = PublicKey.findProgramAddressSync(
-      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), mintPk.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    const [usdcVault] = PublicKey.findProgramAddressSync(
-      [escrowPda.toBuffer(), TOKEN_PROGRAM.toBuffer(), USDC_MINT.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM
-    );
-    const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('config')], programId);
+    // Derive ATAs using spl-token helper (handles allowOwnerOffCurve for PDA vaults)
+    const sellerAtaB = getAssociatedTokenAddressSync(mintPk, sellerPk, false);
+    const nftVault = getAssociatedTokenAddressSync(mintPk, escrowPda, true);
+    const usdcVault = getAssociatedTokenAddressSync(USDC_MINT, escrowPda, true);
+    const [configPda] = PublicKey.findProgramAddressSync([Buffer.from('luxhub-config')], programId);
 
     const keys = [
-      { pubkey: sellerPk.toBase58(), isSigner: true, isWritable: true },
-      { pubkey: mintPk.toBase58(), isSigner: false, isWritable: false },
-      { pubkey: USDC_MINT.toBase58(), isSigner: false, isWritable: false },
-      { pubkey: sellerAtaB.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: escrowPda.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: nftVault.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: usdcVault.toBase58(), isSigner: false, isWritable: true },
-      { pubkey: configPda.toBase58(), isSigner: false, isWritable: false },
-      { pubkey: ASSOCIATED_TOKEN_PROGRAM.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: vaultPda.toBase58(), isSigner: true, isWritable: true },     // admin (Squads vault)
+      { pubkey: sellerPk.toBase58(), isSigner: true, isWritable: true },     // seller
+      { pubkey: configPda.toBase58(), isSigner: false, isWritable: false },  // config
+      { pubkey: USDC_MINT.toBase58(), isSigner: false, isWritable: false },  // mint_a (funds)
+      { pubkey: mintPk.toBase58(), isSigner: false, isWritable: false },     // mint_b (NFT)
+      { pubkey: sellerAtaB.toBase58(), isSigner: false, isWritable: true },  // seller_ata_b
+      { pubkey: escrowPda.toBase58(), isSigner: false, isWritable: true },   // escrow
+      { pubkey: nftVault.toBase58(), isSigner: false, isWritable: true },    // nft_vault
+      { pubkey: usdcVault.toBase58(), isSigner: false, isWritable: true },   // wsol_vault (USDC)
       { pubkey: TOKEN_PROGRAM.toBase58(), isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM.toBase58(), isSigner: false, isWritable: false },
       { pubkey: SYSTEM_PROGRAM.toBase58(), isSigner: false, isWritable: false },
     ];
 

@@ -1232,6 +1232,66 @@ const AdminDashboard: React.FC = () => {
   };
 
   // ------------------------------------------------
+  // Refund Buyer (via API → Squads Multisig)
+  // ------------------------------------------------
+  const refundBuyer = async (escrow: EscrowAccount) => {
+    const reason = window.prompt(
+      `Refund buyer for escrow seed ${escrow.seed}?\n\nThis returns funds to the buyer and NFT to the seller.\n\nEnter reason (optional):`
+    );
+    if (reason === null) return; // user cancelled prompt
+
+    if (!publicKey || !program) {
+      toast.error('Wallet not connected or program not ready.');
+      return;
+    }
+
+    setLoading(true);
+    setStatus('Creating refund proposal...');
+
+    try {
+      const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
+      const [escrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('state'), seedBuffer],
+        program.programId
+      );
+
+      const res = await fetch('/api/escrow/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          escrowPda: escrowPda.toBase58(),
+          wallet: publicKey.toBase58(),
+          reason: reason || 'Admin-initiated refund',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Refund request failed');
+      }
+
+      if (data.squadsProposal?.success) {
+        toast.success(
+          `Refund proposal created in Squads (index ${data.squadsProposal.transactionIndex}). Approve & Execute in Squads.`
+        );
+      } else {
+        toast.success('Refund initiated in DB. Manual Squads proposal may be needed.');
+      }
+
+      setStatus(`Refund initiated for escrow ${escrow.seed}`);
+      addLog('Refund Buyer (proposed)', 'N/A', `Escrow ${escrow.seed}`);
+      await fetchActiveEscrowsByMint();
+    } catch (err: any) {
+      console.error('[refundBuyer] error:', err);
+      setStatus('Refund failed: ' + err.message);
+      toast.error('Refund failed: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ------------------------------------------------
   // Approve Sale -> Escrow creation
   // Admin-owned NFTs: sign directly
   // Vendor-owned NFTs: need vendor signature (different flow)
@@ -1792,6 +1852,12 @@ const AdminDashboard: React.FC = () => {
                             onClick={() => confirmDelivery(escrow)}
                           >
                             Confirm Delivery
+                          </button>
+                          <button
+                            className={`${styles.cardBtn} ${styles.warning}`}
+                            onClick={() => refundBuyer(escrow)}
+                          >
+                            Refund Buyer
                           </button>
                           <button
                             className={`${styles.cardBtn} ${styles.danger}`}
