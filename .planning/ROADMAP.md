@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Launch Readiness** — Phases 1-5 (shipped 2026-03-23)
-- 🚧 **v1.1 Mainnet & Pools** — Phases 6-9 (in progress)
+- 🚧 **v1.1 Mainnet & Pools** — Phases 5.1, 6-10 (in progress)
 
 ## Phases
 
@@ -23,7 +23,7 @@
 
 **Milestone Goal:** Deploy to mainnet, validate all on-chain flows with real SOL, get pool tokenization fully working end-to-end, and polish UX for production users.
 
-- [ ] **Phase 5.1: Anchor Program Security Hardening** (URGENT) - Fix 2 critical + 5 high vulnerabilities before mainnet deploy
+- [ ] **Phase 5.1: Anchor Program Security Hardening** (INSERTED) - Fix critical/high vulnerabilities from pre-mainnet audit: PDA-derived vaults, seller!=buyer guard, fee_bps cap, Squads CPI gate fix, account close constraints, confirm_delivery test coverage
 - [ ] **Phase 6: Mainnet Deployment & Production Ops** - Deploy Anchor program, switch all infra to mainnet, configure production monitoring and automation
 - [ ] **Phase 7: On-Chain Flow Validation** - Verify buy, delivery, and notification flows work with real SOL on mainnet
 - [ ] **Phase 8: Pool Lifecycle** - Validate full pool tokenization from launch through graduation to distribution on mainnet
@@ -31,6 +31,28 @@
 - [ ] **Phase 10: AI Bulk Inventory Upload** - AI-powered CSV parsing, image analysis, admin review queue, batch minting
 
 ## Phase Details
+
+### Phase 5.1: Anchor Program Security Hardening
+**Goal**: All critical and high-severity vulnerabilities in the Anchor escrow program are fixed, tested, and verified before mainnet deployment
+**Depends on**: Phase 5 (v1.0 complete)
+**Requirements**: Security audit findings (C-1, C-2, H-1, H-2, H-3, H-4, H-5)
+**Success Criteria** (what must be TRUE):
+  1. Vault accounts (nft_vault, wsol_vault) are PDA-derived ATAs of the escrow, not arbitrary keypairs
+  2. `exchange` instruction rejects seller == buyer (self-purchase guard)
+  3. `initialize_config` enforces fee_bps <= 1000
+  4. `confirm_delivery` via Squads CPI is tested and working on devnet
+  5. Escrow, nft_vault, and wsol_vault are closed after `confirm_delivery` and `refund_buyer` (rent reclaimed)
+  6. `RefundBuyer` state checks moved to account constraints
+  7. `close_config` uses proper Anchor account type with discriminator check
+  8. `confirm_delivery` and `refund_buyer` have passing test coverage
+  9. Leaked Alchemy API key rotated, stale `anchor_escrow.json` removed
+  10. `confirm-delivery.ts` API has on-chain TX verification and correct mint ordering
+**Plans:** 3 plans
+
+Plans:
+- [ ] 05.1-01-PLAN.md — Fix all Rust security vulnerabilities, regenerate IDL, cleanup stale files
+- [ ] 05.1-02-PLAN.md — Rewrite Anchor test suite for new vault pattern and security guards
+- [ ] 05.1-03-PLAN.md — Update API routes and Squads service for new account layout
 
 ### Phase 6: Mainnet Deployment & Production Ops
 **Goal**: The platform is running on mainnet with all infrastructure configured and monitored
@@ -103,8 +125,8 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 6 → 7 → 8/9/10 (8, 9, and 10 can run in parallel after Phase 7)
-(Phase 8, 9, and 10 all depend on Phase 7 but not on each other)
+Phases execute in numeric order: 5.1 → 6 → 7 → 8/9/10 (8, 9, and 10 can run in parallel after Phase 7)
+(Phase 5.1 MUST complete before Phase 6 — security hardening before mainnet deploy)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
