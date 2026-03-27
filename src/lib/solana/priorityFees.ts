@@ -31,3 +31,19 @@ export function getPriorityFeeInstructions(microLamports?: number): TransactionI
   if (fee <= 0) return [];
   return [ComputeBudgetProgram.setComputeUnitPrice({ microLamports: fee })];
 }
+
+/**
+ * Priority fee multipliers for retry attempts.
+ * Attempt 0: 1x, Attempt 1: 1.5x, Attempt 2: 2x, Attempt 3: 3x
+ */
+export const RETRY_MULTIPLIERS = [1, 1.5, 2, 3] as const;
+
+/**
+ * Get priority fee for a specific retry attempt.
+ * Returns baseFee * multiplier for the given attempt index.
+ */
+export function getPriorityFeeWithEscalation(attempt: number): number {
+  const baseFee = getPriorityFeeMicroLamports();
+  const multiplier = RETRY_MULTIPLIERS[Math.min(attempt, RETRY_MULTIPLIERS.length - 1)];
+  return Math.round(baseFee * multiplier);
+}

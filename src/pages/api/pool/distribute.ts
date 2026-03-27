@@ -15,6 +15,7 @@ import {
 import { getAllTokenHolders } from '../../../lib/services/dasApi';
 import { calculateDistribution } from '../../../lib/services/distributionCalc';
 import { getTreasury } from '../../../lib/config/treasuryConfig';
+import { getSquadsAutoApprove } from '../../../lib/config/squadsConfig';
 
 interface DistributeRequest {
   poolId: string;
@@ -189,7 +190,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       ];
 
       squadsResult = await buildMultiTransferProposal(recipients, {
-        autoApprove: true,
+        autoApprove: getSquadsAutoApprove(),
         memo: `Distribution for pool ${pool._id}`,
       });
 
