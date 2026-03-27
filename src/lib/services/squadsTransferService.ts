@@ -7,7 +7,6 @@ import {
   Keypair,
   PublicKey,
   TransactionMessage,
-  VersionedTransaction,
   SystemProgram,
   LAMPORTS_PER_SOL,
   TransactionInstruction,
@@ -26,6 +25,7 @@ import {
   getConnection as getCentralConnection,
 } from '@/lib/solana/clusterConfig';
 import { getSquadsAutoApprove } from '@/lib/config/squadsConfig';
+import { sendWithRetry } from '@/lib/solana/retryTransaction';
 
 const USDC_DECIMALS = 6;
 
@@ -180,20 +180,10 @@ export async function buildMultiTransferProposal(
       );
     }
 
-    // Build, sign, and send
-    const txMessage = new TransactionMessage({
-      payerKey: payer.publicKey,
-      recentBlockhash: blockhash,
-      instructions,
-    }).compileToV0Message();
-
-    const transaction = new VersionedTransaction(txMessage);
-    transaction.sign([payer]);
-
-    const signature = await connection.sendTransaction(transaction, {
-      skipPreflight: false,
+    // Build, sign, and send with retry logic (escalating priority fees on congestion)
+    const signature = await sendWithRetry(connection, instructions, payer, {
+      commitment: 'confirmed',
     });
-    await connection.confirmTransaction(signature, 'confirmed');
 
     // Compute PDAs for response
     const [proposalPda] = multisig.getProposalPda({ multisigPda: msigPk, transactionIndex });
