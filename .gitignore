@@ -179,10 +179,12 @@ playground-*.mongodb.js
 *.p12
 *.pfx
 
-# Simulation artifacts
+# Simulation artifacts & local scripts
 scripts/.test-wallets.json
 scripts/.master-keypair.json
 scripts/.simulation-results.json
+scripts/.devnet-sim-wallets.json
+scripts/convertKeypair.cjs
 
 # GSD planning docs (local-only)
 .planning/
