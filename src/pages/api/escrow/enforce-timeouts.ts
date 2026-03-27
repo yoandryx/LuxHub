@@ -16,15 +16,19 @@ const INITIATED_TIMEOUT_DAYS = 7; // Auto-cancel if stuck in initiated (no listi
 const DELIVERED_TIMEOUT_DAYS = 14; // Flag for admin if delivered but funds not released in 14 days
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { adminWallet, cronSecret } = req.body;
+    const { adminWallet, cronSecret } = req.body || {};
 
-    // Auth: admin wallet OR cron secret
-    const isValidCron = cronSecret && cronSecret === process.env.CRON_SECRET;
+    // Auth: admin wallet OR cron secret (body or Authorization header)
+    // Vercel cron sends GET with Authorization: Bearer <CRON_SECRET>
+    const authHeader = req.headers['authorization'];
+    const isValidCron =
+      (cronSecret && cronSecret === process.env.CRON_SECRET) ||
+      (typeof authHeader === 'string' && authHeader === `Bearer ${process.env.CRON_SECRET}`);
     if (!isValidCron) {
       if (!adminWallet) {
         return res.status(401).json({ error: 'adminWallet or cronSecret required' });
