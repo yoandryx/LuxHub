@@ -40,9 +40,14 @@ export function useUserRole(): UserRoleState {
   // Privy hooks for authentication
   const { authenticated } = usePrivy();
   const { wallets: privyWallets } = useWallets();
-  // Prefer external wallet (Phantom/Solflare) over Privy's embedded wallet
-  const externalWallet = privyWallets?.find((w) => w.walletClientType !== 'privy');
-  const privyWalletAddress = externalWallet?.address || privyWallets?.[0]?.address;
+  // Prefer external wallet over Privy's embedded wallet.
+  // When multiple wallets exist, the last connected (external) is typically last in the array.
+  // Use wallet adapter publicKey first if available, then try last Privy wallet, then first.
+  const privyWalletAddress = useMemo(() => {
+    if (!privyWallets?.length) return undefined;
+    if (privyWallets.length > 1) return privyWallets[privyWallets.length - 1]?.address;
+    return privyWallets[0]?.address;
+  }, [privyWallets]);
 
   // Get active public key (wallet adapter or Privy)
   const activePublicKey = useMemo(() => {
