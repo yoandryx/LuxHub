@@ -83,7 +83,11 @@ Plans:
   3. Admin can confirm delivery via Squads multisig and the 97/3 fund split is verified on-chain (Solana explorer)
   4. Email notifications fire at each lifecycle step (funded, shipped, delivered, released) on mainnet transactions
   5. Dropped transactions are retried with fresh blockhash instead of silently failing
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Auto-approve env toggle, retry with escalating priority fees, unit tests
+- [ ] 07-02-PLAN.md — Integrate sendWithRetry into Squads service, mainnet end-to-end validation
 
 ### Phase 8: Pool Lifecycle
 **Goal**: Users can participate in pool tokenization from launch through graduation to distribution on mainnet
@@ -139,7 +143,7 @@ Phases execute in numeric order: 5.1 -> 6 -> 7 -> 8/9/10 (8, 9, and 10 can run i
 | 5. Mobile Polish & Verification | v1.0 | 2/2 | Complete   | 2026-03-26 |
 | 5.1 Anchor Security Hardening | v1.1 | 4/4 | Complete | 2026-03-26 |
 | 6. Mainnet Deployment & Production Ops | v1.1 | 0/4 | Planning | - |
-| 7. On-Chain Flow Validation | v1.1 | 0/? | Not started | - |
+| 7. On-Chain Flow Validation | v1.1 | 0/2 | Planning | - |
 | 8. Pool Lifecycle | v1.1 | 0/? | Not started | - |
 | 9. Offer UX & UI Polish | v1.1 | 0/? | Not started | - |
 | 10. AI Bulk Inventory Upload | v1.1 | 0/? | Not started | - |
