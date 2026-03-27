@@ -4,7 +4,7 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { Program, Idl, AnchorProvider, Wallet } from '@coral-xyz/anchor';
 import { BN } from '@coral-xyz/anchor';
 import connectToDatabase from '../../../lib/database/mongodb';
-import idl from '../../../idl/anchor_escrow.json';
+import idl from '../../../idl/luxhub_marketplace.json';
 
 export const config = {
   runtime: 'nodejs',
