@@ -8,6 +8,7 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
 import { Asset } from '../../../lib/models/Assets';
 import { Vendor } from '../../../lib/models/Vendor';
+import { getSquadsAutoApprove } from '../../../lib/config/squadsConfig';
 
 export const config = {
   runtime: 'nodejs',
@@ -59,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rpc = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT,
       multisigPda = process.env.NEXT_PUBLIC_SQUADS_MSIG,
       vaultIndex = 0,
-      autoApprove = true,
+      autoApprove = getSquadsAutoApprove(),
     } = req.body as CreateWithMintRequest;
 
     // Validation

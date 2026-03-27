@@ -25,6 +25,7 @@ import {
   getClusterConfig,
   getConnection as getCentralConnection,
 } from '@/lib/solana/clusterConfig';
+import { getSquadsAutoApprove } from '@/lib/config/squadsConfig';
 
 const USDC_DECIMALS = 6;
 
@@ -81,7 +82,7 @@ export async function buildMultiTransferProposal(
   try {
     const multisigPda = options?.multisigPda || process.env.NEXT_PUBLIC_SQUADS_MSIG;
     const vaultIndex = options?.vaultIndex ?? 0;
-    const autoApprove = options?.autoApprove ?? true;
+    const autoApprove = options?.autoApprove ?? getSquadsAutoApprove();
 
     if (!multisigPda) {
       return { success: false, error: 'Missing NEXT_PUBLIC_SQUADS_MSIG configuration' };

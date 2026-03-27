@@ -172,7 +172,7 @@ async function proposeToSquads(ix: {
     body: JSON.stringify({
       ...ix,
       vaultIndex: ix.vaultIndex ?? 0,
-      autoApprove: ix.autoApprove ?? true,
+      autoApprove: ix.autoApprove ?? false,
     }),
   });
   const json = await resp.json();

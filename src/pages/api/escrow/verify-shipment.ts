@@ -12,6 +12,7 @@ import {
   notifyUser,
 } from '../../../lib/services/notificationService';
 import { getTreasury } from '../../../lib/config/treasuryConfig';
+import { getSquadsAutoApprove } from '../../../lib/config/squadsConfig';
 
 interface VerifyShipmentRequest {
   escrowPda: string;
@@ -307,7 +308,7 @@ async function createConfirmDeliverySquadsProposal(
           keys,
           dataBase64: discriminator.toString('base64'),
           vaultIndex: 0,
-          autoApprove: true,
+          autoApprove: getSquadsAutoApprove(),
         }),
       }
     );

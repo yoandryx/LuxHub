@@ -8,6 +8,7 @@ import { Asset } from '../../../lib/models/Assets';
 import AdminRole from '../../../lib/models/AdminRole';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
 import { notifyOrderRefunded } from '../../../lib/services/notificationService';
+import { getSquadsAutoApprove } from '../../../lib/config/squadsConfig';
 
 interface RefundRequest {
   escrowId?: string;
@@ -236,7 +237,7 @@ async function createRefundSquadsProposal(
           keys,
           dataBase64: discriminator.toString('base64'),
           vaultIndex: 0,
-          autoApprove: true,
+          autoApprove: getSquadsAutoApprove(),
         }),
       }
     );

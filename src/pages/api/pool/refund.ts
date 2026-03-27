@@ -8,6 +8,7 @@ import {
   buildMultiTransferProposal,
   TransferRecipient,
 } from '../../../lib/services/squadsTransferService';
+import { getSquadsAutoApprove } from '../../../lib/config/squadsConfig';
 
 interface RefundRequest {
   poolId: string;
@@ -97,7 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }));
 
       squadsResult = await buildMultiTransferProposal(recipients, {
-        autoApprove: true,
+        autoApprove: getSquadsAutoApprove(),
         memo: `Refund for failed pool ${pool._id}: ${reason}`,
       });
 

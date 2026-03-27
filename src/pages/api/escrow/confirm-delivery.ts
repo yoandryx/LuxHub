@@ -12,6 +12,7 @@ import { notifyDeliveryConfirmed } from '../../../lib/services/notificationServi
 import { Transaction } from '../../../lib/models/Transaction';
 import { strictLimiter } from '../../../lib/middleware/rateLimit';
 import { getTreasury } from '../../../lib/config/treasuryConfig';
+import { getSquadsAutoApprove } from '../../../lib/config/squadsConfig';
 import { verifyTransactionEnhanced } from '../../../lib/services/txVerification';
 import { getAssociatedTokenAddressSync, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
@@ -363,7 +364,7 @@ async function createConfirmDeliverySquadsProposal(
           keys,
           dataBase64: discriminator.toString('base64'),
           vaultIndex: 0,
-          autoApprove: true,
+          autoApprove: getSquadsAutoApprove(),
         }),
       }
     );
@@ -473,7 +474,7 @@ async function triggerPoolDistribution(
   ];
 
   const squadsResult = await buildMultiTransferProposal(recipients, {
-    autoApprove: true,
+    autoApprove: getSquadsAutoApprove(),
     memo: `Auto-distribution for pool ${pool._id} (resale $${resalePriceUSD.toFixed(2)})`,
   });
 

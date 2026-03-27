@@ -9,6 +9,7 @@ import {
   TransferRecipient,
 } from '../../../lib/services/squadsTransferService';
 import { getTreasury } from '../../../lib/config/treasuryConfig';
+import { getSquadsAutoApprove } from '../../../lib/config/squadsConfig';
 
 interface PayVendorRequest {
   poolId: string;
@@ -308,7 +309,7 @@ async function createVendorPaymentProposal(
   ];
 
   const result = await buildMultiTransferProposal(recipients, {
-    autoApprove: true,
+    autoApprove: getSquadsAutoApprove(),
     memo: `Vendor payment for pool ${pool._id}`,
   });
 
