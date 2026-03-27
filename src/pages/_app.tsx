@@ -161,11 +161,12 @@ const App = ({ Component, pageProps }: AppProps) => {
                 theme: 'dark',
                 accentColor: '#c8a1ff',
                 logo: '/images/purpleLGG.png',
+                showWalletLoginFirst: true,
               },
               // Solana embedded wallet configuration
               embeddedWallets: {
                 solana: {
-                  createOnLogin: 'users-without-wallets',
+                  createOnLogin: 'off',
                 },
               },
               // External wallet connectors (Phantom, Solflare via Privy)
