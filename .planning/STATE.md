@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
-status: Phase complete — ready for verification
-stopped_at: Completed 05.1-04-PLAN.md
-last_updated: "2026-03-26T03:40:05.741Z"
-last_activity: 2026-03-26
+status: Ready to execute
+stopped_at: Completed 06-04-PLAN.md
+last_updated: "2026-03-27T14:10:28.865Z"
+last_activity: 2026-03-27
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 8
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 5.1 — Anchor Program Security Hardening
+**Current focus:** Phase 06 — mainnet-deployment-production-ops
 
 ## Current Position
 
-Phase: 5.1 (Anchor Program Security Hardening) — EXECUTING
-Plan: 3 of 3
+Phase: 06 (mainnet-deployment-production-ops) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -51,6 +51,10 @@ Plan: 3 of 3
 | Phase 5.1 P02 | 3min | 1 tasks | 2 files |
 | Phase 5.1 P03 | 3min | 2 tasks | 5 files |
 | Phase 5.1 P04 | 3min | 2 tasks | 2 files |
+| Phase 06 P02 | 1min | 2 tasks | 3 files |
+| Phase 06 P03 | 5min | 2 tasks | 7 files |
+| Phase 06 P01 | 4min | 2 tasks | 4 files |
+| Phase 06 P04 | 2min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -59,7 +63,7 @@ Plan: 3 of 3
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Treasury wallet has 0 SOL on mainnet -- needs funding before deploy
+- Treasury wallets funded 2026-03-26: Deploy 3.0 SOL, Marketplace/Pools/Partner 0.1 SOL each
 - Bags partner config PDA not yet created on mainnet
 - Devnet USDC limitation: Jupiter swap payment deferred to mainnet testing
 - Pool token endpoints validated for code paths; full Bags API testing deferred to mainnet
@@ -72,6 +76,13 @@ Recent decisions affecting current work:
 - [Phase 5.1]: API routes updated to match new ATA vault layout: mint_a=funds, mint_b=NFT, seller account for rent return
 - [Phase 5.1]: txSignature optional on confirm-delivery.ts (defense-in-depth for admin calls, not required for buyer confirmations)
 - [Phase 5.1]: confirm_delivery happy-path test verifies preconditions only; full CPI flow deferred to devnet per D-07
+- [Phase 06]: 6-hour Vercel cron for escrow timeouts (daily sufficient given day-scale thresholds)
+- [Phase 06]: OPS-05 (priority fee) satisfied by existing priorityFees.ts; env var set in Plan 04
+- [Phase 06]: R2 upload uses lazy client instantiation to avoid module-level errors when env vars are missing
+- [Phase 06]: Deployment scripts are interactive (not automated) since on-chain txs require user wallet signing
+- [Phase 06]: Anchor.toml changes via patch file since Solana-Anchor is a git submodule
+- [Phase 06]: Treasury marketplace wallet as initial EscrowConfig treasury; update to Squads vault PDA via update_config
+- [Phase 06]: Dual-environment setup: local .env keeps devnet for development, Vercel env vars = mainnet for production
 
 ### Roadmap Evolution
 
@@ -83,11 +94,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- Treasury wallet has 0 SOL on mainnet (blocking Phase 6 deploy -- needs ~2 SOL for program deploy + config init)
 - Bags partner config PDA creation needs mainnet SOL
+- Separate MONGODB_URI needed for production (luxhub-mainnet database)
+- Squads multisig not yet created on mainnet (app.squads.so)
 
 ## Session Continuity
 
-Last activity: 2026-03-26
-Stopped at: Completed 05.1-04-PLAN.md
+Last activity: 2026-03-27
+Stopped at: Completed 06-04-PLAN.md
 Resume file: None

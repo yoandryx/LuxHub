@@ -68,10 +68,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Deploy Anchor program to mainnet, initialize EscrowConfig, Squads multisig, Bags partner config PDA
-- [ ] 06-02-PLAN.md — Production ops: Vercel cron, Dependabot, enforce-timeouts auth update
-- [ ] 06-03-PLAN.md — Cloudflare R2 migration replacing IBM COS for avatar/banner uploads
-- [ ] 06-04-PLAN.md — Vercel env var cutover to mainnet, Sentry alerts, RPC backup, final verification
+- [x] 06-01-PLAN.md — Deploy Anchor program to mainnet, initialize EscrowConfig, Squads multisig, Bags partner config PDA
+- [x] 06-02-PLAN.md — Production ops: Vercel cron, Dependabot, enforce-timeouts auth update
+- [x] 06-03-PLAN.md — Cloudflare R2 migration replacing IBM COS for avatar/banner uploads
+- [x] 06-04-PLAN.md — Vercel env var cutover to mainnet, Sentry alerts, RPC backup, final verification
 
 ### Phase 7: On-Chain Flow Validation
 **Goal**: A buyer can purchase a listing and receive delivery confirmation with real SOL on mainnet, with the full 97/3 split verified on-chain
