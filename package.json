@@ -116,7 +116,7 @@
     "@testing-library/react": "^16.3.1",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/multer": "^1.4.12",
+    "@types/multer": "^2.1.0",
     "@types/node": "22.13.9",
     "@types/node-fetch": "^2.6.12",
     "@types/papaparse": "^5.5.2",
