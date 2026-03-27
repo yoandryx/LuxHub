@@ -78,8 +78,10 @@ const envRequirements = {
     { name: 'SQUADS_MEMBER_KEYPAIR_PATH', description: 'Squads member keypair path' },
     { name: 'NEXT_PUBLIC_CANDY_MACHINE_ID', description: 'Candy Machine ID' },
     { name: 'NEXT_PUBLIC_PRIVY_APP_ID', description: 'Privy App ID' },
-    { name: 'IBM_COS_API_KEY', description: 'IBM Cloud Object Storage API key' },
-    { name: 'IBM_COS_RESOURCE_INSTANCE_ID', description: 'IBM COS resource instance' },
+    { name: 'R2_ACCOUNT_ID', description: 'Cloudflare R2 account ID' },
+    { name: 'R2_ACCESS_KEY_ID', description: 'Cloudflare R2 access key ID' },
+    { name: 'R2_SECRET_ACCESS_KEY', description: 'Cloudflare R2 secret access key' },
+    { name: 'R2_PUBLIC_DOMAIN', description: 'Cloudflare R2 public domain for assets' },
     { name: 'XAI_API_KEY', description: 'xAI API key' },
   ],
 };
