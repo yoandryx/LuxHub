@@ -1,0 +1,13 @@
+--- a/Solana-Anchor/Anchor.toml
++++ b/Solana-Anchor/Anchor.toml
+@@ -10,6 +10,10 @@
+ [programs.devnet]
+ luxhub_marketplace = "kW2w2pHhAP8hFGRLganziunchKu6tjaXyomvF6jxNpj"
+
++# Mainnet program ID -- update after `anchor deploy --provider.cluster mainnet`
++[programs.mainnet]
++luxhub_marketplace = "PLACEHOLDER_UNTIL_DEPLOY"
++
+ [registry]
+ url = "https://api.apr.dev"
+
