@@ -31,19 +31,19 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
   const [uploadSuccessAvatar, setUploadSuccessAvatar] = useState(false);
   const [uploadSuccessBanner, setUploadSuccessBanner] = useState(false);
 
-  const uploadToIBM = async (file: File, type: "avatar" | "banner"): Promise<string | null> => {
+  const uploadFile = async (file: File, type: "avatar" | "banner"): Promise<string | null> => {
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const res = await fetch(`/api/ibm/uploadImage?wallet=${connectedWallet}&type=${type}`, {
+      const res = await fetch(`/api/upload/image?wallet=${connectedWallet}&type=${type}`, {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
       return data?.url || null;
     } catch (err) {
-      console.error("IBM Upload failed", err);
+      console.error("Upload failed", err);
       return null;
     }
   };
@@ -77,7 +77,7 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
       type: file.type || "application/octet-stream",
     });
 
-    const uploadedUrl = await uploadToIBM(wrappedFile, "avatar");
+    const uploadedUrl = await uploadFile(wrappedFile, "avatar");
     if (uploadedUrl) {
       setAvatarUrl(uploadedUrl);
       onUploadComplete(uploadedUrl, bannerUrl);
@@ -119,7 +119,7 @@ const AvatarBannerUploader: React.FC<Props> = ({ onUploadComplete, onPreviewUpda
       type: file.type || "application/octet-stream",
     });
 
-    const uploadedUrl = await uploadToIBM(wrappedFile, "banner");
+    const uploadedUrl = await uploadFile(wrappedFile, "banner");
     if (uploadedUrl) {
       setBannerUrl(uploadedUrl);
       onUploadComplete(avatarUrl, uploadedUrl);
