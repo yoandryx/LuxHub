@@ -11,7 +11,8 @@ export const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyT
 export const SOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
 
 const JUPITER_QUOTE_API = 'https://public.jupiterapi.com/quote';
-const JUPITER_SWAP_API = 'https://public.jupiterapi.com/swap';
+// Use server-side proxy to avoid CORS issues with Jupiter's swap endpoint
+const JUPITER_SWAP_API = typeof window !== 'undefined' ? '/api/jupiter/swap' : 'https://public.jupiterapi.com/swap';
 
 // USDC has 6 decimals
 export const USDC_DECIMALS = 6;
