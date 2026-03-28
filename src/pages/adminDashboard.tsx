@@ -386,66 +386,28 @@ const AdminDashboard: React.FC = () => {
       const res = await fetch('/api/nft/activeEscrowsByMint');
       const escrows = await res.json();
 
-      const enriched = await Promise.all(
-        escrows.map(async (escrow: any) => {
-          const seed = escrow.seed;
-          const mintB = escrow.nftId;
-          const pinataGateway =
-            process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
-          const metadataUri = pinataGateway + escrow.fileCid;
+      const enriched = escrows.map((escrow: any) => ({
+        seed: escrow.seed,
+        initializer: escrow.seller || escrow.initializer,
+        luxhub_wallet: escrow.luxhub_wallet || '',
+        mintB: escrow.nftId || escrow.mintB,
+        mintA: escrow.mintA,
+        file_cid: escrow.file_cid || '',
+        initializer_amount: escrow.initializer_amount || '1',
+        taker_amount: escrow.taker_amount || escrow.salePrice || '0',
+        salePrice: escrow.salePrice || '0',
+        name: escrow.name || 'Unknown NFT',
+        image: escrow.image || '',
+        description: escrow.description || '',
+        attributes: escrow.attributes || [],
+        vaultATA: '',
+        status: escrow.status,
+        buyer: escrow.buyer,
+        escrowPda: escrow.escrowPda,
+        priceUSD: escrow.priceUSD,
+      }));
 
-          let metadata: any = {};
-          try {
-            const metaRes = await fetch(metadataUri);
-            metadata = metaRes.ok
-              ? await metaRes.json()
-              : {
-                  name: 'Pending NFT',
-                  description: 'Awaiting metadata',
-                  attributes: [],
-                };
-          } catch (err) {
-            metadata = {
-              name: 'Unfetched NFT',
-              description: 'Error fetching metadata',
-              attributes: [],
-            };
-          }
-
-          // 🔐 Generate PDA & Vault ATA (based on seed and mintB)
-          let vaultATA = '';
-          try {
-            if (!program) return null;
-
-            const [escrowPda] = PublicKey.findProgramAddressSync(
-              [Buffer.from('state'), new BN(seed).toArrayLike(Buffer, 'le', 8)],
-              program.programId
-            );
-
-            const vault = await getAssociatedTokenAddress(new PublicKey(mintB), escrowPda, true);
-            vaultATA = vault.toBase58();
-          } catch (e) {
-            // Vault ATA generation failed - continue without vault address
-          }
-
-          return {
-            seed,
-            initializer: escrow.seller,
-            mintB,
-            file_cid: escrow.fileCid,
-            initializer_amount: escrow.initializerAmount?.toString() || '0',
-            taker_amount: escrow.takerAmount?.toString() || '0',
-            salePrice: escrow.salePrice?.toString() || '0',
-            name: metadata.name || 'Unknown NFT',
-            image: metadata.image || '',
-            description: metadata.description || '',
-            attributes: metadata.attributes || [],
-            vaultATA,
-          };
-        })
-      );
-
-      setActiveEscrows(enriched.filter(Boolean));
+      setActiveEscrows(enriched);
     } catch (err) {
       console.error('[fetchActiveEscrowsByMint] Error:', err);
     }
