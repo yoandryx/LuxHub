@@ -980,9 +980,10 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   // Escrow Confirmation
   // ------------------------------------------------
-  const confirmDelivery = async (escrow: EscrowAccount) => {
+  const confirmDelivery = async (escrow: any) => {
+    const priceUSD = escrow.priceUSD || (Number(escrow.salePrice) / 1_000_000);
     const confirm = window.confirm(
-      `Approve delivery?\n\nBuyer paid ${(Number(escrow.salePrice) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nSeller will receive ${((Number(escrow.salePrice) * 0.97) / LAMPORTS_PER_SOL).toFixed(2)} SOL.\nLuxHub earns 3%.`
+      `Approve delivery?\n\nBuyer paid $${priceUSD.toFixed(2)} USDC.\nSeller will receive $${(priceUSD * 0.97).toFixed(2)} USDC.\nLuxHub earns 3% ($${(priceUSD * 0.03).toFixed(2)}).`
     );
     if (!confirm) return;
 
@@ -996,11 +997,17 @@ const AdminDashboard: React.FC = () => {
 
     try {
       // ---------- resolve buyer & escrow pda ----------
-      const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
-      const [escrowPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('state'), seedBuffer],
-        program.programId
-      );
+      // Use stored escrowPda if available, otherwise derive from seed
+      let escrowPda: PublicKey;
+      if (escrow.escrowPda) {
+        escrowPda = new PublicKey(escrow.escrowPda);
+      } else {
+        const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
+        [escrowPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('state'), seedBuffer],
+          program.programId
+        );
+      }
       const onchainEscrow = await (program.account as any).escrow.fetch(escrowPda);
       const buyerPubkey = onchainEscrow.buyer?.toBase58?.();
       if (!buyerPubkey || buyerPubkey === PublicKey.default.toBase58()) {
@@ -1727,20 +1734,22 @@ const AdminDashboard: React.FC = () => {
               </div>
             ) : (
               <div className={styles.cardsGrid}>
-                {activeEscrows.map((escrow, idx) => {
-                  if (Number(escrow.seed.toString()) === 0) return null;
+                {activeEscrows.map((escrow: any, idx) => {
+                  // Use escrowPda from API if available, otherwise derive from seed
+                  let escrowPdaStr = escrow.escrowPda || '';
+                  if (!escrowPdaStr && escrow.seed && program) {
+                    const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
+                    const [derived] = PublicKey.findProgramAddressSync(
+                      [Buffer.from('state'), seedBuffer],
+                      program.programId
+                    );
+                    escrowPdaStr = derived.toBase58();
+                  }
+                  if (!escrowPdaStr) return null;
 
-                  const initializerAmountSol = Number(escrow.initializer_amount) / LAMPORTS_PER_SOL;
-                  const takerAmountSol = Number(escrow.taker_amount) / LAMPORTS_PER_SOL;
-                  const salePriceSol = Number(escrow.salePrice) / LAMPORTS_PER_SOL;
-
-                  if (!program) return null;
-
-                  const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
-                  const [escrowPda] = PublicKey.findProgramAddressSync(
-                    [Buffer.from('state'), seedBuffer],
-                    program.programId
-                  );
+                  const escrowPda = new PublicKey(escrowPdaStr);
+                  const priceUSD = escrow.priceUSD || 0;
+                  const salePriceUsdc = Number(escrow.salePrice) / 1_000_000; // USDC atomic → USD
 
                   return (
                     <div
@@ -1769,9 +1778,17 @@ const AdminDashboard: React.FC = () => {
                           <div className={styles.cardRow}>
                             <span className={styles.cardLabel}>Sale Price</span>
                             <span className={`${styles.cardValue} ${styles.cardHighlight}`}>
-                              {salePriceSol.toFixed(2)} SOL
+                              ${priceUSD || salePriceUsdc.toFixed(2)} USD
                             </span>
                           </div>
+                          {escrow.status && (
+                            <div className={styles.cardRow}>
+                              <span className={styles.cardLabel}>Status</span>
+                              <span className={styles.cardValue} style={{ textTransform: 'capitalize' }}>
+                                {escrow.status}
+                              </span>
+                            </div>
+                          )}
                           <div className={styles.cardRow}>
                             <span className={styles.cardLabel}>Escrow PDA</span>
                             <span className={styles.cardValue}>
@@ -1801,9 +1818,9 @@ const AdminDashboard: React.FC = () => {
                             </span>
                           </div>
                           <div className={styles.cardRow}>
-                            <span className={styles.cardLabel}>Royalty (5%)</span>
+                            <span className={styles.cardLabel}>Treasury Fee (3%)</span>
                             <span className={styles.cardValue}>
-                              {(salePriceSol * 0.05).toFixed(2)} SOL
+                              ${((priceUSD || salePriceUsdc) * 0.03).toFixed(2)} USD
                             </span>
                           </div>
                         </div>
