@@ -280,7 +280,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       escrowPda: listingEscrowPda, // Real on-chain PDA (or placeholder if client didn't provide)
       nftMint: mintAddress,
       saleMode: 'fixed_price',
-      listingPrice: listingPriceLamports,
+      listingPrice: Math.round(mintRequest.priceUSD * 1_000_000), // USDC atomic units (6 decimals)
       listingPriceUSD: mintRequest.priceUSD,
       acceptingOffers: true, // Allow offers
       minimumOfferUSD: Math.floor(mintRequest.priceUSD * 0.8), // 80% minimum offer
