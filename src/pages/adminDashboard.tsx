@@ -180,7 +180,8 @@ async function proposeToSquads(ix: {
   return json as ProposeResponse;
 }
 
-const FUNDS_MINT = 'So11111111111111111111111111111111111111112';
+// Use USDC as the funds mint (escrow holds USDC, not wSOL)
+const FUNDS_MINT = getClusterConfig().usdcMint;
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const PLACEHOLDER_BUYER = new PublicKey('11111111111111111111111111111111');
 
