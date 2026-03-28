@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Connection, Keypair } from '@solana/web3.js';
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Connection, Keypair, TransactionMessage } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { BN } from '@coral-xyz/anchor';
 import { getProgram } from '../utils/programUtils';
@@ -1102,31 +1102,90 @@ const AdminDashboard: React.FC = () => {
         })
         .instruction();
 
-      // ---------- shape for API ----------
-      const keys = ix.keys.map((k) => ({
-        pubkey: k.pubkey.toBase58(),
-        isSigner: k.isSigner,
-        isWritable: k.isWritable,
-      }));
-      const dataBase64 = Buffer.from(ix.data).toString('base64');
+      // ---------- build & sign Squads proposal client-side ----------
+      toast.loading('Creating Squads proposal...', { id: 'delivery' });
 
-      // ---------- create a Squads proposal ----------
-      const result = await proposeToSquads({
-        programId: ix.programId.toBase58(),
-        keys,
-        dataBase64,
-        vaultIndex: 0,
-        wallet: publicKey.toBase58(),
+      const multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msig);
+      const transactionIndex = BigInt(Number(multisigAccount.transactionIndex) + 1);
+
+      const vaultMessage = new TransactionMessage({
+        payerKey: vaultPda,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [ix],
       });
 
-      toast.success(
-        `✅ Proposal created in Squads (vault ${result.vaultIndex}, index ${result.transactionIndex}). Approve & Execute in Squads.`
-      );
-      setStatus(`Squads proposal created. Index: ${result.transactionIndex}`);
-      addLog('Confirm Delivery (proposed)', 'N/A', `Escrow ${escrow.seed}`);
+      // Build: create vault tx + create proposal + auto-approve (1/1 threshold)
+      const createVaultTxIx = multisig.instructions.vaultTransactionCreate({
+        multisigPda: msig,
+        creator: publicKey,
+        transactionIndex,
+        vaultIndex: 0,
+        ephemeralSigners: 0,
+        transactionMessage: vaultMessage,
+        rentPayer: publicKey,
+      });
 
-      // NOTE: Do your metadata/DB updates after the proposal is actually executed.
-      // You can listen webhooks or add an "Execute" button that calls /api/squads/execute.
+      const createProposalIx = multisig.instructions.proposalCreate({
+        multisigPda: msig,
+        creator: publicKey,
+        transactionIndex,
+        isDraft: false,
+        rentPayer: publicKey,
+      });
+
+      const approveIx = multisig.instructions.proposalApprove({
+        multisigPda: msig,
+        member: publicKey,
+        transactionIndex,
+      });
+
+      // Send all 3 instructions in one transaction signed by Phantom
+      const { Transaction: LegacyTransaction } = await import('@solana/web3.js');
+      const proposalTx = new LegacyTransaction();
+      proposalTx.add(createVaultTxIx, createProposalIx, approveIx);
+      const { blockhash } = await connection.getLatestBlockhash();
+      proposalTx.recentBlockhash = blockhash;
+      proposalTx.feePayer = publicKey;
+
+      const signedTx = await anchorWallet.signTransaction!(proposalTx);
+      const sig = await connection.sendRawTransaction(signedTx.serialize());
+      await connection.confirmTransaction(sig, 'confirmed');
+
+      toast.success('Proposal created & approved! Now executing...', { id: 'delivery' });
+
+      // Auto-execute since threshold is met (1/1)
+      const executeIx = await multisig.instructions.vaultTransactionExecute({
+        multisigPda: msig,
+        member: publicKey,
+        transactionIndex,
+        connection,
+      });
+
+      const executeTx = new LegacyTransaction();
+      executeTx.add(...(Array.isArray(executeIx) ? executeIx : [executeIx]));
+      const { blockhash: execBlockhash } = await connection.getLatestBlockhash();
+      executeTx.recentBlockhash = execBlockhash;
+      executeTx.feePayer = publicKey;
+
+      const signedExecTx = await anchorWallet.signTransaction!(executeTx);
+      const execSig = await connection.sendRawTransaction(signedExecTx.serialize());
+      await connection.confirmTransaction(execSig, 'confirmed');
+
+      toast.success('Delivery confirmed! Funds released on-chain.', { id: 'delivery', duration: 5000 });
+      setStatus(`Confirm delivery executed. TX: ${execSig}`);
+      addLog('Confirm Delivery (executed)', execSig, `Escrow ${escrow.escrowPda}`);
+
+      // Update MongoDB
+      await fetch('/api/escrow/confirm-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          escrowPda: escrow.escrowPda,
+          wallet: publicKey.toBase58(),
+          confirmationType: 'admin',
+          txSignature: execSig,
+        }),
+      });
 
       await fetchActiveEscrowsByMint();
     } catch (err: any) {
