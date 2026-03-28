@@ -21,9 +21,15 @@
  */
 
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import { Program, AnchorProvider, Wallet, Idl } from '@coral-xyz/anchor';
+import pkg from '@coral-xyz/anchor';
+const { Program, AnchorProvider, Wallet } = pkg;
+type Idl = any;
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Parse CLI arguments
 function parseArgs(): {

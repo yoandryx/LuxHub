@@ -26,5 +26,7 @@ export async function uploadImage(
       ContentType: mimeType,
     })
   );
-  return `https://${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
+  const publicBase = (process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_DOMAIN || '').replace(/\/+$/, '');
+  const base = publicBase.startsWith('http') ? publicBase : `https://${publicBase}`;
+  return `${base}/${fileName}`;
 }

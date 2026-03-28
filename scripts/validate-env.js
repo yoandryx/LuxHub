@@ -81,7 +81,7 @@ const envRequirements = {
     { name: 'R2_ACCOUNT_ID', description: 'Cloudflare R2 account ID' },
     { name: 'R2_ACCESS_KEY_ID', description: 'Cloudflare R2 access key ID' },
     { name: 'R2_SECRET_ACCESS_KEY', description: 'Cloudflare R2 secret access key' },
-    { name: 'R2_PUBLIC_DOMAIN', description: 'Cloudflare R2 public domain for assets' },
+    { name: 'R2_PUBLIC_URL', description: 'Cloudflare R2 public URL for assets (e.g. https://pub-xxx.r2.dev)' },
     { name: 'XAI_API_KEY', description: 'xAI API key' },
   ],
 };
