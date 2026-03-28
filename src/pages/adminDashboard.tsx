@@ -1069,20 +1069,31 @@ const AdminDashboard: React.FC = () => {
       }
 
       // ---------- build Anchor instruction (NO .rpc()) ----------
+      const [configPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('luxhub-config')],
+        program.programId
+      );
+      const SYSVAR_INSTRUCTIONS = new PublicKey('Sysvar1nstructions1111111111111111111111111');
+      const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+
       const ix = await program.methods
         .confirmDelivery()
         .accounts({
-          luxhub: vaultPda, // signer when executed by Squads
           escrow: escrowPda,
+          config: configPda,
+          buyerNftAta,
           nftVault,
           wsolVault,
-          mintA: new PublicKey(FUNDS_MINT), // wSOL mint
+          mintA: new PublicKey(FUNDS_MINT),
           mintB: nftMint,
           sellerFundsAta,
           luxhubFeeAta,
-          sellerNftAta,
-          buyerNftAta,
+          seller: new PublicKey(escrow.initializer), // seller receives escrow rent
+          authority: vaultPda, // Squads vault as authority
+          instructionsSysvar: SYSVAR_INSTRUCTIONS,
           tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM,
+          systemProgram: SystemProgram.programId,
         })
         .instruction();
 
