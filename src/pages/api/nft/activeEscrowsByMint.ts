@@ -3,6 +3,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Escrow } from '../../../lib/models/Escrow';
+import '../../../lib/models/Assets'; // Ensure Asset model is registered for populate
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

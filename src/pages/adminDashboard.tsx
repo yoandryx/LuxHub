@@ -165,10 +165,14 @@ async function proposeToSquads(ix: {
   dataBase64: string;
   vaultIndex?: number;
   autoApprove?: boolean;
+  wallet?: string;
 }): Promise<ProposeResponse> {
   const resp = await fetch('/api/squads/propose', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(ix.wallet ? { 'x-wallet-address': ix.wallet } : {}),
+    },
     body: JSON.stringify({
       ...ix,
       vaultIndex: ix.vaultIndex ?? 0,
@@ -176,7 +180,7 @@ async function proposeToSquads(ix: {
     }),
   });
   const json = await resp.json();
-  if (!resp.ok || !json.ok) throw new Error(json.error || 'Failed to propose tx');
+  if (!resp.ok || !json.ok) throw new Error(json.error || json.message || 'Failed to propose tx');
   return json as ProposeResponse;
 }
 
@@ -385,7 +389,8 @@ const AdminDashboard: React.FC = () => {
   const fetchActiveEscrowsByMint = async () => {
     try {
       const res = await fetch('/api/nft/activeEscrowsByMint');
-      const escrows = await res.json();
+      const data = await res.json();
+      const escrows = Array.isArray(data) ? data : [];
 
       const enriched = escrows.map((escrow: any) => ({
         seed: escrow.seed,
@@ -1111,7 +1116,7 @@ const AdminDashboard: React.FC = () => {
         keys,
         dataBase64,
         vaultIndex: 0,
-        // transactionIndex: Date.now().toString(), // optional custom index
+        wallet: publicKey.toBase58(),
       });
 
       toast.success(

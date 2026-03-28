@@ -13,7 +13,7 @@ import * as multisig from '@sqds/multisig';
 import { readFileSync } from 'fs';
 import dbConnect from '../../../lib/database/mongodb';
 import { User } from '../../../lib/models/User';
-import { withWalletAuth, AuthenticatedRequest } from '../../../lib/middleware/walletAuth';
+import { withWalletValidation, AuthenticatedRequest } from '../../../lib/middleware/walletAuth';
 
 type IxKey = { pubkey: string; isSigner: boolean; isWritable: boolean };
 
@@ -203,5 +203,5 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-// Wrap with wallet authentication middleware (requires signed message)
-export default withErrorMonitoring(withWalletAuth(handler));
+// Wrap with wallet validation (admin check is inside handler)
+export default withErrorMonitoring(withWalletValidation(handler));
