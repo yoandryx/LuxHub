@@ -5,9 +5,15 @@ import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
-import { mplCore, transfer, fetchAsset } from '@metaplex-foundation/mpl-core';
-import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
-import { create as createAsset, update as updateAsset } from '@metaplex-foundation/mpl-core';
+import {
+  mplTokenMetadata,
+  createNft,
+  transferV1,
+  fetchDigitalAsset,
+  updateV1,
+  TokenStandard,
+} from '@metaplex-foundation/mpl-token-metadata';
+import { generateSigner, publicKey as umiPublicKey, percentAmount } from '@metaplex-foundation/umi';
 import { createMetadata } from '../utils/metadata';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 
@@ -409,7 +415,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
   const getUmi = useCallback(() => {
     return createUmi(getClusterConfig().endpoint)
       .use(walletAdapterIdentity(anchorWallet))
-      .use(mplCore());
+      .use(mplTokenMetadata());
   }, [anchorWallet]);
 
   // AI Verification function
@@ -572,28 +578,27 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       setProgress(55);
 
       // Mint on-chain
-      setStatusMessage('Minting Core NFT on Solana...');
-      console.log('[MINT] Generating asset signer...');
-      const assetSigner = generateSigner(umi);
-      console.log('[MINT] Asset signer public key:', assetSigner.publicKey.toString());
+      setStatusMessage('Minting NFT on Solana...');
+      console.log('[MINT] Generating mint signer...');
+      const mintSigner = generateSigner(umi);
+      console.log('[MINT] Mint signer public key:', mintSigner.publicKey.toString());
 
-      // NFT owner is always the minter - transfer to vault/vendor happens manually after
-      const nftOwner = umi.identity.publicKey;
       console.log('[MINT] NFT Owner: Admin Wallet (minter)', publicKey.toBase58());
-      console.log('[MINT] Sending createAsset transaction...');
+      console.log('[MINT] Sending createNft transaction...');
 
       const txStartTime = Date.now();
       // On-chain name max 32 chars — use brand + model if available, truncate title as fallback
       const onChainName = (brand && model ? `${brand} ${model}` : title).slice(0, 32);
-      await createAsset(umi, {
-        asset: assetSigner,
+      await createNft(umi, {
+        mint: mintSigner,
         name: onChainName,
         uri: metadataUri,
-        owner: nftOwner, // Set owner to vault PDA for vault mints
+        sellerFeeBasisPoints: percentAmount(5),
+        tokenOwner: umi.identity.publicKey,
       }).sendAndConfirm(umi);
       const txDuration = Date.now() - txStartTime;
 
-      const mintAddress = assetSigner.publicKey.toString();
+      const mintAddress = mintSigner.publicKey.toString();
       console.log('[MINT] On-chain mint successful!');
       console.log('[MINT] Mint address:', mintAddress);
       console.log('[MINT] Transaction duration:', txDuration, 'ms');
@@ -1050,29 +1055,29 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
         console.log(`[BULK-MINT] Row ${index + 1}: Metadata uploaded: ${metadataUri}`);
 
-        // Mint NFT
-        console.log(`[BULK-MINT] Row ${index + 1}: Generating asset signer...`);
-        const assetSigner = generateSigner(umi);
+        // Mint NFT (SPL Token + Metaplex Token Metadata)
+        console.log(`[BULK-MINT] Row ${index + 1}: Generating mint signer...`);
+        const mintSigner = generateSigner(umi);
         console.log(
-          `[BULK-MINT] Row ${index + 1}: Asset signer: ${assetSigner.publicKey.toString()}`
+          `[BULK-MINT] Row ${index + 1}: Mint signer: ${mintSigner.publicKey.toString()}`
         );
 
         // NFT owner is always the minter - transfer to vault/vendor happens manually after
         const isVaultMintBulk = false; // Disabled auto-transfer - minter keeps NFT
-        const nftOwner = umi.identity.publicKey;
 
         console.log(`[BULK-MINT] Row ${index + 1}: NFT Owner: Admin Wallet (minter)`);
         console.log(`[BULK-MINT] Row ${index + 1}: Sending on-chain transaction...`);
         const txStartTime = Date.now();
-        await createAsset(umi, {
-          asset: assetSigner,
+        await createNft(umi, {
+          mint: mintSigner,
           name: row.title,
           uri: metadataUri,
-          owner: nftOwner, // Set owner to vault PDA for vault mints
+          sellerFeeBasisPoints: percentAmount(5),
+          tokenOwner: umi.identity.publicKey,
         }).sendAndConfirm(umi);
         const txDuration = Date.now() - txStartTime;
 
-        const mintAddress = assetSigner.publicKey.toString();
+        const mintAddress = mintSigner.publicKey.toString();
         console.log(`[BULK-MINT] Row ${index + 1}: On-chain mint successful!`);
         console.log(`[BULK-MINT] Row ${index + 1}: Mint address: ${mintAddress}`);
         console.log(`[BULK-MINT] Row ${index + 1}: Transaction duration: ${txDuration}ms`);
@@ -1333,26 +1338,24 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     try {
       const umi = getUmi();
 
-      // Fetch the asset to get current state
-      const asset = await fetchAsset(umi, umiPublicKey(mintAddress));
-
-      // Verify the connected wallet is the owner
+      // Verify the connected wallet is the owner by fetching the digital asset
+      const digitalAsset = await fetchDigitalAsset(umi, umiPublicKey(mintAddress));
       const connectedWallet = publicKey?.toBase58();
-      const assetOwner = asset.owner.toString();
+      const assetOwner = digitalAsset.metadata.updateAuthority.toString();
 
+      // For SPL Token NFTs, check the token account owner via the token record
+      // The updateAuthority check is a basic guard; the transfer will fail on-chain if not owner
       if (assetOwner !== connectedWallet) {
-        throw new Error(
-          `You are not the owner of this NFT.\n` +
-            `Owner: ${assetOwner.slice(0, 8)}...${assetOwner.slice(-4)}\n` +
-            `Your wallet: ${connectedWallet?.slice(0, 8)}...${connectedWallet?.slice(-4)}`
+        console.warn(
+          `[TRANSFER] Update authority mismatch - wallet: ${connectedWallet}, authority: ${assetOwner}. Proceeding (on-chain will verify token ownership).`
         );
       }
 
-      // Transfer using mpl-core with explicit authority
-      await transfer(umi, {
-        asset,
-        newOwner: umiPublicKey(newOwner),
-        authority: umi.identity, // Explicitly pass the connected wallet as authority
+      // Transfer using mpl-token-metadata transferV1
+      await transferV1(umi, {
+        mint: umiPublicKey(mintAddress),
+        destinationOwner: umiPublicKey(newOwner),
+        tokenStandard: TokenStandard.NonFungible,
       }).sendAndConfirm(umi);
 
       // Update database (also links to vendor if vendorId provided or wallet matches a vendor)
@@ -1563,11 +1566,11 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       const newUri = await uploadMetadataViaApi(updatedJson, title);
       console.log('[UPDATE] Metadata uploaded:', newUri);
 
-      // Fetch and update on-chain
-      const asset = await fetchAsset(umi, umiPublicKey(editingNft.mintAddress));
-      await updateAsset(umi, {
-        asset,
-        uri: newUri,
+      // Fetch and update on-chain metadata
+      const digitalAsset = await fetchDigitalAsset(umi, umiPublicKey(editingNft.mintAddress));
+      await updateV1(umi, {
+        mint: umiPublicKey(editingNft.mintAddress),
+        data: { ...digitalAsset.metadata, uri: newUri },
       }).sendAndConfirm(umi);
 
       // Update database — include all uploaded image URLs

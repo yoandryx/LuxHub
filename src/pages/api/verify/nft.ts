@@ -106,7 +106,7 @@ export default async function handler(
         const accountInfo = await connection.getAccountInfo(new PublicKey(mint));
 
         if (accountInfo) {
-          // For mpl-core assets, we'd need to deserialize and check the authority
+          // For SPL Token Metadata NFTs, we could verify the creator array in metadata
           // For now, trust the database records if they exist
           if (!checks.verifiedCreator && (checks.inLuxHubDatabase || checks.mintedByVault)) {
             // If in our database but not explicitly marked as verified creator,

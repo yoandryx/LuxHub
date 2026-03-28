@@ -1,50 +1,76 @@
-// Script to fund Irys account with devnet SOL
+/**
+ * Fund Irys node with SOL for mainnet uploads.
+ *
+ * Usage:
+ *   node scripts/fund-irys.cjs [amount_in_sol]
+ *
+ * Defaults to 0.05 SOL which covers ~50 mints.
+ * Uses the deploy wallet (keys/mainnet/deploy.json).
+ */
 require('dotenv').config({ path: '.env.local' });
 
-const Irys = require('@irys/sdk').default;
+const { Keypair, Connection, LAMPORTS_PER_SOL } = require('@solana/web3.js');
+const fs = require('fs');
+const path = require('path');
 
 async function main() {
-  const privateKey = process.env.IRYS_PRIVATE_KEY;
-  const network = process.env.IRYS_NETWORK || 'devnet';
+  const amountSOL = parseFloat(process.argv[2] || '0.05');
+  const amountLamports = Math.round(amountSOL * LAMPORTS_PER_SOL);
 
-  if (!privateKey) {
-    console.error('❌ IRYS_PRIVATE_KEY not set in .env.local');
+  // Load deploy keypair
+  const keypairPath = path.resolve(__dirname, '..', 'keys', 'mainnet', 'deploy.json');
+  if (!fs.existsSync(keypairPath)) {
+    console.error('Deploy keypair not found at:', keypairPath);
     process.exit(1);
   }
 
-  console.log('🔗 Connecting to Irys', network, 'network...');
+  const secret = JSON.parse(fs.readFileSync(keypairPath, 'utf-8'));
+  const keypair = Keypair.fromSecretKey(Uint8Array.from(secret));
 
-  const irys = new Irys({
-    network,
-    token: 'solana',
-    key: privateKey,
-    config: { providerUrl: process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.devnet.solana.com' }
-  });
+  console.log('=== Irys Node Funding ===');
+  console.log('Wallet:  ', keypair.publicKey.toBase58());
+  console.log('Amount:  ', amountSOL, 'SOL');
+  console.log('');
+
+  // Check wallet balance first
+  const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+  const connection = new Connection(rpcUrl, 'confirmed');
+  const balance = await connection.getBalance(keypair.publicKey);
+  console.log('Wallet balance:', (balance / LAMPORTS_PER_SOL).toFixed(4), 'SOL');
+
+  if (balance < amountLamports + 10000) {
+    console.error(`Insufficient balance. Need ${amountSOL} SOL + fees.`);
+    process.exit(1);
+  }
+
+  // Dynamic import for Irys (ESM modules)
+  const { Uploader } = await import('@irys/upload');
+  const { Solana } = await import('@irys/upload-solana');
+
+  console.log('\nInitializing Irys (mainnet)...');
+  const irys = await Uploader(Solana)
+    .withWallet(keypair.secretKey)
+    .withRpc(rpcUrl);
 
   // Check current balance
-  const balance = await irys.getLoadedBalance();
-  const balanceInSol = Number(balance) / 1e9;
-  console.log('💰 Current Irys balance:', balanceInSol.toFixed(6), 'SOL');
+  const currentBalance = await irys.getLoadedBalance();
+  console.log('Current Irys balance:', currentBalance.toString(), 'lamports');
+  console.log('                     ', (Number(currentBalance) / LAMPORTS_PER_SOL).toFixed(6), 'SOL');
 
-  // Fund with 0.1 SOL if balance is low
-  const fundAmount = 100000000; // 0.1 SOL in lamports
+  // Fund
+  console.log(`\nFunding ${amountSOL} SOL (${amountLamports} lamports)...`);
+  const fundTx = await irys.fund(amountLamports);
+  console.log('Fund TX:', fundTx.id);
 
-  if (balance < 50000000) { // Less than 0.05 SOL
-    console.log('📤 Funding Irys with 0.1 SOL...');
-    try {
-      const fundTx = await irys.fund(fundAmount);
-      console.log('✅ Funded! Transaction ID:', fundTx.id);
-
-      const newBalance = await irys.getLoadedBalance();
-      console.log('💰 New balance:', (Number(newBalance) / 1e9).toFixed(6), 'SOL');
-    } catch (err) {
-      console.error('❌ Funding failed:', err.message);
-      console.log('\n📋 Make sure your wallet has devnet SOL.');
-      console.log('   Get free devnet SOL at: https://faucet.solana.com');
-    }
-  } else {
-    console.log('✅ Balance is sufficient for uploads');
-  }
+  // Check new balance
+  const newBalance = await irys.getLoadedBalance();
+  console.log('\nNew Irys balance:', newBalance.toString(), 'lamports');
+  console.log('                 ', (Number(newBalance) / LAMPORTS_PER_SOL).toFixed(6), 'SOL');
+  console.log('\nIrys funded successfully!');
+  console.log(`Estimated mints remaining: ~${Math.floor(Number(newBalance) / 3000000)}`);
 }
 
-main().catch(console.error);
+main().catch(err => {
+  console.error('Error:', err.message || err);
+  process.exit(1);
+});

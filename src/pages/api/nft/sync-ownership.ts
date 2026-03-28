@@ -1,7 +1,7 @@
 // src/pages/api/nft/sync-ownership.ts
 // Syncs on-chain NFT ownership to MongoDB database
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import dbConnect from '@/lib/database/mongodb';
 import { Asset } from '../../../lib/models/Assets';
 import { getConnection } from '@/lib/solana/clusterConfig';
@@ -55,11 +55,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!asset.nftMint) continue;
 
       try {
-        // Fetch on-chain account data for mpl-core asset
+        // For SPL Token Metadata NFTs, find the owner via the largest token account holder
         const mintPubkey = new PublicKey(asset.nftMint);
-        const accountInfo = await connection.getAccountInfo(mintPubkey);
 
-        if (!accountInfo) {
+        // Get the largest token account for this mint (NFTs have supply=1, so there's one holder)
+        const tokenAccounts = await connection.getTokenLargestAccounts(mintPubkey);
+        const largestAccount = tokenAccounts.value.find((a) => a.uiAmount === 1);
+
+        if (!largestAccount) {
           results.push({
             mintAddress: asset.nftMint,
             dbOwner: asset.nftOwnerWallet || null,
@@ -71,10 +74,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           continue;
         }
 
-        // mpl-core asset account structure: owner is at offset 1 (after discriminator)
-        // Discriminator (1 byte) + Owner (32 bytes)
-        const ownerBytes = accountInfo.data.slice(1, 33);
-        const onChainOwner = new PublicKey(ownerBytes).toBase58();
+        // Fetch the token account to get the owner
+        const tokenAccountInfo = await connection.getParsedAccountInfo(largestAccount.address);
+        const parsedData = (tokenAccountInfo.value?.data as any)?.parsed;
+        const onChainOwner = parsedData?.info?.owner as string;
+
+        if (!onChainOwner) {
+          results.push({
+            mintAddress: asset.nftMint,
+            dbOwner: asset.nftOwnerWallet || null,
+            onChainOwner: null,
+            synced: false,
+            changed: false,
+          });
+          errors++;
+          continue;
+        }
 
         const dbOwner = asset.nftOwnerWallet || null;
         const changed = dbOwner !== onChainOwner;

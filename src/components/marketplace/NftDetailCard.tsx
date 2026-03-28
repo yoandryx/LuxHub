@@ -14,12 +14,12 @@ const loadMetaplex = async () => {
   return Metaplex;
 };
 
-// Dynamic import for mpl-core (for new NFT format)
-const loadMplCore = async () => {
+// Dynamic import for mpl-token-metadata (for SPL Token Metadata NFTs)
+const loadMplTokenMetadata = async () => {
   const { createUmi } = await import('@metaplex-foundation/umi-bundle-defaults');
-  const { fetchAsset } = await import('@metaplex-foundation/mpl-core');
+  const { fetchDigitalAsset, mplTokenMetadata } = await import('@metaplex-foundation/mpl-token-metadata');
   const { publicKey } = await import('@metaplex-foundation/umi');
-  return { createUmi, fetchAsset, publicKey };
+  return { createUmi, fetchDigitalAsset, mplTokenMetadata, publicKey };
 };
 
 export interface NFTMetadata {
@@ -123,12 +123,12 @@ export const NftDetailCard: React.FC<NftDetailCardProps> = ({
         const rpcEndpoint = getClusterConfig().endpoint;
 
         if (!uri && mintAddress) {
-          // Try mpl-core first (new NFT format)
+          // Try mpl-token-metadata first (SPL Token Metadata NFTs)
           try {
-            const { createUmi, fetchAsset, publicKey } = await loadMplCore();
-            const umi = createUmi(rpcEndpoint);
-            const asset = await fetchAsset(umi, publicKey(mintAddress));
-            uri = asset.uri;
+            const { createUmi, fetchDigitalAsset, mplTokenMetadata, publicKey } = await loadMplTokenMetadata();
+            const umi = createUmi(rpcEndpoint).use(mplTokenMetadata());
+            const digitalAsset = await fetchDigitalAsset(umi, publicKey(mintAddress));
+            uri = digitalAsset.metadata.uri;
           } catch {
             // Fall back to Metaplex for old NFTs
             const connection = new Connection(rpcEndpoint);

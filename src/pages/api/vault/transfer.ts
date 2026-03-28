@@ -104,7 +104,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // 3. Single approval mode - execute transfer immediately
-    // Note: Actual on-chain transfer would happen here via Metaplex/mpl-core
+    // Note: Actual on-chain transfer would happen here via Metaplex Token Metadata transferV1
     // For now, we update the database and assume on-chain transfer is done separately
 
     vaultItem.status = 'transferred';

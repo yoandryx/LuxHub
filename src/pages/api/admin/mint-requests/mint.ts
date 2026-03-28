@@ -6,12 +6,12 @@ import { getConnection } from '@/lib/solana/clusterConfig';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { keypairIdentity } from '@metaplex-foundation/umi';
 import {
-  mplCore,
-  create as createAsset,
-  transfer,
-  fetchAsset,
-} from '@metaplex-foundation/mpl-core';
-import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
+  mplTokenMetadata,
+  createNft,
+  transferV1,
+  TokenStandard,
+} from '@metaplex-foundation/mpl-token-metadata';
+import { generateSigner, publicKey as umiPublicKey, percentAmount } from '@metaplex-foundation/umi';
 import dbConnect from '../../../../lib/database/mongodb';
 import MintRequest from '../../../../lib/models/MintRequest';
 import Asset from '../../../../lib/models/Assets';
@@ -264,20 +264,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           secretKey: adminKeypair.secretKey,
         })
       )
-      .use(mplCore());
+      .use(mplTokenMetadata());
 
-    // Step 5: Mint the NFT
-    const assetSigner = generateSigner(umi);
+    // Step 5: Mint the NFT (SPL Token + Metaplex Token Metadata)
+    const mintSigner = generateSigner(umi);
     let mintAddress: string;
 
     try {
-      await createAsset(umi, {
-        asset: assetSigner,
+      await createNft(umi, {
+        mint: mintSigner,
         name: mintRequest.title,
         uri: metadataUri,
+        sellerFeeBasisPoints: percentAmount(5),
       }).sendAndConfirm(umi);
 
-      mintAddress = assetSigner.publicKey.toString();
+      mintAddress = mintSigner.publicKey.toString();
     } catch (error) {
       console.error('Failed to mint NFT:', error);
       return res.status(500).json({ error: 'Failed to mint NFT on-chain' });
@@ -286,10 +287,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Step 6: Transfer NFT to vendor wallet
     let transferSuccess = false;
     try {
-      const mintedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
-      await transfer(umi, {
-        asset: mintedAsset,
-        newOwner: umiPublicKey(mintRequest.wallet),
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for finalization
+      await transferV1(umi, {
+        mint: umiPublicKey(mintAddress),
+        destinationOwner: umiPublicKey(mintRequest.wallet),
+        tokenStandard: TokenStandard.NonFungible,
       }).sendAndConfirm(umi);
       transferSuccess = true;
     } catch (error) {

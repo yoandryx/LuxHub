@@ -249,7 +249,7 @@ const LearnMorePage: React.FC = () => {
               </div>
               <div className={styles.partnerCard}>
                 <h4>Metaplex</h4>
-                <p>mpl-core NFT standard for token metadata</p>
+                <p>Token Metadata standard for SPL NFTs</p>
               </div>
             </div>
           </section>

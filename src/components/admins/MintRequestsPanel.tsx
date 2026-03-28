@@ -8,12 +8,12 @@ import { useConnection } from '@solana/wallet-adapter-react';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
 import {
-  mplCore,
-  create as createAsset,
-  transfer,
-  fetchAsset,
-} from '@metaplex-foundation/mpl-core';
-import { generateSigner, publicKey as umiPublicKey } from '@metaplex-foundation/umi';
+  mplTokenMetadata,
+  createNft,
+  transferV1,
+  TokenStandard,
+} from '@metaplex-foundation/mpl-token-metadata';
+import { generateSigner, publicKey as umiPublicKey, percentAmount } from '@metaplex-foundation/umi';
 import toast from 'react-hot-toast';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import styles from '../../styles/AdminDashboard.module.css';
@@ -420,11 +420,10 @@ const MintRequestsPanel: React.FC = () => {
       // Step 1: Generate signer first so we know the mint address for metadata
       const umi = createUmi(connection.rpcEndpoint)
         .use(walletAdapterIdentity(wallet))
-        .use(mplCore());
+        .use(mplTokenMetadata());
 
-      const assetSigner = generateSigner(umi);
-      const mintAddress = assetSigner.publicKey.toString();
-      const nftOwner = umi.identity.publicKey;
+      const mintSigner = generateSigner(umi);
+      const mintAddress = mintSigner.publicKey.toString();
 
       // Step 2: Prepare metadata with mint address for external_url
       const prepareRes = await fetch('/api/admin/mint-requests/prepare-mint', {
@@ -445,18 +444,18 @@ const MintRequestsPanel: React.FC = () => {
 
       toast.loading('Minting NFT with your wallet...', { id: toastId });
 
-      // Step 3: Mint on-chain
-      await createAsset(umi, {
-        asset: assetSigner,
+      // Step 3: Mint on-chain (SPL Token + Metaplex Token Metadata)
+      await createNft(umi, {
+        mint: mintSigner,
         name: prepareData.title,
         uri: prepareData.metadataUri,
-        owner: nftOwner,
+        sellerFeeBasisPoints: percentAmount(5),
+        tokenOwner: umi.identity.publicKey,
       }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
 
       // Transfer NFT to destination wallet (if specified)
       let transferSuccess = false;
       let actualTransferDest: string | null = null;
-      let fetchedAsset = null;
 
       if (transferDest) {
         console.log('[MINT] Step 5: Transferring NFT to destination...');
@@ -464,47 +463,25 @@ const MintRequestsPanel: React.FC = () => {
         console.log('[MINT]   - To:', transferDest);
         toast.loading(`Transferring to ${transferDest.slice(0, 8)}...`, { id: toastId });
 
-        // Retry fetching the asset with exponential backoff (devnet can be slow)
-        for (let attempt = 1; attempt <= 5; attempt++) {
-          try {
-            const waitTime = attempt * 2000; // 2s, 4s, 6s, 8s, 10s
-            console.log(
-              `[MINT]   - Attempt ${attempt}/5: Waiting ${waitTime / 1000}s before fetch...`
-            );
-            await new Promise((resolve) => setTimeout(resolve, waitTime));
+        // Wait for finalization to propagate before transferring
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-            console.log(`[MINT]   - Attempt ${attempt}/5: Fetching asset from chain...`);
-            fetchedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
-            console.log(`[MINT]   - ✅ Asset found on attempt ${attempt}!`);
-            console.log(`[MINT]   - Asset owner:`, fetchedAsset.owner?.toString());
-            break;
-          } catch (fetchErr: any) {
-            console.log(`[MINT]   - ❌ Attempt ${attempt}/5 failed:`, fetchErr.message || fetchErr);
-            if (attempt === 5) {
-              console.log('[MINT]   - All fetch attempts exhausted');
-            }
-          }
-        }
-
-        if (fetchedAsset) {
-          try {
-            console.log('[MINT]   - Initiating transfer...');
-            await transfer(umi, {
-              asset: fetchedAsset,
-              newOwner: umiPublicKey(transferDest),
-            }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
-            transferSuccess = true;
-            actualTransferDest = transferDest;
-            console.log('[MINT] ✅ NFT transferred to:', transferDest);
-          } catch (transferErr: any) {
-            console.error(
-              '[MINT] ❌ Transfer transaction failed:',
-              transferErr.message || transferErr
-            );
-          }
-        } else {
-          console.log('[MINT] ⚠️ Could not fetch asset after 5 attempts - NFT stays with admin');
-          console.log('[MINT]   - NFT can be transferred manually later');
+        try {
+          console.log('[MINT]   - Initiating transfer...');
+          await transferV1(umi, {
+            mint: umiPublicKey(mintAddress),
+            destinationOwner: umiPublicKey(transferDest),
+            tokenStandard: TokenStandard.NonFungible,
+          }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
+          transferSuccess = true;
+          actualTransferDest = transferDest;
+          console.log('[MINT] NFT transferred to:', transferDest);
+        } catch (transferErr: any) {
+          console.error(
+            '[MINT] Transfer transaction failed:',
+            transferErr.message || transferErr
+          );
+          console.log('[MINT] NFT stays with admin - can be transferred manually later');
         }
       } else {
         console.log('[MINT] Step 5: Skipping transfer - NFT stays in admin wallet');
@@ -648,11 +625,10 @@ const MintRequestsPanel: React.FC = () => {
       // Step 2: Generate signer first so we know the mint address
       const umi = createUmi(connection.rpcEndpoint)
         .use(walletAdapterIdentity(wallet))
-        .use(mplCore());
+        .use(mplTokenMetadata());
 
-      const assetSigner = generateSigner(umi);
-      const mintAddress = assetSigner.publicKey.toString();
-      const nftOwner = umi.identity.publicKey;
+      const mintSigner = generateSigner(umi);
+      const mintAddress = mintSigner.publicKey.toString();
 
       toast.loading('Preparing metadata...', { id: toastId });
 
@@ -675,45 +651,35 @@ const MintRequestsPanel: React.FC = () => {
 
       toast.loading('Minting NFT with your wallet...', { id: toastId });
 
-      // Step 4: Mint with the pre-generated signer
+      // Step 4: Mint with the pre-generated signer (SPL Token + Metaplex Token Metadata)
       console.log('[MINT] Approve & Mint:', prepareData.title);
 
-      await createAsset(umi, {
-        asset: assetSigner,
+      await createNft(umi, {
+        mint: mintSigner,
         name: prepareData.title,
         uri: prepareData.metadataUri,
-        owner: nftOwner,
+        sellerFeeBasisPoints: percentAmount(5),
+        tokenOwner: umi.identity.publicKey,
       }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
       console.log('[MINT] Success! Mint address:', mintAddress);
 
-      // Transfer NFT to vendor wallet with retry logic
+      // Transfer NFT to vendor wallet
       toast.loading('Transferring to vendor...', { id: toastId });
       let transferSuccess = false;
-      let fetchedAsset = null;
-
-      // Retry fetching the asset with exponential backoff
-      for (let attempt = 1; attempt <= 5; attempt++) {
-        try {
-          const waitTime = attempt * 2000; // 2s, 4s, 6s, 8s, 10s
-          console.log(`[MINT] Attempt ${attempt}/5: Waiting ${waitTime / 1000}s before fetch...`);
-          await new Promise((resolve) => setTimeout(resolve, waitTime));
-          fetchedAsset = await fetchAsset(umi, umiPublicKey(mintAddress));
-          console.log(`[MINT] Asset found on attempt ${attempt}!`);
-          break;
-        } catch (fetchErr: any) {
-          console.log(`[MINT] Attempt ${attempt}/5 failed:`, fetchErr.message);
-        }
-      }
 
       // For Approve & Mint, default to transferring to the requester (vendor)
       const transferDest = prepareData.vendorWallet;
       let actualTransferDest: string | null = null;
 
-      if (fetchedAsset && transferDest) {
+      if (transferDest) {
+        // Wait for finalization to propagate before transferring
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
         try {
-          await transfer(umi, {
-            asset: fetchedAsset,
-            newOwner: umiPublicKey(transferDest),
+          await transferV1(umi, {
+            mint: umiPublicKey(mintAddress),
+            destinationOwner: umiPublicKey(transferDest),
+            tokenStandard: TokenStandard.NonFungible,
           }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
           transferSuccess = true;
           actualTransferDest = transferDest;
@@ -722,7 +688,7 @@ const MintRequestsPanel: React.FC = () => {
           console.error('[MINT] Transfer transaction failed:', transferErr.message);
         }
       } else {
-        console.log('[MINT] Could not fetch asset after 5 attempts - will transfer manually');
+        console.log('[MINT] No vendor wallet - will transfer manually');
       }
 
       toast.loading('Creating marketplace listing...', { id: toastId });
