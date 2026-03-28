@@ -48,12 +48,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Filter to NFTs only (exclude fungible tokens)
-    const nftAssets = (dasResult.items || []).filter(
+    const allNftAssets = (dasResult.items || []).filter(
       (asset: DASAsset) => isNFT(asset) && !asset.burnt
     );
 
+    // Filter to LuxHub-verified NFTs only — cross-reference with Asset collection
+    const allMints = allNftAssets.map((a: DASAsset) => a.id);
+    const luxhubAssets = allMints.length > 0
+      ? await Asset.find({ nftMint: { $in: allMints }, deleted: { $ne: true } })
+          .select('nftMint')
+          .lean()
+      : [];
+    const luxhubMintSet = new Set((luxhubAssets as any[]).map((a) => a.nftMint));
+    const nftAssets = allNftAssets.filter((asset: DASAsset) => luxhubMintSet.has(asset.id));
+
     // Background sync: update MongoDB ownership for any LuxHub NFTs this wallet holds on-chain
-    // This fixes Gap 1: direct on-chain transfers now auto-sync to MongoDB
     if (nftAssets.length > 0) {
       const onChainMints = nftAssets.map((a: DASAsset) => a.id);
       Asset.updateMany(
