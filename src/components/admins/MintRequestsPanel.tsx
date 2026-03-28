@@ -466,6 +466,7 @@ const MintRequestsPanel: React.FC = () => {
 
       const sellerWallet = transferDest || wallet.publicKey.toBase58();
       let escrowPdaStr: string;
+      const escrowSeed = Date.now();
 
       try {
         const program = getProgram(wallet);
@@ -476,7 +477,7 @@ const MintRequestsPanel: React.FC = () => {
         const adminPk = wallet.publicKey;
 
         // Generate unique seed for this escrow
-        const seed = Date.now();
+        const seed = escrowSeed;
         const seedBn = new BN(seed);
 
         // Derive escrow PDA
@@ -555,7 +556,7 @@ const MintRequestsPanel: React.FC = () => {
           mintAddress,
           signature: mintAddress,
           escrowPda: escrowPdaStr, // Real on-chain PDA
-          escrowSeed: seed, // Seed used to derive PDA (needed for confirm_delivery)
+          escrowSeed: escrowSeed, // Seed used to derive PDA (needed for confirm_delivery)
           transferToVendor: false, // NFT is in escrow vault, not vendor wallet
           transferDestination: sellerWallet,
           transferDestinationType: transferTypeSelected,
@@ -722,6 +723,7 @@ const MintRequestsPanel: React.FC = () => {
 
       const sellerWallet = prepareData.vendorWallet || wallet.publicKey.toBase58();
       let escrowPdaStr: string;
+      const escrowSeed2 = Date.now();
 
       try {
         const program = getProgram(wallet);
@@ -731,7 +733,7 @@ const MintRequestsPanel: React.FC = () => {
         const nftMintPk = new PublicKey(mintAddress);
         const adminPk = wallet.publicKey;
 
-        const seed = Date.now();
+        const seed = escrowSeed2;
         const seedBn = new BN(seed);
 
         const [escrowPda] = PublicKey.findProgramAddressSync(
@@ -801,7 +803,7 @@ const MintRequestsPanel: React.FC = () => {
           mintAddress,
           signature: mintAddress,
           escrowPda: escrowPdaStr,
-          escrowSeed: seed,
+          escrowSeed: escrowSeed2,
           transferToVendor: false,
           transferDestination: sellerWallet,
           transferDestinationType: 'requester',
