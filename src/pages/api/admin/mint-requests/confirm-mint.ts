@@ -48,6 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     mintAddress,
     signature,
     escrowPda: clientEscrowPda, // Real on-chain PDA from client
+    escrowSeed: clientEscrowSeed, // Seed used to derive PDA
     transferToVendor,
     transferDestination,
     transferDestinationType,
@@ -278,6 +279,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       seller: ownerVendor?._id || null, // Use the vendor who owns the NFT
       sellerWallet: transferDestination || actualOwner, // Vendor wallet for payout routing
       escrowPda: listingEscrowPda, // Real on-chain PDA (or placeholder if client didn't provide)
+      escrowSeed: clientEscrowSeed || null, // Seed for PDA derivation (needed for confirm_delivery)
       nftMint: mintAddress,
       saleMode: 'fixed_price',
       listingPrice: Math.round(mintRequest.priceUSD * 1_000_000), // USDC atomic units (6 decimals)

@@ -8,6 +8,7 @@ const EscrowSchema = new Schema(
     seller: { type: Schema.Types.ObjectId, ref: 'Vendor' },
     sellerWallet: { type: String }, // Vendor wallet address for quick lookup
     escrowPda: { type: String, required: true, unique: true }, // Solana PDA for on-chain escrow
+    escrowSeed: { type: Number }, // Seed used to derive escrow PDA (needed for confirm_delivery)
     nftMint: { type: String, index: true }, // NFT mint address
     amountUSD: Number,
     royaltyAmount: Number,

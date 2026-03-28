@@ -555,6 +555,7 @@ const MintRequestsPanel: React.FC = () => {
           mintAddress,
           signature: mintAddress,
           escrowPda: escrowPdaStr, // Real on-chain PDA
+          escrowSeed: seed, // Seed used to derive PDA (needed for confirm_delivery)
           transferToVendor: false, // NFT is in escrow vault, not vendor wallet
           transferDestination: sellerWallet,
           transferDestinationType: transferTypeSelected,
@@ -800,6 +801,7 @@ const MintRequestsPanel: React.FC = () => {
           mintAddress,
           signature: mintAddress,
           escrowPda: escrowPdaStr,
+          escrowSeed: seed,
           transferToVendor: false,
           transferDestination: sellerWallet,
           transferDestinationType: 'requester',

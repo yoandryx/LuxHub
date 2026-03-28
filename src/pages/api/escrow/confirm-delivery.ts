@@ -306,7 +306,7 @@ async function createConfirmDeliverySquadsProposal(
     const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
     const SYSVAR_INSTRUCTIONS = new PublicKey('Sysvar1nstructions1111111111111111111111111');
 
-    const buyerPk = new PublicKey(escrow.buyer?.wallet || escrow.buyerWallet);
+    const buyerPk = new PublicKey(escrow.buyerWallet);
     const sellerPk = new PublicKey(escrow.sellerWallet);
     const nftMintPk = new PublicKey(escrow.nftMint);
     const luxhubWallet = new PublicKey(getTreasury('marketplace'));
