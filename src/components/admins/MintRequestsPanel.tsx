@@ -5,6 +5,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
+import {
+  getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
 import {
@@ -16,6 +23,7 @@ import {
 import { generateSigner, publicKey as umiPublicKey, percentAmount } from '@metaplex-foundation/umi';
 import toast from 'react-hot-toast';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
+import { getProgram } from '@/utils/programUtils';
 import styles from '../../styles/AdminDashboard.module.css';
 import {
   HiOutlineRefresh,
@@ -453,45 +461,89 @@ const MintRequestsPanel: React.FC = () => {
         tokenOwner: umi.identity.publicKey,
       }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
 
-      // Transfer NFT to destination wallet (if specified)
-      let transferSuccess = false;
-      let actualTransferDest: string | null = null;
+      // Step 4: Initialize on-chain escrow (NFT moves from admin wallet to escrow vault)
+      toast.loading('Initializing on-chain escrow...', { id: toastId });
 
-      if (transferDest) {
-        console.log('[MINT] Step 5: Transferring NFT to destination...');
-        console.log('[MINT]   - From:', wallet.publicKey.toBase58());
-        console.log('[MINT]   - To:', transferDest);
-        toast.loading(`Transferring to ${transferDest.slice(0, 8)}...`, { id: toastId });
+      const sellerWallet = transferDest || wallet.publicKey.toBase58();
+      let escrowPdaStr: string;
 
-        // Wait for finalization to propagate before transferring
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        const program = getProgram(wallet);
+        const programId = new PublicKey(program.programId);
+        const { usdcMint } = getClusterConfig();
+        const USDC_MINT = new PublicKey(usdcMint);
+        const nftMintPk = new PublicKey(mintAddress);
+        const adminPk = wallet.publicKey;
 
-        try {
-          console.log('[MINT]   - Initiating transfer...');
-          await transferV1(umi, {
-            mint: umiPublicKey(mintAddress),
-            destinationOwner: umiPublicKey(transferDest),
-            tokenStandard: TokenStandard.NonFungible,
-          }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
-          transferSuccess = true;
-          actualTransferDest = transferDest;
-          console.log('[MINT] NFT transferred to:', transferDest);
-        } catch (transferErr: any) {
-          console.error(
-            '[MINT] Transfer transaction failed:',
-            transferErr.message || transferErr
-          );
-          console.log('[MINT] NFT stays with admin - can be transferred manually later');
-        }
-      } else {
-        console.log('[MINT] Step 5: Skipping transfer - NFT stays in admin wallet');
-        transferSuccess = true; // Consider "no transfer needed" as success
+        // Generate unique seed for this escrow
+        const seed = Date.now();
+        const seedBn = new BN(seed);
+
+        // Derive escrow PDA
+        const [escrowPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('state'), seedBn.toArrayLike(Buffer, 'le', 8)],
+          programId
+        );
+        escrowPdaStr = escrowPda.toBase58();
+
+        // Derive config PDA
+        const [configPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('luxhub-config')],
+          programId
+        );
+
+        // Derive ATAs
+        const sellerAtaB = getAssociatedTokenAddressSync(nftMintPk, adminPk, false);
+        const nftVault = getAssociatedTokenAddressSync(nftMintPk, escrowPda, true);
+        const usdcVault = getAssociatedTokenAddressSync(USDC_MINT, escrowPda, true);
+
+        // Calculate price in USDC atomic units (6 decimals)
+        const priceUsdcAtomic = Math.round((request.priceUSD || 1) * 1_000_000);
+        const fileCid = prepareData.imageUrl?.split('/').pop() || mintAddress;
+
+        console.log('[MINT] Step 4: Initializing escrow...');
+        console.log('[MINT]   - Escrow PDA:', escrowPdaStr);
+        console.log('[MINT]   - Seed:', seed);
+        console.log('[MINT]   - Price USDC:', priceUsdcAtomic);
+        console.log('[MINT]   - NFT Mint:', mintAddress);
+        console.log('[MINT]   - Seller (vendor):', sellerWallet);
+
+        await program.methods
+          .initialize(
+            new BN(seed),
+            new BN(1),              // initializer_amount (1 NFT)
+            new BN(priceUsdcAtomic), // taker_amount (USDC price)
+            fileCid,
+            new BN(priceUsdcAtomic)  // sale_price
+          )
+          .accounts({
+            admin: adminPk,
+            seller: adminPk, // Admin is the current NFT owner (seller signs to transfer NFT to vault)
+            config: configPda,
+            mintA: USDC_MINT,
+            mintB: nftMintPk,
+            sellerAtaB: sellerAtaB,
+            escrow: escrowPda,
+            nftVault: nftVault,
+            wsolVault: usdcVault,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc({ commitment: 'finalized' });
+
+        console.log('[MINT] ✅ Escrow initialized on-chain:', escrowPdaStr);
+      } catch (escrowErr: any) {
+        console.error('[MINT] ❌ Escrow initialization failed:', escrowErr.message || escrowErr);
+        toast.error('NFT minted but escrow initialization failed. Contact admin.', { id: toastId });
+        setProcessing(null);
+        return;
       }
 
       toast.loading('Creating marketplace listing...', { id: toastId });
 
-      // Step 6: Record the mint in the database
-      console.log('[MINT] Step 6: Calling confirm-mint API...');
+      // Step 5: Record the mint in the database with real escrow PDA
+      console.log('[MINT] Step 5: Calling confirm-mint API...');
       const confirmRes = await fetch('/api/admin/mint-requests/confirm-mint', {
         method: 'POST',
         headers: {
@@ -502,10 +554,11 @@ const MintRequestsPanel: React.FC = () => {
           mintRequestId: requestId,
           mintAddress,
           signature: mintAddress,
-          transferToVendor: transferSuccess && !!actualTransferDest,
-          transferDestination: actualTransferDest || wallet.publicKey.toBase58(),
+          escrowPda: escrowPdaStr, // Real on-chain PDA
+          transferToVendor: false, // NFT is in escrow vault, not vendor wallet
+          transferDestination: sellerWallet,
           transferDestinationType: transferTypeSelected,
-          transferSuccess,
+          transferSuccess: true,
         }),
       });
 
@@ -663,37 +716,79 @@ const MintRequestsPanel: React.FC = () => {
       }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
       console.log('[MINT] Success! Mint address:', mintAddress);
 
-      // Transfer NFT to vendor wallet
-      toast.loading('Transferring to vendor...', { id: toastId });
-      let transferSuccess = false;
+      // Step 5: Initialize on-chain escrow (NFT moves from admin wallet to escrow vault)
+      toast.loading('Initializing on-chain escrow...', { id: toastId });
 
-      // For Approve & Mint, default to transferring to the requester (vendor)
-      const transferDest = prepareData.vendorWallet;
-      let actualTransferDest: string | null = null;
+      const sellerWallet = prepareData.vendorWallet || wallet.publicKey.toBase58();
+      let escrowPdaStr: string;
 
-      if (transferDest) {
-        // Wait for finalization to propagate before transferring
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        const program = getProgram(wallet);
+        const programId = new PublicKey(program.programId);
+        const { usdcMint } = getClusterConfig();
+        const USDC_MINT_PK = new PublicKey(usdcMint);
+        const nftMintPk = new PublicKey(mintAddress);
+        const adminPk = wallet.publicKey;
 
-        try {
-          await transferV1(umi, {
-            mint: umiPublicKey(mintAddress),
-            destinationOwner: umiPublicKey(transferDest),
-            tokenStandard: TokenStandard.NonFungible,
-          }).sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
-          transferSuccess = true;
-          actualTransferDest = transferDest;
-          console.log('[MINT] Transferred to vendor:', transferDest);
-        } catch (transferErr: any) {
-          console.error('[MINT] Transfer transaction failed:', transferErr.message);
-        }
-      } else {
-        console.log('[MINT] No vendor wallet - will transfer manually');
+        const seed = Date.now();
+        const seedBn = new BN(seed);
+
+        const [escrowPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('state'), seedBn.toArrayLike(Buffer, 'le', 8)],
+          programId
+        );
+        escrowPdaStr = escrowPda.toBase58();
+
+        const [configPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('luxhub-config')],
+          programId
+        );
+
+        const sellerAtaB = getAssociatedTokenAddressSync(nftMintPk, adminPk, false);
+        const nftVault = getAssociatedTokenAddressSync(nftMintPk, escrowPda, true);
+        const usdcVault = getAssociatedTokenAddressSync(USDC_MINT_PK, escrowPda, true);
+
+        const request = requests.find((r) => r._id === requestId);
+        const priceUsdcAtomic = Math.round((request?.priceUSD || 1) * 1_000_000);
+        const fileCid = prepareData.imageUrl?.split('/').pop() || mintAddress;
+
+        console.log('[MINT] Step 5: Initializing escrow PDA:', escrowPdaStr);
+
+        await program.methods
+          .initialize(
+            new BN(seed),
+            new BN(1),
+            new BN(priceUsdcAtomic),
+            fileCid,
+            new BN(priceUsdcAtomic)
+          )
+          .accounts({
+            admin: adminPk,
+            seller: adminPk,
+            config: configPda,
+            mintA: USDC_MINT_PK,
+            mintB: nftMintPk,
+            sellerAtaB: sellerAtaB,
+            escrow: escrowPda,
+            nftVault: nftVault,
+            wsolVault: usdcVault,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc({ commitment: 'finalized' });
+
+        console.log('[MINT] ✅ Escrow initialized:', escrowPdaStr);
+      } catch (escrowErr: any) {
+        console.error('[MINT] ❌ Escrow init failed:', escrowErr.message || escrowErr);
+        toast.error('NFT minted but escrow failed. Contact admin.', { id: toastId });
+        setProcessing(null);
+        return;
       }
 
       toast.loading('Creating marketplace listing...', { id: toastId });
 
-      // Step 4: Confirm in database
+      // Step 6: Confirm in database with real escrow PDA
       const confirmRes = await fetch('/api/admin/mint-requests/confirm-mint', {
         method: 'POST',
         headers: {
@@ -704,10 +799,11 @@ const MintRequestsPanel: React.FC = () => {
           mintRequestId: requestId,
           mintAddress,
           signature: mintAddress,
-          transferToVendor: transferSuccess && !!actualTransferDest,
-          transferDestination: actualTransferDest || wallet.publicKey.toBase58(),
-          transferDestinationType: 'requester', // Default for quick mint
-          transferSuccess,
+          escrowPda: escrowPdaStr,
+          transferToVendor: false,
+          transferDestination: sellerWallet,
+          transferDestinationType: 'requester',
+          transferSuccess: true,
         }),
       });
 

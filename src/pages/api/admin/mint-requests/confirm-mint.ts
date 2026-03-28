@@ -47,6 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     mintRequestId,
     mintAddress,
     signature,
+    escrowPda: clientEscrowPda, // Real on-chain PDA from client
     transferToVendor,
     transferDestination,
     transferDestinationType,
@@ -262,9 +263,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const listingPriceLamports = Math.floor((mintRequest.priceUSD / solPrice) * 1e9);
 
     // Create Escrow record for marketplace listing
-    // This allows the NFT to show up on the marketplace
-    // Generate a placeholder escrowPda for listing purposes (actual on-chain escrow created on purchase)
-    const listingEscrowPda = `listing-${mintAddress}-${Date.now()}`;
+    // Use real on-chain escrow PDA from client (initialized after minting)
+    // Falls back to placeholder for backward compatibility
+    const listingEscrowPda = clientEscrowPda || `listing-${mintAddress}-${Date.now()}`;
+    if (!clientEscrowPda) {
+      console.warn('[confirm-mint] No escrowPda from client — using placeholder. Purchase will not work.');
+    }
 
     console.log(
       `[confirm-mint] Creating Escrow listing: price=$${mintRequest.priceUSD}, SOL price=$${solPrice}`
@@ -272,8 +276,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const escrow = await Escrow.create({
       asset: asset._id,
       seller: ownerVendor?._id || null, // Use the vendor who owns the NFT
-      sellerWallet: actualOwner,
-      escrowPda: listingEscrowPda, // Placeholder for listing, replaced on-chain when buyer purchases
+      sellerWallet: transferDestination || actualOwner, // Vendor wallet for payout routing
+      escrowPda: listingEscrowPda, // Real on-chain PDA (or placeholder if client didn't provide)
       nftMint: mintAddress,
       saleMode: 'fixed_price',
       listingPrice: listingPriceLamports,
