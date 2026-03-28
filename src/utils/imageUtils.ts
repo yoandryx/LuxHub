@@ -3,8 +3,11 @@
 
 import { SyntheticEvent } from 'react';
 
-// Gateway configurations - Irys devnet (gateway.irys.xyz redirects here via 302)
-export const IRYS_GATEWAY = 'https://devnet.irys.xyz/';
+// Gateway configurations - use mainnet gateway by default, devnet only for local dev
+const isDevnet = typeof window !== 'undefined'
+  ? window.location.hostname === 'localhost'
+  : process.env.NEXT_PUBLIC_SOLANA_NETWORK !== 'mainnet-beta';
+export const IRYS_GATEWAY = isDevnet ? 'https://devnet.irys.xyz/' : 'https://gateway.irys.xyz/';
 // Fallback Pinata gateway for legacy IPFS CIDs
 export const PINATA_GATEWAY =
   process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://teal-working-frog-718.mypinata.cloud/ipfs/';
@@ -41,9 +44,12 @@ export function resolveImageUrl(idOrUrl: string | undefined | null): string {
 
   const trimmed = idOrUrl.trim();
 
-  // Already a full URL — rewrite old gateway.irys.xyz to devnet.irys.xyz (avoids 302 redirect)
+  // Already a full URL — normalize gateway if needed
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return trimmed.replace('https://gateway.irys.xyz/', IRYS_GATEWAY);
+    if (isDevnet) {
+      return trimmed.replace('https://gateway.irys.xyz/', IRYS_GATEWAY);
+    }
+    return trimmed;
   }
 
   // Base64 data URI (from file upload previews)
