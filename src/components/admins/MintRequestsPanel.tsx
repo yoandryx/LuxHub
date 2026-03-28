@@ -455,7 +455,7 @@ const MintRequestsPanel: React.FC = () => {
       // Step 3: Mint on-chain (SPL Token + Metaplex Token Metadata)
       await createNft(umi, {
         mint: mintSigner,
-        name: prepareData.title,
+        name: (prepareData.title || '').slice(0, 32),
         uri: prepareData.metadataUri,
         sellerFeeBasisPoints: percentAmount(5),
         tokenOwner: umi.identity.publicKey,
@@ -709,7 +709,7 @@ const MintRequestsPanel: React.FC = () => {
 
       await createNft(umi, {
         mint: mintSigner,
-        name: prepareData.title,
+        name: (prepareData.title || '').slice(0, 32),
         uri: prepareData.metadataUri,
         sellerFeeBasisPoints: percentAmount(5),
         tokenOwner: umi.identity.publicKey,
