@@ -1,5 +1,5 @@
 // src/components/common/UserMenuDropdown.tsx - Compact user menu dropdown
-import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import {
   FaWallet,
@@ -18,6 +18,7 @@ import {
   FaUserShield,
   FaClock,
   FaCog,
+  FaInfoCircle,
 } from 'react-icons/fa';
 import { SiSolana } from 'react-icons/si';
 import { usePrivy } from '@privy-io/react-auth';
@@ -115,46 +116,53 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
     ? `@${vendorProfile.username}`
     : vendorProfile?.name || displayAddress;
 
-  // Build nav items based on role
-  const navItems: { href: string; label: string; icon: React.ReactNode; roles: UserRole[] }[] = [
-    {
-      href: '/marketplace',
-      label: 'Marketplace',
-      icon: <FaGem />,
-      roles: ['user', 'vendor', 'admin'],
-    },
-    { href: '/pools', label: 'Pools', icon: <FaChartLine />, roles: ['user', 'vendor', 'admin'] },
-    { href: '/vendors', label: 'Vendors', icon: <FaUsers />, roles: ['user', 'vendor', 'admin'] },
-    {
-      href: `/user/${walletAddress}`,
-      label: 'My Profile',
-      icon: <FaUser />,
-      roles: ['user', 'vendor', 'admin'],
-    },
-    {
-      href: '/orders',
-      label: 'My Orders',
-      icon: <FaShoppingBag />,
-      roles: ['user', 'vendor', 'admin'],
-    },
-    { href: '/settings', label: 'Settings', icon: <FaCog />, roles: ['user', 'vendor', 'admin'] },
-    {
-      href: '/vendor/vendorDashboard',
-      label: 'Vendor Dashboard',
-      icon: <FaStore />,
-      roles: ['vendor', 'admin'],
-    },
-    {
-      href: '/vendor/vendorDashboard?tab=inventory',
-      label: 'Add Listing',
-      icon: <FaPlus />,
-      roles: ['vendor', 'admin'],
-    },
-    { href: '/adminDashboard', label: 'Admin Panel', icon: <FaUserShield />, roles: ['admin'] },
-    { href: '/createNFT', label: 'Mint NFT', icon: <FaClock />, roles: ['admin'] },
-  ];
+  // Build sectioned nav items based on role (D-11: section headers, D-12: LearnMore moved here)
+  interface NavSection {
+    label: string;
+    items: { href: string; label: string; icon: React.ReactNode; roles: UserRole[] }[];
+  }
 
-  const visibleItems = navItems.filter((item) => item.roles.includes(role));
+  const sections = useMemo(() => {
+    const allSections: NavSection[] = [];
+    // Admin-specific section first if admin
+    if (role === 'admin') {
+      allSections.push({
+        label: 'Admin',
+        items: [
+          { href: '/adminDashboard', label: 'Admin Panel', icon: <FaUserShield />, roles: ['admin'] },
+          { href: '/createNFT', label: 'Mint NFT', icon: <FaClock />, roles: ['admin'] },
+        ],
+      });
+    }
+    // Vendor-specific section first if vendor
+    if (role === 'vendor') {
+      allSections.push({
+        label: 'Vendor Tools',
+        items: [
+          { href: '/vendor/vendorDashboard', label: 'Vendor Dashboard', icon: <FaStore />, roles: ['vendor', 'admin'] },
+          { href: '/vendor/vendorDashboard?tab=inventory', label: 'Add Listing', icon: <FaPlus />, roles: ['vendor', 'admin'] },
+        ],
+      });
+    }
+    allSections.push({
+      label: 'Browse',
+      items: [
+        { href: '/marketplace', label: 'Marketplace', icon: <FaGem />, roles: ['user', 'vendor', 'admin'] },
+        { href: '/pools', label: 'Pools', icon: <FaChartLine />, roles: ['user', 'vendor', 'admin'] },
+        { href: '/vendors', label: 'Vendors', icon: <FaUsers />, roles: ['user', 'vendor', 'admin'] },
+      ],
+    });
+    allSections.push({
+      label: 'Account',
+      items: [
+        { href: '/orders', label: 'My Orders', icon: <FaShoppingBag />, roles: ['user', 'vendor', 'admin'] },
+        { href: `/user/${walletAddress}`, label: 'My Profile', icon: <FaUser />, roles: ['user', 'vendor', 'admin'] },
+        { href: '/settings', label: 'Settings', icon: <FaCog />, roles: ['user', 'vendor', 'admin'] },
+        { href: '/learnMore', label: 'Learn More', icon: <FaInfoCircle />, roles: ['user', 'vendor', 'admin'] },
+      ],
+    });
+    return allSections;
+  }, [role, walletAddress]);
 
   return (
     <div ref={dropdownRef} className={`${styles.container} ${className}`}>
@@ -252,14 +260,23 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
                 </div>
               </div>
 
-              {/* Navigation — compact list */}
+              {/* Navigation — sectioned by role */}
               <nav className={styles.navSection}>
-                {visibleItems.map((item) => (
-                  <Link key={item.href} href={item.href} className={styles.navItem} onClick={close}>
-                    <span className={styles.navIcon}>{item.icon}</span>
-                    <span className={styles.navLabel}>{item.label}</span>
-                  </Link>
-                ))}
+                {sections.map((section) => {
+                  const sectionItems = section.items.filter((i) => i.roles.includes(role));
+                  if (sectionItems.length === 0) return null;
+                  return (
+                    <div key={section.label}>
+                      <div className={styles.sectionLabel}>{section.label}</div>
+                      {sectionItems.map((item) => (
+                        <Link key={item.href} href={item.href} className={styles.navItem} onClick={close}>
+                          <span className={styles.navIcon}>{item.icon}</span>
+                          <span className={styles.navLabel}>{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  );
+                })}
               </nav>
 
               {/* Sign Out */}
