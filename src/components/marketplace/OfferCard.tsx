@@ -1,6 +1,7 @@
 // src/components/marketplace/OfferCard.tsx
 // Display an individual offer with actions
 import React, { memo, useCallback, useMemo } from 'react';
+import { useCountdown } from '../../hooks/useCountdown';
 import styles from '../../styles/OfferCard.module.css';
 
 // Hoisted outside component to prevent re-creation on each render
@@ -104,6 +105,18 @@ const OfferCard: React.FC<OfferCardProps> = memo(
         isBelow: diff < 0,
       };
     }, [displayAmount.amount, offer.escrowListingPrice]);
+
+    // Countdown timer for active offers
+    const deadlineDate =
+      offer.status === 'accepted'
+        ? (offer as any).paymentDeadline
+        : offer.expiresAt;
+    const showCountdown =
+      ['pending', 'countered', 'accepted'].includes(offer.status) && !!deadlineDate;
+    const { displayText: countdownText, urgencyLevel, progress } = useCountdown(
+      showCountdown ? deadlineDate : undefined,
+      offer.status === 'accepted' ? offer.respondedAt : offer.createdAt
+    );
 
     const canRespond = ['pending', 'countered'].includes(offer.status);
 
@@ -217,11 +230,28 @@ const OfferCard: React.FC<OfferCardProps> = memo(
           </div>
           <div className={styles.timestamp}>
             <span>{formatDate(offer.createdAt)}</span>
-            {offer.expiresAt && (
-              <span className={styles.expires}>Expires: {formatDate(offer.expiresAt)}</span>
-            )}
           </div>
         </div>
+
+        {showCountdown && countdownText && (
+          <div className={styles.countdownSection}>
+            <div className={styles.countdownBar}>
+              <div
+                className={`${styles.countdownFill} ${styles[urgencyLevel]}`}
+                style={{ width: `${(1 - progress) * 100}%` }}
+              />
+            </div>
+            <span className={`${styles.countdownText} ${styles[urgencyLevel]}`}>
+              {offer.status === 'accepted' ? `Pay within ${countdownText}` : `Expires in ${countdownText}`}
+            </span>
+            {urgencyLevel === 'red' && (
+              <span className={`${styles.urgencyBadge} ${styles.red}`}>URGENT</span>
+            )}
+            {urgencyLevel === 'amber' && (
+              <span className={`${styles.urgencyBadge} ${styles.amber}`}>EXPIRING SOON</span>
+            )}
+          </div>
+        )}
 
         {canRespond && (
           <div className={styles.actions}>
@@ -238,7 +268,7 @@ const OfferCard: React.FC<OfferCardProps> = memo(
                 </button>
               </>
             )}
-            {viewMode === 'buyer' && offer.status === 'pending' && (
+            {viewMode === 'buyer' && ['pending', 'countered', 'accepted'].includes(offer.status) && (
               <button className={styles.withdrawButton} onClick={() => onWithdraw?.(offer._id)}>
                 Withdraw Offer
               </button>

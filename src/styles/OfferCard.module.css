@@ -228,6 +228,98 @@
   color: #ffd700;
 }
 
+/* Countdown */
+.countdownSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(200, 161, 255, 0.1);
+}
+
+.countdownBar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.countdownFill {
+  height: 100%;
+  border-radius: 2px;
+  transition:
+    width 1s linear,
+    background-color 0.5s ease;
+}
+
+.countdownFill.normal {
+  background: #c8a1ff;
+}
+
+.countdownFill.amber {
+  background: #fbbf24;
+}
+
+.countdownFill.red {
+  background: #f87171;
+}
+
+.countdownText {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.countdownText.normal {
+  color: #c8a1ff;
+}
+
+.countdownText.amber {
+  color: #fbbf24;
+}
+
+.countdownText.red {
+  color: #f87171;
+}
+
+.urgencyBadge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.urgencyBadge.amber {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.urgencyBadge.red {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 /* Actions */
 .actions {
   display: flex;
