@@ -8,6 +8,7 @@ import { FaLock, FaArrowRight, FaChartLine } from 'react-icons/fa';
 import { HiCube } from 'react-icons/hi2';
 import { MdVerified } from 'react-icons/md';
 import { SiSolana } from 'react-icons/si';
+import WalletAwareness from '../components/common/WalletAwareness';
 import Footer from '../components/common/Footer';
 import NFTCard from '../components/marketplace/NFTCard';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
@@ -387,6 +388,9 @@ export default function IndexTest() {
             </motion.div>
           </div>
         </section>
+
+        {/* ===== WALLET AWARENESS - Post-connect capability prompt ===== */}
+        <WalletAwareness />
 
         {/* ===== FEATURED LISTINGS - Infinite Slider ===== */}
         <section className={styles.sliderSection}>
