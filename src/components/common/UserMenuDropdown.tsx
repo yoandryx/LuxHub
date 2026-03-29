@@ -35,6 +35,11 @@ interface UserMenuDropdownProps {
   className?: string;
 }
 
+interface NavSection {
+  label: string;
+  items: { href: string; label: string; icon: React.ReactNode; roles: UserRole[] }[];
+}
+
 // Role badge
 const RoleBadge = memo(function RoleBadge({ role }: { role: UserRole }) {
   if (role === 'browser') return null;
@@ -110,18 +115,7 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
     else setWalletModalVisible(true);
   }, [login, privyReady, setWalletModalVisible]);
 
-  if (!isClient) return null;
-
-  const displayName = vendorProfile?.username
-    ? `@${vendorProfile.username}`
-    : vendorProfile?.name || displayAddress;
-
   // Build sectioned nav items based on role (D-11: section headers, D-12: LearnMore moved here)
-  interface NavSection {
-    label: string;
-    items: { href: string; label: string; icon: React.ReactNode; roles: UserRole[] }[];
-  }
-
   const sections = useMemo(() => {
     const allSections: NavSection[] = [];
     // Admin-specific section first if admin
@@ -163,6 +157,12 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
     });
     return allSections;
   }, [role, walletAddress]);
+
+  if (!isClient) return null;
+
+  const displayName = vendorProfile?.username
+    ? `@${vendorProfile.username}`
+    : vendorProfile?.name || displayAddress;
 
   return (
     <div ref={dropdownRef} className={`${styles.container} ${className}`}>
