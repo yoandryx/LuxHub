@@ -9,6 +9,7 @@ import { useBuyerOffers } from '../hooks/useSWR';
 import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
 import toast from 'react-hot-toast';
 import type { Toast } from 'react-hot-toast';
+import UrgencyBanner from '../components/common/UrgencyBanner';
 import styles from '../styles/MyOrders.module.css';
 import {
   FiPackage,
@@ -1466,6 +1467,7 @@ const MyOrdersPage: React.FC = () => {
         {/* ===== BUYER: OFFERS TAB ===== */}
         {topTab === 'offers' && role === 'buyer' && (
           <div className={styles.content}>
+            <UrgencyBanner offers={(offers as any[]) || []} />
             {isLoadingOffers ? (
               <div className={styles.loadingState}>
                 <FiLoader className={styles.spinner} />
