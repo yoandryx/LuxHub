@@ -539,6 +539,11 @@
   text-transform: uppercase;
   letter-spacing: 1.2px;
   opacity: 0.6;
+  margin-top: 4px;
+}
+
+.sectionLabel:first-child {
+  margin-top: 0;
 }
 
 .navItem {

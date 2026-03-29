@@ -1,5 +1,5 @@
 // src/components/common/Navbar.tsx - Main navigation with global search
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import styles from '../../styles/Navbar.module.css';
 import Image from 'next/image';
@@ -52,6 +52,22 @@ export default function Navbar() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isAdmin, isVendor, isConnected, walletAddress } = useUserRole();
+
+  // Role-adaptive top nav links (LearnMore removed — moved to dropdown per D-12)
+  const navLinks = useMemo(() => {
+    const links: { href: string; label: string }[] = [
+      { href: '/marketplace', label: 'Marketplace' },
+      { href: '/pools', label: 'Pools' },
+    ];
+    if (isConnected) links.push({ href: '/orders', label: 'Orders' });
+    if (isVendor) links.push({ href: '/vendor/vendorDashboard', label: 'Dashboard' });
+    if (isAdmin) {
+      links.push({ href: '/createNFT', label: 'Mint' });
+      links.push({ href: '/adminDashboard', label: 'Admin' });
+    }
+    // Vendors link moved to dropdown only to reduce clutter
+    return links;
+  }, [isConnected, isVendor, isAdmin]);
 
   useEffect(() => {
     setIsClient(true);
@@ -158,18 +174,11 @@ export default function Navbar() {
           </div>
 
           <div className={styles.links}>
-            <Link href="/marketplace" className={styles.marketplaceLink}>
-              Marketplace
-            </Link>
-            <Link href="/pools" className={styles.poolsLink}>
-              Pools
-            </Link>
-            <Link href="/vendors">Vendors</Link>
-            {isConnected && <Link href="/orders">Orders</Link>}
-            {isAdmin && <Link href="/createNFT">Mint NFT</Link>}
-            {isAdmin && <Link href="/adminDashboard">Admins</Link>}
-            {isVendor && walletAddress && <Link href={`/vendor/${walletAddress}`}>Profile</Link>}
-            {!isAdmin && <Link href="/learnMore">Learn More</Link>}
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           <div className={styles.rightSection}>
