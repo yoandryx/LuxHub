@@ -8,7 +8,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { BN } from '@coral-xyz/anchor';
 import { getProgram } from '../utils/programUtils';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, createAssociatedTokenAccountIdempotentInstruction } from '@solana/spl-token';
 // Metaplex loaded dynamically where needed to reduce bundle size
 import { uploadToPinata } from '../utils/pinata';
 import { updateNftMetadata } from '../utils/metadata';
@@ -194,7 +194,7 @@ const PLACEHOLDER_BUYER = new PublicKey('11111111111111111111111111111111');
 // ------------------------------------------------
 const updateNFTMarketStatus = async (mintAddress: string, newMarketStatus: string, wallet: any) => {
   try {
-    const connection = new Connection(getClusterConfig().endpoint);
+    const connection = new Connection(getClusterConfig().endpoint, 'confirmed');
     // Dynamic import Metaplex to reduce initial bundle size (~87KB saved)
     const { Metaplex, walletAdapterIdentity } = await import('@metaplex-foundation/js');
     const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
@@ -237,7 +237,11 @@ const AdminDashboard: React.FC = () => {
   const { publicKey, connected } = useEffectiveWallet();
   const [tabIndex, setTabIndex] = useState<number>(1);
   const [navOpen, setNavOpen] = useState(false);
-  const [status, setStatus] = useState<string>('');
+  const [status, setStatusRaw] = useState<string>('');
+  const setStatus = (msg: string) => {
+    setStatusRaw(msg);
+    if (msg) setTimeout(() => setStatusRaw(''), 5000);
+  };
   const [loading, setLoading] = useState<boolean>(false);
 
   const [luxhubWallet, setLuxhubWallet] = useState<string>('');
@@ -999,7 +1003,7 @@ const AdminDashboard: React.FC = () => {
     }
 
     setLoading(true);
-    const connection = new Connection(getClusterConfig().endpoint);
+    const connection = new Connection(getClusterConfig().endpoint, 'confirmed');
 
     try {
       // ---------- resolve buyer & escrow pda ----------
@@ -1021,6 +1025,9 @@ const AdminDashboard: React.FC = () => {
         return;
       }
 
+      // Use ON-CHAIN initializer — MongoDB seller may differ from on-chain initializer
+      const onchainInitializer = onchainEscrow.initializer?.toBase58?.() || escrow.initializer;
+
       // ---------- derive all accounts ----------
       const nftMint = new PublicKey(escrow.mintB);
 
@@ -1035,13 +1042,13 @@ const AdminDashboard: React.FC = () => {
 
       const sellerNftAta = await getAssociatedTokenAddress(
         nftMint,
-        new PublicKey(escrow.initializer)
+        new PublicKey(onchainInitializer)
       );
       const buyerNftAta = await getAssociatedTokenAddress(nftMint, new PublicKey(buyerPubkey));
 
       const sellerFundsAta = await getAssociatedTokenAddress(
         new PublicKey(FUNDS_MINT),
-        new PublicKey(escrow.initializer)
+        new PublicKey(onchainInitializer)
       );
       const luxhubFeeAta = await getAssociatedTokenAddress(
         new PublicKey(FUNDS_MINT),
@@ -1093,7 +1100,7 @@ const AdminDashboard: React.FC = () => {
           mintB: nftMint,
           sellerFundsAta,
           luxhubFeeAta,
-          seller: new PublicKey(escrow.initializer), // seller receives escrow rent
+          seller: new PublicKey(onchainInitializer), // seller receives escrow rent (must match on-chain)
           authority: vaultPda, // Squads vault as authority
           instructionsSysvar: SYSVAR_INSTRUCTIONS,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -1103,15 +1110,36 @@ const AdminDashboard: React.FC = () => {
         .instruction();
 
       // ---------- build & sign Squads proposal client-side ----------
-      toast.loading('Creating Squads proposal...', { id: 'delivery' });
+      toast.loading('Step 1/3: Creating proposal...', { id: 'delivery' });
 
       const multisigAccount = await multisig.accounts.Multisig.fromAccountAddress(connection, msig);
       const transactionIndex = BigInt(Number(multisigAccount.transactionIndex) + 1);
 
+      // Pre-create any ATAs that confirm_delivery expects to exist
+      // The vault PDA pays rent since it's the signer in the Squads CPI
+      const createBuyerNftAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+        vaultPda,                       // payer (vault pays rent)
+        buyerNftAta,                    // ATA to create
+        new PublicKey(buyerPubkey),      // owner
+        nftMint                         // mint
+      );
+      const createSellerFundsAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+        vaultPda,
+        sellerFundsAta,
+        new PublicKey(onchainInitializer),
+        new PublicKey(FUNDS_MINT)
+      );
+      const createLuxhubFeeAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+        vaultPda,
+        luxhubFeeAta,
+        new PublicKey(currentEscrowConfig),
+        new PublicKey(FUNDS_MINT)
+      );
+
       const vaultMessage = new TransactionMessage({
         payerKey: vaultPda,
         recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-        instructions: [ix],
+        instructions: [createBuyerNftAtaIx, createSellerFundsAtaIx, createLuxhubFeeAtaIx, ix],
       });
 
       // Build: create vault tx + create proposal + auto-approve (1/1 threshold)
@@ -1151,18 +1179,34 @@ const AdminDashboard: React.FC = () => {
       const sig = await connection.sendRawTransaction(signedTx.serialize());
       await connection.confirmTransaction(sig, 'confirmed');
 
-      toast.success('Proposal created & approved! Now executing...', { id: 'delivery' });
+      toast.loading('Step 2/3: Executing on-chain...', { id: 'delivery' });
 
       // Auto-execute since threshold is met (1/1)
-      const executeIx = await multisig.instructions.vaultTransactionExecute({
-        multisigPda: msig,
-        member: publicKey,
-        transactionIndex,
-        connection,
-      });
+      // Retry up to 3 times — VaultTransaction account may take a moment to propagate
+      let executeResult: { instruction: any; lookupTableAccounts: any[] } | undefined;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          executeResult = await multisig.instructions.vaultTransactionExecute({
+            multisigPda: msig,
+            member: publicKey,
+            transactionIndex,
+            connection,
+          });
+          break; // success
+        } catch (fetchErr: any) {
+          if (attempt < 2 && fetchErr.message?.includes('Unable to find')) {
+            toast.loading(`Step 2/3: Waiting for confirmation... (${attempt + 2}/3)`, { id: 'delivery' });
+            await new Promise(r => setTimeout(r, 2000));
+          } else {
+            throw fetchErr;
+          }
+        }
+      }
 
+      const { ComputeBudgetProgram } = await import('@solana/web3.js');
       const executeTx = new LegacyTransaction();
-      executeTx.add(...(Array.isArray(executeIx) ? executeIx : [executeIx]));
+      executeTx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
+      executeTx.add(executeResult!.instruction);
       const { blockhash: execBlockhash } = await connection.getLatestBlockhash();
       executeTx.recentBlockhash = execBlockhash;
       executeTx.feePayer = publicKey;
@@ -1171,8 +1215,7 @@ const AdminDashboard: React.FC = () => {
       const execSig = await connection.sendRawTransaction(signedExecTx.serialize());
       await connection.confirmTransaction(execSig, 'confirmed');
 
-      toast.success('Delivery confirmed! Funds released on-chain.', { id: 'delivery', duration: 5000 });
-      setStatus(`Confirm delivery executed. TX: ${execSig}`);
+      toast.success(`Delivery confirmed! TX: ${execSig.slice(0, 8)}...`, { id: 'delivery', duration: 6000 });
       addLog('Confirm Delivery (executed)', execSig, `Escrow ${escrow.escrowPda}`);
 
       // Update MongoDB
@@ -1190,8 +1233,7 @@ const AdminDashboard: React.FC = () => {
       await fetchActiveEscrowsByMint();
     } catch (err: any) {
       console.error('[confirmDelivery] error:', err);
-      setStatus('Confirm delivery (proposal) failed: ' + err.message);
-      toast.error('❌ Proposal failed: ' + err.message);
+      toast.error('Confirm delivery failed. Check console for details.', { id: 'delivery', duration: 5000 });
     } finally {
       setLoading(false);
     }
@@ -1355,7 +1397,7 @@ const AdminDashboard: React.FC = () => {
 
     try {
       setLoading(true);
-      const connection = new Connection(getClusterConfig().endpoint);
+      const connection = new Connection(getClusterConfig().endpoint, 'confirmed');
 
       const sellerPk = new PublicKey(req.seller);
       const nftMint = new PublicKey(req.nftId);
@@ -1809,123 +1851,132 @@ const AdminDashboard: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className={styles.cardsGrid}>
-                {activeEscrows.map((escrow: any, idx) => {
-                  // Use escrowPda from API if available, otherwise derive from seed
-                  let escrowPdaStr = escrow.escrowPda || '';
-                  if (!escrowPdaStr && escrow.seed && program) {
-                    const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
-                    const [derived] = PublicKey.findProgramAddressSync(
-                      [Buffer.from('state'), seedBuffer],
-                      program.programId
-                    );
-                    escrowPdaStr = derived.toBase58();
-                  }
-                  if (!escrowPdaStr) return null;
+              <>
+                {(() => {
+                  const fundedEscrows = activeEscrows.filter((e: any) =>
+                    ['funded', 'shipped', 'in_transit', 'delivered'].includes(e.status)
+                  );
+                  const openEscrows = activeEscrows.filter((e: any) =>
+                    !['funded', 'shipped', 'in_transit', 'delivered'].includes(e.status)
+                  );
 
-                  const escrowPda = new PublicKey(escrowPdaStr);
-                  const priceUSD = escrow.priceUSD || 0;
-                  const salePriceUsdc = Number(escrow.salePrice) / 1_000_000; // USDC atomic → USD
+                  const renderEscrowRow = (escrow: any, idx: number, isFunded: boolean) => {
+                    let escrowPdaStr = escrow.escrowPda || '';
+                    if (!escrowPdaStr && escrow.seed && program) {
+                      const seedBuffer = new BN(escrow.seed).toArrayLike(Buffer, 'le', 8);
+                      const [derived] = PublicKey.findProgramAddressSync(
+                        [Buffer.from('state'), seedBuffer],
+                        program.programId
+                      );
+                      escrowPdaStr = derived.toBase58();
+                    }
+                    if (!escrowPdaStr) return null;
 
-                  return (
-                    <div
-                      key={idx}
-                      className={`${styles.dataCard} ${escrow.image ? styles.cardWithImage : ''}`}
-                    >
-                      {escrow.image && (
-                        <div className={styles.cardImageArea}>
-                          <img src={escrow.image} alt={escrow.name} className={styles.cardImage} />
-                          <div className={styles.cardImageOverlay} />
-                        </div>
-                      )}
+                    const escrowPda = new PublicKey(escrowPdaStr);
+                    const priceUSD = escrow.priceUSD || 0;
+                    const salePriceUsdc = Number(escrow.salePrice) / 1_000_000;
+                    const displayPrice = priceUSD || salePriceUsdc;
+                    const statusColor = isFunded ? '#4ade80' : '#60a5fa';
 
-                      <div className={styles.cardContentArea}>
-                        <div className={styles.cardHeader}>
-                          <div className={styles.cardTitleArea}>
-                            <h3 className={styles.cardTitle}>{escrow.name || 'Unnamed NFT'}</h3>
-                            <span className={styles.cardSubtitle}>
-                              Seed: {escrow.seed.toString()}
-                            </span>
-                          </div>
-                          <span className={`${styles.cardStatus} ${styles.active}`}>Active</span>
-                        </div>
-
-                        <div className={styles.cardBody}>
-                          <div className={styles.cardRow}>
-                            <span className={styles.cardLabel}>Sale Price</span>
-                            <span className={`${styles.cardValue} ${styles.cardHighlight}`}>
-                              ${priceUSD || salePriceUsdc.toFixed(2)} USD
-                            </span>
-                          </div>
-                          {escrow.status && (
-                            <div className={styles.cardRow}>
-                              <span className={styles.cardLabel}>Status</span>
-                              <span className={styles.cardValue} style={{ textTransform: 'capitalize' }}>
-                                {escrow.status}
-                              </span>
+                    return (
+                      <div key={idx} className={styles.escrowRow}>
+                        <div className={styles.escrowRowAccent} style={{ background: `linear-gradient(90deg, transparent, ${statusColor}40, transparent)` }} />
+                        <div className={styles.escrowRowMain}>
+                          {escrow.image && (
+                            <div className={styles.escrowThumb}>
+                              <img src={escrow.image} alt={escrow.name} />
                             </div>
                           )}
-                          <div className={styles.cardRow}>
-                            <span className={styles.cardLabel}>Escrow PDA</span>
-                            <span className={styles.cardValue}>
+                          <div className={styles.escrowInfo}>
+                            <div className={styles.escrowTopLine}>
+                              <h3>{escrow.name || 'Unnamed NFT'}</h3>
+                              <span className={styles.escrowPrice}>${displayPrice.toFixed(2)}</span>
+                            </div>
+                            <div className={styles.escrowMeta}>
+                              <span className={styles.escrowStatusBadge} style={{ color: statusColor, borderColor: `${statusColor}30`, background: `${statusColor}10` }}>
+                                {escrow.status || 'listed'}
+                              </span>
+                              <span className={styles.escrowMetaDivider} />
                               <a
                                 href={getClusterConfig().explorerUrl(escrowPda.toBase58())}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                className={styles.escrowPdaLink}
                               >
-                                {escrowPda.toBase58().slice(0, 6)}...
-                                {escrowPda.toBase58().slice(-4)}
-                                <HiOutlineExternalLink
-                                  style={{ marginLeft: 4, verticalAlign: 'middle' }}
-                                />
+                                {escrowPdaStr.slice(0, 4)}...{escrowPdaStr.slice(-4)}
+                                <HiOutlineExternalLink style={{ marginLeft: 3, fontSize: '0.7rem' }} />
                               </a>
-                            </span>
+                              <span className={styles.escrowMetaDivider} />
+                              <span style={{ color: 'rgba(255,255,255,0.35)' }}>
+                                {escrow.initializer.slice(0, 4)}...{escrow.initializer.slice(-4)}
+                              </span>
+                              {escrow.buyer && (
+                                <>
+                                  <span className={styles.escrowMetaDivider} />
+                                  <span style={{ color: '#c8a1ff' }}>
+                                    Buyer: {escrow.buyer.slice(0, 4)}...{escrow.buyer.slice(-4)}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <div className={styles.cardRow}>
-                            <span className={styles.cardLabel}>Seller</span>
-                            <span className={styles.cardValue}>
-                              {escrow.initializer.slice(0, 6)}...{escrow.initializer.slice(-4)}
-                            </span>
+                          <div className={styles.escrowActions}>
+                            {isFunded && (
+                              <button
+                                className={`${styles.escrowActionBtn} ${styles.escrowBtnSuccess}`}
+                                onClick={() => confirmDelivery(escrow)}
+                              >
+                                Confirm
+                              </button>
+                            )}
+                            {isFunded && (
+                              <button
+                                className={`${styles.escrowActionBtn} ${styles.escrowBtnWarning}`}
+                                onClick={() => refundBuyer(escrow)}
+                              >
+                                Refund
+                              </button>
+                            )}
+                            <button
+                              className={`${styles.escrowActionBtn} ${styles.escrowBtnDanger}`}
+                              onClick={() => cancelEscrow(escrow)}
+                            >
+                              Cancel
+                            </button>
                           </div>
-                          <div className={styles.cardRow}>
-                            <span className={styles.cardLabel}>Mint</span>
-                            <span className={styles.cardValue}>
-                              {escrow.mintB.slice(0, 6)}...{escrow.mintB.slice(-4)}
-                            </span>
-                          </div>
-                          <div className={styles.cardRow}>
-                            <span className={styles.cardLabel}>Treasury Fee (3%)</span>
-                            <span className={styles.cardValue}>
-                              ${((priceUSD || salePriceUsdc) * 0.03).toFixed(2)} USD
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className={styles.cardFooter}>
-                          <button
-                            className={`${styles.cardBtn} ${styles.success}`}
-                            onClick={() => confirmDelivery(escrow)}
-                          >
-                            Confirm Delivery
-                          </button>
-                          <button
-                            className={`${styles.cardBtn} ${styles.warning}`}
-                            onClick={() => refundBuyer(escrow)}
-                          >
-                            Refund Buyer
-                          </button>
-                          <button
-                            className={`${styles.cardBtn} ${styles.danger}`}
-                            onClick={() => cancelEscrow(escrow)}
-                          >
-                            Cancel
-                          </button>
                         </div>
                       </div>
-                    </div>
+                    );
+                  };
+
+                  return (
+                    <>
+                      {fundedEscrows.length > 0 && (
+                        <>
+                          <h2 className={styles.sectionHeading}>
+                            <HiOutlineCash style={{ marginRight: 8, color: '#4ade80' }} />
+                            Funded ({fundedEscrows.length})
+                          </h2>
+                          <div className={styles.escrowList}>
+                            {fundedEscrows.map((e: any, i: number) => renderEscrowRow(e, i, true))}
+                          </div>
+                        </>
+                      )}
+                      {openEscrows.length > 0 && (
+                        <>
+                          <h2 className={styles.sectionHeading} style={{ marginTop: fundedEscrows.length > 0 ? 24 : 0 }}>
+                            <HiOutlineLockClosed style={{ marginRight: 8, color: 'rgba(255,255,255,0.4)' }} />
+                            Open ({openEscrows.length})
+                          </h2>
+                          <div className={styles.escrowList}>
+                            {openEscrows.map((e: any, i: number) => renderEscrowRow(e, i, false))}
+                          </div>
+                        </>
+                      )}
+                    </>
                   );
-                })}
-              </div>
+                })()}
+              </>
             )}
           </div>
         );

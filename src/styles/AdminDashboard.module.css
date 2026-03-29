@@ -674,55 +674,47 @@
 
 .dataCard {
   position: relative;
-  background: var(--bg-dark);
-  backdrop-filter: blur(48px);
-  -webkit-backdrop-filter: blur(48px);
-  border: none;
-  border-radius: var(--radius-lg);
+  background: #0a0a0c;
+  border: 1px solid #1a1a1f;
+  border-radius: 16px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .dataCard::before {
   content: '';
   position: absolute;
-  inset: 0;
-  padding: 1.5px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(
-    135deg,
-    rgba(185, 145, 255, 0.3),
-    rgba(185, 145, 255, 0.06),
-    rgba(185, 145, 255, 0.3)
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 5%, var(--accent) 30%, var(--accent) 70%, transparent 95%);
   z-index: 1;
-  transition: background 0.3s ease;
 }
 
 .dataCard::after {
   content: '';
   position: absolute;
   inset: -1px;
-  border-radius: var(--radius-lg);
-  background: radial-gradient(ellipse at 50% 0%, rgba(185, 145, 255, 0.06) 0%, transparent 60%);
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(200, 161, 255, 0.04) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
 
 .dataCard:hover {
-  transform: translateY(-3px);
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.5),
-    0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: rgba(200, 161, 255, 0.15);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 8px rgba(200, 161, 255, 0.06);
+  transform: translateY(-1px);
 }
 
 .dataCard:hover::before {
+  background: linear-gradient(90deg, transparent 5%, var(--accent) 20%, var(--accent) 80%, transparent 95%);
+}
+
+/* Legacy gradient border hover - keeping for other card sections */
+.dataCard_legacy:hover::before {
   background: linear-gradient(
     135deg,
     rgba(185, 145, 255, 0.55),
@@ -735,8 +727,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .cardTitleArea {
@@ -801,15 +793,17 @@
 }
 
 .cardBody {
-  padding: 16px 20px;
+  padding: 14px 16px;
+  min-width: 0;
 }
 
 .cardRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .cardRow:last-child {
@@ -817,43 +811,271 @@
 }
 
 .cardLabel {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .cardValue {
-  font-size: 0.85rem;
-  color: var(--text-primary);
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.85);
   font-weight: 500;
   font-family: 'JetBrains Mono', monospace;
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cardValue a {
-  color: var(--accent);
+  color: #c8a1ff;
   text-decoration: none;
-  transition: opacity var(--transition-fast);
+  transition: color 0.2s ease;
 }
 
 .cardValue a:hover {
-  opacity: 0.8;
+  color: #dbc4ff;
   text-decoration: underline;
 }
 
 .cardHighlight {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, #fff 0%, #c8a1ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ==================== ESCROW MANAGEMENT ROWS ==================== */
+.escrowList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.escrowRow {
+  background: #0a0a0c;
+  border: 1px solid #1a1a1f;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.escrowRow:hover {
+  border-color: rgba(200, 161, 255, 0.15);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 6px rgba(200, 161, 255, 0.05);
+}
+
+.escrowRowAccent {
+  height: 1.5px;
+}
+
+.escrowRowMain {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+}
+
+.escrowThumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.escrowThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.escrowRow:hover .escrowThumb {
+  border-color: rgba(200, 161, 255, 0.2);
+}
+
+.escrowInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.escrowTopLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.escrowTopLine h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.escrowPrice {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.escrowMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.35);
+  flex-wrap: wrap;
+}
+
+.escrowMetaDivider {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.escrowStatusBadge {
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.escrowPdaLink {
+  color: #c8a1ff;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s ease;
+}
+
+.escrowPdaLink:hover {
+  opacity: 0.7;
+}
+
+.escrowActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.escrowActionBtn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.escrowBtnSuccess {
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.escrowBtnSuccess:hover {
+  background: rgba(74, 222, 128, 0.15);
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.1);
+}
+
+.escrowBtnWarning {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.escrowBtnWarning:hover {
+  background: rgba(251, 191, 36, 0.15);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.1);
+}
+
+.escrowBtnDanger {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.escrowBtnDanger:hover {
+  background: rgba(248, 113, 113, 0.15);
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.1);
+}
+
+/* Escrow rows — mobile */
+@media screen and (max-width: 768px) {
+  .escrowRowMain {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .escrowThumb {
+    width: 100%;
+    height: 140px;
+    border-radius: 10px;
+  }
+
+  .escrowTopLine {
+    flex-wrap: wrap;
+  }
+
+  .escrowMeta {
+    flex-wrap: wrap;
+    gap: 4px 6px;
+  }
+
+  .escrowActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .escrowActionBtn {
+    flex: 1;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+  }
+}
+
 .cardFooter {
   display: flex;
-  gap: 10px;
-  padding: 14px 20px;
-  background: var(--bg-dark);
-  border-top: 1px solid var(--border-subtle);
+  gap: 8px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .cardBtn {
@@ -863,65 +1085,68 @@
   justify-content: center;
   gap: 6px;
   padding: 10px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.72);
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .cardBtn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-hover);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(200, 161, 255, 0.2);
+  color: #fff;
 }
 
 .cardBtn.primary {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
-  border-color: transparent;
-  color: var(--bg-dark);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
+  border-color: rgba(200, 161, 255, 0.3);
+  color: #c8a1ff;
   font-weight: 600;
 }
 
 .cardBtn.primary:hover {
-  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, rgba(200, 161, 255, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.15);
 }
 
 .cardBtn.danger {
-  background: var(--error-dim);
-  border-color: rgba(239, 68, 68, 0.2);
-  color: var(--error);
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.15);
+  color: #f87171;
 }
 
 .cardBtn.danger:hover {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.3);
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.1);
 }
 
 .cardBtn.success {
-  background: var(--success-dim);
-  border-color: rgba(16, 185, 129, 0.2);
-  color: var(--success);
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
 }
 
 .cardBtn.success:hover {
-  background: rgba(16, 185, 129, 0.25);
-  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(74, 222, 128, 0.15);
+  border-color: rgba(74, 222, 128, 0.3);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.1);
 }
 
 .cardBtn.warning {
-  background: var(--warning-dim);
-  border-color: rgba(245, 158, 11, 0.2);
-  color: var(--warning);
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
 }
 
 .cardBtn.warning:hover {
-  background: rgba(245, 158, 11, 0.25);
-  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.3);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.1);
 }
 
 /* ==================== NFT PREVIEW IN CARDS ==================== */
@@ -957,6 +1182,8 @@
 .cardContentArea {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* ==================== CONFIGURATION PANEL ==================== */
@@ -1640,7 +1867,11 @@
 
   /* Card adjustments for mobile */
   .dataCard {
-    padding: 14px;
+    padding: 0;
+  }
+
+  .dataCard:hover {
+    transform: none;
   }
 
   .cardHeader {
@@ -1654,12 +1885,30 @@
     flex-wrap: wrap;
   }
 
+  .cardFooter {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
   .cardBtn {
-    flex: 1;
-    min-width: 100px;
+    width: 100%;
+    min-height: 44px;
     justify-content: center;
-    padding: 10px 12px;
-    font-size: 0.75rem;
+    padding: 12px 14px;
+    font-size: 0.85rem;
+  }
+
+  .cardBody {
+    padding: 12px 16px;
+  }
+
+  .cardRow {
+    padding: 6px 0;
+  }
+
+  .cardValue {
+    word-break: break-all;
   }
 
   /* Quick Actions for mobile */
@@ -1739,11 +1988,7 @@
   }
 
   .cardFooter {
-    flex-direction: column;
-  }
-
-  .cardBtn {
-    width: 100%;
+    padding: 10px 12px;
   }
 
   .statValue {
