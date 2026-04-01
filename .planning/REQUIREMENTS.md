@@ -59,7 +59,7 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 
 - [x] **BULK-01**: Vendor can upload a CSV in ANY format (their own column names, layout) and AI maps it to LuxHub's NFT template fields
 - [x] **BULK-02**: AI analyzes uploaded watch images in bulk and auto-fills metadata (brand, model, condition, estimated price) for each row
-- [ ] **BULK-03**: Parsed bulk inventory enters an admin review queue where admin can approve, edit, or reject individual items before minting
+- [x] **BULK-03**: Parsed bulk inventory enters an admin review queue where admin can approve, edit, or reject individual items before minting
 - [ ] **BULK-04**: Admin can mint approved items in bulk from the review queue (batch on-chain minting)
 - [x] **BULK-05**: Vendor can upload an image folder alongside CSV and AI matches images to inventory rows by filename or description
 
@@ -143,7 +143,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | BULK-01 | Phase 10 | Complete |
 | BULK-02 | Phase 10 | Complete |
-| BULK-03 | Phase 10 | Pending |
+| BULK-03 | Phase 10 | Complete |
 | BULK-04 | Phase 10 | Pending |
 | BULK-05 | Phase 10 | Complete |
 | INFRA-01 | Phase 6 | Complete |

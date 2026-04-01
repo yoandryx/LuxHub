@@ -129,11 +129,11 @@ Plans:
   3. Parsed inventory appears in admin review queue where admin can approve, edit, or reject individual items
   4. Admin can select approved items and mint them all in one batch operation
   5. Vendor can upload an image folder and AI matches images to CSV rows by filename or description
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 Plans:
 - [x] 10-01-PLAN.md — Model extension + AI API endpoints (map-csv, analyze-batch) + bulk upload/submit/batch-mint APIs
-- [ ] 10-02-PLAN.md — Vendor bulk upload page with 4-step wizard (CSV, mapping preview, images, review+submit)
+- [x] 10-02-PLAN.md — Vendor bulk upload page with 4-step wizard (CSV, mapping preview, images, review+submit)
 - [ ] 10-03-PLAN.md — Admin batch review and batch mint UI in MintRequestsPanel
 - [ ] 10-04-PLAN.md — Build validation and end-to-end flow verification (human checkpoint)
 
@@ -155,7 +155,7 @@ Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 8
 | 6. Mainnet Deployment & Production Ops | v1.1 | 4/4 | Complete | 2026-03-28 |
 | 7. On-Chain Flow Validation | v1.1 | 2/2 | Complete | 2026-03-29 |
 | 9. Offer UX & UI Polish | v1.1 | 3/3 | Complete | 2026-03-29 |
-| 10. AI Bulk Inventory Upload | v1.1 | 1/4 | In Progress|  |
+| 10. AI Bulk Inventory Upload | v1.1 | 2/4 | In Progress|  |
 | 8. Pool Lifecycle | v1.1 | 0/? | Not started | - |
 
 ---
