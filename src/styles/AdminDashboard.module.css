@@ -2933,3 +2933,324 @@
 }
 
 /* Quick Actions and Activity mobile adjustments - merged with main 768px query above */
+
+/* ==================== BATCH MINT STYLES ==================== */
+
+.batchViewToggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: rgba(10, 10, 14, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.batchViewToggleBtn {
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.batchViewToggleBtn:hover {
+  color: var(--text-secondary);
+}
+
+.batchViewToggleBtnActive {
+  background: rgba(200, 161, 255, 0.12);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+}
+
+/* Batch Group Card */
+.batchGroup {
+  background: rgba(10, 10, 14, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.batchGroupExpanded {
+  border-left: 3px solid var(--accent);
+}
+
+.batchGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.batchGroupHeader:hover {
+  background: var(--bg-hover);
+}
+
+.batchGroupInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.batchGroupTitle {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.batchGroupMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.batchGroupActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Status pills */
+.batchStatusPill {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.batchStatusPending {
+  background: var(--warning-dim);
+  color: var(--warning);
+}
+
+.batchStatusApproved {
+  background: var(--info-dim);
+  color: var(--info);
+}
+
+.batchStatusRejected {
+  background: var(--error-dim);
+  color: var(--error);
+}
+
+.batchStatusMinted {
+  background: rgba(200, 161, 255, 0.12);
+  color: var(--accent);
+}
+
+/* Batch action buttons */
+.batchActionBtn {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.batchActionBtn:hover {
+  background: rgba(200, 161, 255, 0.08);
+}
+
+.batchActionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.batchActionBtnApprove {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--success);
+}
+
+.batchActionBtnApprove:hover {
+  background: var(--success-dim);
+}
+
+.batchActionBtnReject {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--error);
+}
+
+.batchActionBtnReject:hover {
+  background: var(--error-dim);
+}
+
+.batchActionBtnMint {
+  border-color: rgba(200, 161, 255, 0.3);
+  color: var(--accent);
+  background: rgba(200, 161, 255, 0.06);
+}
+
+.batchActionBtnMint:hover {
+  background: rgba(200, 161, 255, 0.12);
+}
+
+/* Batch items container */
+.batchItems {
+  padding: 12px 20px 20px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(10, 10, 14, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ==================== BATCH MINT PROGRESS MODAL ==================== */
+
+.batchMintOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+}
+
+.batchMintModal {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: rgba(10, 10, 14, 0.92);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(200, 161, 255, 0.08);
+}
+
+.batchMintTitle {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.batchMintSubtitle {
+  margin: 0 0 20px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Progress bar */
+.batchProgressBar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.batchProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 100%);
+  border-radius: 3px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Per-item status row */
+.batchMintItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.batchMintItemIcon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.85rem;
+}
+
+.batchMintItemPending {
+  background: rgba(200, 161, 255, 0.1);
+  color: var(--accent);
+}
+
+.batchMintItemSuccess {
+  background: var(--success-dim);
+  color: var(--success);
+}
+
+.batchMintItemError {
+  background: var(--error-dim);
+  color: var(--error);
+}
+
+.batchMintItemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.batchMintItemTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batchMintItemStatus {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.batchMintCloseBtn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 16px;
+  background: rgba(200, 161, 255, 0.1);
+  border: 1px solid var(--accent-border);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.batchMintCloseBtn:hover {
+  background: rgba(200, 161, 255, 0.18);
+}
+
+@keyframes batchSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.batchSpinner {
+  animation: batchSpin 1s linear infinite;
+}

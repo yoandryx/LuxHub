@@ -81,6 +81,23 @@ interface MintRequest {
   transferredTo?: string;
   transferSuccess?: boolean;
   createdAt: string;
+  batchId?: string;
+  batchName?: string;
+}
+
+interface BatchGroup {
+  batchId: string;
+  batchName: string;
+  count: number;
+  statuses: { pending: number; approved: number; rejected: number; minted: number };
+  items: MintRequest[];
+}
+
+interface BatchMintResult {
+  requestId: string;
+  status: 'minted' | 'error';
+  mintAddress?: string;
+  error?: string;
 }
 
 interface VendorOption {
@@ -143,6 +160,23 @@ const MintRequestsPanel: React.FC = () => {
   const [rejectReasonInput, setRejectReasonInput] = useState('');
   const [squadsMembership, setSquadsMembership] = useState<SquadsMembership | null>(null);
   const [checkingSquads, setCheckingSquads] = useState(false);
+
+  // Batch view state
+  const [viewMode, setViewMode] = useState<'individual' | 'batches'>('batches');
+  const [batches, setBatches] = useState<BatchGroup[]>([]);
+  const [ungrouped, setUngrouped] = useState<MintRequest[]>([]);
+  const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
+  const [batchProcessing, setBatchProcessing] = useState<string | null>(null);
+
+  // Batch mint progress modal
+  const [batchMintModal, setBatchMintModal] = useState<{
+    open: boolean;
+    batchName: string;
+    items: Array<{ requestId: string; title: string; status: 'pending' | 'minted' | 'error'; mintAddress?: string; error?: string }>;
+    processing: boolean;
+    completed: number;
+    total: number;
+  } | null>(null);
 
   // Transfer destination state
   const [transferType, setTransferType] = useState<
@@ -260,9 +294,205 @@ const MintRequestsPanel: React.FC = () => {
     }
   }, [filter, wallet.publicKey]);
 
+  // Fetch batch-grouped data
+  const fetchBatches = useCallback(async () => {
+    if (!wallet.publicKey) return;
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ groupBy: 'batch' });
+      if (filter !== 'all') {
+        params.append('status', filter);
+      }
+
+      const res = await fetch(`/api/admin/mint-requests?${params.toString()}`, {
+        headers: { 'x-wallet-address': wallet.publicKey.toBase58() },
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setBatches(data.batches || []);
+      setUngrouped(data.ungrouped || []);
+
+      // Auto-switch to individual if no batches exist
+      if ((data.batches || []).length === 0 && viewMode === 'batches') {
+        setViewMode('individual');
+      }
+    } catch (err) {
+      console.error('Failed to fetch batch data:', err);
+      toast.error('Failed to fetch batch data');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, wallet.publicKey, viewMode]);
+
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    if (viewMode === 'batches') {
+      fetchBatches();
+    } else {
+      fetchRequests();
+    }
+  }, [viewMode, fetchBatches, fetchRequests]);
+
+  // Batch approve all pending items in a batch
+  const handleBatchApprove = async (batch: BatchGroup) => {
+    if (!wallet.publicKey) return;
+    const pendingItems = batch.items.filter((i) => i.status === 'pending');
+    if (pendingItems.length === 0) return;
+
+    setBatchProcessing(batch.batchId);
+    const toastId = toast.loading(`Approving ${pendingItems.length} items...`);
+
+    try {
+      const results = await Promise.all(
+        pendingItems.map((item) =>
+          fetch('/api/admin/mint-requests/review', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-wallet-address': wallet.publicKey!.toBase58(),
+            },
+            body: JSON.stringify({
+              mintRequestId: item._id,
+              action: 'approve',
+              adminNotes: 'Batch approved',
+            }),
+          }).then((r) => r.json())
+        )
+      );
+
+      const succeeded = results.filter((r) => !r.error).length;
+      toast.success(`Approved ${succeeded}/${pendingItems.length} items`, { id: toastId });
+      fetchBatches();
+    } catch (err) {
+      console.error('Batch approve failed:', err);
+      toast.error('Batch approve failed', { id: toastId });
+    } finally {
+      setBatchProcessing(null);
+    }
+  };
+
+  // Batch reject all pending items
+  const handleBatchReject = async (batch: BatchGroup) => {
+    if (!wallet.publicKey) return;
+    const pendingItems = batch.items.filter((i) => i.status === 'pending');
+    if (pendingItems.length === 0) return;
+
+    setBatchProcessing(batch.batchId);
+    const toastId = toast.loading(`Rejecting ${pendingItems.length} items...`);
+
+    try {
+      await Promise.all(
+        pendingItems.map((item) =>
+          fetch('/api/admin/mint-requests/review', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-wallet-address': wallet.publicKey!.toBase58(),
+            },
+            body: JSON.stringify({
+              mintRequestId: item._id,
+              action: 'reject',
+              adminNotes: 'Batch rejected',
+            }),
+          }).then((r) => r.json())
+        )
+      );
+
+      toast.success(`Rejected ${pendingItems.length} items`, { id: toastId });
+      fetchBatches();
+    } catch (err) {
+      console.error('Batch reject failed:', err);
+      toast.error('Batch reject failed', { id: toastId });
+    } finally {
+      setBatchProcessing(null);
+    }
+  };
+
+  // Batch mint all approved items
+  const handleBatchMint = async (batch: BatchGroup) => {
+    if (!wallet.publicKey) return;
+    const approvedItems = batch.items.filter((i) => i.status === 'approved');
+    if (approvedItems.length === 0) return;
+
+    // Open progress modal
+    setBatchMintModal({
+      open: true,
+      batchName: batch.batchName,
+      items: approvedItems.map((i) => ({
+        requestId: i._id,
+        title: i.title,
+        status: 'pending' as const,
+      })),
+      processing: true,
+      completed: 0,
+      total: approvedItems.length,
+    });
+
+    try {
+      const res = await fetch('/api/admin/mint-requests/batch-mint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': wallet.publicKey.toBase58(),
+        },
+        body: JSON.stringify({
+          requestIds: approvedItems.map((i) => i._id),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.results) {
+        const resultMap = new Map<string, BatchMintResult>();
+        for (const r of data.results) {
+          resultMap.set(r.requestId, r);
+        }
+
+        setBatchMintModal((prev) =>
+          prev
+            ? {
+                ...prev,
+                processing: false,
+                completed: data.summary?.minted || 0,
+                items: prev.items.map((item) => {
+                  const result = resultMap.get(item.requestId);
+                  if (result) {
+                    return {
+                      ...item,
+                      status: result.status,
+                      mintAddress: result.mintAddress,
+                      error: result.error,
+                    };
+                  }
+                  return item;
+                }),
+              }
+            : prev
+        );
+
+        if (data.summary?.minted > 0) {
+          toast.success(`Minted ${data.summary.minted}/${data.summary.total} items`);
+        }
+        if (data.summary?.errors > 0) {
+          toast.error(`${data.summary.errors} items failed to mint`);
+        }
+      } else if (data.error) {
+        toast.error(data.error);
+        setBatchMintModal((prev) => (prev ? { ...prev, processing: false } : prev));
+      }
+
+      fetchBatches();
+    } catch (err) {
+      console.error('Batch mint failed:', err);
+      toast.error('Batch mint failed');
+      setBatchMintModal((prev) => (prev ? { ...prev, processing: false } : prev));
+    }
+  };
 
   const closeModal = () => {
     setConfirmModal(null);
@@ -903,6 +1133,24 @@ const MintRequestsPanel: React.FC = () => {
         </div>
       </div>
 
+      {/* View Mode Toggle + Filter Tabs */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div className={styles.batchViewToggle}>
+          <button
+            className={`${styles.batchViewToggleBtn} ${viewMode === 'batches' ? styles.batchViewToggleBtnActive : ''}`}
+            onClick={() => setViewMode('batches')}
+          >
+            Batches
+          </button>
+          <button
+            className={`${styles.batchViewToggleBtn} ${viewMode === 'individual' ? styles.batchViewToggleBtnActive : ''}`}
+            onClick={() => setViewMode('individual')}
+          >
+            Individual
+          </button>
+        </div>
+      </div>
+
       {/* Filter Tabs */}
       <div
         style={{
@@ -955,10 +1203,282 @@ const MintRequestsPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Requests List */}
-      {loading ? (
+      {/* Batch View */}
+      {viewMode === 'batches' && !loading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {batches.length === 0 && ungrouped.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 40px', color: 'rgba(255, 255, 255, 0.4)' }}>
+              <HiOutlineCube style={{ fontSize: '2.5rem', marginBottom: '12px', color: 'rgba(185, 145, 255, 0.3)' }} />
+              <p style={{ margin: 0, fontSize: '0.9rem' }}>No batch uploads found</p>
+              <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)' }}>
+                Switch to Individual view or upload a batch
+              </p>
+            </div>
+          ) : (
+            <>
+              {batches.map((batch) => {
+                const isExpanded = expandedBatchId === batch.batchId;
+                const hasPending = batch.statuses.pending > 0;
+                const hasApproved = batch.statuses.approved > 0;
+                const isProcessingBatch = batchProcessing === batch.batchId;
+
+                return (
+                  <div
+                    key={batch.batchId}
+                    className={`${styles.batchGroup} ${isExpanded ? styles.batchGroupExpanded : ''}`}
+                  >
+                    {/* Batch Header */}
+                    <div
+                      className={styles.batchGroupHeader}
+                      onClick={() => setExpandedBatchId(isExpanded ? null : batch.batchId)}
+                    >
+                      <div className={styles.batchGroupInfo}>
+                        <div className={styles.batchGroupTitle}>{batch.batchName}</div>
+                        <div className={styles.batchGroupMeta}>
+                          <span>{batch.count} items</span>
+                          {batch.statuses.pending > 0 && (
+                            <span className={`${styles.batchStatusPill} ${styles.batchStatusPending}`}>
+                              {batch.statuses.pending} pending
+                            </span>
+                          )}
+                          {batch.statuses.approved > 0 && (
+                            <span className={`${styles.batchStatusPill} ${styles.batchStatusApproved}`}>
+                              {batch.statuses.approved} approved
+                            </span>
+                          )}
+                          {batch.statuses.rejected > 0 && (
+                            <span className={`${styles.batchStatusPill} ${styles.batchStatusRejected}`}>
+                              {batch.statuses.rejected} rejected
+                            </span>
+                          )}
+                          {batch.statuses.minted > 0 && (
+                            <span className={`${styles.batchStatusPill} ${styles.batchStatusMinted}`}>
+                              {batch.statuses.minted} minted
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={styles.batchGroupActions} onClick={(e) => e.stopPropagation()}>
+                        {hasPending && (
+                          <>
+                            <button
+                              className={`${styles.batchActionBtn} ${styles.batchActionBtnApprove}`}
+                              onClick={() => handleBatchApprove(batch)}
+                              disabled={isProcessingBatch}
+                            >
+                              <HiOutlineCheck /> Approve All
+                            </button>
+                            <button
+                              className={`${styles.batchActionBtn} ${styles.batchActionBtnReject}`}
+                              onClick={() => handleBatchReject(batch)}
+                              disabled={isProcessingBatch}
+                            >
+                              <HiOutlineX /> Reject All
+                            </button>
+                          </>
+                        )}
+                        {hasApproved && (
+                          <button
+                            className={`${styles.batchActionBtn} ${styles.batchActionBtnMint}`}
+                            onClick={() => handleBatchMint(batch)}
+                            disabled={isProcessingBatch}
+                          >
+                            <HiOutlineSparkles /> Mint Approved
+                          </button>
+                        )}
+                        {isExpanded ? (
+                          <HiOutlineChevronUp style={{ color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }} />
+                        ) : (
+                          <HiOutlineChevronDown style={{ color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expanded Items */}
+                    {isExpanded && (
+                      <div className={styles.batchItems}>
+                        {batch.items.map((item) => (
+                          <div
+                            key={item._id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '12px 16px',
+                              background: 'rgba(10, 10, 14, 0.6)',
+                              border: '1px solid rgba(185, 145, 255, 0.08)',
+                              borderRadius: '10px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              {getDisplayImageUrl(item.imageUrl) && (
+                                <img
+                                  src={getDisplayImageUrl(item.imageUrl)!}
+                                  alt={item.title}
+                                  style={{
+                                    width: '44px',
+                                    height: '44px',
+                                    borderRadius: '8px',
+                                    objectFit: 'cover',
+                                    border: '1px solid rgba(185, 145, 255, 0.1)',
+                                  }}
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <div>
+                                <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.85rem' }}>{item.title}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#a1a1a1' }}>
+                                  {item.brand} {item.model} &middot; ${item.priceUSD?.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span
+                                style={{
+                                  padding: '3px 10px',
+                                  borderRadius: '20px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                  background: `${getStatusColor(item.status)}20`,
+                                  color: getStatusColor(item.status),
+                                }}
+                              >
+                                {item.status}
+                              </span>
+                              {item.status === 'pending' && (
+                                <>
+                                  <button
+                                    className={`${styles.batchActionBtn} ${styles.batchActionBtnApprove}`}
+                                    onClick={() => executeReview(item._id, 'approve')}
+                                    disabled={processing === item._id}
+                                    style={{ padding: '4px 10px', fontSize: '0.72rem' }}
+                                  >
+                                    <HiOutlineCheck />
+                                  </button>
+                                  <button
+                                    className={`${styles.batchActionBtn} ${styles.batchActionBtnReject}`}
+                                    onClick={() => executeReview(item._id, 'reject', 'Rejected in batch review')}
+                                    disabled={processing === item._id}
+                                    style={{ padding: '4px 10px', fontSize: '0.72rem' }}
+                                  >
+                                    <HiOutlineX />
+                                  </button>
+                                </>
+                              )}
+                              {item.mintAddress && (
+                                <a
+                                  href={getClusterConfig().explorerUrl(item.mintAddress)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{ color: '#c8a1ff', fontSize: '0.85rem' }}
+                                >
+                                  <HiOutlineExternalLink />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Ungrouped items in batch view */}
+              {ungrouped.length > 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <div style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: 'rgba(255,255,255,0.4)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '10px',
+                  }}>
+                    Individual Submissions ({ungrouped.length})
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)' }}>
+                    Switch to Individual view to manage these items
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Batch Mint Progress Modal */}
+      {batchMintModal?.open && (
+        <div className={styles.batchMintOverlay} onClick={() => !batchMintModal.processing && setBatchMintModal(null)}>
+          <div className={styles.batchMintModal} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.batchMintTitle}>
+              {batchMintModal.processing ? 'Minting in Progress...' : 'Batch Mint Complete'}
+            </h3>
+            <p className={styles.batchMintSubtitle}>
+              {batchMintModal.batchName} &middot; {batchMintModal.completed}/{batchMintModal.total} minted
+            </p>
+
+            {/* Progress Bar */}
+            <div className={styles.batchProgressBar}>
+              <div
+                className={styles.batchProgressFill}
+                style={{ width: `${batchMintModal.total > 0 ? (batchMintModal.completed / batchMintModal.total) * 100 : 0}%` }}
+              />
+            </div>
+
+            {/* Item List */}
+            {batchMintModal.items.map((item) => (
+              <div key={item.requestId} className={styles.batchMintItem}>
+                <div
+                  className={`${styles.batchMintItemIcon} ${
+                    item.status === 'pending'
+                      ? styles.batchMintItemPending
+                      : item.status === 'minted'
+                        ? styles.batchMintItemSuccess
+                        : styles.batchMintItemError
+                  }`}
+                >
+                  {item.status === 'pending' && (
+                    <HiOutlineRefresh className={styles.batchSpinner} />
+                  )}
+                  {item.status === 'minted' && <HiOutlineCheck />}
+                  {item.status === 'error' && <HiOutlineX />}
+                </div>
+                <div className={styles.batchMintItemInfo}>
+                  <div className={styles.batchMintItemTitle}>{item.title}</div>
+                  <div className={styles.batchMintItemStatus}>
+                    {item.status === 'pending' && 'Processing...'}
+                    {item.status === 'minted' && `Minted: ${item.mintAddress?.slice(0, 8)}...`}
+                    {item.status === 'error' && (item.error || 'Failed')}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Close Button (only when done) */}
+            {!batchMintModal.processing && (
+              <button
+                className={styles.batchMintCloseBtn}
+                onClick={() => setBatchMintModal(null)}
+              >
+                Close
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Individual Requests List */}
+      {viewMode === 'individual' && loading && (
         <div className={styles.loadingTab}>Loading mint requests...</div>
-      ) : requests.length === 0 ? (
+      )}
+      {viewMode === 'batches' && loading && (
+        <div className={styles.loadingTab}>Loading batch data...</div>
+      )}
+      {viewMode === 'individual' && !loading && requests.length === 0 && (
         <div
           style={{ textAlign: 'center', padding: '60px 40px', color: 'rgba(255, 255, 255, 0.4)' }}
         >
@@ -969,7 +1489,8 @@ const MintRequestsPanel: React.FC = () => {
             No {filter !== 'all' ? filter : ''} mint requests found
           </p>
         </div>
-      ) : (
+      )}
+      {viewMode === 'individual' && !loading && requests.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {requests.map((request) => (
             <div
