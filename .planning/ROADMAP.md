@@ -26,7 +26,7 @@
 - [x] **Phase 5.1: Anchor Program Security Hardening** (INSERTED) - Fix critical/high vulnerabilities from pre-mainnet audit: PDA-derived vaults, seller!=buyer guard, fee_bps cap, Squads CPI gate fix, account close constraints, confirm_delivery test coverage
 - [x] **Phase 6: Mainnet Deployment & Production Ops** - Deploy Anchor program, switch all infra to mainnet, configure production monitoring and automation
 - [x] **Phase 7: On-Chain Flow Validation** - Verify buy, delivery, and notification flows work with real SOL on mainnet
-- [ ] **Phase 9: Offer UX & UI Polish** - Countdown timers on offers, offer confirm_delivery flow, landing page refresh, navbar reorganization
+- [x] **Phase 9: Offer UX & UI Polish** - Countdown timers on offers, offer confirm_delivery flow, landing page refresh, navbar reorganization
 - [ ] **Phase 10: AI Bulk Inventory Upload** - AI-powered CSV parsing, image analysis, admin review queue, batch minting
 - [ ] **Phase 8: Pool Lifecycle** - Validate full pool tokenization from launch through graduation to distribution on mainnet
 
@@ -115,7 +115,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Countdown timers, urgency badges, and withdraw button on offer cards + urgency banner on Orders page
+- [x] 09-01-PLAN.md — Countdown timers, urgency badges, and withdraw button on offer cards + urgency banner on Orders page
 - [x] 09-02-PLAN.md — Wallet awareness layer on landing page
 - [x] 09-03-PLAN.md — Role-adaptive navbar and sectioned dropdown menu
 
@@ -129,13 +129,19 @@ Plans:
   3. Parsed inventory appears in admin review queue where admin can approve, edit, or reject individual items
   4. Admin can select approved items and mint them all in one batch operation
   5. Vendor can upload an image folder and AI matches images to CSV rows by filename or description
-**Plans**: TBD
+**Plans:** 1/4 plans executed
+
+Plans:
+- [x] 10-01-PLAN.md — Model extension + AI API endpoints (map-csv, analyze-batch) + bulk upload/submit/batch-mint APIs
+- [ ] 10-02-PLAN.md — Vendor bulk upload page with 4-step wizard (CSV, mapping preview, images, review+submit)
+- [ ] 10-03-PLAN.md — Admin batch review and batch mint UI in MintRequestsPanel
+- [ ] 10-04-PLAN.md — Build validation and end-to-end flow verification (human checkpoint)
 
 ## Progress
 
 **Execution Order:**
 Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 8
-(Phases 5.1/6/7 complete. Phase 9 next: offers need confirm_delivery flow. Phase 8 last: Bags PDA setup needed.)
+(Phases 5.1/6/7/9 complete. Phase 10 next. Phase 8 last: Bags PDA setup needed.)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -148,8 +154,8 @@ Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 8
 | 5.1 Anchor Security Hardening | v1.1 | 4/4 | Complete | 2026-03-26 |
 | 6. Mainnet Deployment & Production Ops | v1.1 | 4/4 | Complete | 2026-03-28 |
 | 7. On-Chain Flow Validation | v1.1 | 2/2 | Complete | 2026-03-29 |
-| 9. Offer UX & UI Polish | v1.1 | 0/3 | Planning | - |
-| 10. AI Bulk Inventory Upload | v1.1 | 0/? | Not started | - |
+| 9. Offer UX & UI Polish | v1.1 | 3/3 | Complete | 2026-03-29 |
+| 10. AI Bulk Inventory Upload | v1.1 | 1/4 | In Progress|  |
 | 8. Pool Lifecycle | v1.1 | 0/? | Not started | - |
 
 ---

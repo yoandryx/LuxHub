@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Ready to execute
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-03-29T18:21:57.724Z"
-last_activity: 2026-03-29
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-04-01T13:21:02.801Z"
+last_activity: 2026-04-01
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 13
-  completed_plans: 10
+  completed_phases: 3
+  total_plans: 17
+  completed_plans: 12
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 09 — offer-ux-ui-polish
+**Current focus:** Phase 10 — ai-bulk-inventory-upload
 
 ## Current Position
 
-Phase: 09 (offer-ux-ui-polish) — EXECUTING
-Plan: 2 of 3
+Phase: 10 (ai-bulk-inventory-upload) — EXECUTING
+Plan: 2 of 4
 Execution order: Phase 9 → 10 → 8
 
 ## Performance Metrics
@@ -57,6 +57,9 @@ Execution order: Phase 9 → 10 → 8
 | Phase 06 P01 | 4min | 2 tasks | 4 files |
 | Phase 06 P04 | 2min | 2 tasks | 1 files |
 | Phase 09 P02 | 4min | 1 tasks | 3 files |
+| Phase 09 P03 | 191s | 1 tasks | 3 files |
+| Phase 09 P01 | 4min | 2 tasks | 6 files |
+| Phase 10 P01 | 6min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -85,6 +88,8 @@ Recent decisions affecting current work:
 - [Phase 06]: Anchor.toml changes via patch file since Solana-Anchor is a git submodule
 - [Phase 06]: Treasury marketplace wallet as initial EscrowConfig treasury; update to Squads vault PDA via update_config
 - [Phase 06]: Dual-environment setup: local .env keeps devnet for development, Vercel env vars = mainnet for production
+- [Phase 09]: LearnMore removed from top nav, moved to dropdown Account section; Vendors link also moved to dropdown-only
+- [Phase 09]: 4h amber / 1h red urgency thresholds for offer countdowns; 48h default progress bar duration
 
 ### Roadmap Evolution
 
@@ -100,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-29
-Stopped at: Completed 09-02-PLAN.md
+Last activity: 2026-04-01
+Stopped at: Completed 10-01-PLAN.md
 Key context: confirm_delivery proven on mainnet (TX: 3VqZFwcr...), 8 bugs fixed, program redeployed 2x. Offers still need confirm_delivery flow.

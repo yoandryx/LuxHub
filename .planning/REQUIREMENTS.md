@@ -36,15 +36,15 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 
 ### Offer Management UX
 
-- [ ] **OFFER-01**: Offer cards show live countdown timer ("Expires in 18h 32m") instead of static date
-- [ ] **OFFER-02**: Accepted offers show payment deadline countdown ("24h to deposit funds")
-- [ ] **OFFER-03**: Buyer can withdraw from an accepted offer via UI button (wires existing buyer-respond API)
-- [ ] **OFFER-04**: Visual urgency badges on cards for items expiring within 4 hours (amber) and 1 hour (red)
+- [x] **OFFER-01**: Offer cards show live countdown timer ("Expires in 18h 32m") instead of static date
+- [x] **OFFER-02**: Accepted offers show payment deadline countdown ("24h to deposit funds")
+- [x] **OFFER-03**: Buyer can withdraw from an accepted offer via UI button (wires existing buyer-respond API)
+- [x] **OFFER-04**: Visual urgency badges on cards for items expiring within 4 hours (amber) and 1 hour (red)
 
 ### UI Polish
 
 - [x] **UI-01**: Landing page refreshed with updated feature showcase, vendor/buyer CTAs, and current platform stats
-- [ ] **UI-02**: Navbar dropdown reorganized — orders and notifications prioritized, pages grouped by user role
+- [x] **UI-02**: Navbar dropdown reorganized — orders and notifications prioritized, pages grouped by user role
 - [ ] **UI-03**: Pool lifecycle timeline visualization on pool detail page (visual progress indicator)
 
 ### Production Operations
@@ -57,11 +57,11 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 
 ### AI-Powered Bulk Inventory Upload
 
-- [ ] **BULK-01**: Vendor can upload a CSV in ANY format (their own column names, layout) and AI maps it to LuxHub's NFT template fields
-- [ ] **BULK-02**: AI analyzes uploaded watch images in bulk and auto-fills metadata (brand, model, condition, estimated price) for each row
+- [x] **BULK-01**: Vendor can upload a CSV in ANY format (their own column names, layout) and AI maps it to LuxHub's NFT template fields
+- [x] **BULK-02**: AI analyzes uploaded watch images in bulk and auto-fills metadata (brand, model, condition, estimated price) for each row
 - [ ] **BULK-03**: Parsed bulk inventory enters an admin review queue where admin can approve, edit, or reject individual items before minting
 - [ ] **BULK-04**: Admin can mint approved items in bulk from the review queue (batch on-chain minting)
-- [ ] **BULK-05**: Vendor can upload an image folder alongside CSV and AI matches images to inventory rows by filename or description
+- [x] **BULK-05**: Vendor can upload an image folder alongside CSV and AI matches images to inventory rows by filename or description
 
 ### Infrastructure & Scaling
 
@@ -128,12 +128,12 @@ Deferred to future release. Tracked but not in current roadmap.
 | POOL-04 | Phase 8 | Pending |
 | POOL-05 | Phase 8 | Pending |
 | POOL-06 | Phase 8 | Pending |
-| OFFER-01 | Phase 9 | Pending |
-| OFFER-02 | Phase 9 | Pending |
-| OFFER-03 | Phase 9 | Pending |
-| OFFER-04 | Phase 9 | Pending |
+| OFFER-01 | Phase 9 | Complete |
+| OFFER-02 | Phase 9 | Complete |
+| OFFER-03 | Phase 9 | Complete |
+| OFFER-04 | Phase 9 | Complete |
 | UI-01 | Phase 9 | Complete |
-| UI-02 | Phase 9 | Pending |
+| UI-02 | Phase 9 | Complete |
 | UI-03 | Phase 8 | Pending |
 | OPS-01 | Phase 6 | Complete |
 | OPS-02 | Phase 6 | Complete |
@@ -141,11 +141,11 @@ Deferred to future release. Tracked but not in current roadmap.
 | OPS-04 | Phase 6 | Complete |
 | OPS-05 | Phase 6 | Complete |
 
-| BULK-01 | Phase 10 | Pending |
-| BULK-02 | Phase 10 | Pending |
+| BULK-01 | Phase 10 | Complete |
+| BULK-02 | Phase 10 | Complete |
 | BULK-03 | Phase 10 | Pending |
 | BULK-04 | Phase 10 | Pending |
-| BULK-05 | Phase 10 | Pending |
+| BULK-05 | Phase 10 | Complete |
 | INFRA-01 | Phase 6 | Complete |
 | INFRA-02 | Phase 8 | Pending |
 | INFRA-03 | Phase 8 | Pending |
