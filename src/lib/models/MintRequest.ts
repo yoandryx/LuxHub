@@ -78,6 +78,13 @@ const MintRequestSchema = new mongoose.Schema(
       default: 'vendor',
     },
 
+    // Bulk upload / batch fields
+    batchId: { type: String, index: true },
+    batchName: { type: String },
+    imageR2Url: { type: String },
+    aiConfidence: { type: Map, of: Number },
+    aiSource: { type: String, enum: ['csv', 'image', 'merged'] },
+
     // Transfer destination (set by admin during mint)
     transferDestination: { type: String }, // Target wallet address
     transferDestinationType: {
