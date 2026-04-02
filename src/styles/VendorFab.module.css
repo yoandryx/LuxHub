@@ -1,8 +1,6 @@
 /* Vendor FAB — sits above AI assistant on bottom-right */
 .fab {
-  position: fixed;
-  bottom: 64px;
-  right: 20px;
+  position: relative;
   width: 36px;
   height: 36px;
   display: flex;
@@ -70,6 +68,68 @@
     rgba(185, 145, 255, 0.2),
     rgba(185, 145, 255, 0.8)
   );
+}
+
+/* FAB wrapper + popup menu */
+.fabWrapper {
+  position: fixed;
+  bottom: 64px;
+  right: 20px;
+  z-index: 9997;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.fabMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #0a0a0c;
+  border: 1px solid rgba(185, 145, 255, 0.2);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(200, 161, 255, 0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  animation: fabMenuIn 0.15s ease-out;
+}
+
+@keyframes fabMenuIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.fabMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.fabMenuItem:hover {
+  background: rgba(200, 161, 255, 0.1);
+  color: #c8a1ff;
+}
+
+.fabMenuItem svg {
+  font-size: 0.85rem;
+  color: #c8a1ff;
+  opacity: 0.7;
+}
+
+.fabMenuItem:hover svg {
+  opacity: 1;
 }
 
 /* Modal overlay */
@@ -183,9 +243,12 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .fab {
+  .fabWrapper {
     bottom: 56px;
     right: 12px;
+  }
+
+  .fab {
     width: 32px;
     height: 32px;
     border-radius: 8px;
@@ -207,7 +270,7 @@
 }
 
 @media (max-width: 420px) {
-  .fab {
+  .fabWrapper {
     bottom: 52px;
     right: 10px;
   }

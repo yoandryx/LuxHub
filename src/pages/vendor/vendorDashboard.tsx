@@ -16,6 +16,7 @@ import {
   FiClock,
   FiCheckCircle,
   FiPlus,
+  FiLayers,
   FiEye,
   FiTruck,
   FiInbox,
@@ -790,13 +791,22 @@ const VendorDashboard = () => {
                       )
                     )}
                   </div>
-                  <button
-                    className={styles.quickActionButton}
-                    onClick={() => setShowAddForm(true)}
-                    style={{ whiteSpace: 'nowrap' }}
-                  >
-                    <FiPlus /> New Listing
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      className={styles.quickActionButton}
+                      onClick={() => setShowAddForm(true)}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      <FiPlus /> New Listing
+                    </button>
+                    <button
+                      className={styles.quickActionButton}
+                      onClick={() => router.push('/vendor/bulk-upload')}
+                      style={{ whiteSpace: 'nowrap', background: 'rgba(200, 161, 255, 0.08)', border: '1px solid rgba(200, 161, 255, 0.2)' }}
+                    >
+                      <FiLayers /> Bulk Upload
+                    </button>
+                  </div>
                 </div>
               )}
 

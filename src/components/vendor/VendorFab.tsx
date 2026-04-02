@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { FiPlus, FiX } from 'react-icons/fi';
+import { FiPlus, FiX, FiEdit, FiLayers } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
 import styles from '../../styles/VendorFab.module.css';
 
@@ -8,7 +9,9 @@ const AddInventoryForm = dynamic(() => import('./AddInventoryForm'), { ssr: fals
 
 export default function VendorFab() {
   const { publicKey } = useWallet();
+  const router = useRouter();
   const [isVendor, setIsVendor] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
@@ -30,11 +33,37 @@ export default function VendorFab() {
 
   if (!isVendor) return null;
 
+  const handleFabClick = () => {
+    setShowMenu((prev) => !prev);
+  };
+
+  const handleSingle = () => {
+    setShowMenu(false);
+    setShowForm(true);
+  };
+
+  const handleBulk = () => {
+    setShowMenu(false);
+    router.push('/vendor/bulk-upload');
+  };
+
   return (
     <>
-      <button className={styles.fab} onClick={() => setShowForm(true)} title="New listing request">
-        <FiPlus />
-      </button>
+      <div className={styles.fabWrapper}>
+        {showMenu && (
+          <div className={styles.fabMenu}>
+            <button className={styles.fabMenuItem} onClick={handleSingle}>
+              <FiEdit /> Single Item
+            </button>
+            <button className={styles.fabMenuItem} onClick={handleBulk}>
+              <FiLayers /> Bulk Upload
+            </button>
+          </div>
+        )}
+        <button className={styles.fab} onClick={handleFabClick} title="Add inventory">
+          <FiPlus style={{ transform: showMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s ease' }} />
+        </button>
+      </div>
 
       {showForm && (
         <div className={styles.overlay} onClick={() => setShowForm(false)}>
