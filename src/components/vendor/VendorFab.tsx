@@ -10,28 +10,38 @@ const AddInventoryForm = dynamic(() => import('./AddInventoryForm'), { ssr: fals
 export default function VendorFab() {
   const { publicKey } = useWallet();
   const router = useRouter();
-  const [isVendor, setIsVendor] = useState(false);
+  const [canAccess, setCanAccess] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     if (!publicKey) {
-      setIsVendor(false);
+      setCanAccess(false);
       return;
     }
 
-    fetch(`/api/vendor/profile?wallet=${publicKey.toBase58()}`)
+    const walletAddress = publicKey.toBase58();
+
+    // Check if admin
+    const superAdmins = (process.env.NEXT_PUBLIC_SUPER_ADMIN_WALLETS || '').split(',').filter(Boolean);
+    if (superAdmins.includes(walletAddress)) {
+      setCanAccess(true);
+      return;
+    }
+
+    // Check if approved vendor
+    fetch(`/api/vendor/profile?wallet=${walletAddress}`)
       .then((res) => {
         if (!res.ok) return null;
         return res.json();
       })
       .then((data) => {
-        setIsVendor(!!data?.approved);
+        setCanAccess(!!data?.approved);
       })
-      .catch(() => setIsVendor(false));
+      .catch(() => setCanAccess(false));
   }, [publicKey]);
 
-  if (!isVendor) return null;
+  if (!canAccess) return null;
 
   const handleFabClick = () => {
     setShowMenu((prev) => !prev);
