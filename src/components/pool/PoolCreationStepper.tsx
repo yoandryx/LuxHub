@@ -475,13 +475,17 @@ export function PoolCreationStepper({
     <div className={styles.stepContent}>
       <div className={styles.stepTitle}>Configure Pool</div>
 
-      {/* Asset selector (admin mode) or asset preview (vendor mode) */}
-      {adminMode && !initialAssetId ? (
+      {/* Asset selector — always show when no asset pre-selected */}
+      {!selectedAsset ? (
         <div className={styles.formGroup}>
-          <label className={styles.formLabel}>Select Asset</label>
+          <label className={styles.formLabel}>Select Watch to Tokenize</label>
           {loadingAssets ? (
             <div className={styles.loadingState}>
-              <FiLoader className={styles.spinner} /> Loading assets...
+              <FiLoader className={styles.spinner} /> Loading your watches...
+            </div>
+          ) : assets.length === 0 ? (
+            <div className={styles.loadingState}>
+              No eligible watches found. Mint a watch first.
             </div>
           ) : (
             <select
@@ -489,7 +493,7 @@ export function PoolCreationStepper({
               value={selectedAssetId}
               onChange={(e) => handleAssetSelect(e.target.value)}
             >
-              <option value="">-- Choose an asset --</option>
+              <option value="">-- Choose a watch --</option>
               {assets.map((a) => (
                 <option key={a._id} value={a._id}>
                   {a.brand} {a.model} (${a.priceUSD?.toLocaleString()})
@@ -517,6 +521,19 @@ export function PoolCreationStepper({
               ${selectedAsset.priceUSD?.toLocaleString()}
             </div>
           </div>
+          <button
+            className={styles.btnSecondary}
+            onClick={() => {
+              setSelectedAsset(null);
+              setSelectedAssetId('');
+              setTokenName('');
+              setTokenSymbol('');
+              setTargetAmountUSD('');
+            }}
+            style={{ padding: '4px 10px', fontSize: '11px', marginLeft: 'auto' }}
+          >
+            Change
+          </button>
         </div>
       )}
 
