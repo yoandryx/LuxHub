@@ -138,14 +138,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           await Pool.findByIdAndUpdate(pool._id, { $set: updateFields });
 
           // Log reconciliation event to Sentry
-          errorMonitor.captureMessage('Reconciliation: Pool graduation detected', {
-            extra: {
-              poolId: pool._id.toString(),
-              bagsTokenMint: pool.bagsTokenMint,
-              marketCap: tokenData.marketCap,
-              priceUSD: tokenData.priceUSD,
-            },
-          });
+          errorMonitor.captureMessage(
+            `Reconciliation: Pool graduation detected - ${pool._id} (${pool.bagsTokenMint})`,
+            'info'
+          );
 
           // Trigger Squad DAO creation (non-blocking)
           triggerSquadCreation(pool._id.toString()).catch((err) => {

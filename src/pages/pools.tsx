@@ -6,7 +6,6 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
 
 import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage } from 'react-icons/fi';
@@ -729,7 +728,6 @@ const PoolsPage: React.FC = () => {
     return { totalPools, openPools, tradeablePools, tvl, totalVolume };
   }, [pools]);
 
-  const poolRouter = useRouter();
   const handlePoolClick = (pool: Pool) => {
     // Navigate to dedicated pool detail page (D-05)
     poolRouter.push(`/pools/${pool._id}`);

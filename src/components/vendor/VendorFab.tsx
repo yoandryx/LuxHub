@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { FiPlus, FiX, FiEdit, FiLayers } from 'react-icons/fi';
+import { FiPlus, FiX, FiEdit, FiLayers, FiDroplet } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
 import styles from '../../styles/VendorFab.module.css';
 
@@ -60,6 +60,11 @@ export default function VendorFab() {
     setShowBulk(true);
   };
 
+  const handleCreatePool = () => {
+    setShowMenu(false);
+    router.push('/vendor/pools?action=create');
+  };
+
   return (
     <>
       <div className={styles.fabWrapper}>
@@ -70,6 +75,9 @@ export default function VendorFab() {
             </button>
             <button className={styles.fabMenuItem} onClick={handleBulk}>
               <FiLayers /> Bulk Upload
+            </button>
+            <button className={styles.fabMenuItem} onClick={handleCreatePool}>
+              <FiDroplet /> Create Pool
             </button>
           </div>
         )}

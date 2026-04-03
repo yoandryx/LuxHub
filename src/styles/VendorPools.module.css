@@ -1,0 +1,384 @@
+/* ========================================
+   VENDOR POOLS HUB
+   Chrome glass theme
+   ======================================== */
+
+.page {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.25);
+  --accent-glow: rgba(200, 161, 255, 0.08);
+  --bg-dark: #0d0d0d;
+  --bg-card: rgba(17, 17, 17, 0.65);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(200, 161, 255, 0.3);
+  --glass: rgba(13, 13, 13, 0.85);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+
+  min-height: 100vh;
+  background: var(--bg-dark);
+  padding: 80px 24px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ===== HEADER ===== */
+.header {
+  margin-bottom: 28px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-decoration: none;
+  margin-bottom: 12px;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: var(--accent);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleIcon {
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* ===== STATS ROW ===== */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.statCard:hover {
+  border-color: var(--border-hover);
+}
+
+.statValue {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ===== TABS ===== */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  width: fit-content;
+}
+
+.tab {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tabActive {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.tab:hover:not(.tabActive) {
+  color: var(--text-primary);
+}
+
+/* ===== CARD GRID ===== */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+/* ===== LISTING CARD ===== */
+.listingCard {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.listingCard:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.listingImage {
+  height: 180px;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.listingImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.listingImagePlaceholder {
+  font-size: 32px;
+  color: rgba(255, 255, 255, 0.1);
+}
+
+.listingPriceBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.listingInfo {
+  padding: 14px;
+}
+
+.listingTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listingMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.listingBrand {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.listingMint {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: monospace;
+}
+
+/* ===== CREATE POOL BUTTON ===== */
+.createPoolBtn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 161, 255, 0.25);
+  background: rgba(200, 161, 255, 0.06);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.createPoolBtn:hover {
+  background: rgba(200, 161, 255, 0.12);
+  border-color: rgba(200, 161, 255, 0.4);
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.1);
+}
+
+/* ===== EMPTY STATE ===== */
+.emptyState {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.emptyIcon {
+  font-size: 32px;
+  color: var(--accent);
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.emptyTitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.emptyText {
+  font-size: 13px;
+}
+
+/* ===== QUICK LINKS ===== */
+.quickLinks {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.quickLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quickLink:hover {
+  border-color: var(--border-hover);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* ===== MODAL OVERLAY ===== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+}
+
+.modalContent {
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--glass);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-radius: 16px;
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  padding: 24px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* ===== LOADING ===== */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px;
+  color: var(--text-secondary);
+  gap: 10px;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .page {
+    padding: 70px 16px 40px;
+  }
+
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .quickLinks {
+    flex-direction: column;
+  }
+}

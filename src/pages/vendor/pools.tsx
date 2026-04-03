@@ -1,54 +1,110 @@
 // src/pages/vendor/pools.tsx
-// Vendor pool management page — shows vendor's pools with status, volume, and actions
+// Vendor pool hub — eligible listings, pool creation, active pool management
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
-import { FiArrowLeft, FiLoader } from 'react-icons/fi';
+import {
+  FiArrowLeft,
+  FiLoader,
+  FiDroplet,
+  FiGrid,
+  FiPlus,
+  FiExternalLink,
+  FiBarChart2,
+  FiUsers,
+  FiTrendingUp,
+  FiBookOpen,
+} from 'react-icons/fi';
+import { resolveImageUrl } from '../../utils/imageUtils';
 import dynamic from 'next/dynamic';
+import styles from '../../styles/VendorPools.module.css';
 
 const PoolManagement = dynamic(
   () => import('../../components/pool/PoolManagement').then((m) => ({ default: m.PoolManagement })),
   { ssr: false }
 );
 
+const PoolCreationStepper = dynamic(
+  () => import('../../components/pool/PoolCreationStepper'),
+  { ssr: false }
+);
+
+interface EligibleListing {
+  _id: string;
+  title: string;
+  brand: string;
+  model: string;
+  priceUSD: number;
+  imageUrl?: string;
+  mintAddress?: string;
+}
+
 export default function VendorPoolsPage() {
+  const router = useRouter();
   const { publicKey, connected } = useEffectiveWallet();
   const [pools, setPools] = useState<any[]>([]);
+  const [eligible, setEligible] = useState<EligibleListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'eligible' | 'active'>('eligible');
+  const [creatingPoolFor, setCreatingPoolFor] = useState<EligibleListing | null>(null);
 
-  const fetchPools = useCallback(async () => {
+  useEffect(() => {
+    if (router.query.action === 'create') setTab('eligible');
+  }, [router.query]);
+
+  const fetchData = useCallback(async () => {
     if (!publicKey) return;
     setLoading(true);
+    const wallet = publicKey.toBase58();
+
     try {
-      const res = await fetch(`/api/pool/list?vendorWallet=${publicKey.toBase58()}`);
-      if (res.ok) {
-        const data = await res.json();
+      const [poolsRes, listingsRes] = await Promise.all([
+        fetch(`/api/pool/list?vendorWallet=${wallet}`),
+        fetch(`/api/vendor/mint-request?wallet=${wallet}&status=minted`),
+      ]);
+
+      if (poolsRes.ok) {
+        const data = await poolsRes.json();
         setPools(data.pools || []);
+      }
+
+      if (listingsRes.ok) {
+        const data = await listingsRes.json();
+        const listings = Array.isArray(data) ? data : data.requests || [];
+        const eligibleItems = listings.filter(
+          (l: any) => l.status === 'minted' && !l.pooled
+        );
+        setEligible(eligibleItems);
+
+        if (router.query.assetId) {
+          const target = eligibleItems.find((l: any) => l._id === router.query.assetId);
+          if (target) setCreatingPoolFor(target);
+        }
       }
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, [publicKey]);
+  }, [publicKey, router.query.assetId]);
 
   useEffect(() => {
-    fetchPools();
-  }, [fetchPools]);
+    fetchData();
+  }, [fetchData]);
+
+  // Pool stats
+  const totalVolume = pools.reduce((sum, p) => sum + (p.totalVolumeUSD || 0), 0);
+  const totalHolders = pools.reduce((sum, p) => sum + (p.participants?.length || 0), 0);
+  const activePools = pools.filter((p) => !['closed', 'canceled', 'dead', 'burned'].includes(p.status));
 
   if (!connected) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#0d0d0d',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#a1a1a1',
-        fontSize: '14px',
-      }}>
-        Please connect your wallet to view your pools.
+      <div className={styles.page}>
+        <div className={styles.emptyState}>
+          <p className={styles.emptyTitle}>Connect your wallet to manage pools</p>
+        </div>
       </div>
     );
   }
@@ -56,52 +112,160 @@ export default function VendorPoolsPage() {
   return (
     <>
       <Head>
-        <title>My Pools | LuxHub</title>
+        <title>Pools | LuxHub Vendor</title>
       </Head>
-      <div style={{
-        minHeight: '100vh',
-        background: '#0d0d0d',
-        padding: '80px 24px 48px',
-        maxWidth: '1200px',
-        margin: '0 auto',
-      }}>
-        <div style={{ marginBottom: '24px' }}>
-          <Link
-            href="/sellerDashboard"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: '#a1a1a1',
-              fontSize: '13px',
-              textDecoration: 'none',
-              transition: 'color 0.2s',
-            }}
-          >
+      <div className={styles.page}>
+        {/* Header */}
+        <div className={styles.header}>
+          <Link href="/vendor/vendorDashboard" className={styles.backLink}>
             <FiArrowLeft /> Back to Dashboard
           </Link>
+          <div className={styles.titleRow}>
+            <FiDroplet className={styles.titleIcon} />
+            <h1 className={styles.title}>Pool Management</h1>
+          </div>
+          <p className={styles.subtitle}>
+            Tokenize your watches into tradeable pools on Solana
+          </p>
+        </div>
+
+        {/* Stats Row */}
+        <div className={styles.statsRow}>
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>{eligible.length}</span>
+            <span className={styles.statLabel}>Eligible Listings</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>{activePools.length}</span>
+            <span className={styles.statLabel}>Active Pools</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>{totalHolders}</span>
+            <span className={styles.statLabel}>Total Holders</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>
+              ${totalVolume > 1000 ? `${(totalVolume / 1000).toFixed(1)}K` : totalVolume.toFixed(0)}
+            </span>
+            <span className={styles.statLabel}>Total Volume</span>
+          </div>
+        </div>
+
+        {/* Quick Links */}
+        <div className={styles.quickLinks}>
+          <Link href="/pools" className={styles.quickLink}>
+            <FiBarChart2 /> Public Pools Page
+          </Link>
+          <Link href="/learnMore#pools" className={styles.quickLink}>
+            <FiBookOpen /> How Pools Work
+          </Link>
+          <a
+            href="https://bags.fm"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.quickLink}
+          >
+            <FiExternalLink /> Bags Dashboard
+          </a>
+        </div>
+
+        {/* Tabs */}
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tab} ${tab === 'eligible' ? styles.tabActive : ''}`}
+            onClick={() => setTab('eligible')}
+          >
+            <FiGrid /> Eligible Listings ({eligible.length})
+          </button>
+          <button
+            className={`${styles.tab} ${tab === 'active' ? styles.tabActive : ''}`}
+            onClick={() => setTab('active')}
+          >
+            <FiDroplet /> Active Pools ({pools.length})
+          </button>
         </div>
 
         {loading ? (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '64px',
-            color: '#a1a1a1',
-            gap: '10px',
-          }}>
-            <FiLoader style={{ animation: 'spin 1s linear infinite' }} />
-            Loading pools...
+          <div className={styles.loading}>
+            <FiLoader className={styles.spinner} />
+            Loading...
           </div>
+        ) : tab === 'eligible' ? (
+          /* Eligible Listings Tab */
+          eligible.length === 0 ? (
+            <div className={styles.emptyState}>
+              <FiDroplet className={styles.emptyIcon} />
+              <p className={styles.emptyTitle}>No eligible listings</p>
+              <p className={styles.emptyText}>
+                Mint some watches first, then you can tokenize them into pools.
+              </p>
+            </div>
+          ) : (
+            <div className={styles.cardGrid}>
+              {eligible.map((item) => (
+                <div key={item._id} className={styles.listingCard}>
+                  <div className={styles.listingImage}>
+                    {item.imageUrl ? (
+                      <img
+                        src={resolveImageUrl(item.imageUrl)}
+                        alt={item.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <FiDroplet className={styles.listingImagePlaceholder} />
+                    )}
+                    <span className={styles.listingPriceBadge}>
+                      ${item.priceUSD?.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className={styles.listingInfo}>
+                    <div className={styles.listingTitle}>
+                      {item.title || `${item.brand} ${item.model}`}
+                    </div>
+                    <div className={styles.listingMeta}>
+                      <span className={styles.listingBrand}>{item.brand}</span>
+                      {item.mintAddress && (
+                        <span className={styles.listingMint}>
+                          {item.mintAddress.slice(0, 6)}...
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      className={styles.createPoolBtn}
+                      onClick={() => setCreatingPoolFor(item)}
+                    >
+                      <FiPlus /> Create Pool
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
-          <PoolManagement
-            pools={pools}
-            isAdmin={false}
-            onRefresh={fetchPools}
-          />
+          /* Active Pools Tab */
+          <PoolManagement pools={pools} isAdmin={false} onRefresh={fetchData} />
         )}
       </div>
+
+      {/* Pool Creation Stepper Modal */}
+      {creatingPoolFor && (
+        <div className={styles.modalOverlay} onClick={() => setCreatingPoolFor(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <PoolCreationStepper
+              assetId={creatingPoolFor._id}
+              vendorWallet={publicKey?.toBase58() || ''}
+              onComplete={() => {
+                setCreatingPoolFor(null);
+                fetchData();
+                setTab('active');
+              }}
+              onCancel={() => setCreatingPoolFor(null)}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -19,6 +19,7 @@ import {
   FiLayers,
   FiEye,
   FiTruck,
+  FiDroplet,
   FiInbox,
   FiUser,
   FiKey,
@@ -59,6 +60,8 @@ interface MintRequest {
   boxPapers?: string;
   country?: string;
   serialNumber?: string;
+  pooled?: boolean;
+  poolId?: string;
   createdAt: string;
 }
 
@@ -701,6 +704,9 @@ const VendorDashboard = () => {
                 <button className={styles.quickActionButton} onClick={() => setActiveTab('orders')}>
                   <FiTruck /> Manage Orders
                 </button>
+                <button className={styles.quickActionButton} onClick={() => router.push('/vendor/pools')}>
+                  <FiDroplet /> Manage Pools
+                </button>
               </div>
 
               {/* Recent Activity */}
@@ -900,6 +906,17 @@ const VendorDashboard = () => {
                             >
                               <FiAlertCircle /> Report External Sale
                             </button>
+                            {request.status === 'minted' && !request.pooled && (
+                              <button
+                                className={styles.actionItem}
+                                onClick={() => {
+                                  setOpenActionMenu(null);
+                                  router.push(`/vendor/pools?action=create&assetId=${request._id}`);
+                                }}
+                              >
+                                <FiDroplet /> Create Pool
+                              </button>
+                            )}
                           </div>
                         )}
 
