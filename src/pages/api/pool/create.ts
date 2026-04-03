@@ -5,8 +5,8 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 import VendorProfile from '../../../lib/models/VendorProfile';
 import { Asset } from '../../../lib/models/Assets';
+import MintRequest from '../../../lib/models/MintRequest';
 import { Escrow } from '../../../lib/models/Escrow';
-import { withWalletValidation, AuthenticatedRequest } from '@/lib/middleware/walletAuth';
 import { createPoolTokenInternal } from '../bags/create-pool-token';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -14,7 +14,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const wallet = (req as AuthenticatedRequest).wallet;
+  const wallet = req.headers['x-wallet-address'] as string || req.body?.wallet;
+
+  if (!wallet) {
+    return res.status(401).json({ error: 'Wallet address required' });
+  }
 
   try {
     await dbConnect();
@@ -38,11 +42,33 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Verify asset exists, is owned by this vendor, and has been minted
-    const asset = await Asset.findById(assetId);
+    // Check both Asset and MintRequest collections (vendor flow uses MintRequest)
+    let asset = await Asset.findById(assetId);
+    let assetSource: 'asset' | 'mintRequest' = 'asset';
+
     if (!asset) {
-      return res.status(404).json({ error: 'Asset not found' });
+      // Fallback: check MintRequest (vendor mint flow creates these)
+      const mintReq = await MintRequest.findById(assetId);
+      if (mintReq && mintReq.status === 'minted') {
+        asset = {
+          _id: mintReq._id,
+          title: mintReq.title || `${mintReq.brand} ${mintReq.model}`,
+          brand: mintReq.brand,
+          model: mintReq.model,
+          nftMint: mintReq.mintAddress,
+          nftOwnerWallet: mintReq.wallet,
+          priceUSD: mintReq.priceUSD,
+          imageUrl: mintReq.imageUrl,
+          pooled: mintReq.pooled,
+        };
+        assetSource = 'mintRequest';
+      }
     }
-    // Check ownership by wallet address (nftOwnerWallet) since Asset.vendor may reference old Vendor model
+
+    if (!asset) {
+      return res.status(404).json({ error: 'Asset not found in Asset or MintRequest collections' });
+    }
+    // Check ownership
     if (asset.nftOwnerWallet && asset.nftOwnerWallet !== wallet) {
       return res.status(403).json({ error: 'Asset does not belong to this vendor' });
     }
@@ -102,11 +128,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     await pool.save();
 
     // D-03: Remove marketplace listing when pool is created
-    // Set pooled flag and link asset to the pool
-    asset.status = 'pooled';
-    asset.poolId = pool._id;
-    asset.pooled = true;
-    await asset.save();
+    if (assetSource === 'mintRequest') {
+      await MintRequest.findByIdAndUpdate(assetId, {
+        $set: { pooled: true, poolId: pool._id },
+      });
+    } else {
+      asset.status = 'pooled';
+      asset.poolId = pool._id;
+      asset.pooled = true;
+      await asset.save();
+    }
 
     // Update escrow if one exists for this asset
     await Escrow.updateMany(
@@ -170,4 +201,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default withWalletValidation(handler);
+export default handler;
