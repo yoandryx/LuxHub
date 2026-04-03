@@ -1,24 +1,24 @@
 /* ========================================
    VENDOR POOLS HUB
-   Chrome glass theme
+   Chrome glass theme — matches New Listing modal
    ======================================== */
 
 .page {
   --accent: #c8a1ff;
   --accent-dim: rgba(200, 161, 255, 0.25);
   --accent-glow: rgba(200, 161, 255, 0.08);
-  --bg-dark: #0d0d0d;
-  --bg-card: rgba(17, 17, 17, 0.65);
-  --border: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(200, 161, 255, 0.3);
-  --glass: rgba(13, 13, 13, 0.85);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.72);
-  --text-dim: rgba(255, 255, 255, 0.48);
   --accent-border: rgba(200, 161, 255, 0.15);
+  --bg-dark: #0a0a0c;
+  --bg-card: rgba(14, 14, 18, 0.85);
+  --border: rgba(200, 161, 255, 0.08);
+  --border-hover: rgba(200, 161, 255, 0.35);
+  --glass: rgba(10, 10, 14, 0.9);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-dim: rgba(255, 255, 255, 0.35);
 
   min-height: 100vh;
-  background: #0a0a0a;
+  background: var(--bg-dark);
   color: var(--text-primary);
   padding: 80px 24px 48px;
   max-width: 1200px;
@@ -27,13 +27,14 @@
   overflow-x: hidden;
 }
 
-/* Ambient background glow — matches Security & Trust page */
+/* Ambient background glow */
 .ambientBg {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(200, 161, 255, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(138, 43, 226, 0.06) 0%, transparent 50%);
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(200, 161, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(138, 43, 226, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(200, 161, 255, 0.02) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -52,10 +53,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
+  color: var(--text-dim);
   font-size: 13px;
   text-decoration: none;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   transition: color 0.2s;
 }
 
@@ -75,10 +76,11 @@
 }
 
 .title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.3px;
 }
 
 .subtitle {
@@ -90,64 +92,114 @@
 /* ===== STATS ROW ===== */
 .statsRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .statCard {
-  background: rgba(8, 8, 10, 0.82);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--accent-border);
-  border-radius: 12px;
-  padding: 16px;
+  background: var(--bg-card);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 14px;
   text-align: center;
   transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle inner glow on stat cards */
+.statCard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(200, 161, 255, 0.04) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
 }
 
 .statCard:hover {
   border-color: var(--border-hover);
+  box-shadow: 0 0 20px rgba(200, 161, 255, 0.06);
 }
 
 .statValue {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--text-primary);
   display: block;
+  position: relative;
+  z-index: 1;
 }
 
 .statLabel {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   margin-top: 4px;
   display: block;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== QUICK LINKS ===== */
+.quickLinks {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.quickLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(200, 161, 255, 0.03);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quickLink:hover {
+  border-color: var(--border-hover);
+  color: var(--accent);
+  background: var(--accent-glow);
 }
 
 /* ===== TABS ===== */
 .tabs {
-  display: flex;
+  display: inline-flex;
   gap: 2px;
   margin-bottom: 24px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
+  background: rgba(200, 161, 255, 0.03);
+  border-radius: 10px;
   padding: 3px;
   border: 1px solid var(--border);
-  width: fit-content;
 }
 
 .tab {
-  padding: 8px 20px;
-  border-radius: 6px;
+  padding: 9px 20px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-dim);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -155,41 +207,73 @@
 }
 
 .tabActive {
-  background: var(--accent-glow);
+  background: rgba(200, 161, 255, 0.1);
   color: var(--accent);
+  font-weight: 600;
+  border: 1px solid rgba(200, 161, 255, 0.2);
 }
 
 .tab:hover:not(.tabActive) {
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 /* ===== CARD GRID ===== */
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
-/* ===== LISTING CARD ===== */
+/* ===== LISTING CARD — Deep glass panel ===== */
 .listingCard {
-  background: rgba(8, 8, 10, 0.82);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--accent-border);
-  border-radius: 12px;
+  background: var(--bg-card);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
   overflow: hidden;
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Gradient border overlay on hover */
+.listingCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 161, 255, 0.25),
+    rgba(200, 161, 255, 0.05),
+    rgba(200, 161, 255, 0.25)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 2;
 }
 
 .listingCard:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(200, 161, 255, 0.05);
+}
+
+.listingCard:hover::before {
+  opacity: 1;
 }
 
 .listingImage {
   height: 180px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -201,24 +285,32 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.listingCard:hover .listingImage img {
+  transform: scale(1.03);
 }
 
 .listingImagePlaceholder {
-  font-size: 32px;
-  color: rgba(255, 255, 255, 0.1);
+  font-size: 36px;
+  color: rgba(200, 161, 255, 0.1);
 }
 
 .listingPriceBadge {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 4px 10px;
   border-radius: 6px;
+  border: 1px solid rgba(200, 161, 255, 0.15);
   font-size: 13px;
   font-weight: 600;
   color: var(--accent);
+  z-index: 1;
 }
 
 .listingInfo {
@@ -243,25 +335,26 @@
 }
 
 .listingBrand {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: 10px;
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  font-weight: 600;
 }
 
 .listingMint {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
-  font-family: monospace;
+  color: var(--text-dim);
+  font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 /* ===== CREATE POOL BUTTON ===== */
 .createPoolBtn {
   width: 100%;
   padding: 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(200, 161, 255, 0.25);
-  background: rgba(200, 161, 255, 0.06);
+  border-radius: 10px;
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  background: rgba(200, 161, 255, 0.05);
   color: var(--accent);
   font-size: 12px;
   font-weight: 600;
@@ -270,81 +363,54 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.2s;
+  transition: all 0.25s;
+  letter-spacing: 0.3px;
 }
 
 .createPoolBtn:hover {
   background: rgba(200, 161, 255, 0.12);
-  border-color: rgba(200, 161, 255, 0.4);
-  box-shadow: 0 0 12px rgba(200, 161, 255, 0.1);
+  border-color: rgba(200, 161, 255, 0.45);
+  box-shadow: 0 0 16px rgba(200, 161, 255, 0.08);
 }
 
 /* ===== EMPTY STATE ===== */
 .emptyState {
   text-align: center;
-  padding: 48px 24px;
+  padding: 56px 24px;
   color: var(--text-secondary);
   background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border-radius: 16px;
+  border: 1px dashed rgba(200, 161, 255, 0.1);
 }
 
 .emptyIcon {
-  font-size: 32px;
+  font-size: 36px;
   color: var(--accent);
-  margin-bottom: 12px;
-  opacity: 0.5;
+  margin-bottom: 14px;
+  opacity: 0.4;
 }
 
 .emptyTitle {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 6px;
 }
 
 .emptyText {
   font-size: 13px;
-}
-
-/* ===== QUICK LINKS ===== */
-.quickLinks {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
-.quickLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.quickLink:hover {
-  border-color: var(--border-hover);
-  color: var(--accent);
-  background: var(--accent-glow);
+  color: var(--text-dim);
 }
 
 /* ===== MODAL OVERLAY ===== */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -353,17 +419,19 @@
 }
 
 .modalContent {
-  max-width: 600px;
+  max-width: 520px;
   width: 100%;
   max-height: 90vh;
   overflow: auto;
-  background: var(--glass);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border-radius: 16px;
-  border: 1px solid rgba(200, 161, 255, 0.15);
-  padding: 24px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  background: rgba(12, 12, 16, 0.95);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border-radius: 18px;
+  border: 1px solid rgba(200, 161, 255, 0.12);
+  padding: 28px;
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(200, 161, 255, 0.04);
 }
 
 /* ===== LOADING ===== */
@@ -372,8 +440,9 @@
   align-items: center;
   justify-content: center;
   padding: 64px;
-  color: var(--text-secondary);
+  color: var(--text-dim);
   gap: 10px;
+  font-size: 13px;
 }
 
 .spinner {
@@ -401,5 +470,24 @@
 
   .quickLinks {
     flex-direction: column;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .statCard {
+    padding: 14px 10px;
+  }
+
+  .statValue {
+    font-size: 18px;
   }
 }
