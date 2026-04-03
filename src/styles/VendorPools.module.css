@@ -465,15 +465,29 @@
   }
 
   .cardGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 
   .quickLinks {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
 
   .title {
     font-size: 18px;
+  }
+
+  .listingImage {
+    height: 130px;
+  }
+
+  .listingTitle {
+    font-size: 11px;
+  }
+
+  .createPoolBtn {
+    padding: 8px;
+    font-size: 11px;
   }
 }
 
