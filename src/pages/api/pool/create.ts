@@ -101,8 +101,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     await pool.save();
 
-    // Update asset status to reflect pool conversion
+    // D-03: Remove marketplace listing when pool is created
+    // Set pooled flag and link asset to the pool
     asset.status = 'pooled';
+    asset.poolId = pool._id;
+    asset.pooled = true;
     await asset.save();
 
     // Update escrow if one exists for this asset
