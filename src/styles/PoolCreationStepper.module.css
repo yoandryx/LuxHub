@@ -1,0 +1,405 @@
+/* ========================================
+   POOL CREATION STEPPER
+   Chrome glass theme — matches New Listing modal
+   ======================================== */
+
+/* ===== STEPPER PROGRESS BAR ===== */
+.stepperProgress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 28px;
+  padding: 16px 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepDot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.stepDotActive {
+  background: rgba(200, 161, 255, 0.12);
+  border: 1px solid rgba(200, 161, 255, 0.5);
+  color: #c8a1ff;
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.15);
+}
+
+.stepDotComplete {
+  background: rgba(200, 161, 255, 0.2);
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  color: #c8a1ff;
+}
+
+.stepDotError {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #f87171;
+}
+
+.stepLabel {
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.3);
+  transition: color 0.3s;
+}
+
+.stepLabelActive {
+  color: #c8a1ff;
+  font-weight: 600;
+}
+
+.stepConnector {
+  width: 48px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 4px;
+  margin-bottom: 18px;
+  transition: background 0.3s;
+}
+
+.stepConnectorComplete {
+  background: rgba(200, 161, 255, 0.4);
+}
+
+/* ===== STEP CONTENT ===== */
+.stepContent {
+  padding: 0;
+}
+
+.stepTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #c8a1ff;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===== FORM ===== */
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(200, 161, 255, 0.7);
+  margin-bottom: 6px;
+}
+
+.formInput,
+.formSelect {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 400;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.formInput::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.formInput:focus,
+.formSelect:focus {
+  border-color: rgba(200, 161, 255, 0.4);
+  background: rgba(200, 161, 255, 0.04);
+  box-shadow: 0 0 0 2px rgba(200, 161, 255, 0.08);
+}
+
+.formSelect option {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.formTextarea {
+  composes: formInput;
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+/* ===== ASSET PREVIEW ===== */
+.assetPreview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(200, 161, 255, 0.04);
+  border: 1px solid rgba(200, 161, 255, 0.12);
+  margin-bottom: 20px;
+}
+
+.assetPreviewImg {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.assetPreviewInfo {
+  flex: 1;
+}
+
+.assetPreviewName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.assetPreviewDetail {
+  font-size: 13px;
+  color: #c8a1ff;
+  margin-top: 2px;
+}
+
+/* ===== AUTO-FILL INDICATOR ===== */
+.autoFillBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: rgba(200, 161, 255, 0.6);
+  margin-left: 8px;
+}
+
+/* ===== BUTTONS ===== */
+.btnRow {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btnPrimary {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 161, 255, 0.4);
+  background: rgba(200, 161, 255, 0.12);
+  color: #c8a1ff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnPrimary:hover {
+  background: rgba(200, 161, 255, 0.2);
+  border-color: rgba(200, 161, 255, 0.6);
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.1);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnSecondary:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* ===== CONFIRM DIALOG ===== */
+.confirmDialog {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(200, 161, 255, 0.06);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+/* ===== ERROR ===== */
+.errorMsg {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+/* ===== LOADING ===== */
+.loadingState {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== TX SIGNING (Step 2) ===== */
+.txList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.txItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.txItemDone {
+  border-color: rgba(74, 222, 128, 0.25);
+  background: rgba(74, 222, 128, 0.04);
+}
+
+.txItemFailed {
+  border-color: rgba(248, 113, 113, 0.25);
+  background: rgba(248, 113, 113, 0.04);
+}
+
+.txItemSigning {
+  border-color: rgba(200, 161, 255, 0.3);
+  background: rgba(200, 161, 255, 0.04);
+  color: #c8a1ff;
+}
+
+/* ===== CONFIRM STEP (Step 4) ===== */
+.successCard {
+  text-align: center;
+  padding: 24px;
+}
+
+.successIcon {
+  font-size: 48px;
+  color: #4ade80;
+  margin-bottom: 16px;
+}
+
+.successTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.successSub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+}
+
+.infoLabel {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.infoValue {
+  color: #fff;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.copyBtn {
+  background: none;
+  border: none;
+  color: rgba(200, 161, 255, 0.6);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px;
+  transition: color 0.2s;
+}
+
+.copyBtn:hover {
+  color: #c8a1ff;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  .stepperProgress {
+    gap: 0;
+  }
+
+  .stepConnector {
+    width: 24px;
+  }
+
+  .stepDot {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .btnRow {
+    flex-direction: column;
+  }
+
+  .btnPrimary,
+  .btnSecondary {
+    width: 100%;
+    text-align: center;
+  }
+}

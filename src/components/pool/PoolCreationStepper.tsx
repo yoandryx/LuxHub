@@ -17,7 +17,7 @@ import {
   FiAward,
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import styles from '../../styles/PoolManagement.module.css';
+import styles from '../../styles/PoolCreationStepper.module.css';
 
 interface PoolCreationStepperProps {
   assetId?: string;
@@ -68,9 +68,11 @@ export function PoolCreationStepper({
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null);
   const [tokenName, setTokenName] = useState('');
   const [tokenSymbol, setTokenSymbol] = useState('');
+  const [tokenDescription, setTokenDescription] = useState('');
   const [targetAmountUSD, setTargetAmountUSD] = useState('');
   const [minBuyInUSD, setMinBuyInUSD] = useState('1.50');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [autoFilling, setAutoFilling] = useState(false);
 
   // Pool state
   const [poolId, setPoolId] = useState('');
@@ -87,6 +89,47 @@ export function PoolCreationStepper({
 
   // Effective wallet for the pool (vendor wallet or selected asset vendor)
   const [effectiveVendorWallet, setEffectiveVendorWallet] = useState(vendorWallet);
+
+  // AI auto-fill pool details from NFT metadata
+  const autoFillFromAsset = useCallback(async (asset: AssetOption) => {
+    // Immediately set basic fields from asset data
+    const name = `${asset.brand} ${asset.model}`.slice(0, 32);
+    setTokenName(name);
+    setTargetAmountUSD(String(asset.priceUSD || ''));
+
+    // Generate smart symbol: brand abbreviation (3-4 chars)
+    const brandUpper = (asset.brand || 'LUX').toUpperCase().replace(/\s+/g, '');
+    const symbol = brandUpper.length <= 4 ? brandUpper : brandUpper.slice(0, 3);
+    setTokenSymbol(symbol);
+
+    // Generate description from asset metadata
+    const desc = `Tokenized ${asset.brand} ${asset.model} pool — backed by an authenticated luxury timepiece valued at $${(asset.priceUSD || 0).toLocaleString()}. Buy tokens to participate in this asset pool. When the watch resells, token holders receive their proportional share of proceeds.`;
+    setTokenDescription(desc);
+
+    // Try AI-enhanced description if available
+    setAutoFilling(true);
+    try {
+      const res = await fetch('/api/ai/pool-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand: asset.brand,
+          model: asset.model,
+          priceUSD: asset.priceUSD,
+          imageUrl: asset.imageUrl || asset.imageIpfsUrls?.[0],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.description) setTokenDescription(data.description);
+        if (data.symbol) setTokenSymbol(data.symbol);
+      }
+    } catch {
+      // Keep the fallback description — AI is optional enhancement
+    } finally {
+      setAutoFilling(false);
+    }
+  }, []);
 
   // Load available assets
   useEffect(() => {
