@@ -257,6 +257,13 @@ export default function VendorPoolsPage() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <PoolCreationStepper
               assetId={creatingPoolFor._id}
+              assetData={{
+                _id: creatingPoolFor._id,
+                brand: creatingPoolFor.brand,
+                model: creatingPoolFor.model,
+                priceUSD: creatingPoolFor.priceUSD,
+                imageUrl: creatingPoolFor.imageUrl,
+              }}
               vendorWallet={publicKey?.toBase58() || ''}
               onComplete={() => {
                 setCreatingPoolFor(null);

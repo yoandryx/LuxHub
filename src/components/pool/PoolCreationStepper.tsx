@@ -21,6 +21,7 @@ import styles from '../../styles/PoolCreationStepper.module.css';
 
 interface PoolCreationStepperProps {
   assetId?: string;
+  assetData?: AssetOption;
   vendorWallet: string;
   onComplete?: (poolId: string) => void;
   onCancel?: () => void;
@@ -49,6 +50,7 @@ const STEPS = [
 
 export function PoolCreationStepper({
   assetId: initialAssetId,
+  assetData: initialAssetData,
   vendorWallet,
   onComplete,
   onCancel,
@@ -96,11 +98,13 @@ export function PoolCreationStepper({
     const name = `${asset.brand} ${asset.model}`.slice(0, 32);
     setTokenName(name);
     setTargetAmountUSD(String(asset.priceUSD || ''));
+    setSelectedAsset(asset);
+    setSelectedAssetId(asset._id);
 
-    // Generate smart symbol: brand abbreviation (3-4 chars)
-    const brandUpper = (asset.brand || 'LUX').toUpperCase().replace(/\s+/g, '');
-    const symbol = brandUpper.length <= 4 ? brandUpper : brandUpper.slice(0, 3);
-    setTokenSymbol(symbol);
+    // Generate LUX-prefixed symbol from brand
+    const brandKey = (asset.brand || '').toUpperCase().replace(/\s+/g, '').slice(0, 3);
+    const symbol = brandKey ? `LUX${brandKey}` : 'LUXPOOL';
+    setTokenSymbol(symbol.slice(0, 10));
 
     // Generate description from asset metadata
     const desc = `Tokenized ${asset.brand} ${asset.model} pool — backed by an authenticated luxury timepiece valued at $${(asset.priceUSD || 0).toLocaleString()}. Buy tokens to participate in this asset pool. When the watch resells, token holders receive their proportional share of proceeds.`;
@@ -131,54 +135,66 @@ export function PoolCreationStepper({
     }
   }, []);
 
-  // Load available assets
+  // If asset data was passed directly, auto-fill immediately
+  useEffect(() => {
+    if (initialAssetData) {
+      autoFillFromAsset(initialAssetData);
+    }
+  }, [initialAssetData, autoFillFromAsset]);
+
+  // Load available assets from mint-request API
   useEffect(() => {
     const fetchAssets = async () => {
+      // Skip fetch if we already have asset data passed as prop
+      if (initialAssetData) return;
+
       setLoadingAssets(true);
       try {
         const url = adminMode
-          ? '/api/assets?pooled=false'
-          : `/api/assets?pooled=false&wallet=${vendorWallet}`;
+          ? `/api/vendor/mint-request?status=minted`
+          : `/api/vendor/mint-request?wallet=${vendorWallet}&status=minted`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          const assetList = data.assets || data || [];
+          const listings = Array.isArray(data) ? data : data.requests || [];
+          // Filter out already-pooled items and map to AssetOption
+          const assetList: AssetOption[] = listings
+            .filter((l: any) => l.status === 'minted' && !l.pooled)
+            .map((l: any) => ({
+              _id: l._id,
+              brand: l.brand,
+              model: l.model,
+              priceUSD: l.priceUSD,
+              imageUrl: l.imageUrl,
+              nftOwnerWallet: l.wallet,
+            }));
           setAssets(assetList);
 
-          // If initialAssetId was provided, find that asset
-          if (initialAssetId) {
-            const found = assetList.find((a: AssetOption) => a._id === initialAssetId);
-            if (found) {
-              setSelectedAsset(found);
-              setTokenName(`${found.brand} ${found.model}`.slice(0, 32));
-              setTokenSymbol((found.brand || 'LUX').slice(0, 4).toUpperCase());
-              setTargetAmountUSD(String(found.priceUSD || ''));
-            }
+          // If initialAssetId was provided, find and auto-fill
+          if (initialAssetId && !initialAssetData) {
+            const found = assetList.find((a) => a._id === initialAssetId);
+            if (found) autoFillFromAsset(found);
           }
         }
       } catch {
-        // Silently fail - user can still proceed with manual entry
+        // Silently fail
       } finally {
         setLoadingAssets(false);
       }
     };
     fetchAssets();
-  }, [adminMode, vendorWallet, initialAssetId]);
+  }, [adminMode, vendorWallet, initialAssetId, initialAssetData, autoFillFromAsset]);
 
   // Handle asset selection change
   const handleAssetSelect = useCallback((assetIdValue: string) => {
-    setSelectedAssetId(assetIdValue);
     const found = assets.find((a) => a._id === assetIdValue);
     if (found) {
-      setSelectedAsset(found);
-      setTokenName(`${found.brand} ${found.model}`.slice(0, 32));
-      setTokenSymbol((found.brand || 'LUX').slice(0, 4).toUpperCase());
-      setTargetAmountUSD(String(found.priceUSD || ''));
+      autoFillFromAsset(found);
       if (adminMode && found.nftOwnerWallet) {
         setEffectiveVendorWallet(found.nftOwnerWallet);
       }
     }
-  }, [assets, adminMode]);
+  }, [assets, adminMode, autoFillFromAsset]);
 
   const getAssetImage = (asset: AssetOption | null) => {
     if (!asset) return '';
