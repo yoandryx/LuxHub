@@ -249,43 +249,76 @@ export function PoolCreationStepper({
       }
 
       const createData = await createRes.json();
+      console.log('[PoolStepper] Pool created:', JSON.stringify(createData, null, 2));
+
       const newPoolId = createData.pool._id;
       setPoolId(newPoolId);
 
-      // Step 1b: Setup Bags token (Phase 1 - get fee-share txs)
-      const setupRes = await fetch('/api/bags/create-pool-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          poolId: newPoolId,
-          adminWallet: walletAddress,
-          tokenName: tokenName || undefined,
-          tokenSymbol: tokenSymbol || undefined,
-          step: 'setup',
-        }),
-      });
+      // Pool create already called createPoolTokenInternal which handles Bags API
+      // Check if token was already set up during pool creation
+      const tokenData = createData.token;
+      const poolMint = createData.pool?.bagsTokenMint;
 
-      if (!setupRes.ok) {
-        const err = await setupRes.json();
-        throw new Error(err.error || 'Failed to setup token');
-      }
+      if (tokenData?.mint || poolMint) {
+        // Token info already created by pool/create — use it
+        const mint = tokenData?.mint || poolMint;
+        setTokenMint(mint);
+        console.log('[PoolStepper] Token already created:', mint);
 
-      const setupData = await setupRes.json();
-      const mint = setupData.token?.mint || setupData.pool?.bagsTokenMint;
-      setTokenMint(mint || '');
+        // Check if there are transactions to sign (fee-share)
+        const transactions = tokenData?.transactions || [];
+        if (transactions.length > 0) {
+          setFeeShareTxs(transactions);
+          setTxStatuses(transactions.map(() => 'pending' as const));
+          updateStep(1);
+          setLoading(false);
+        } else {
+          // No txs to sign — token is ready, go to launch step
+          console.log('[PoolStepper] No fee-share txs — skipping to launch');
+          updateStep(2);
+          setLoading(false);
+          await handleLaunch(newPoolId, walletAddress);
+        }
+      } else {
+        // Token creation failed during pool create — try setup directly
+        console.log('[PoolStepper] Token not created during pool create, trying setup...');
+        console.log('[PoolStepper] Token error:', tokenData?.error);
 
-      const transactions = setupData.transactions || [];
-      setFeeShareTxs(transactions);
-      setTxStatuses(transactions.map(() => 'pending' as const));
+        const setupRes = await fetch('/api/bags/create-pool-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            poolId: newPoolId,
+            adminWallet: walletAddress,
+            tokenName: tokenName || undefined,
+            tokenSymbol: tokenSymbol || undefined,
+            step: 'setup',
+          }),
+        });
 
-      // Advance to step 2
-      updateStep(1);
-      setLoading(false);
+        if (!setupRes.ok) {
+          const err = await setupRes.json();
+          console.error('[PoolStepper] Setup failed:', err);
+          throw new Error(err.error || 'Failed to setup token via Bags API');
+        }
 
-      // If no fee-share txs needed, skip to step 3
-      if (transactions.length === 0) {
-        updateStep(2);
-        await handleLaunch(newPoolId, walletAddress);
+        const setupData = await setupRes.json();
+        console.log('[PoolStepper] Setup response:', JSON.stringify(setupData, null, 2));
+
+        const mint = setupData.token?.mint || setupData.pool?.bagsTokenMint;
+        setTokenMint(mint || '');
+
+        const transactions = setupData.transactions || [];
+        setFeeShareTxs(transactions);
+        setTxStatuses(transactions.map(() => 'pending' as const));
+
+        updateStep(1);
+        setLoading(false);
+
+        if (transactions.length === 0) {
+          updateStep(2);
+          await handleLaunch(newPoolId, walletAddress);
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Configuration failed');
