@@ -27,12 +27,12 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 
 ### Pool Lifecycle
 
-- [ ] **POOL-01**: Admin can tokenize a watch via Bags API on mainnet (token launch → bonding curve active)
-- [ ] **POOL-02**: Users can buy/sell pool tokens on bonding curve with real SOL on mainnet
+- [x] **POOL-01**: Admin can tokenize a watch via Bags API on mainnet (token launch → bonding curve active)
+- [x] **POOL-02**: Users can buy/sell pool tokens on bonding curve with real SOL on mainnet
 - [x] **POOL-03**: Pool graduation works on mainnet (bonding curve → Jupiter DEX transition)
-- [ ] **POOL-04**: Post-graduation trading works via Bags DEX (buy/sell tokens after graduation)
+- [x] **POOL-04**: Post-graduation trading works via Bags DEX (buy/sell tokens after graduation)
 - [x] **POOL-05**: Resale distribution sends proceeds to all token holders proportionally and closes pool
-- [ ] **POOL-06**: Pool detail page shows lifecycle status (launch → funding → graduation → trading → distribution)
+- [x] **POOL-06**: Pool detail page shows lifecycle status (launch → funding → graduation → trading → distribution)
 
 ### Offer Management UX
 
@@ -45,7 +45,7 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 
 - [x] **UI-01**: Landing page refreshed with updated feature showcase, vendor/buyer CTAs, and current platform stats
 - [x] **UI-02**: Navbar dropdown reorganized — orders and notifications prioritized, pages grouped by user role
-- [ ] **UI-03**: Pool lifecycle timeline visualization on pool detail page (visual progress indicator)
+- [x] **UI-03**: Pool lifecycle timeline visualization on pool detail page (visual progress indicator)
 
 ### Production Operations
 
@@ -68,7 +68,7 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 - [x] **INFRA-01**: Vendor/admin avatar and banner uploads migrated from IBM COS to Cloudflare R2 (S3-compatible, global CDN, zero egress, image transforms; remove ibm-cos-sdk dependency; Irys stays for immutable NFT images only)
 - [x] **INFRA-02**: MongoDB compound indexes audited and added for hot queries (offers by status+wallet, escrows by status+date, pools by status)
 - [x] **INFRA-03**: Bags webhook reconciliation job — periodically checks Bags API for graduation status in case webhook delivery fails
-- [ ] **INFRA-04**: Pool resale → physical delivery flow validated end-to-end (resale creates escrow → vendor ships → buyer confirms → proceeds distribute to token holders)
+- [x] **INFRA-04**: Pool resale → physical delivery flow validated end-to-end (resale creates escrow → vendor ships → buyer confirms → proceeds distribute to token holders)
 
 ## v2 Requirements
 
@@ -122,19 +122,19 @@ Deferred to future release. Tracked but not in current roadmap.
 | TX-03 | Phase 7 | Pending |
 | TX-04 | Phase 7 | Pending |
 | TX-05 | Phase 7 | Pending |
-| POOL-01 | Phase 8 | Pending |
-| POOL-02 | Phase 8 | Pending |
+| POOL-01 | Phase 8 | Complete |
+| POOL-02 | Phase 8 | Complete |
 | POOL-03 | Phase 8 | Complete |
-| POOL-04 | Phase 8 | Pending |
+| POOL-04 | Phase 8 | Complete |
 | POOL-05 | Phase 8 | Complete |
-| POOL-06 | Phase 8 | Pending |
+| POOL-06 | Phase 8 | Complete |
 | OFFER-01 | Phase 9 | Complete |
 | OFFER-02 | Phase 9 | Complete |
 | OFFER-03 | Phase 9 | Complete |
 | OFFER-04 | Phase 9 | Complete |
 | UI-01 | Phase 9 | Complete |
 | UI-02 | Phase 9 | Complete |
-| UI-03 | Phase 8 | Pending |
+| UI-03 | Phase 8 | Complete |
 | OPS-01 | Phase 6 | Complete |
 | OPS-02 | Phase 6 | Complete |
 | OPS-03 | Phase 6 | Complete |
@@ -149,7 +149,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | INFRA-01 | Phase 6 | Complete |
 | INFRA-02 | Phase 8 | Complete |
 | INFRA-03 | Phase 8 | Complete |
-| INFRA-04 | Phase 8 | Pending |
+| INFRA-04 | Phase 8 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 39 total

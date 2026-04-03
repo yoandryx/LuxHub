@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Ready to execute
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-04-03T02:16:06.092Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-04-03T02:33:08.085Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 21
-  completed_plans: 17
+  completed_plans: 19
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 08 (pool-lifecycle) — EXECUTING
-Plan: 2 of 4
+Plan: 4 of 4
 Execution order: Phase 9 → 10 → 8
 
 ## Performance Metrics
@@ -63,6 +63,8 @@ Execution order: Phase 9 → 10 → 8
 | Phase 10 P02 | 4min | 2 tasks | 5 files |
 | Phase 10 P03 | 9min | 3 tasks | 6 files |
 | Phase 08 P01 | 176s | 2 tasks | 5 files |
+| Phase 08 P02 | 6min | 2 tasks | 10 files |
+| Phase 08 P03 | 10min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -96,6 +98,10 @@ Recent decisions affecting current work:
 - [Phase 08]: Pull/claim distribution model over push model for pool proceeds
 - [Phase 08]: On-chain SPL burn with burn_pending fallback; admin can retry
 - [Phase 08]: 90-day claim window with admin sweep for unclaimed funds
+- [Phase 08]: getLifecycleStage() exported as reusable utility for stepper and browse badges
+- [Phase 08]: Pool browse page navigates to /pools/[id] dedicated page instead of modal
+- [Phase 08]: PoolCreationStepper uses adminMode prop for D-02 direct pool creation
+- [Phase 08]: getLifecycleStage duplicated locally in PoolManagement (parallel worktree; merge reconciles)
 
 ### Roadmap Evolution
 
@@ -112,5 +118,5 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-04-03
-Stopped at: Completed 08-01-PLAN.md
+Stopped at: Completed 08-03-PLAN.md
 Key context: confirm_delivery proven on mainnet (TX: 3VqZFwcr...), 8 bugs fixed, program redeployed 2x. Offers still need confirm_delivery flow.

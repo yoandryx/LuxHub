@@ -103,8 +103,8 @@ Plans:
 
 Plans:
 - [x] 08-01-PLAN.md — Backend APIs: claim distribution, reconciliation cron, listing removal, MongoDB indexes
-- [ ] 08-02-PLAN.md — Pool detail page with lifecycle stepper, trade widget, chart, position summary, claim panel
-- [ ] 08-03-PLAN.md — Pool creation stepper, vendor pool initiation, pool management dashboard
+- [x] 08-02-PLAN.md — Pool detail page with lifecycle stepper, trade widget, chart, position summary, claim panel
+- [x] 08-03-PLAN.md — Pool creation stepper, vendor pool initiation, pool management dashboard
 - [ ] 08-04-PLAN.md — Build validation, redirect wiring, and human verification of pool lifecycle
 
 ### Phase 9: Offer UX & UI Polish
