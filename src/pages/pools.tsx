@@ -5,11 +5,11 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from '
 import { createPortal } from 'react-dom';
 import Head from 'next/head';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 
 import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage } from 'react-icons/fi';
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
-import PoolDetail from '../components/marketplace/PoolDetail';
 import TvChart, { generatePriceHistory } from '../components/marketplace/TvChart';
 import styles from '../styles/PoolsNew.module.css';
 
@@ -678,7 +678,7 @@ const PoolsPage: React.FC = () => {
   const wallet = useEffectiveWallet();
   const [filter, setFilter] = useState<FilterKey>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'progress' | 'value' | 'volume'>('newest');
-  const [selectedPool, setSelectedPool] = useState<Pool | null>(null);
+  const poolRouter = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [viewMode, setViewMode] = useState<'image' | 'chart'>('image');
@@ -728,7 +728,8 @@ const PoolsPage: React.FC = () => {
   }, [pools]);
 
   const handlePoolClick = (pool: Pool) => {
-    setSelectedPool(pool);
+    // Navigate to dedicated pool detail page (D-05)
+    poolRouter.push(`/pools/${pool._id}`);
   };
 
   const handleRefresh = useCallback(async () => {
@@ -903,13 +904,7 @@ const PoolsPage: React.FC = () => {
         </main>
       </div>
 
-      {selectedPool && (
-        <PoolDetail
-          pool={selectedPool}
-          onClose={() => setSelectedPool(null)}
-          onInvestmentComplete={handleTradeComplete}
-        />
-      )}
+      {/* Pool detail now rendered at /pools/[id] dedicated page */}
 
       {/* Onboarding Tour */}
       {showTour && typeof document !== 'undefined' && (
