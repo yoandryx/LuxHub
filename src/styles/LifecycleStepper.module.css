@@ -1,0 +1,137 @@
+/* ========================================
+   Pool Lifecycle Stepper — Chrome Glass
+   6 horizontal stages with connecting lines
+   ======================================== */
+
+.container {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.12);
+  --accent-border: rgba(200, 161, 255, 0.2);
+  --text-muted: #a1a1a1;
+  --text-active: #ffffff;
+
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto 16px;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.container::-webkit-scrollbar {
+  display: none;
+}
+
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 520px;
+  padding: 8px 0;
+}
+
+/* ─── Stage ─── */
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+  transition: all 0.2s ease;
+}
+
+/* Completed: filled purple */
+.stageCompleted .dot {
+  background: var(--accent);
+}
+
+/* Current: filled purple + glow ring */
+.stageCurrent .dot {
+  background: var(--accent);
+}
+
+.glowRing {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 12px rgba(200, 161, 255, 0.4);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Future: hollow circle */
+.stageFuture .dot {
+  background: transparent;
+  border: 2px solid var(--accent-border);
+}
+
+/* ─── Labels ─── */
+.label {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-active);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.labelMuted {
+  color: var(--text-muted);
+}
+
+.labelActive {
+  font-weight: 600;
+  color: var(--text-active);
+}
+
+/* ─── Connecting Lines ─── */
+.line {
+  flex: 1;
+  height: 2px;
+  min-width: 40px;
+  margin-top: 5px; /* vertically center with 12px dot */
+  transition: all 0.2s ease;
+}
+
+.lineCompleted {
+  background: var(--accent);
+}
+
+.lineFuture {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent-border) 0,
+    var(--accent-border) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 768px) {
+  .stepper {
+    justify-content: flex-start;
+    padding: 8px 16px;
+  }
+
+  .label {
+    font-size: 11px;
+  }
+
+  .line {
+    min-width: 24px;
+  }
+}

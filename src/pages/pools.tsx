@@ -3,6 +3,7 @@
 // LuxHub × Bags — Fractional Luxury Asset Ownership
 import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
 
@@ -11,6 +12,7 @@ import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage } from 
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
 import PoolDetail from '../components/marketplace/PoolDetail';
 import TvChart, { generatePriceHistory } from '../components/marketplace/TvChart';
+import { getLifecycleStage, LIFECYCLE_STAGES } from '../components/pool/LifecycleStepper';
 import styles from '../styles/PoolsNew.module.css';
 
 // ─── Status Config ──────────────────────────────────────────────
@@ -727,8 +729,10 @@ const PoolsPage: React.FC = () => {
     return { totalPools, openPools, tradeablePools, tvl, totalVolume };
   }, [pools]);
 
+  const poolRouter = useRouter();
   const handlePoolClick = (pool: Pool) => {
-    setSelectedPool(pool);
+    // Navigate to dedicated pool detail page (D-05)
+    poolRouter.push(`/pools/${pool._id}`);
   };
 
   const handleRefresh = useCallback(async () => {
