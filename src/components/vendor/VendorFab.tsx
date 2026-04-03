@@ -7,6 +7,10 @@ import styles from '../../styles/VendorFab.module.css';
 
 const AddInventoryForm = dynamic(() => import('./AddInventoryForm'), { ssr: false });
 const BulkUploadWizard = dynamic(() => import('./BulkUploadWizard'), { ssr: false });
+const PoolCreationStepper = dynamic(
+  () => import('../pool/PoolCreationStepper').then((m) => ({ default: m.PoolCreationStepper })),
+  { ssr: false }
+);
 
 export default function VendorFab() {
   const { publicKey } = useWallet();
@@ -15,6 +19,7 @@ export default function VendorFab() {
   const [showMenu, setShowMenu] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [showPool, setShowPool] = useState(false);
 
   useEffect(() => {
     if (!publicKey) {
@@ -62,7 +67,7 @@ export default function VendorFab() {
 
   const handleCreatePool = () => {
     setShowMenu(false);
-    router.push('/vendor/pools?action=create');
+    setShowPool(true);
   };
 
   return (
@@ -113,6 +118,26 @@ export default function VendorFab() {
             </div>
             <div className={styles.body}>
               <BulkUploadWizard />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPool && (
+        <div className={styles.overlay} onClick={() => setShowPool(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.header}>
+              <span className={styles.title}>Create Pool</span>
+              <button className={styles.close} onClick={() => setShowPool(false)}>
+                <FiX />
+              </button>
+            </div>
+            <div className={styles.body}>
+              <PoolCreationStepper
+                vendorWallet={publicKey?.toBase58() || ''}
+                onComplete={() => setShowPool(false)}
+                onCancel={() => setShowPool(false)}
+              />
             </div>
           </div>
         </div>
