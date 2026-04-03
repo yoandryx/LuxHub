@@ -587,6 +587,13 @@ const VendorDashboard = () => {
               </button>
             );
           })}
+          <button
+            className={styles.tabItem}
+            onClick={() => router.push('/vendor/pools')}
+          >
+            <FiDroplet className={styles.tabIcon} />
+            <span className={styles.tabLabel}>Pools</span>
+          </button>
         </div>
       </nav>
 

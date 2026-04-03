@@ -115,6 +115,8 @@ export default function VendorPoolsPage() {
         <title>Pools | LuxHub Vendor</title>
       </Head>
       <div className={styles.page}>
+        <div className={styles.ambientBg} />
+
         {/* Header */}
         <div className={styles.header}>
           <Link href="/vendor/vendorDashboard" className={styles.backLink}>

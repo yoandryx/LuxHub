@@ -13,13 +13,34 @@
   --border-hover: rgba(200, 161, 255, 0.3);
   --glass: rgba(13, 13, 13, 0.85);
   --text-primary: #ffffff;
-  --text-secondary: #a1a1a1;
+  --text-secondary: rgba(255, 255, 255, 0.72);
+  --text-dim: rgba(255, 255, 255, 0.48);
+  --accent-border: rgba(200, 161, 255, 0.15);
 
   min-height: 100vh;
-  background: var(--bg-dark);
+  background: #0a0a0a;
+  color: var(--text-primary);
   padding: 80px 24px 48px;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Ambient background glow — matches Security & Trust page */
+.ambientBg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(200, 161, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(138, 43, 226, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page > *:not(.ambientBg) {
+  position: relative;
+  z-index: 1;
 }
 
 /* ===== HEADER ===== */
@@ -75,14 +96,14 @@
 }
 
 .statCard {
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border);
+  background: rgba(8, 8, 10, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--accent-border);
   border-radius: 12px;
   padding: 16px;
   text-align: center;
-  transition: border-color 0.2s;
+  transition: all 0.25s ease;
 }
 
 .statCard:hover {
@@ -151,10 +172,10 @@
 
 /* ===== LISTING CARD ===== */
 .listingCard {
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border);
+  background: rgba(8, 8, 10, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--accent-border);
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.25s ease;
