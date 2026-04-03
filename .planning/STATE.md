@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Ready to execute
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-04-01T13:29:39.972Z"
-last_activity: 2026-04-01
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-04-03T02:16:06.092Z"
+last_activity: 2026-04-03
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 17
-  completed_plans: 14
+  completed_phases: 4
+  total_plans: 21
+  completed_plans: 17
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 10 — ai-bulk-inventory-upload
+**Current focus:** Phase 08 — pool-lifecycle
 
 ## Current Position
 
-Phase: 10 (ai-bulk-inventory-upload) — EXECUTING
-Plan: 3 of 4
+Phase: 08 (pool-lifecycle) — EXECUTING
+Plan: 2 of 4
 Execution order: Phase 9 → 10 → 8
 
 ## Performance Metrics
@@ -61,6 +61,8 @@ Execution order: Phase 9 → 10 → 8
 | Phase 09 P01 | 4min | 2 tasks | 6 files |
 | Phase 10 P01 | 6min | 3 tasks | 9 files |
 | Phase 10 P02 | 4min | 2 tasks | 5 files |
+| Phase 10 P03 | 9min | 3 tasks | 6 files |
+| Phase 08 P01 | 176s | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -91,6 +93,9 @@ Recent decisions affecting current work:
 - [Phase 06]: Dual-environment setup: local .env keeps devnet for development, Vercel env vars = mainnet for production
 - [Phase 09]: LearnMore removed from top nav, moved to dropdown Account section; Vendors link also moved to dropdown-only
 - [Phase 09]: 4h amber / 1h red urgency thresholds for offer countdowns; 48h default progress bar duration
+- [Phase 08]: Pull/claim distribution model over push model for pool proceeds
+- [Phase 08]: On-chain SPL burn with burn_pending fallback; admin can retry
+- [Phase 08]: 90-day claim window with admin sweep for unclaimed funds
 
 ### Roadmap Evolution
 
@@ -106,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-04-01
-Stopped at: Completed 10-02-PLAN.md
+Last activity: 2026-04-03
+Stopped at: Completed 08-01-PLAN.md
 Key context: confirm_delivery proven on mainnet (TX: 3VqZFwcr...), 8 bugs fixed, program redeployed 2x. Offers still need confirm_delivery flow.

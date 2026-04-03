@@ -29,9 +29,9 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 
 - [ ] **POOL-01**: Admin can tokenize a watch via Bags API on mainnet (token launch → bonding curve active)
 - [ ] **POOL-02**: Users can buy/sell pool tokens on bonding curve with real SOL on mainnet
-- [ ] **POOL-03**: Pool graduation works on mainnet (bonding curve → Jupiter DEX transition)
+- [x] **POOL-03**: Pool graduation works on mainnet (bonding curve → Jupiter DEX transition)
 - [ ] **POOL-04**: Post-graduation trading works via Bags DEX (buy/sell tokens after graduation)
-- [ ] **POOL-05**: Resale distribution sends proceeds to all token holders proportionally and closes pool
+- [x] **POOL-05**: Resale distribution sends proceeds to all token holders proportionally and closes pool
 - [ ] **POOL-06**: Pool detail page shows lifecycle status (launch → funding → graduation → trading → distribution)
 
 ### Offer Management UX
@@ -60,14 +60,14 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 - [x] **BULK-01**: Vendor can upload a CSV in ANY format (their own column names, layout) and AI maps it to LuxHub's NFT template fields
 - [x] **BULK-02**: AI analyzes uploaded watch images in bulk and auto-fills metadata (brand, model, condition, estimated price) for each row
 - [x] **BULK-03**: Parsed bulk inventory enters an admin review queue where admin can approve, edit, or reject individual items before minting
-- [ ] **BULK-04**: Admin can mint approved items in bulk from the review queue (batch on-chain minting)
+- [x] **BULK-04**: Admin can mint approved items in bulk from the review queue (batch on-chain minting)
 - [x] **BULK-05**: Vendor can upload an image folder alongside CSV and AI matches images to inventory rows by filename or description
 
 ### Infrastructure & Scaling
 
 - [x] **INFRA-01**: Vendor/admin avatar and banner uploads migrated from IBM COS to Cloudflare R2 (S3-compatible, global CDN, zero egress, image transforms; remove ibm-cos-sdk dependency; Irys stays for immutable NFT images only)
-- [ ] **INFRA-02**: MongoDB compound indexes audited and added for hot queries (offers by status+wallet, escrows by status+date, pools by status)
-- [ ] **INFRA-03**: Bags webhook reconciliation job — periodically checks Bags API for graduation status in case webhook delivery fails
+- [x] **INFRA-02**: MongoDB compound indexes audited and added for hot queries (offers by status+wallet, escrows by status+date, pools by status)
+- [x] **INFRA-03**: Bags webhook reconciliation job — periodically checks Bags API for graduation status in case webhook delivery fails
 - [ ] **INFRA-04**: Pool resale → physical delivery flow validated end-to-end (resale creates escrow → vendor ships → buyer confirms → proceeds distribute to token holders)
 
 ## v2 Requirements
@@ -124,9 +124,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | TX-05 | Phase 7 | Pending |
 | POOL-01 | Phase 8 | Pending |
 | POOL-02 | Phase 8 | Pending |
-| POOL-03 | Phase 8 | Pending |
+| POOL-03 | Phase 8 | Complete |
 | POOL-04 | Phase 8 | Pending |
-| POOL-05 | Phase 8 | Pending |
+| POOL-05 | Phase 8 | Complete |
 | POOL-06 | Phase 8 | Pending |
 | OFFER-01 | Phase 9 | Complete |
 | OFFER-02 | Phase 9 | Complete |
@@ -144,11 +144,11 @@ Deferred to future release. Tracked but not in current roadmap.
 | BULK-01 | Phase 10 | Complete |
 | BULK-02 | Phase 10 | Complete |
 | BULK-03 | Phase 10 | Complete |
-| BULK-04 | Phase 10 | Pending |
+| BULK-04 | Phase 10 | Complete |
 | BULK-05 | Phase 10 | Complete |
 | INFRA-01 | Phase 6 | Complete |
-| INFRA-02 | Phase 8 | Pending |
-| INFRA-03 | Phase 8 | Pending |
+| INFRA-02 | Phase 8 | Complete |
+| INFRA-03 | Phase 8 | Complete |
 | INFRA-04 | Phase 8 | Pending |
 
 **Coverage:**
