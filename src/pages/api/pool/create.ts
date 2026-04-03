@@ -79,13 +79,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Check if pool already exists for this asset
     const existingPool = await Pool.findOne({
       selectedAssetId: assetId,
-      status: { $ne: 'closed' },
+      status: { $nin: ['closed', 'canceled', 'dead', 'burned'] },
     });
     if (existingPool) {
-      return res.status(409).json({
-        error: 'Pool already exists for this asset',
-        poolId: existingPool._id,
-      });
+      // If pool exists but has no Bags token (failed during creation), clean it up and allow retry
+      if (!existingPool.bagsTokenMint && existingPool.status === 'open') {
+        console.log(`[POOL-CREATE] Cleaning up orphan pool ${existingPool._id} (no token) for retry`);
+        await Pool.findByIdAndDelete(existingPool._id);
+        // Also unmark the asset as pooled
+        if (assetSource === 'mintRequest') {
+          await MintRequest.findByIdAndUpdate(assetId, { $set: { pooled: false, poolId: null } });
+        } else {
+          await Asset.findByIdAndUpdate(assetId, { $set: { pooled: false, poolId: null, status: 'listed' } });
+        }
+      } else {
+        return res.status(409).json({
+          error: 'Pool already exists for this asset',
+          poolId: existingPool._id,
+          bagsTokenMint: existingPool.bagsTokenMint,
+        });
+      }
     }
 
     // Generate pool number
