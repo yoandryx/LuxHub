@@ -159,10 +159,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Get asset info for token metadata
-    const asset = pool.selectedAssetId as any;
+    // Get asset info — try populated Asset, fall back to MintRequest
+    let asset = pool.selectedAssetId as any;
+    if (!asset || !asset.model) {
+      const MintRequest = (await import('../../../lib/models/MintRequest')).default;
+      const mintReq = await MintRequest.findById(pool.selectedAssetId);
+      if (mintReq) {
+        asset = { model: mintReq.model, brand: mintReq.brand, imageUrl: mintReq.imageUrl, imageIpfsUrls: mintReq.imageIpfsUrls, images: mintReq.images };
+      }
+    }
     const assetModel = asset?.model || 'LuxHub Pool Asset';
-    const assetImage = asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
+    const assetImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
 
     // Generate token name and symbol
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
@@ -337,9 +344,27 @@ export async function createPoolTokenInternal(
     if (!pool) return { success: false, error: 'Pool not found' };
     if (pool.bagsTokenMint) return { success: true, mint: pool.bagsTokenMint };
 
-    const asset = pool.selectedAssetId as any;
+    // Get asset data — try populated Asset first, then fall back to MintRequest
+    let asset = pool.selectedAssetId as any;
+    if (!asset || !asset.model) {
+      // Populate failed (MintRequest ID, not Asset) — fetch from MintRequest
+      const { default: MintRequest } = await import('../../../lib/models/MintRequest');
+      const mintReq = await MintRequest.findById(pool.selectedAssetId);
+      if (mintReq) {
+        asset = {
+          model: mintReq.model,
+          brand: mintReq.brand,
+          imageUrl: mintReq.imageUrl,
+          imageIpfsUrls: mintReq.imageIpfsUrls,
+          images: mintReq.images,
+        };
+        console.log(`[createPoolTokenInternal] Loaded asset from MintRequest: ${mintReq.brand} ${mintReq.model}, image: ${mintReq.imageUrl?.slice(0, 60)}`);
+      }
+    }
+
     const assetModel = asset?.model || 'LuxHub Pool Asset';
     const assetImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
+    console.log(`[createPoolTokenInternal] Asset: ${assetModel}, Image URL: ${assetImage?.slice(0, 80) || 'NONE'}`);
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
     const tokenName = `LuxHub Pool #${poolNumber} - ${assetModel}`.slice(0, 32);
     const tokenSymbol = `LUX-${poolNumber.replace('LUX-', '')}`.slice(0, 10);
