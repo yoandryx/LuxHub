@@ -23,7 +23,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await dbConnect();
 
-    const { assetId, targetAmountUSD, minBuyInUSD, maxInvestors, projectedROI } = req.body;
+    const { assetId, targetAmountUSD, minBuyInUSD, maxInvestors, projectedROI, tokenImageBase64 } = req.body;
 
     // Validation
     if (!assetId || !targetAmountUSD) {
@@ -103,7 +103,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // Generate pool number
     const poolCount = await Pool.countDocuments();
-    const poolNumber = `LUX-${(poolCount + 1).toString().padStart(5, '0')}`;
+    const poolNumber = `LUX${(poolCount + 1).toString().padStart(4, '0')}`;
 
     // 1B supply (Bags platform standard)
     const BAGS_TOTAL_SUPPLY = 1_000_000_000;
@@ -166,7 +166,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     };
 
     try {
-      tokenResult = await createPoolTokenInternal(pool._id.toString(), wallet);
+      tokenResult = await createPoolTokenInternal(pool._id.toString(), wallet, tokenImageBase64);
       if (!tokenResult.success) {
         // Bags token mint failed, pool still created
       }

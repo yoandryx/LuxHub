@@ -324,7 +324,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
  */
 export async function createPoolTokenInternal(
   poolId: string,
-  creatorWallet: string
+  creatorWallet: string,
+  tokenImageBase64?: string
 ): Promise<{
   success: boolean;
   mint?: string;
@@ -380,25 +381,45 @@ export async function createPoolTokenInternal(
     formData.append('twitter', 'https://x.com/LuxHubStudio');
     formData.append('website', process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold');
 
-    // Bags requires an actual image file upload, not a URL
-    if (assetImage) {
+    // Image: prefer user-uploaded base64 > download from URL > fallback to imageUrl string
+    let imageAttached = false;
+
+    if (tokenImageBase64 && tokenImageBase64.startsWith('data:image')) {
+      // User uploaded image directly — convert base64 to blob
+      console.log('[createPoolTokenInternal] Using user-uploaded image (base64)');
+      const base64Data = tokenImageBase64.split(',')[1];
+      const mimeMatch = tokenImageBase64.match(/data:(image\/\w+);/);
+      const mime = mimeMatch?.[1] || 'image/png';
+      const ext = mime.includes('jpeg') || mime.includes('jpg') ? 'jpg' : 'png';
+      const imgBuffer = Buffer.from(base64Data, 'base64');
+      const blob = new Blob([imgBuffer], { type: mime });
+      formData.append('image', blob, `pool-token.${ext}`);
+      imageAttached = true;
+    }
+
+    if (!imageAttached && assetImage) {
+      // Try downloading from NFT image URL
       try {
-        console.log(`[createPoolTokenInternal] Downloading image: ${assetImage}`);
+        console.log(`[createPoolTokenInternal] Downloading image: ${assetImage.slice(0, 80)}`);
         const imgRes = await fetch(assetImage);
         if (imgRes.ok) {
           const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
           const contentType = imgRes.headers.get('content-type') || 'image/png';
           const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
           const blob = new Blob([imgBuffer], { type: contentType });
-          formData.append('image', blob, `pool-asset.${ext}`);
+          formData.append('image', blob, `pool-token.${ext}`);
+          imageAttached = true;
         } else {
-          console.warn(`[createPoolTokenInternal] Image download failed (${imgRes.status}), trying imageUrl fallback`);
-          formData.append('imageUrl', assetImage);
+          console.warn(`[createPoolTokenInternal] Image download failed: ${imgRes.status}`);
         }
       } catch (imgErr) {
-        console.warn('[createPoolTokenInternal] Image download error, using URL fallback:', imgErr);
-        formData.append('imageUrl', assetImage);
+        console.warn('[createPoolTokenInternal] Image download error:', imgErr);
       }
+    }
+
+    if (!imageAttached) {
+      console.error('[createPoolTokenInternal] No image available for Bags token');
+      return { success: false, error: 'No image available. Please upload an image for the pool token.' };
     }
 
     const infoRes = await fetch(`${BAGS_API_BASE}/token-launch/create-token-info`, {

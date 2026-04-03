@@ -48,6 +48,15 @@ const STEPS = [
   { label: 'Confirm', icon: FiAward },
 ];
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function PoolCreationStepper({
   assetId: initialAssetId,
   assetData: initialAssetData,
@@ -75,6 +84,8 @@ export function PoolCreationStepper({
   const [minBuyInUSD, setMinBuyInUSD] = useState('1.50');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [autoFilling, setAutoFilling] = useState(false);
+  const [tokenImageFile, setTokenImageFile] = useState<File | null>(null);
+  const [tokenImagePreview, setTokenImagePreview] = useState<string>('');
 
   // Pool state
   const [poolId, setPoolId] = useState('');
@@ -92,49 +103,28 @@ export function PoolCreationStepper({
   // Effective wallet for the pool (vendor wallet or selected asset vendor)
   const [effectiveVendorWallet, setEffectiveVendorWallet] = useState(vendorWallet);
 
-  // AI auto-fill pool details from NFT metadata
+  // Auto-fill pool details from NFT metadata
+  // Name is locked to NFT name, symbol is LUX-XXXXX (set by backend)
   const autoFillFromAsset = useCallback(async (asset: AssetOption) => {
-    // Immediately set basic fields from asset data
-    const name = `${asset.brand} ${asset.model}`.slice(0, 32);
-    setTokenName(name);
-    setTargetAmountUSD(String(asset.priceUSD || ''));
     setSelectedAsset(asset);
     setSelectedAssetId(asset._id);
 
-    // Generate LUX-prefixed symbol from model name (more unique than brand at scale)
-    // e.g. Submariner → LUXSUB, Nautilus → LUXNAUT, Tank → LUXTANK, Daytona → LUXDAY
-    const modelClean = (asset.model || '').toUpperCase().replace(/[^A-Z]/g, '');
-    const modelKey = modelClean.slice(0, 4) || (asset.brand || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
-    const symbol = `LUX${modelKey}`;
-    setTokenSymbol(symbol.slice(0, 10));
+    // Lock name to NFT name (not editable)
+    const name = `${asset.brand} ${asset.model}`.slice(0, 32);
+    setTokenName(name);
+    setTargetAmountUSD(String(asset.priceUSD || ''));
 
-    // Generate description from asset metadata
-    const desc = `Tokenized ${asset.brand} ${asset.model} pool — backed by an authenticated luxury timepiece valued at $${(asset.priceUSD || 0).toLocaleString()}. Buy tokens to participate in this asset pool. When the watch resells, token holders receive their proportional share of proceeds.`;
-    setTokenDescription(desc);
+    // Symbol will be LUXNNNN assigned by backend — show placeholder
+    setTokenSymbol('LUX0001');
 
-    // Try AI-enhanced description if available
-    setAutoFilling(true);
-    try {
-      const res = await fetch('/api/ai/pool-description', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brand: asset.brand,
-          model: asset.model,
-          priceUSD: asset.priceUSD,
-          imageUrl: asset.imageUrl || asset.imageIpfsUrls?.[0],
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.description) setTokenDescription(data.description);
-        if (data.symbol) setTokenSymbol(data.symbol);
-      }
-    } catch {
-      // Keep the fallback description — AI is optional enhancement
-    } finally {
-      setAutoFilling(false);
-    }
+    // Set NFT image as preview (user can upload different one for token)
+    const nftImage = asset.imageUrl || asset.imageIpfsUrls?.[0] || asset.images?.[0] || '';
+    if (nftImage) setTokenImagePreview(nftImage);
+
+    // Description
+    setTokenDescription(
+      `Tokenized ${asset.brand} ${asset.model} pool — backed by an authenticated luxury timepiece valued at $${(asset.priceUSD || 0).toLocaleString()}.`
+    );
   }, []);
 
   // If asset data was passed directly, auto-fill immediately
@@ -240,6 +230,7 @@ export function PoolCreationStepper({
           assetId: selectedAssetId,
           targetAmountUSD: parseFloat(targetAmountUSD),
           minBuyInUSD: parseFloat(minBuyInUSD),
+          tokenImageBase64: tokenImageFile ? await fileToBase64(tokenImageFile) : undefined,
         }),
       });
 
@@ -570,25 +561,69 @@ export function PoolCreationStepper({
         </div>
       )}
 
+      {/* Token Image Upload */}
       <div className={styles.formGroup}>
-        <label className={styles.formLabel}>Token Name</label>
+        <label className={styles.formLabel}>Token Image</label>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}>
+          {(tokenImagePreview || tokenImageFile) && (
+            <img
+              src={tokenImageFile ? URL.createObjectURL(tokenImageFile) : tokenImagePreview}
+              alt="Token"
+              style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover', border: '1px solid rgba(200,161,255,0.15)' }}
+            />
+          )}
+          <div style={{ flex: 1 }}>
+            <input
+              type="file"
+              accept="image/*"
+              id="tokenImageUpload"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setTokenImageFile(file);
+                  setTokenImagePreview(URL.createObjectURL(file));
+                }
+              }}
+            />
+            <label
+              htmlFor="tokenImageUpload"
+              className={styles.btnSecondary}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', padding: '6px 12px' }}
+            >
+              {tokenImageFile ? 'Change Image' : tokenImagePreview ? 'Replace NFT Image' : 'Upload Image'}
+            </label>
+            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginLeft: '8px' }}>
+              {tokenImageFile ? tokenImageFile.name : 'Uses NFT image by default'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Token Name — locked to NFT name */}
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel}>Token Name (from NFT)</label>
         <input
           className={styles.formInput}
           value={tokenName}
-          onChange={(e) => setTokenName(e.target.value.slice(0, 32))}
-          placeholder="e.g. Rolex Submariner"
-          maxLength={32}
+          disabled
+          style={{ opacity: 0.6, cursor: 'not-allowed' }}
         />
       </div>
 
+      {/* Token Symbol — auto-assigned LUX0001 by backend */}
       <div className={styles.formGroup}>
-        <label className={styles.formLabel}>Token Symbol</label>
+        <label className={styles.formLabel}>Token Symbol (auto-assigned)</label>
         <input
           className={styles.formInput}
           value={tokenSymbol}
-          onChange={(e) => setTokenSymbol(e.target.value.slice(0, 10).toUpperCase())}
-          placeholder="e.g. RSUB"
-          maxLength={10}
+          disabled
+          style={{ opacity: 0.6, cursor: 'not-allowed' }}
+          placeholder="Assigned on creation"
         />
       </div>
 
