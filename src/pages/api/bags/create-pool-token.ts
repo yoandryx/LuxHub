@@ -182,8 +182,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         1000
       )
     );
+    // Bags requires an actual image file upload
     if (assetImage) {
-      formData.append('imageUrl', assetImage);
+      try {
+        const imgRes = await fetch(assetImage);
+        if (imgRes.ok) {
+          const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+          const contentType = imgRes.headers.get('content-type') || 'image/png';
+          const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+          const blob = new Blob([imgBuffer], { type: contentType });
+          formData.append('image', blob, `pool-asset.${ext}`);
+        } else {
+          formData.append('imageUrl', assetImage);
+        }
+      } catch {
+        formData.append('imageUrl', assetImage);
+      }
     }
     formData.append('twitter', 'https://x.com/LuxHubStudio');
     formData.append('website', process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold');
@@ -338,9 +352,29 @@ export async function createPoolTokenInternal(
       'description',
       `Tokenized pool for authenticated ${assetModel}. Pool ID: ${poolId}`.slice(0, 1000)
     );
-    if (assetImage) formData.append('imageUrl', assetImage);
     formData.append('twitter', 'https://x.com/LuxHubStudio');
     formData.append('website', process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold');
+
+    // Bags requires an actual image file upload, not a URL
+    if (assetImage) {
+      try {
+        console.log(`[createPoolTokenInternal] Downloading image: ${assetImage}`);
+        const imgRes = await fetch(assetImage);
+        if (imgRes.ok) {
+          const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+          const contentType = imgRes.headers.get('content-type') || 'image/png';
+          const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+          const blob = new Blob([imgBuffer], { type: contentType });
+          formData.append('image', blob, `pool-asset.${ext}`);
+        } else {
+          console.warn(`[createPoolTokenInternal] Image download failed (${imgRes.status}), trying imageUrl fallback`);
+          formData.append('imageUrl', assetImage);
+        }
+      } catch (imgErr) {
+        console.warn('[createPoolTokenInternal] Image download error, using URL fallback:', imgErr);
+        formData.append('imageUrl', assetImage);
+      }
+    }
 
     const infoRes = await fetch(`${BAGS_API_BASE}/token-launch/create-token-info`, {
       method: 'POST',
