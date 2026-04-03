@@ -1,0 +1,662 @@
+/* ========================================
+   Pool Detail V2 — Dedicated Page
+   /pools/[id] — Chrome Glass theme
+   ======================================== */
+
+.pageContainer {
+  --bg: #0a0a0f;
+  --surface: rgba(18, 18, 28, 0.65);
+  --border: rgba(200, 161, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.06);
+  --text: #f5f5f7;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --accent: #c8a1ff;
+  --accent-hover: #b78fff;
+  --accent-dim: rgba(200, 161, 255, 0.12);
+  --accent-medium: rgba(200, 161, 255, 0.2);
+  --positive: #4ade80;
+  --positive-dim: rgba(74, 222, 128, 0.1);
+  --warning: #fbbf24;
+  --error: #f87171;
+  --error-dim: rgba(248, 113, 113, 0.1);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+  --transition: 150ms ease;
+
+  min-height: 100vh;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(200, 161, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 70% at 80% 90%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 80px 32px 48px;
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Back Link ─── */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  transition: color var(--transition);
+}
+
+.backLink:hover {
+  color: var(--accent);
+}
+
+/* ─── Content Grid ─── */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Glass Card base ─── */
+.glassCard {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: border-color var(--transition);
+}
+
+/* ─── Pool Header ─── */
+.poolHeader {
+  composes: glassCard;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.poolHeaderImage {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.poolHeaderInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.poolHeaderInfo h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+
+.vendorName {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.currentPrice {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.statusBadge {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ─── Chart Container ─── */
+.chartContainer {
+  composes: glassCard;
+  padding: 12px;
+  min-height: 360px;
+}
+
+.chartFallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 280px;
+  color: var(--text-muted);
+  font-size: 14px;
+  gap: 8px;
+}
+
+.chartFallbackPrice {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+/* ─── Pool Details Card ─── */
+.detailsCard {
+  composes: glassCard;
+}
+
+.detailsCard h3 {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoRow span:first-child {
+  color: var(--text-muted);
+}
+
+.infoRow span:last-child {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.addressLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.addressLink:hover {
+  text-decoration: underline;
+}
+
+/* ─── Asset Info Card ─── */
+.assetCard {
+  composes: glassCard;
+}
+
+.assetCard h3 {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+
+.assetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.assetField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.assetFieldLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.assetFieldValue {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.assetDescription {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 14px 0 0;
+}
+
+/* ─── Resale Message ─── */
+.resaleMessage {
+  composes: glassCard;
+  text-align: center;
+  padding: 32px 20px;
+}
+
+.resaleMessage h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--warning);
+  margin: 0 0 8px;
+}
+
+.resaleMessage p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ─── Position Card (PositionSummary) ─── */
+.positionCard {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-left: 3px solid rgba(200, 161, 255, 0.25);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.positionTitle {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+
+.positionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.positionField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.positionLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.positionValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.positionValueMono {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.pnlPositive {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--positive);
+  font-variant-numeric: tabular-nums;
+}
+
+.pnlNegative {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--error);
+  font-variant-numeric: tabular-nums;
+}
+
+.positionCta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ─── Claim Card (ClaimDistribution) ─── */
+.claimCard {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.claimTitle {
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 0 0 16px;
+}
+
+.claimAmountDisplay {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.claimAmountLarge {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.claimOwnership {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.claimWarning {
+  padding: 10px 14px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: var(--radius);
+  color: var(--warning);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.claimError {
+  padding: 10px 14px;
+  background: var(--error-dim);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: var(--radius);
+  color: var(--error);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.claimButton {
+  width: 100%;
+  height: 48px;
+  background: linear-gradient(135deg, #c8a1ff 0%, #a855f7 100%);
+  border: none;
+  border-radius: var(--radius);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.claimButton:hover:not(:disabled) {
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.claimButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.claimSpinner {
+  animation: spin 0.7s linear infinite;
+}
+
+.claimConnect {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+}
+
+.claimSuccess {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.claimCheckIcon {
+  color: var(--positive);
+}
+
+.claimSuccessText {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.claimAmount {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.claimTxLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.claimTxLink:hover {
+  text-decoration: underline;
+}
+
+/* ─── How It Works ─── */
+.howItWorksCard {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.howItWorksToggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background var(--transition);
+  font-family: var(--font);
+}
+
+.howItWorksToggle:hover {
+  background: var(--accent-dim);
+}
+
+.howChevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.howChevronOpen {
+  transform: rotate(180deg);
+}
+
+.howItWorksContent {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+}
+
+.howItWorksExpanded {
+  max-height: 400px;
+}
+
+.howSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 20px 20px;
+}
+
+.howStep {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.howStepNumber {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.howStepText strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.howStepText p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+  line-height: 1.5;
+}
+
+/* ─── Pool Info Card (right column) ─── */
+.poolInfoCard {
+  composes: glassCard;
+}
+
+.poolInfoCard h3 {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── Loading / Error ─── */
+.loadingContainer,
+.errorContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text-secondary);
+  padding: 20px;
+  font-family: var(--font);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(200, 161, 255, 0.15);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-bottom: 14px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorContainer h2 {
+  font-size: 18px;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.errorContainer p {
+  color: var(--text-muted);
+  margin: 0 0 20px;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 70px 16px 40px;
+  }
+
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .poolHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .poolHeaderImage {
+    width: 100%;
+    height: 200px;
+  }
+
+  .chartContainer {
+    min-height: 280px;
+  }
+
+  .positionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .assetGrid {
+    grid-template-columns: 1fr;
+  }
+}

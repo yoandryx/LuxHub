@@ -1,0 +1,317 @@
+/* ========================================
+   Trade Widget — Chrome Glass
+   Embedded buy/sell for pool detail page
+   ======================================== */
+
+.container {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.12);
+  --accent-gradient: linear-gradient(135deg, #c8a1ff 0%, #a855f7 100%);
+  --surface: rgba(18, 18, 28, 0.65);
+  --border: rgba(200, 161, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.06);
+  --text: #f5f5f7;
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --positive: #4ade80;
+  --error: #f87171;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── DEX Badge ─── */
+.dexBadge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 4px 12px;
+  background: rgba(74, 222, 128, 0.1);
+  color: var(--positive);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ─── Tabs ─── */
+.tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 100px;
+  padding: 3px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 100px;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+}
+
+.tabActive {
+  background: var(--accent);
+  color: #0a0a0f;
+}
+
+/* ─── Progress Bar ─── */
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+}
+
+.progressText {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(200, 161, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent-gradient);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.progressFullyFunded {
+  background: var(--positive);
+}
+
+/* ─── Input ─── */
+.inputSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inputLabel {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  height: 48px;
+  padding: 0 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 16px;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.12);
+}
+
+.input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.maxBtn {
+  padding: 8px 14px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(200, 161, 255, 0.2);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+  white-space: nowrap;
+}
+
+.maxBtn:hover {
+  background: rgba(200, 161, 255, 0.2);
+}
+
+.balanceLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ─── Quote ─── */
+.quoteLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.quoteRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius);
+}
+
+.quoteLabel {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.quoteValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+/* ─── Execute Button ─── */
+.executeBtn {
+  width: 100%;
+  height: 48px;
+  background: var(--accent-gradient);
+  border: none;
+  border-radius: var(--radius);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.executeBtn:hover:not(:disabled) {
+  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.executeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ─── Slippage ─── */
+.slippageRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.slippageLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.slippagePills {
+  display: flex;
+  gap: 4px;
+}
+
+.slippagePill {
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+}
+
+.slippagePillActive {
+  background: var(--accent-dim);
+  border-color: rgba(200, 161, 255, 0.3);
+  color: var(--accent);
+}
+
+.slippageInput {
+  width: 60px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+/* ─── Messages ─── */
+.error {
+  padding: 10px 14px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: var(--radius);
+  color: var(--error);
+  font-size: 13px;
+}
+
+.success {
+  padding: 10px 14px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: var(--radius);
+  color: var(--positive);
+  font-size: 13px;
+}
+
+/* ─── Spinner ─── */
+.spinner {
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
