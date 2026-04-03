@@ -242,6 +242,13 @@ const PoolSchema = new Schema(
     windDownClaimDeadline: { type: Date },
     accumulatedTradingFees: { type: Number, default: 0 },
 
+    // ========== CLAIM WINDOW ==========
+    claimWindowDays: { type: Number, default: 90 },
+    claimWindowExpiresAt: { type: Date },
+    unclaimedSweptAt: { type: Date },
+    unclaimedSweptAmount: { type: Number },
+    burnTxSignature: { type: String },
+
     // ========== FEE SPLIT CONFIGURATION ==========
     // Bags creator fee = 1% of all trade volume, split via fee-share/config (10,000 BPS = 100%)
     // These track the on-chain fee-share claimers array for this pool's token
@@ -345,6 +352,12 @@ PoolSchema.index({ squadMultisigPda: 1 }); // Squad lookup
 PoolSchema.index({ 'squadMembers.wallet': 1 }); // Find pools by member wallet
 PoolSchema.index({ windDownStatus: 1 }); // Wind-down tracking
 PoolSchema.index({ watchVerificationStatus: 1 }); // Verification tracking
+
+// Compound indexes for hot queries
+PoolSchema.index({ status: 1, 'participants.wallet': 1 }); // User's pools by status
+PoolSchema.index({ vendorWallet: 1, status: 1 }); // Vendor's pools by status (compound)
+PoolSchema.index({ graduated: 1, status: 1 }); // Reconciliation query
+PoolSchema.index({ 'distributions.wallet': 1 }, { sparse: true }); // Claim lookup by wallet
 
 // ========== PRE-SAVE HOOKS ==========
 PoolSchema.pre('save', function (next) {
