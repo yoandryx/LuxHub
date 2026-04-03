@@ -74,7 +74,7 @@ export default function VendorPoolsPage() {
         const data = await listingsRes.json();
         const listings = Array.isArray(data) ? data : data.requests || [];
         const eligibleItems = listings.filter(
-          (l: any) => l.status === 'minted' && !l.pooled
+          (l: any) => l.status === 'minted' && !l.pooled && l.mintAddress
         );
         setEligible(eligibleItems);
 

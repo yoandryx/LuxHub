@@ -159,9 +159,9 @@ export function PoolCreationStepper({
         if (res.ok) {
           const data = await res.json();
           const listings = Array.isArray(data) ? data : data.requests || [];
-          // Filter out already-pooled items and map to AssetOption
+          // Only show verified on-chain minted NFTs that are actively listed
           const assetList: AssetOption[] = listings
-            .filter((l: any) => l.status === 'minted' && !l.pooled)
+            .filter((l: any) => l.status === 'minted' && !l.pooled && l.mintAddress)
             .map((l: any) => ({
               _id: l._id,
               brand: l.brand,

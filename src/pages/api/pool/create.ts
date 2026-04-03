@@ -49,7 +49,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!asset) {
       // Fallback: check MintRequest (vendor mint flow creates these)
       const mintReq = await MintRequest.findById(assetId);
-      if (mintReq && mintReq.status === 'minted') {
+      if (mintReq && mintReq.status === 'minted' && mintReq.mintAddress) {
         asset = {
           _id: mintReq._id,
           title: mintReq.title || `${mintReq.brand} ${mintReq.model}`,

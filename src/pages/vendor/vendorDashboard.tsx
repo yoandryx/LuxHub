@@ -913,7 +913,7 @@ const VendorDashboard = () => {
                             >
                               <FiAlertCircle /> Report External Sale
                             </button>
-                            {request.status === 'minted' && !request.pooled && (
+                            {request.status === 'minted' && !request.pooled && request.mintAddress && (
                               <button
                                 className={styles.actionItem}
                                 onClick={() => {
