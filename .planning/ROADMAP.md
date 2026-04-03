@@ -99,8 +99,13 @@ Plans:
   3. Post-graduation trading works via Bags DEX (buy/sell tokens after graduation)
   4. Resale distribution sends proceeds proportionally to all token holders and the pool closes
   5. Pool detail page shows a visual lifecycle timeline indicating current stage (launch, funding, graduation, trading, distribution)
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 4 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Backend APIs: claim distribution, reconciliation cron, listing removal, MongoDB indexes
+- [ ] 08-02-PLAN.md — Pool detail page with lifecycle stepper, trade widget, chart, position summary, claim panel
+- [ ] 08-03-PLAN.md — Pool creation stepper, vendor pool initiation, pool management dashboard
+- [ ] 08-04-PLAN.md — Build validation, redirect wiring, and human verification of pool lifecycle
 
 ### Phase 9: Offer UX & UI Polish
 **Goal**: The marketplace feels production-ready with urgency-driven offer UX and a refreshed public-facing presence
@@ -156,7 +161,7 @@ Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 8
 | 7. On-Chain Flow Validation | v1.1 | 2/2 | Complete | 2026-03-29 |
 | 9. Offer UX & UI Polish | v1.1 | 3/3 | Complete | 2026-03-29 |
 | 10. AI Bulk Inventory Upload | v1.1 | 2/4 | In Progress|  |
-| 8. Pool Lifecycle | v1.1 | 0/? | Not started | - |
+| 8. Pool Lifecycle | v1.1 | 0/4 | Not started | - |
 
 ---
 *Full v1.0 details: .planning/milestones/v1.0-ROADMAP.md*
