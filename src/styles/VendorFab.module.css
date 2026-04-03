@@ -241,6 +241,11 @@
   z-index: 2;
 }
 
+/* Wide modal variant for bulk upload */
+.modalWide {
+  max-width: 900px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .fabWrapper {

@@ -19,6 +19,7 @@ export default function VendorApply() {
   const { publicKey } = useEffectiveWallet();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [loadedAt] = useState(Date.now());
   const [form, setForm] = useState({
     name: '',
     category: '',
@@ -26,10 +27,29 @@ export default function VendorApply() {
     phone: '',
     message: '',
     contact: '',
+    website: '',
+    inventorySize: '',
+    // Honeypot — hidden from real users, bots will fill it
+    company_url: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Honeypot check — if filled, silently "succeed" (it's a bot)
+    if (form.company_url) {
+      setSubmitted(true);
+      toast.success("Interest submitted! We'll be in touch.");
+      return;
+    }
+
+    // Timing check — real humans take at least 8 seconds to fill a form
+    if (Date.now() - loadedAt < 8000) {
+      setSubmitted(true);
+      toast.success("Interest submitted! We'll be in touch.");
+      return;
+    }
+
     if (!form.name.trim() || !form.message.trim()) {
       toast.error('Name and message are required');
       return;
@@ -51,6 +71,8 @@ export default function VendorApply() {
           phone: form.phone.trim() || null,
           message: form.message.trim(),
           contact: form.contact.trim() || null,
+          website: form.website.trim() || null,
+          inventorySize: form.inventorySize || null,
         }),
       });
       setSubmitted(true);
@@ -288,6 +310,31 @@ export default function VendorApply() {
                       />
                     </div>
                   </div>
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Website / Social Proof</label>
+                      <input
+                        className={styles.formInput}
+                        placeholder="Instagram, eBay store, Chrono24, website..."
+                        value={form.website}
+                        onChange={(e) => setForm({ ...form, website: e.target.value })}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Inventory Size</label>
+                      <select
+                        className={styles.formInput}
+                        value={form.inventorySize}
+                        onChange={(e) => setForm({ ...form, inventorySize: e.target.value })}
+                      >
+                        <option value="">Select...</option>
+                        <option value="1-10">1-10 pieces</option>
+                        <option value="11-50">11-50 pieces</option>
+                        <option value="51-200">51-200 pieces</option>
+                        <option value="200+">200+ pieces</option>
+                      </select>
+                    </div>
+                  </div>
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Social / Other Contact</label>
                     <input
@@ -301,11 +348,23 @@ export default function VendorApply() {
                     <label className={styles.formLabel}>About your collection *</label>
                     <textarea
                       className={styles.formTextarea}
-                      placeholder="What brands do you carry? How long selling? Any links..."
+                      placeholder="What brands do you carry? How many years selling? Link to your storefront or social..."
                       value={form.message}
                       onChange={(e) => setForm({ ...form, message: e.target.value })}
                       rows={4}
                       required
+                    />
+                  </div>
+                  {/* Honeypot — invisible to users, bots auto-fill it */}
+                  <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
+                    <label htmlFor="company_url">Company URL</label>
+                    <input
+                      id="company_url"
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={form.company_url}
+                      onChange={(e) => setForm({ ...form, company_url: e.target.value })}
                     />
                   </div>
                   {publicKey ? (

@@ -12,6 +12,8 @@ const VendorInterestSchema = new Schema(
     phone: { type: String, default: null },
     message: { type: String, required: true },
     contact: { type: String, default: null },
+    website: { type: String, default: null },
+    inventorySize: { type: String, default: null },
     status: {
       type: String,
       enum: ['new', 'contacted', 'invited', 'onboarded', 'declined'],

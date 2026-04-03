@@ -108,6 +108,7 @@
     "three": "^0.174.0",
     "typescript": "^5.8.2",
     "vanilla-tilt": "^1.8.1",
+    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {

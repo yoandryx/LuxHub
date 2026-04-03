@@ -16,6 +16,8 @@ const interestSchema = z.object({
   phone: z.string().max(30).nullable().optional(),
   message: z.string().min(1, 'Message is required').max(2000),
   contact: z.string().max(200).nullable().optional(),
+  website: z.string().max(500).nullable().optional(),
+  inventorySize: z.string().max(20).nullable().optional(),
 });
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -28,7 +30,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     await dbConnect();
 
-    // Prevent spam: check for recent submission from same wallet
+    // Prevent spam: check for recent submission from same wallet or email
     if (parsed.wallet) {
       const recentSubmission = await VendorInterest.findOne({
         wallet: parsed.wallet,
@@ -36,6 +38,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
 
       if (recentSubmission) {
+        return res.status(200).json({
+          success: true,
+          message: 'Interest already submitted. We will be in touch!',
+        });
+      }
+    }
+
+    if (parsed.email) {
+      const recentByEmail = await VendorInterest.findOne({
+        email: parsed.email.toLowerCase(),
+        createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      });
+
+      if (recentByEmail) {
         return res.status(200).json({
           success: true,
           message: 'Interest already submitted. We will be in touch!',
@@ -51,6 +67,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       phone: parsed.phone || null,
       message: parsed.message.trim(),
       contact: parsed.contact?.trim() || null,
+      website: parsed.website?.trim() || null,
+      inventorySize: parsed.inventorySize || null,
     });
 
     // Notify admins about new application

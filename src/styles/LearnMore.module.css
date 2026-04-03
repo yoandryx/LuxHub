@@ -1108,7 +1108,14 @@
   }
 
   .ctaButtons {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .ctaButtons a {
+    padding: 12px 20px;
+    font-size: 0.8rem;
   }
 
   .footerLinks {

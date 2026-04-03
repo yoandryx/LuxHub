@@ -174,11 +174,18 @@ export default function Navbar() {
           </div>
 
           <div className={styles.links}>
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href}>
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = router.pathname === link.href || router.pathname.startsWith(link.href + '/');
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={isActive ? styles.navLinkActive : undefined}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
 
           <div className={styles.rightSection}>

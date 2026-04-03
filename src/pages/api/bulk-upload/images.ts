@@ -42,7 +42,7 @@ export default async function handler(
   }
 
   try {
-    await runMiddleware(req, res, upload.array('files', 25));
+    await runMiddleware(req, res, upload.array('images', 25));
 
     const files = (req as any).files as Express.Multer.File[] | undefined;
 

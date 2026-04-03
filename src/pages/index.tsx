@@ -12,7 +12,8 @@ import WalletAwareness from '../components/common/WalletAwareness';
 import Footer from '../components/common/Footer';
 import NFTCard from '../components/marketplace/NFTCard';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
-import { useSolPrice } from '../hooks/useSWR';
+import { useSolPrice, useVendors } from '../hooks/useSWR';
+import { VendorCard } from '../components/common/VendorCard';
 import styles from '../styles/IndexTest.module.css';
 
 // Dynamic imports for modals (bundle optimization)
@@ -77,6 +78,7 @@ const features = [
 export default function IndexTest() {
   const { connected } = useEffectiveWallet();
   const { price: solPrice } = useSolPrice();
+  const { vendors, verifiedVendors } = useVendors();
   const [featuredNFTs, setFeaturedNFTs] = useState<NFT[]>([]);
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
@@ -351,41 +353,40 @@ export default function IndexTest() {
               transition={{ duration: 0.8, delay: 0.5 }}
             >
               <Link href="/marketplace" className={styles.primaryBtn}>
-                Explore Marketplace
+                Marketplace
                 <FaArrowRight />
               </Link>
               <Link href="/pools" className={styles.secondaryBtn}>
-                View Pools
+                Pools
+              </Link>
+              <Link href="/vendor/apply" className={styles.secondaryBtn}>
+                Become a Vendor
               </Link>
             </motion.div>
 
-            {/* Security & Features Stats */}
-            <motion.div
-              className={styles.heroStats}
+            <motion.nav
+              className={styles.sectionNav}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.7 }}
             >
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>Direct or Pooled</span>
-                <span className={styles.heroStatLabel}>Access</span>
-              </div>
-              <div className={styles.heroStatDivider} />
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>Multisig</span>
-                <span className={styles.heroStatLabel}>Secured</span>
-              </div>
-              <div className={styles.heroStatDivider} />
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>Escrow</span>
-                <span className={styles.heroStatLabel}>Protected</span>
-              </div>
-              <div className={styles.heroStatDivider} />
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>On-Chain</span>
-                <span className={styles.heroStatLabel}>Provenance</span>
-              </div>
-            </motion.div>
+              {[
+                { id: 'featured', label: 'Featured' },
+                { id: 'features', label: 'How It Works' },
+                { id: 'cta', label: 'Get Started' },
+                { id: 'partners', label: 'Partners' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  className={styles.sectionNavItem}
+                  onClick={() =>
+                    document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' })
+                  }
+                >
+                  {item.label}
+                </button>
+              ))}
+            </motion.nav>
           </div>
         </section>
 
@@ -393,7 +394,7 @@ export default function IndexTest() {
         <WalletAwareness />
 
         {/* ===== FEATURED LISTINGS - Infinite Slider ===== */}
-        <section className={styles.sliderSection}>
+        <section id="featured" className={styles.sliderSection}>
           <div className={styles.sliderHeader}>
             <div>
               <span className={styles.sectionBadge}>Marketplace</span>
@@ -433,8 +434,43 @@ export default function IndexTest() {
           )}
         </section>
 
+        {/* ===== VERIFIED VENDORS ===== */}
+        {[...verifiedVendors, ...vendors.filter((v) => !verifiedVendors.some((vv) => vv.wallet === v.wallet))].length > 0 && (
+          <section className={styles.vendorSection}>
+            <motion.div
+              className={styles.vendorSectionHeader}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
+              <div>
+                <span className={styles.sectionBadge}>Dealers</span>
+                <h2 className={styles.sectionTitle}>Verified Vendors</h2>
+              </div>
+              <Link href="/vendors" className={styles.viewAllLink}>
+                View All <FaArrowRight />
+              </Link>
+            </motion.div>
+            <div className={styles.vendorSlider}>
+              <div className={styles.vendorSliderTrack}>
+                {[...verifiedVendors, ...vendors.filter((v) => !verifiedVendors.some((vv) => vv.wallet === v.wallet))]
+                  .slice(0, 8)
+                  .map((vendor) => (
+                    <VendorCard
+                      key={vendor.wallet}
+                      vendor={vendor}
+                      variant="slider"
+                      showStats={false}
+                    />
+                  ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ===== FEATURES GLASS CARDS ===== */}
-        <section className={styles.featuresSection}>
+        <section id="features" className={styles.featuresSection}>
           <motion.div
             className={styles.featuresHeader}
             initial={{ opacity: 0, y: 20 }}
@@ -471,7 +507,7 @@ export default function IndexTest() {
         </section>
 
         {/* ===== CTA SECTION ===== */}
-        <section className={styles.ctaSection}>
+        <section id="cta" className={styles.ctaSection}>
           <motion.div
             className={styles.ctaCard}
             initial={{ opacity: 0, y: 40 }}
@@ -494,7 +530,7 @@ export default function IndexTest() {
         </section>
 
         {/* ===== POWERED BY - Partners ===== */}
-        <section className={styles.trustFooter}>
+        <section id="partners" className={styles.trustFooter}>
           <div className={styles.poweredBy}>
             <span className={styles.poweredLabel}>Powered by</span>
             <Link href="/learnMore" className={styles.viewAllLink}>
@@ -512,6 +548,9 @@ export default function IndexTest() {
               </a>
               <a href="https://www.privy.io" target="_blank" rel="noopener noreferrer">
                 <Image src="/images/Privy_Brandmark_White.png" alt="Privy" width={40} height={40} />
+              </a>
+              <a href="https://bags.fm" target="_blank" rel="noopener noreferrer">
+                <Image src="/images/bags-icon.png" alt="Bags" width={40} height={40} />
               </a>
             </div>
           </div>

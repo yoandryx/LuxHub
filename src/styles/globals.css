@@ -25,6 +25,7 @@ body {
 html {
   background-color: var(--foreground);
   /* background-color: #c8a1ff; */
+  scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: var(--border) var(--accent);
 }

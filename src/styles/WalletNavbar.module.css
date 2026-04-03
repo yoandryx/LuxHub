@@ -621,6 +621,121 @@
   z-index: 1;
 }
 
+/* ===== QUICK ACTIONS GRID ===== */
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(200, 161, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.quickAction {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quickAction:hover {
+  background: rgba(200, 161, 255, 0.08);
+  border-color: rgba(200, 161, 255, 0.25);
+  color: #fff;
+}
+
+.quickAction svg {
+  font-size: 14px;
+  color: rgba(200, 161, 255, 0.7);
+}
+
+.quickAction:hover svg {
+  color: #c8a1ff;
+}
+
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: #c8a1ff;
+  color: #000;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ===== SUGGESTIONS ===== */
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(200, 161, 255, 0.04);
+  border: 1px solid rgba(200, 161, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.suggestion:hover {
+  background: rgba(200, 161, 255, 0.1);
+  border-color: rgba(200, 161, 255, 0.3);
+}
+
+.suggestIcon {
+  font-size: 16px;
+  color: #c8a1ff;
+  flex-shrink: 0;
+}
+
+.suggestTitle {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.suggestDesc {
+  display: block;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 1px;
+}
+
 /* Action Grid - Compact, matches link styling */
 .actionsGrid {
   display: grid;

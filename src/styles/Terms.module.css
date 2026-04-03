@@ -133,6 +133,31 @@
   opacity: 0.8;
 }
 
+/* ========== SUBHEADING ========== */
+
+.subheading {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 16px 0 8px;
+}
+
+/* ========== FOOTER LINKS ========== */
+
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+}
+
+.footerDivider {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
 /* ========== RESPONSIVE ========== */
 
 @media (max-width: 640px) {

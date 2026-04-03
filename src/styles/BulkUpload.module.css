@@ -76,6 +76,35 @@
   margin: 0.5rem 0 0;
 }
 
+/* ==================== WIZARD ROOT (carries CSS vars for modal context) ==================== */
+.wizardRoot {
+  --accent: #c8a1ff;
+  --accent-bright: #a855f7;
+  --accent-dim: rgba(200, 161, 255, 0.25);
+  --accent-glow: rgba(200, 161, 255, 0.12);
+  --accent-border: rgba(200, 161, 255, 0.3);
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --bg-elevated: #1a1a1a;
+  --glass: rgba(13, 13, 13, 0.85);
+  --glass-light: rgba(30, 30, 35, 0.6);
+  --border: #222222;
+  --border-hover: rgba(200, 161, 255, 0.4);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+  --text-muted: #666666;
+  --success: #4ade80;
+  --success-dim: rgba(74, 222, 128, 0.15);
+  --warning: #fbbf24;
+  --warning-dim: rgba(251, 191, 36, 0.1);
+  --error: #f87171;
+  --error-dim: rgba(248, 113, 113, 0.15);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  color: var(--text-primary);
+}
+
 /* ==================== STEP INDICATOR ==================== */
 .stepIndicator {
   display: flex;
@@ -132,27 +161,106 @@
 
 /* ==================== WIZARD PANELS ==================== */
 .wizardPanel {
+  /* CSS vars — needed when wizard renders outside .container (e.g., VendorFab modal) */
+  --accent: #c8a1ff;
+  --accent-bright: #a855f7;
+  --accent-dim: rgba(200, 161, 255, 0.25);
+  --accent-glow: rgba(200, 161, 255, 0.12);
+  --accent-border: rgba(200, 161, 255, 0.3);
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --bg-elevated: #1a1a1a;
+  --glass: rgba(13, 13, 13, 0.85);
+  --glass-light: rgba(30, 30, 35, 0.6);
+  --border: #222222;
+  --border-hover: rgba(200, 161, 255, 0.4);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+  --text-muted: #666666;
+  --success: #4ade80;
+  --success-dim: rgba(74, 222, 128, 0.15);
+  --warning: #fbbf24;
+  --warning-dim: rgba(251, 191, 36, 0.1);
+  --error: #f87171;
+  --error-dim: rgba(248, 113, 113, 0.15);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  position: relative;
   max-width: 1200px;
   margin: 0 auto;
-  background: linear-gradient(135deg, var(--glass-light) 0%, rgba(20, 20, 25, 0.8) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
+  background: #0a0a0c;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
+  border-radius: 16px;
+  padding: 1.5rem;
+  overflow: hidden;
+  color: var(--text-primary);
+}
+
+/* Gradient border — same as VendorFab modal */
+.wizardPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.35),
+    rgba(185, 145, 255, 0.06),
+    rgba(185, 145, 255, 0.35)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Radial glow at top */
+.wizardPanel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(185, 145, 255, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wizardPanel > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* When inside a modal (VendorFab), strip the double glass/border — modal provides it */
+.wizardRoot > .wizardPanel {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.wizardRoot > .wizardPanel::before,
+.wizardRoot > .wizardPanel::after {
+  display: none;
 }
 
 .stepTitle {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #e0e0e0;
   margin: 0 0 0.5rem;
 }
 
 .stepDescription {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin: 0 0 1.5rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  margin: 0 0 1.25rem;
 }
 
 /* ==================== CSV UPLOAD (STEP 1) ==================== */
@@ -191,6 +299,12 @@
   color: var(--accent);
 }
 
+.dropFormats {
+  color: var(--text-muted, #666);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
 .hiddenInput {
   display: none;
 }
@@ -225,22 +339,25 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .mappingTable th {
   text-align: left;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.3);
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.08), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: bottom;
 }
 
 .mappingTable td {
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   vertical-align: middle;
 }
@@ -250,72 +367,175 @@
 }
 
 .mappingRow:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(200, 161, 255, 0.04);
 }
 
 .csvHeader {
-  color: var(--text-primary);
+  color: #e0e0e0;
   font-family: monospace;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .sampleValue {
-  color: var(--text-secondary);
-  max-width: 200px;
+  color: rgba(255, 255, 255, 0.45);
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 0.8rem;
 }
 
 .mappingSelect {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
+  background: #111113;
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
   width: 100%;
-  max-width: 220px;
+  max-width: 200px;
   cursor: pointer;
   transition: border-color 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+
+.mappingSelect option {
+  background: #111113;
+  color: #e0e0e0;
 }
 
 .mappingSelect:hover,
 .mappingSelect:focus {
-  border-color: var(--accent-dim);
+  border-color: rgba(200, 161, 255, 0.3);
   outline: none;
 }
 
 .mappingSelect.highConfidence {
-  border-color: var(--success);
+  border-color: rgba(74, 222, 128, 0.5);
 }
 
 .mappingSelect.medConfidence {
-  border-color: var(--warning);
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
 .mappingSelect.lowConfidence {
-  border-color: var(--error);
+  border-color: rgba(248, 113, 113, 0.5);
 }
 
 /* Confidence dot */
 .confidenceDot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   display: inline-block;
 }
 
 .confidenceDot.high {
-  background: var(--success);
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
 }
 
 .confidenceDot.medium {
-  background: var(--warning);
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.4);
 }
 
 .confidenceDot.low {
-  background: var(--error);
+  background: #f87171;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.4);
+}
+
+/* ==================== COMPLETION SUMMARY BAR ==================== */
+.completionBar {
+  margin-bottom: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.completionStats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.completionReady {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.completionWarning {
+  color: #fbbf24;
+  font-size: 0.8rem;
+}
+
+.completionTrack {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.completionFill {
+  height: 100%;
+  background: #4ade80;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ==================== BATCH IMAGE DROP (REVIEW STEP) ==================== */
+.batchImageDrop {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.batchImageDrop:hover {
+  border-color: rgba(200, 161, 255, 0.25);
+  background: rgba(200, 161, 255, 0.04);
+}
+
+.batchImageDrop.dragOver {
+  border-color: #c8a1ff;
+  background: rgba(200, 161, 255, 0.08);
+  color: #e0e0e0;
+}
+
+.batchImageDrop strong {
+  color: #c8a1ff;
+}
+
+/* ==================== CSV IMAGES BANNER ==================== */
+.csvImagesBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
 }
 
 /* ==================== IMAGE UPLOAD (STEP 3) ==================== */
@@ -383,90 +603,420 @@
   text-align: center;
 }
 
-/* ==================== BATCH ITEM CARDS (STEP 4) ==================== */
+/* ==================== ACCORDION ITEM LIST ==================== */
 .cardsGrid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin-bottom: 1.5rem;
 }
 
-@media (min-width: 768px) {
-  .cardsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1200px) {
-  .cardsGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.itemCard {
-  background: linear-gradient(135deg, var(--glass-light) 0%, rgba(20, 20, 25, 0.8) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  transition: border-color 0.2s ease;
-}
-
-.itemCard:hover {
-  border-color: var(--border-hover);
-}
-
-.cardImage {
+.accordionCard {
   position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  background: var(--bg-card);
-  cursor: pointer;
+  background: #0a0a0c;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.15s ease;
 }
 
-.cardImage img {
+/* Gradient border — matches VendorFab modal */
+.accordionCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.2),
+    rgba(185, 145, 255, 0.05),
+    rgba(185, 145, 255, 0.2)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.accordionComplete::before {
+  background: linear-gradient(
+    135deg,
+    rgba(74, 222, 128, 0.35),
+    rgba(74, 222, 128, 0.08),
+    rgba(74, 222, 128, 0.35)
+  );
+}
+
+/* ── Collapsed header row ── */
+.accordionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  min-height: 52px;
+  position: relative;
+  z-index: 2;
+}
+
+.accordionHeader:hover {
+  background: rgba(200, 161, 255, 0.04);
+}
+
+/* Thumbnail */
+.accordionThumb {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #111113;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.accordionThumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.cardImagePlaceholder {
+.thumbPlaceholder {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.9rem;
+}
+
+.thumbDragOver {
+  border-color: #c8a1ff !important;
+  background: rgba(200, 161, 255, 0.12);
+}
+
+/* Info column */
+.accordionInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.accordionTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accordionSubtext {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+}
+
+/* Price */
+.accordionPrice {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  white-space: nowrap;
+}
+
+/* Quick actions (visible on collapsed row) */
+.quickActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.quickBtn {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quickBtn:hover {
+  background: rgba(200, 161, 255, 0.1);
+  color: #c8a1ff;
+}
+
+.quickBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.quickBtnImage {
+  position: relative;
+}
+
+/* Status indicator */
+.accordionStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.statusComplete {
+  color: #4ade80;
+}
+
+.statusIncomplete {
+  color: #fbbf24;
+}
+
+.statusCount {
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+/* Chevron */
+.accordionChevron {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.accordionHeader:hover .accordionChevron {
+  color: #c8a1ff;
+}
+
+/* ── Expanded body ── */
+.accordionBody {
+  padding: 0 14px 14px;
+  position: relative;
+  z-index: 2;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.12), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: top;
+}
+
+.accordionImageSection {
+  margin-bottom: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.accordionImageDrop {
+  width: 100%;
+  max-width: 180px;
+  aspect-ratio: 1;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.accordionImageDrop:hover {
+  border-color: rgba(200, 161, 255, 0.3);
+}
+
+.accordionImagePreview {
   width: 100%;
   height: 100%;
-  color: var(--text-muted);
-  font-size: 2.5rem;
+  object-fit: cover;
 }
 
-.itemBadge {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  background: var(--accent);
-  color: #0d0d0d;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
+.accordionImageEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 1.25rem;
 }
 
-.cardBody {
-  padding: 1rem;
+.accordionImageEmpty span {
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+}
+
+.accordionActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  background-image: linear-gradient(to right, transparent, rgba(185, 145, 255, 0.08), transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: top;
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 600px) {
+  .wizardPanel {
+    padding: 1rem;
+  }
+
+  .stepTitle {
+    font-size: 0.95rem;
+  }
+
+  .stepDescription {
+    font-size: 0.78rem;
+  }
+
+  /* Mapping table — stack as cards on mobile */
+  .mappingTable thead {
+    display: none;
+  }
+
+  .mappingTable,
+  .mappingTable tbody,
+  .mappingTable tr,
+  .mappingTable td {
+    display: block;
+    width: 100%;
+  }
+
+  .mappingRow {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+  }
+
+  .mappingTable td {
+    padding: 2px 0;
+    border-bottom: none;
+  }
+
+  .csvHeader {
+    font-size: 0.78rem;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .sampleValue {
+    font-size: 0.75rem;
+    max-width: none;
+    flex: 1;
+    text-align: right;
+    opacity: 0.5;
+  }
+
+  .mappingSelect {
+    width: 100%;
+    max-width: none;
+    font-size: 0.78rem;
+    padding: 0.4rem 0.5rem;
+    margin-top: 4px;
+  }
+
+  .confidenceDot {
+    margin-left: auto;
+  }
+
+  /* Accordion cards */
+  .accordionHeader {
+    gap: 0.5rem;
+    padding: 6px 10px;
+  }
+
+  .accordionThumb {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .accordionPrice {
+    display: none;
+  }
+
+  .accordionBody {
+    padding: 0 10px 10px;
+  }
+
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .accordionImageDrop {
+    max-width: 140px;
+  }
+
+  /* Buttons — full width stack on mobile */
+  .buttonRow {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .buttonRow > * {
+    width: 100%;
+  }
+
+  .buttonRow > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .btnPrimary,
+  .btnSecondary {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
+  }
+
+  /* Completion bar */
+  .completionStats {
+    font-size: 0.78rem;
+  }
+
+  /* Batch drop zone */
+  .batchImageDrop {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.75rem;
+  }
 }
 
 .fieldGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+  gap: 8px 10px;
+}
+
+@media (max-width: 600px) {
+  .fieldGrid {
+    grid-template-columns: 1fr !important;
+    gap: 6px;
+  }
 }
 
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 3px;
 }
 
 .fieldGroup.fullWidth {
@@ -474,53 +1024,65 @@
 }
 
 .fieldLabel {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  color: rgba(200, 161, 255, 0.45);
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
+  margin: 0;
+  line-height: 1;
 }
 
 .fieldLabel .required {
-  color: var(--error);
+  color: #ef4444;
 }
 
 .sourceIcon {
-  font-size: 0.65rem;
-  color: var(--accent);
+  font-size: 0.55rem;
+  color: #c8a1ff;
 }
 
 .fieldInput {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e0e0e0;
+  border: 1px solid rgba(200, 161, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
   width: 100%;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .fieldInput:focus {
-  border-color: var(--accent-dim);
+  border-color: rgba(200, 161, 255, 0.4);
+  background: rgba(200, 161, 255, 0.06);
   outline: none;
+  box-shadow: 0 0 0 2px rgba(200, 161, 255, 0.08);
 }
 
 .fieldInput::placeholder {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.18);
+}
+
+@media (max-width: 600px) {
+  .fieldInput {
+    font-size: 0.8rem;
+    padding: 10px 10px;
+  }
 }
 
 /* Confidence highlights */
 .lowConfidence {
-  background: var(--warning-dim);
-  border-left: 3px solid var(--warning);
+  background: rgba(251, 191, 36, 0.06);
+  border-left: 3px solid rgba(251, 191, 36, 0.6);
 }
 
 .veryLowConfidence {
-  background: var(--error-dim);
-  border-left: 3px solid var(--error);
+  background: rgba(248, 113, 113, 0.08);
+  border-left: 3px solid rgba(248, 113, 113, 0.6);
 }
 
 /* ==================== BUTTONS ==================== */
@@ -532,56 +1094,149 @@
   gap: 1rem;
 }
 
+/* Primary — glass border button, matches AddInventoryForm submitButton */
 .btnPrimary {
-  background: var(--accent);
-  color: #0d0d0d;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.65rem 1.5rem;
-  font-size: 0.9rem;
+  border-radius: 12px;
+  color: #c8a1ff;
+  font-size: 0.85rem;
   font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.btnPrimary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.6),
+    rgba(185, 145, 255, 0.15),
+    rgba(185, 145, 255, 0.6)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.btnPrimary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 50%, rgba(185, 145, 255, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: var(--accent-bright);
-  transform: translateY(-1px);
+  color: #d4b8ff;
+  transform: translateY(-2px);
+}
+
+.btnPrimary:hover:not(:disabled)::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.8),
+    rgba(185, 145, 255, 0.2),
+    rgba(185, 145, 255, 0.8)
+  );
+}
+
+.btnPrimary:hover:not(:disabled)::after {
+  background: radial-gradient(circle at 50% 50%, rgba(185, 145, 255, 0.2) 0%, transparent 70%);
 }
 
 .btnPrimary:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
+  color: rgba(255, 255, 255, 0.3);
 }
 
+/* Secondary — subtle glass border */
 .btnSecondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
   background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.65rem 1.5rem;
-  font-size: 0.9rem;
+  border: none;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.btnSecondary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.12)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .btnSecondary:hover {
-  border-color: var(--accent-dim);
-  color: var(--text-primary);
+  color: #c8a1ff;
+  transform: translateY(-1px);
+}
+
+.btnSecondary:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.4),
+    rgba(185, 145, 255, 0.1),
+    rgba(185, 145, 255, 0.4)
+  );
 }
 
 .btnGhost {
   background: transparent;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.35);
   border: none;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
   cursor: pointer;
   transition: color 0.2s ease;
 }
 
 .btnGhost:hover {
-  color: var(--error);
+  color: #ef4444;
 }
 
 /* ==================== IMAGE REASSIGN DROPDOWN ==================== */

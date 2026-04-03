@@ -46,7 +46,7 @@ export interface ImageInfo {
   preview?: string;
 }
 
-const STEP_LABELS = ['CSV Upload', 'Map Columns', 'Add Images', 'Review & Submit'];
+const STEP_LABELS = ['Upload File', 'Map Columns', 'Review & Submit'];
 
 // ── Component ──────────────────────────────────────────
 export const BulkUploadWizard: React.FC = () => {
@@ -78,69 +78,128 @@ export const BulkUploadWizard: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [batchResult, setBatchResult] = useState<{ batchId: string; count: number } | null>(null);
 
-  // ── Step 1: CSV Upload ─────────────────────────────────
+  // ── Supported file formats ─────────────────────────────
+  const ACCEPTED_EXTENSIONS = ['.csv', '.tsv', '.xlsx', '.xls'];
+  const ACCEPTED_MIME = '.csv,.tsv,.xlsx,.xls,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
+
+  const isExcelFile = (name: string) => name.endsWith('.xlsx') || name.endsWith('.xls');
+  const isSupportedFile = (name: string) => ACCEPTED_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext));
+
+  // Parse Excel files into { headers, rows } — dynamic import to keep bundle small
+  const parseExcelFile = async (file: File): Promise<{ headers: string[]; rows: Record<string, string>[] }> => {
+    const XLSX = await import('xlsx');
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          if (!sheetName) return reject(new Error('No sheets found in file'));
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+          if (jsonData.length === 0) return reject(new Error('Spreadsheet appears empty'));
+          const headers = Object.keys(jsonData[0]);
+          const rows = jsonData.map((row) =>
+            Object.fromEntries(headers.map((h) => [h, String(row[h] ?? '')]))
+          );
+          resolve({ headers, rows });
+        } catch (err: any) {
+          reject(new Error(`Excel parse error: ${err.message}`));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  // Shared handler: after headers/rows are extracted, run AI mapping
+  const processHeadersAndRows = useCallback(
+    async (headers: string[], rows: Record<string, string>[]) => {
+      setCsvHeaders(headers);
+      setCsvRows(rows);
+
+      setLoadingText('AI is mapping your columns...');
+      try {
+        const sampleRows = rows.slice(0, 3).map((row) => headers.map((h) => row[h] || ''));
+        const allRows = rows.map((row) => headers.map((h) => row[h] || ''));
+
+        const res = await fetch('/api/ai/map-csv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ headers, sampleRows, allRows }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'AI mapping failed');
+        }
+
+        const data = await res.json();
+        setMapping(data.mapping || {});
+        setConfidence(data.confidence || {});
+        setStep(2);
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to map columns');
+      } finally {
+        setLoading(false);
+        setLoadingText('');
+      }
+    },
+    []
+  );
+
+  // ── Step 1: File Upload (CSV, TSV, Excel) ─────────────
   const handleCsvFile = useCallback(
     async (file: File) => {
-      if (!file.name.endsWith('.csv')) {
-        toast.error('Please upload a .csv file');
+      if (!isSupportedFile(file.name)) {
+        toast.error('Supported formats: CSV, TSV, XLS, XLSX');
         return;
       }
 
       setLoading(true);
-      setLoadingText('Parsing CSV...');
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      setLoadingText(`Parsing ${ext?.toUpperCase()} file...`);
 
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        encoding: 'UTF-8',
-        complete: async (results) => {
-          const headers = results.meta.fields || [];
-          const rows = results.data;
-
+      if (isExcelFile(file.name)) {
+        // Excel path
+        try {
+          const { headers, rows } = await parseExcelFile(file);
           if (headers.length === 0 || rows.length === 0) {
-            toast.error('CSV appears empty or has no headers');
+            toast.error('Spreadsheet appears empty or has no headers');
             setLoading(false);
             return;
           }
-
-          setCsvHeaders(headers);
-          setCsvRows(rows);
-
-          // Call AI mapping
-          setLoadingText('AI is mapping your columns...');
-          try {
-            const sampleRows = rows.slice(0, 3).map((row) => headers.map((h) => row[h] || ''));
-            const allRows = rows.map((row) => headers.map((h) => row[h] || ''));
-
-            const res = await fetch('/api/ai/map-csv', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ headers, sampleRows, allRows }),
-            });
-
-            if (!res.ok) {
-              const err = await res.json();
-              throw new Error(err.error || 'AI mapping failed');
-            }
-
-            const data = await res.json();
-            setMapping(data.mapping || {});
-            setConfidence(data.confidence || {});
-            setStep(2);
-          } catch (err: any) {
-            toast.error(err.message || 'Failed to map CSV columns');
-          } finally {
-            setLoading(false);
-            setLoadingText('');
-          }
-        },
-        error: (err) => {
-          toast.error(`CSV parse error: ${err.message}`);
+          await processHeadersAndRows(headers, rows);
+        } catch (err: any) {
+          toast.error(err.message || 'Failed to parse Excel file');
           setLoading(false);
-        },
-      });
+        }
+      } else {
+        // CSV / TSV path — PapaParse auto-detects delimiter
+        Papa.parse<Record<string, string>>(file, {
+          header: true,
+          skipEmptyLines: true,
+          encoding: 'UTF-8',
+          complete: async (results) => {
+            const headers = results.meta.fields || [];
+            const rows = results.data;
+
+            if (headers.length === 0 || rows.length === 0) {
+              toast.error('File appears empty or has no headers');
+              setLoading(false);
+              return;
+            }
+            await processHeadersAndRows(headers, rows);
+          },
+          error: (err) => {
+            toast.error(`Parse error: ${err.message}`);
+            setLoading(false);
+          },
+        });
+      }
     },
-    []
+    [processHeadersAndRows]
   );
 
   const handleCsvDrop = useCallback(
@@ -157,7 +216,7 @@ export const BulkUploadWizard: React.FC = () => {
     setMapping((prev) => ({ ...prev, [header]: field }));
   }, []);
 
-  const applyMapping = useCallback(() => {
+  const applyMapping = useCallback(async () => {
     // Convert CSV rows using the mapping
     const mapped: MappedItem[] = csvRows.map((row) => {
       const item: any = {
@@ -199,8 +258,62 @@ export const BulkUploadWizard: React.FC = () => {
       return item as MappedItem;
     });
 
-    setItems(mapped);
-    setStep(3);
+    // If CSV has image URLs, auto-fetch them to R2 in background
+    const itemsWithUrls = mapped.filter((item) => item.imageUrl && !item.imageR2Url);
+    if (itemsWithUrls.length > 0) {
+      setItems(mapped);
+      setStep(3); // Go to review — images load in background
+      setLoading(true);
+      setLoadingText(`Fetching ${itemsWithUrls.length} images from CSV URLs...`);
+
+      try {
+        const toFetch = mapped
+          .map((item, i) => ({ url: item.imageUrl, index: i }))
+          .filter((x) => x.url);
+
+        const fetchRes = await fetch('/api/bulk-upload/fetch-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: toFetch }),
+        });
+
+        if (fetchRes.ok) {
+          const fetchData = await fetchRes.json();
+          const fetchResults = fetchData.results || [];
+
+          setItems((prev) => {
+            const updated = [...prev];
+            for (const result of fetchResults) {
+              if (result.r2Url && result.index < updated.length) {
+                updated[result.index] = {
+                  ...updated[result.index],
+                  imageR2Url: result.r2Url,
+                  matched: true,
+                };
+              }
+            }
+            return updated;
+          });
+
+          const newImages: ImageInfo[] = fetchResults
+            .filter((r: any) => r.r2Url)
+            .map((r: any) => ({ originalName: `item-${r.index}`, r2Url: r.r2Url }));
+          setUploadedImages((prev) => [...prev, ...newImages]);
+
+          const failed = fetchResults.filter((r: any) => !r.r2Url).length;
+          if (failed > 0) toast.error(`${failed} image URLs failed to load`);
+          else toast.success(`${newImages.length} images loaded from CSV`);
+        }
+      } catch (err: any) {
+        toast.error('Failed to fetch CSV images — add them manually');
+      } finally {
+        setLoading(false);
+        setLoadingText('');
+      }
+    } else {
+      setItems(mapped);
+      setStep(3); // Skip straight to review
+    }
   }, [csvRows, mapping, confidence]);
 
   // ── Step 3: Image Upload + AI Analysis ─────────────────
@@ -368,7 +481,7 @@ export const BulkUploadWizard: React.FC = () => {
     [handleImageFiles]
   );
 
-  // ── Step 4: Item editing + Submit ──────────────────────
+  // ── Item editing + Submit ──────────────────────────────
   const handleItemUpdate = useCallback(
     (index: number, field: string, value: string | number) => {
       setItems((prev) => {
@@ -394,6 +507,47 @@ export const BulkUploadWizard: React.FC = () => {
         if (updated[toIndex]) updated[toIndex] = { ...updated[toIndex], imageR2Url: fromUrl };
         return updated;
       });
+    },
+    []
+  );
+
+  // ── Single card image drop — upload one image to a specific card ──
+  const handleSingleCardImageDrop = useCallback(
+    async (index: number, files: FileList) => {
+      const file = Array.from(files).find((f) => f.type.startsWith('image/'));
+      if (!file) return;
+
+      setLoading(true);
+      setLoadingText(`Uploading image for item ${index + 1}...`);
+
+      try {
+        const formData = new FormData();
+        formData.append('images', file);
+
+        const uploadRes = await fetch('/api/bulk-upload/images', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) throw new Error('Upload failed');
+        const uploadData = await uploadRes.json();
+        const img = uploadData.images?.[0];
+
+        if (img?.r2Url) {
+          setItems((prev) => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], imageR2Url: img.r2Url, matched: true };
+            return updated;
+          });
+          setUploadedImages((prev) => [...prev, { originalName: file.name, r2Url: img.r2Url }]);
+          toast.success(`Image added to item ${index + 1}`);
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Image upload failed');
+      } finally {
+        setLoading(false);
+        setLoadingText('');
+      }
     },
     []
   );
@@ -477,7 +631,7 @@ export const BulkUploadWizard: React.FC = () => {
   // ── Render ─────────────────────────────────────────────
   if (submitted && batchResult) {
     return (
-      <div className={styles.wizardPanel}>
+      <div className={`${styles.wizardRoot} ${styles.wizardPanel}`}>
         <div className={styles.successScreen}>
           <div className={styles.successIcon}>
             <FaCheckCircle />
@@ -497,7 +651,7 @@ export const BulkUploadWizard: React.FC = () => {
   }
 
   return (
-    <>
+    <div className={styles.wizardRoot}>
       {/* Step Indicator */}
       <div className={styles.stepIndicator}>
         {STEP_LABELS.map((label, i) => {
@@ -531,16 +685,15 @@ export const BulkUploadWizard: React.FC = () => {
           </div>
         )}
 
-        {/* Step 1: CSV Upload */}
+        {/* Step 1: File Upload */}
         {!loading && step === 1 && (
           <>
             <h3 className={styles.stepTitle}>
               <FaUpload style={{ marginRight: '0.5rem', color: 'var(--accent)' }} />
-              Upload CSV
+              Upload Inventory
             </h3>
             <p className={styles.stepDescription}>
-              Upload a CSV file with your watch inventory. We&apos;ll use AI to map your columns to
-              our schema.
+              Upload your watch inventory file. We&apos;ll use AI to map your columns to our schema.
             </p>
             <div
               className={styles.dropZone}
@@ -556,13 +709,14 @@ export const BulkUploadWizard: React.FC = () => {
                 <FaUpload />
               </div>
               <p className={styles.dropText}>
-                <strong>Click to browse</strong> or drag & drop a .csv file
+                <strong>Click to browse</strong> or drag &amp; drop your file
               </p>
+              <p className={styles.dropFormats}>CSV, TSV, Excel (.xlsx, .xls)</p>
             </div>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept={ACCEPTED_MIME}
               className={styles.hiddenInput}
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -601,19 +755,47 @@ export const BulkUploadWizard: React.FC = () => {
           </>
         )}
 
-        {/* Step 3: Image Upload + AI Analysis */}
-        {!loading && step === 3 && (
-          <>
+        {/* Step 3: Review + Submit (with inline image support) */}
+        {!loading && step === 3 && (() => {
+          const REQUIRED = ['title', 'brand', 'model', 'referenceNumber', 'priceUSD'];
+          const completeCount = items.filter((item) =>
+            REQUIRED.every((f) => (item as any)[f]) && (item.imageR2Url || item.imageUrl)
+          ).length;
+          const needsImageCount = items.filter((item) => !item.imageR2Url && !item.imageUrl).length;
+
+          return <>
             <h3 className={styles.stepTitle}>
-              <FaImages style={{ marginRight: '0.5rem', color: 'var(--accent)' }} />
-              Upload Images
+              <FaCheckCircle style={{ marginRight: '0.5rem', color: 'var(--accent)' }} />
+              Review &amp; Submit
             </h3>
+
+            {/* Completion summary bar */}
+            <div className={styles.completionBar}>
+              <div className={styles.completionStats}>
+                <span className={styles.completionReady}>
+                  <FaCheckCircle /> {completeCount}/{items.length} ready
+                </span>
+                {needsImageCount > 0 && (
+                  <span className={styles.completionWarning}>
+                    {needsImageCount} need{needsImageCount === 1 ? 's' : ''} image
+                  </span>
+                )}
+              </div>
+              <div className={styles.completionTrack}>
+                <div
+                  className={styles.completionFill}
+                  style={{ width: `${items.length > 0 ? (completeCount / items.length) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+
             <p className={styles.stepDescription}>
-              Upload photos of your watches. AI will analyze each image and match them to your CSV
-              rows. Max 25 images.
+              Tap to expand and edit. Drag an image onto any row, or drop multiple below.
             </p>
+
+            {/* Batch image drop zone — AI matches to cards */}
             <div
-              className={`${styles.imageDropZone} ${imageDragOver ? styles.dragOver : ''}`}
+              className={`${styles.batchImageDrop} ${imageDragOver ? styles.dragOver : ''}`}
               onDragOver={(e) => {
                 e.preventDefault();
                 setImageDragOver(true);
@@ -622,12 +804,10 @@ export const BulkUploadWizard: React.FC = () => {
               onDrop={handleImageDrop}
               onClick={() => imageInputRef.current?.click()}
             >
-              <div className={styles.dropIcon}>
-                <FaImages />
-              </div>
-              <p className={styles.dropText}>
-                <strong>Click to browse</strong> or drag & drop images (max 25)
-              </p>
+              <FaImages style={{ color: 'var(--accent)', fontSize: '1.25rem' }} />
+              <span>
+                <strong>Drop images here</strong> to auto-match to items, or click to browse
+              </span>
             </div>
             <input
               ref={imageInputRef}
@@ -640,51 +820,6 @@ export const BulkUploadWizard: React.FC = () => {
               }}
             />
 
-            {uploadedImages.length > 0 && (
-              <div className={styles.imagePreviewGrid}>
-                {uploadedImages.map((img, i) => (
-                  <div key={i} className={styles.imagePreviewThumb}>
-                    <img src={img.r2Url} alt={img.originalName} />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className={styles.buttonRow}>
-              <button className={styles.btnSecondary} onClick={() => setStep(2)}>
-                Back
-              </button>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  className={styles.btnSecondary}
-                  onClick={() => setStep(4)}
-                >
-                  Skip Images
-                </button>
-                <button
-                  className={styles.btnPrimary}
-                  onClick={() => setStep(4)}
-                  disabled={items.length === 0}
-                >
-                  Review Items ({items.length})
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Step 4: Review + Submit */}
-        {!loading && step === 4 && (
-          <>
-            <h3 className={styles.stepTitle}>
-              <FaCheckCircle style={{ marginRight: '0.5rem', color: 'var(--accent)' }} />
-              Review &amp; Submit
-            </h3>
-            <p className={styles.stepDescription}>
-              Review each item. Yellow highlighted fields have low AI confidence — please verify.
-              Click an image to reassign it.
-            </p>
-
             <div className={styles.cardsGrid}>
               {items.map((item, i) => (
                 <BatchItemCard
@@ -694,13 +829,14 @@ export const BulkUploadWizard: React.FC = () => {
                   onUpdate={handleItemUpdate}
                   onRemove={handleRemoveItem}
                   onImageReassign={handleImageReassign}
+                  onImageDrop={handleSingleCardImageDrop}
                   allImages={uploadedImages}
                 />
               ))}
             </div>
 
             <div className={styles.buttonRow}>
-              <button className={styles.btnSecondary} onClick={() => setStep(3)}>
+              <button className={styles.btnSecondary} onClick={() => setStep(2)}>
                 Back
               </button>
               <button
@@ -711,10 +847,10 @@ export const BulkUploadWizard: React.FC = () => {
                 Submit for Review ({items.length} items)
               </button>
             </div>
-          </>
-        )}
+          </>;
+        })()}
       </div>
-    </>
+    </div>
   );
 };
 

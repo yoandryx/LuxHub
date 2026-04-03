@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import styles from '../../styles/WalletNavbar.module.css';
 import { useRouter } from 'next/router';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { usePrivy, useLogout, getAccessToken } from '@privy-io/react-auth';
 import { useCreateWallet, useWallets } from '@privy-io/react-auth/solana';
 import { SiSolana } from 'react-icons/si';
@@ -21,15 +19,15 @@ import {
   FaBoxesStacked,
   FaChartLine,
   FaClipboardList,
-  FaMoneyBillTrendUp,
   FaCircleCheck,
   FaBoxOpen,
   FaEnvelope,
   FaRightFromBracket,
-  FaRegCircleCheck,
   FaLink,
-  FaCircle,
-  FaStar,
+  FaBolt,
+  FaArrowRightArrowLeft,
+  FaGavel,
+  FaFileCirclePlus,
 } from 'react-icons/fa6';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { usePriceDisplay } from '../marketplace/PriceDisplay';
@@ -73,15 +71,7 @@ export default function WalletNavbar() {
   const { endpoint, explorerUrl: makeExplorerUrl } = getClusterConfig();
   const router = useRouter();
 
-  // Solana wallet adapter hooks (for Phantom, Solflare, etc.)
-  const {
-    connected: walletAdapterConnected,
-    publicKey: walletAdapterPublicKey,
-    disconnect: walletAdapterDisconnect,
-  } = useWallet();
-  const { setVisible: openWalletModal } = useWalletModal();
-
-  // Privy hooks (for email login + embedded wallet)
+  // Privy hooks (email login + embedded wallet)
   const {
     ready,
     authenticated,
@@ -105,12 +95,14 @@ export default function WalletNavbar() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAllWallets, setShowAllWallets] = useState(false);
   const [hasSynced, setHasSynced] = useState(false);
+  const [pendingOrders, setPendingOrders] = useState(0);
+  const [pendingMintRequests, setPendingMintRequests] = useState(0);
 
   const widgetRef = useRef<HTMLDivElement>(null);
 
   const [isRefreshingWallet, setIsRefreshingWallet] = useState(false);
 
-  // Determine the active wallet - prefer wallet adapter if connected, otherwise use Privy
+  // Determine the active wallet from Privy
   // Try multiple sources for Privy wallet address:
   // 1. useWallets hook (embedded + linked wallets)
   // 2. user.linkedAccounts (fallback) - check for embedded_solana_wallet type
@@ -309,20 +301,12 @@ export default function WalletNavbar() {
 
   const allLinkedWallets = getAllLinkedWallets();
 
-  // Use wallet adapter if connected, otherwise fall back to Privy embedded wallet
-  const activePublicKey =
-    walletAdapterConnected && walletAdapterPublicKey ? walletAdapterPublicKey : privyPublicKey;
+  // Privy-only wallet
+  const activePublicKey = privyPublicKey;
 
-  const isConnected = walletAdapterConnected || (authenticated && !!privyPublicKey);
+  const isConnected = authenticated && !!privyPublicKey;
   const hasWallet = !!activePublicKey;
   const hasPrivyWalletButNotLoaded = authenticated && walletsReady && !privyPublicKey;
-
-  // Determine wallet type for display
-  const getWalletType = (): string => {
-    if (walletAdapterConnected && walletAdapterPublicKey) return 'External';
-    if (privyPublicKey) return 'Embedded';
-    return '';
-  };
 
   // Check on-chain roles (admin/vendor)
   const checkRoles = useCallback(async () => {
@@ -419,6 +403,33 @@ export default function WalletNavbar() {
     }
   }, [activePublicKey]);
 
+  // Fetch smart context data when panel opens
+  const fetchSmartContext = useCallback(async () => {
+    if (!activePublicKey) return;
+    const wallet = activePublicKey.toBase58();
+
+    try {
+      const [ordersRes, mintRes] = await Promise.allSettled([
+        fetch(`/api/escrow/orders?wallet=${wallet}&status=funded,shipped`),
+        role === 'vendor' || role === 'admin'
+          ? fetch(`/api/vendor/mint-request?wallet=${wallet}&status=pending`)
+          : Promise.resolve(null),
+      ]);
+
+      if (ordersRes.status === 'fulfilled' && ordersRes.value?.ok) {
+        const data = await ordersRes.value.json();
+        setPendingOrders(Array.isArray(data) ? data.length : data.orders?.length || 0);
+      }
+
+      if (mintRes.status === 'fulfilled' && mintRes.value?.ok) {
+        const data = await mintRes.value.json();
+        setPendingMintRequests(Array.isArray(data) ? data.length : data.requests?.length || 0);
+      }
+    } catch {
+      // Non-critical — fail silently
+    }
+  }, [activePublicKey, role]);
+
   useEffect(() => {
     fetchBalance();
     if (hasWallet) {
@@ -428,6 +439,13 @@ export default function WalletNavbar() {
     const interval = setInterval(fetchBalance, 30000);
     return () => clearInterval(interval);
   }, [hasWallet, fetchBalance, checkRoles, fetchVendorProfile]);
+
+  // Fetch context when panel opens
+  useEffect(() => {
+    if (isOpen && hasWallet) {
+      fetchSmartContext();
+    }
+  }, [isOpen, hasWallet, fetchSmartContext]);
 
   // Click outside to close
   useEffect(() => {
@@ -464,15 +482,9 @@ export default function WalletNavbar() {
     window.open('https://buy.moonpay.com/?defaultCurrencyCode=sol', '_blank');
   };
 
-  // Login with Email (Privy)
-  const handleEmailLogin = () => {
+  // Login via Privy (email or social)
+  const handleLogin = () => {
     privyLogin();
-    setIsOpen(false);
-  };
-
-  // Connect External Wallet (Solana wallet adapter)
-  const handleConnectWallet = () => {
-    openWalletModal(true);
     setIsOpen(false);
   };
 
@@ -502,18 +514,12 @@ export default function WalletNavbar() {
     setIsOpen(false);
   };
 
-  // Disconnect / Logout
+  // Disconnect / Logout (Privy only)
   const handleDisconnect = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
 
     try {
-      // Disconnect wallet adapter if connected
-      if (walletAdapterConnected) {
-        await walletAdapterDisconnect();
-      }
-
-      // Logout from Privy if authenticated
       if (authenticated) {
         await privyLogout();
       }
@@ -606,7 +612,7 @@ export default function WalletNavbar() {
                       )}
                     </span>
                     <span className={styles.vendorUsername}>
-                      {vendorProfile ? `@${vendorProfile.username}` : getWalletType()}
+                      {vendorProfile ? `@${vendorProfile.username}` : 'Privy Wallet'}
                     </span>
                   </div>
                 </div>
@@ -646,60 +652,110 @@ export default function WalletNavbar() {
               </div>
             </div>
 
-            {/* Navigation — same items as UserMenuDropdown */}
+            {/* Smart Quick Actions */}
             <div className={styles.section}>
-              <div className={styles.menuList}>
-                <button onClick={() => navigateTo('/marketplace')} className={styles.menuItem}>
-                  <FaBoxesStacked /> Marketplace
+              <div className={styles.sectionLabel}>
+                <FaBolt style={{ fontSize: '10px' }} /> Quick Actions
+              </div>
+              <div className={styles.quickGrid}>
+                <button onClick={() => navigateTo('/marketplace')} className={styles.quickAction}>
+                  <FaBoxesStacked />
+                  <span>Browse</span>
                 </button>
-                <button onClick={() => navigateTo('/pools')} className={styles.menuItem}>
-                  <FaChartLine /> Pools
+                <button onClick={() => navigateTo('/pools')} className={styles.quickAction}>
+                  <FaChartLine />
+                  <span>Pools</span>
                 </button>
                 <button
                   onClick={() => navigateTo(`/user/${activePublicKey!.toBase58()}`)}
-                  className={styles.menuItem}
+                  className={styles.quickAction}
                 >
-                  <FaUser /> My Profile
+                  <FaUser />
+                  <span>Profile</span>
                 </button>
-                <button onClick={() => navigateTo('/orders')} className={styles.menuItem}>
-                  <FaClipboardList /> My Orders
+                <button onClick={() => navigateTo('/orders')} className={styles.quickAction}>
+                  <FaClipboardList />
+                  <span>Orders</span>
+                  {pendingOrders > 0 && <span className={styles.badge}>{pendingOrders}</span>}
                 </button>
-
-                {(role === 'vendor' || role === 'admin') && (
-                  <>
-                    <div className={styles.sectionTitle} style={{ marginTop: '4px' }}>
-                      <FaStore className={styles.roleIcon} /> Vendor
-                    </div>
-                    <button
-                      onClick={() => navigateTo(`/vendor/${activePublicKey!.toBase58()}`)}
-                      className={styles.menuItem}
-                    >
-                      <FaStore /> Vendor Dashboard
-                    </button>
-                    <button onClick={() => navigateTo('/requestMint')} className={styles.menuItem}>
-                      <FaBoxOpen /> Request Listing
-                    </button>
-                  </>
-                )}
-
-                {role === 'admin' && (
-                  <>
-                    <div className={styles.sectionTitle} style={{ marginTop: '4px' }}>
-                      <FaShieldHalved className={styles.roleIcon} /> Admin
-                    </div>
-                    <button
-                      onClick={() => navigateTo('/adminDashboard')}
-                      className={styles.menuItem}
-                    >
-                      <FaShieldHalved /> Admin Panel
-                    </button>
-                    <button onClick={() => navigateTo('/createNFT')} className={styles.menuItem}>
-                      <FaWandMagicSparkles /> Mint NFT
-                    </button>
-                  </>
-                )}
               </div>
             </div>
+
+            {/* Contextual Suggestions */}
+            {(pendingOrders > 0 || (balance !== null && balance < 0.01)) && (
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Suggestions</div>
+                <div className={styles.suggestions}>
+                  {balance !== null && balance < 0.01 && (
+                    <button onClick={handleFund} className={styles.suggestion}>
+                      <FaCreditCard className={styles.suggestIcon} />
+                      <div>
+                        <span className={styles.suggestTitle}>Fund your wallet</span>
+                        <span className={styles.suggestDesc}>Add SOL to start buying</span>
+                      </div>
+                    </button>
+                  )}
+                  {pendingOrders > 0 && (
+                    <button onClick={() => navigateTo('/orders')} className={styles.suggestion}>
+                      <FaArrowRightArrowLeft className={styles.suggestIcon} />
+                      <div>
+                        <span className={styles.suggestTitle}>{pendingOrders} active order{pendingOrders > 1 ? 's' : ''}</span>
+                        <span className={styles.suggestDesc}>Track shipment or confirm delivery</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Vendor Tools */}
+            {(role === 'vendor' || role === 'admin') && (
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>
+                  <FaStore style={{ fontSize: '10px' }} /> Vendor Tools
+                </div>
+                <div className={styles.quickGrid}>
+                  <button
+                    onClick={() => navigateTo('/vendor/vendorDashboard')}
+                    className={styles.quickAction}
+                  >
+                    <FaStore />
+                    <span>Dashboard</span>
+                  </button>
+                  <button
+                    onClick={() => navigateTo('/vendor/bulk-upload')}
+                    className={styles.quickAction}
+                  >
+                    <FaFileCirclePlus />
+                    <span>Upload</span>
+                    {pendingMintRequests > 0 && <span className={styles.badge}>{pendingMintRequests}</span>}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Admin Tools */}
+            {role === 'admin' && (
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>
+                  <FaShieldHalved style={{ fontSize: '10px' }} /> Admin
+                </div>
+                <div className={styles.quickGrid}>
+                  <button onClick={() => navigateTo('/adminDashboard')} className={styles.quickAction}>
+                    <FaShieldHalved />
+                    <span>Panel</span>
+                  </button>
+                  <button onClick={() => navigateTo('/createNFT')} className={styles.quickAction}>
+                    <FaWandMagicSparkles />
+                    <span>Mint</span>
+                  </button>
+                  <button onClick={() => navigateTo('/adminDashboard?tab=vendors')} className={styles.quickAction}>
+                    <FaGavel />
+                    <span>Vendors</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Disconnect */}
             <button
@@ -742,12 +798,12 @@ export default function WalletNavbar() {
 
             {/* Create embedded wallet */}
             <button onClick={handleCreateEmbedded} className={styles.connectBtn}>
-              <FaWallet /> Create Embedded Wallet
+              <FaWallet /> Create Wallet
             </button>
 
-            {/* Or connect external wallet */}
-            <button onClick={handleConnectWallet} className={styles.connectBtnSecondary}>
-              <FaWallet /> Connect External Wallet
+            {/* Or link external wallet via Privy */}
+            <button onClick={handleLinkWallet} className={styles.connectBtnSecondary}>
+              <FaLink /> Link External Wallet
             </button>
 
             {/* Refresh button if wallet state seems stale */}
@@ -776,18 +832,12 @@ export default function WalletNavbar() {
             </button>
           </div>
         ) : (
-          /* Not Connected - Show dual login options */
+          /* Not Connected */
           <div className={styles.connectPrompt}>
-            <p>Connect to unlock the full LuxHub experience</p>
+            <p>Sign in to unlock the full LuxHub experience</p>
 
-            {/* Email Login via Privy */}
-            <button onClick={handleEmailLogin} className={styles.connectBtn}>
-              <FaEnvelope /> Login with Email
-            </button>
-
-            {/* External Wallet via Solana Wallet Adapter */}
-            <button onClick={handleConnectWallet} className={styles.connectBtnSecondary}>
-              <FaWallet /> Connect Wallet
+            <button onClick={handleLogin} className={styles.connectBtn}>
+              <FaWallet /> Sign In
             </button>
           </div>
         )}

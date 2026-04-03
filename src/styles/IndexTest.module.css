@@ -169,9 +169,41 @@
 
 .heroButtons {
   display: flex;
-  gap: 16px;
-  margin-bottom: 40px;
+  gap: 12px;
+  margin-bottom: 0;
   justify-content: center;
+  flex-wrap: nowrap;
+}
+
+/* ===== SECTION NAVIGATOR ===== */
+.sectionNav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 48px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sectionNavItem {
+  padding: 8px 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.sectionNavItem:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(200, 161, 255, 0.08);
 }
 
 .heroStats {
@@ -273,6 +305,7 @@
   position: relative;
   z-index: 2;
   box-sizing: border-box;
+  scroll-margin-top: 60px;
 }
 
 .featuresHeader {
@@ -763,6 +796,7 @@
   padding: 50px var(--side-spacing);
   z-index: 2;
   box-sizing: border-box;
+  scroll-margin-top: 60px;
 }
 
 .sliderHeader {
@@ -878,6 +912,50 @@
   font-size: 0.95rem;
 }
 
+/* ===== VENDOR SECTION ===== */
+.vendorSection {
+  width: 100%;
+  max-width: var(--max-content-width);
+  padding: 20px var(--side-spacing) 40px;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.vendorSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vendorSlider {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 161, 255, 0.25) transparent;
+}
+
+.vendorSlider::-webkit-scrollbar {
+  height: 6px;
+}
+
+.vendorSlider::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vendorSlider::-webkit-scrollbar-thumb {
+  background: rgba(200, 161, 255, 0.25);
+  border-radius: 100px;
+}
+
+.vendorSliderTrack {
+  display: flex;
+  gap: 16px;
+}
+
 /* Skeleton Loading */
 .skeletonCard {
   width: 100%;
@@ -937,6 +1015,7 @@
   justify-content: center;
   z-index: 2;
   box-sizing: border-box;
+  scroll-margin-top: 60px;
 }
 
 /* ========== TRUST FOOTER ========== */
@@ -947,6 +1026,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  scroll-margin-top: 60px;
   gap: 36px;
   z-index: 2;
 }
@@ -1241,23 +1321,39 @@
   }
 
   .heroButtons {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     width: 100%;
-    max-width: 280px;
-    gap: 10px;
+    max-width: 320px;
+    gap: 8px;
     margin-bottom: 16px;
     align-items: center;
+    justify-content: center;
   }
 
   .primaryBtn,
   .secondaryBtn {
-    width: 100%;
-    padding: 14px 24px;
-    font-size: 0.9rem;
+    padding: 12px 20px;
+    font-size: 0.8rem;
+    white-space: nowrap;
   }
 
   .heroStats {
     display: none;
+  }
+
+  .sectionNav {
+    gap: 2px;
+    padding: 3px;
+    margin-top: 32px;
+    margin-left: 16px;
+    margin-right: 16px;
+    align-self: center;
+  }
+
+  .sectionNavItem {
+    padding: 6px 10px;
+    font-size: 0.62rem;
   }
 
   .heroStatDivider {
@@ -1375,13 +1471,16 @@
   }
 
   .ctaButtons {
-    flex-direction: column;
-    gap: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
     width: 100%;
+    justify-content: center;
   }
 
   .ctaButtons a {
-    width: 100%;
+    padding: 12px 20px;
+    font-size: 0.8rem;
   }
 
   .sliderSection {
@@ -1417,13 +1516,14 @@
   }
 
   .heroButtons {
-    max-width: 260px;
+    max-width: 300px;
+    gap: 6px;
   }
 
   .primaryBtn,
   .secondaryBtn {
-    padding: 12px 0px;
-    font-size: 0.85rem;
+    padding: 10px 16px;
+    font-size: 0.75rem;
   }
 
   .heroStats {
@@ -1520,7 +1620,8 @@
   }
 
   .heroButtons {
-    max-width: 240px;
+    max-width: 280px;
+    gap: 6px;
   }
 
   .heroStats {
