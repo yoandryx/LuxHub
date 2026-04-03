@@ -101,9 +101,11 @@ export function PoolCreationStepper({
     setSelectedAsset(asset);
     setSelectedAssetId(asset._id);
 
-    // Generate LUX-prefixed symbol from brand
-    const brandKey = (asset.brand || '').toUpperCase().replace(/\s+/g, '').slice(0, 3);
-    const symbol = brandKey ? `LUX${brandKey}` : 'LUXPOOL';
+    // Generate LUX-prefixed symbol from model name (more unique than brand at scale)
+    // e.g. Submariner → LUXSUB, Nautilus → LUXNAUT, Tank → LUXTANK, Daytona → LUXDAY
+    const modelClean = (asset.model || '').toUpperCase().replace(/[^A-Z]/g, '');
+    const modelKey = modelClean.slice(0, 4) || (asset.brand || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+    const symbol = `LUX${modelKey}`;
     setTokenSymbol(symbol.slice(0, 10));
 
     // Generate description from asset metadata
