@@ -730,6 +730,13 @@ export default function WalletNavbar() {
                     <span>Upload</span>
                     {pendingMintRequests > 0 && <span className={styles.badge}>{pendingMintRequests}</span>}
                   </button>
+                  <button
+                    onClick={() => navigateTo('/vendor/pools')}
+                    className={styles.quickAction}
+                  >
+                    <FaChartLine />
+                    <span>Pools</span>
+                  </button>
                 </div>
               </div>
             )}

@@ -7,8 +7,10 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
 
+import Link from 'next/link';
 import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
-import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage } from 'react-icons/fi';
+import { useUserRole } from '../hooks/useUserRole';
+import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage, FiDroplet } from 'react-icons/fi';
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
 import TvChart, { generatePriceHistory } from '../components/marketplace/TvChart';
 import { getLifecycleStage, LIFECYCLE_STAGES } from '../components/pool/LifecycleStepper';
@@ -677,6 +679,7 @@ PoolCard.displayName = 'PoolCard';
 // ─── Main Page ──────────────────────────────────────────────────
 const PoolsPage: React.FC = () => {
   const wallet = useEffectiveWallet();
+  const { isVendor, isAdmin } = useUserRole();
   const [filter, setFilter] = useState<FilterKey>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'progress' | 'value' | 'volume'>('newest');
   const poolRouter = useRouter();
@@ -764,6 +767,28 @@ const PoolsPage: React.FC = () => {
                 Own a piece of verified timepieces — trade tokens anytime on secondary markets
               </p>
             </div>
+            {(isVendor || isAdmin) && (
+              <Link
+                href="/vendor/pools"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(200,161,255,0.25)',
+                  background: 'rgba(200,161,255,0.06)',
+                  color: '#c8a1ff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <FiDroplet /> Manage My Pools
+              </Link>
+            )}
           </div>
 
           {/* ─── Toolbar ─── */}
