@@ -103,25 +103,32 @@ export default function WalletNavbar() {
   const [isRefreshingWallet, setIsRefreshingWallet] = useState(false);
 
   // Determine the active wallet from Privy
-  // Try multiple sources for Privy wallet address:
-  // 1. useWallets hook (embedded + linked wallets)
-  // 2. user.linkedAccounts (fallback) - check for embedded_solana_wallet type
-  const privyActiveWallet = privySolanaWallets?.[0];
-  const privyWalletAddress = privyActiveWallet?.address;
-
-  // Fallback: check user.linkedAccounts for Solana wallet (embedded or linked)
-  // Priority: embedded_solana_wallet > wallet with chainType solana
-  const linkedEmbeddedWallet = user?.linkedAccounts?.find(
-    (account: any) => account.type === 'embedded_solana_wallet'
-  ) as { address?: string } | undefined;
-
+  // Priority: EXTERNAL wallet (where NFTs/vendor profile live) > embedded wallet
+  // This ensures the WalletNavbar uses the same wallet as the top navbar
   const linkedExternalWallet = user?.linkedAccounts?.find(
     (account: any) => account.type === 'wallet' && account.chainType === 'solana'
   ) as { address?: string } | undefined;
 
-  const linkedSolanaWallet = linkedEmbeddedWallet || linkedExternalWallet;
+  const linkedEmbeddedWallet = user?.linkedAccounts?.find(
+    (account: any) => account.type === 'embedded_solana_wallet'
+  ) as { address?: string } | undefined;
 
-  const effectivePrivyAddress = privyWalletAddress || linkedSolanaWallet?.address;
+  // Prefer external wallet (Phantom/Solflare) over Privy embedded
+  const externalFromHook = privySolanaWallets?.find(
+    (w: any) => w.walletClientType !== 'privy'
+  );
+  const embeddedFromHook = privySolanaWallets?.find(
+    (w: any) => w.walletClientType === 'privy'
+  );
+
+  // Priority: external hook > external linked > embedded hook > embedded linked
+  const effectivePrivyAddress =
+    externalFromHook?.address ||
+    linkedExternalWallet?.address ||
+    embeddedFromHook?.address ||
+    linkedEmbeddedWallet?.address;
+
+  const linkedSolanaWallet = linkedExternalWallet || linkedEmbeddedWallet;
 
   // Validate the wallet address before creating PublicKey
   const isValidSolanaAddress = (address: string | undefined): boolean => {
