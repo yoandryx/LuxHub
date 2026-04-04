@@ -61,7 +61,7 @@ export default function VendorPoolsPage() {
 
     try {
       const [poolsRes, listingsRes] = await Promise.all([
-        fetch(`/api/pool/list?vendorWallet=${wallet}`),
+        fetch(`/api/pool/list?vendorWallet=${wallet}&includeIncomplete=true`),
         fetch(`/api/vendor/mint-request?wallet=${wallet}&status=minted`),
       ]);
 

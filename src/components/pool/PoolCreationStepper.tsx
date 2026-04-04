@@ -410,46 +410,75 @@ export function PoolCreationStepper({
       try {
         const txData = feeShareTxs[i];
         const txRaw = txData.transaction || txData;
+        console.log(`[PoolStepper] Processing tx ${i + 1}:`, {
+          hasTransaction: !!txData.transaction,
+          hasBlockhash: !!txData.blockhash,
+          txType: typeof txRaw,
+          length: typeof txRaw === 'string' ? txRaw.length : 'N/A',
+        });
 
         // Deserialize: try base64 first, then base58 (Bags API may use either)
         let tx: Transaction | VersionedTransaction;
+        let decodeMethod = 'base64';
         const b64Buf = Buffer.from(typeof txRaw === 'string' ? txRaw : JSON.stringify(txRaw), 'base64');
         try {
           tx = VersionedTransaction.deserialize(b64Buf);
+          decodeMethod = 'base64 → VersionedTransaction';
         } catch {
           try {
             tx = Transaction.from(b64Buf);
+            decodeMethod = 'base64 → Transaction';
           } catch {
             // Fallback: try base58 decoding
             const bs58 = (await import('bs58')).default;
             const b58Buf = bs58.decode(typeof txRaw === 'string' ? txRaw : txRaw.transaction);
             try {
               tx = VersionedTransaction.deserialize(b58Buf);
+              decodeMethod = 'base58 → VersionedTransaction';
             } catch {
               tx = Transaction.from(b58Buf);
+              decodeMethod = 'base58 → Transaction';
             }
           }
         }
+        console.log(`[PoolStepper] Tx ${i + 1} decoded via: ${decodeMethod}`);
 
-        // Refresh blockhash (Bags-generated ones expire within ~90s)
-        const { blockhash } = await connection.getLatestBlockhash('confirmed');
+        // Inspect signatures before we touch anything
         if (tx instanceof VersionedTransaction) {
-          tx.message.recentBlockhash = blockhash;
+          console.log(`[PoolStepper] Tx ${i + 1} signatures before:`, tx.signatures.map((s, idx) => ({
+            index: idx,
+            isEmpty: s.every(b => b === 0),
+            firstBytes: Array.from(s.slice(0, 4)),
+          })));
+          console.log(`[PoolStepper] Tx ${i + 1} required signers:`, tx.message.staticAccountKeys.slice(0, tx.message.header.numRequiredSignatures).map(k => k.toBase58()));
         } else {
-          tx.recentBlockhash = blockhash;
-          tx.feePayer = publicKey;
+          console.log(`[PoolStepper] Tx ${i + 1} (legacy) signers:`, tx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), signed: !!s.signature })));
         }
 
+        // Do NOT modify blockhash — Bags partially signs with authority keypairs
+        // and modifying the message invalidates their signatures.
+        // The blockhash must be fresh from just-in-time fetch (which it is).
+
         // Sign it
+        console.log(`[PoolStepper] Tx ${i + 1} asking Phantom to sign...`);
         const signed = await signTransaction(tx);
+        console.log(`[PoolStepper] Tx ${i + 1} signed by user`);
 
         // Send it
         const rawTx = signed.serialize();
-        const sig = await connection.sendRawTransaction(rawTx, { skipPreflight: false });
+        console.log(`[PoolStepper] Tx ${i + 1} sending to network, size: ${rawTx.length} bytes`);
+        const sig = await connection.sendRawTransaction(rawTx, {
+          skipPreflight: false,
+          maxRetries: 3,
+        });
+        console.log(`[PoolStepper] Tx ${i + 1} submitted: ${sig}`);
         await connection.confirmTransaction(sig, 'confirmed');
+        console.log(`[PoolStepper] Tx ${i + 1} confirmed on-chain: https://solscan.io/tx/${sig}`);
 
         setTxStatuses((prev) => prev.map((s, idx) => (idx === i ? 'done' : s)));
       } catch (err: any) {
+        console.error(`[PoolStepper] Tx ${i + 1} FAILED:`, err);
+        if (err.logs) console.error(`[PoolStepper] Tx ${i + 1} logs:`, err.logs);
         setTxStatuses((prev) => prev.map((s, idx) => (idx === i ? 'failed' : s)));
         setError(`Transaction ${i + 1} failed: ${err.message || 'Unknown error'}`);
         updateStepError(1);
@@ -460,8 +489,12 @@ export function PoolCreationStepper({
     setSigningIndex(-1);
 
     // All signed - advance to step 3
+    console.log('[PoolStepper] All fee-share txs confirmed. Waiting 3s for Bags to detect on-chain config...');
     updateStep(2);
+    // Small delay so Bags' indexer catches up to the on-chain fee-share config
+    await new Promise((r) => setTimeout(r, 3000));
     const walletAddress = publicKey.toBase58();
+    console.log('[PoolStepper] Starting launch step');
     await handleLaunch(poolId, walletAddress);
   };
 
@@ -479,6 +512,7 @@ export function PoolCreationStepper({
     setError('');
 
     try {
+      console.log('[PoolStepper] Requesting launch tx from Bags');
       const launchRes = await fetch('/api/bags/create-pool-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -491,44 +525,47 @@ export function PoolCreationStepper({
 
       if (!launchRes.ok) {
         const err = await launchRes.json();
-        throw new Error(err.error || 'Failed to get launch transaction');
+        console.error('[PoolStepper] Launch step API error:', err);
+        throw new Error(err.hint || err.error || 'Failed to get launch transaction');
       }
 
       const launchData = await launchRes.json();
+      console.log('[PoolStepper] Launch response:', launchData);
       const launchTxData = launchData.transactions?.[0];
 
-      if (launchTxData) {
-        const txRaw = launchTxData.transaction || launchTxData;
-        let tx: Transaction | VersionedTransaction;
-        const b64Buf = Buffer.from(typeof txRaw === 'string' ? txRaw : JSON.stringify(txRaw), 'base64');
+      if (!launchTxData) {
+        throw new Error('No launch transaction returned from Bags');
+      }
+
+      const txRaw = launchTxData.transaction || launchTxData;
+      console.log('[PoolStepper] Decoding launch tx, length:', typeof txRaw === 'string' ? txRaw.length : 'N/A');
+      let tx: Transaction | VersionedTransaction;
+      const b64Buf = Buffer.from(typeof txRaw === 'string' ? txRaw : JSON.stringify(txRaw), 'base64');
+      try {
+        tx = VersionedTransaction.deserialize(b64Buf);
+      } catch {
         try {
-          tx = VersionedTransaction.deserialize(b64Buf);
+          tx = Transaction.from(b64Buf);
         } catch {
+          const bs58 = (await import('bs58')).default;
+          const b58Buf = bs58.decode(typeof txRaw === 'string' ? txRaw : txRaw.transaction);
           try {
-            tx = Transaction.from(b64Buf);
+            tx = VersionedTransaction.deserialize(b58Buf);
           } catch {
-            const bs58 = (await import('bs58')).default;
-            const b58Buf = bs58.decode(typeof txRaw === 'string' ? txRaw : txRaw.transaction);
-            try {
-              tx = VersionedTransaction.deserialize(b58Buf);
-            } catch {
-              tx = Transaction.from(b58Buf);
-            }
+            tx = Transaction.from(b58Buf);
           }
         }
-        const { blockhash } = await connection.getLatestBlockhash('confirmed');
-        if (tx instanceof VersionedTransaction) {
-          tx.message.recentBlockhash = blockhash;
-        } else {
-          tx.recentBlockhash = blockhash;
-          tx.feePayer = publicKey!;
-        }
-
-        const signed = await signTransaction(tx);
-        const rawTx = signed.serialize();
-        const sig = await connection.sendRawTransaction(rawTx, { skipPreflight: false });
-        await connection.confirmTransaction(sig, 'confirmed');
       }
+      console.log('[PoolStepper] Launch tx decoded, asking Phantom to sign');
+
+      // Do NOT refresh blockhash — Bags signs with authority keypairs
+      const signed = await signTransaction(tx);
+      console.log('[PoolStepper] Launch tx signed, submitting');
+      const rawTx = signed.serialize();
+      const sig = await connection.sendRawTransaction(rawTx, { skipPreflight: false, maxRetries: 3 });
+      console.log('[PoolStepper] Launch tx submitted:', sig);
+      await connection.confirmTransaction(sig, 'confirmed');
+      console.log('[PoolStepper] Launch tx CONFIRMED:', `https://solscan.io/tx/${sig}`);
 
       // Advance to step 4 (confirm)
       updateStep(3);
@@ -536,6 +573,8 @@ export function PoolCreationStepper({
 
       toast.success('Pool created successfully!');
     } catch (err: any) {
+      console.error('[PoolStepper] Launch failed:', err);
+      if (err.logs) console.error('[PoolStepper] Launch tx logs:', err.logs);
       setError(err.message || 'Launch failed');
       setLoading(false);
       updateStepError(2);

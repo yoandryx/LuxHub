@@ -12,6 +12,7 @@ interface ListQuery {
   vendorWallet?: string;
   limit?: string;
   offset?: string;
+  includeIncomplete?: string; // "true" to include pools still in setup
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -20,12 +21,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { status, vendorWallet, limit = '50', offset = '0' } = req.query as ListQuery;
+    const { status, vendorWallet, limit = '50', offset = '0', includeIncomplete } = req.query as ListQuery;
 
     await dbConnect();
 
     // Build query
     const query: Record<string, any> = { deleted: { $ne: true } };
+
+    // Hide pools that haven't completed the Bags launch flow.
+    // Public/browse pages should only see fully launched pools (tokenStatus = 'minted').
+    // Vendor dashboard can pass ?includeIncomplete=true to see their own broken pools.
+    if (!includeIncomplete && !vendorWallet) {
+      query.tokenStatus = 'minted';
+    }
 
     if (status) {
       // Support comma-separated status values
