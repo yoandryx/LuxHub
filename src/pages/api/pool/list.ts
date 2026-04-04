@@ -50,12 +50,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       query.vendorWallet = vendorWallet;
     }
 
-    // Fetch pools with populated asset and vendor info
-    const pools = await Pool.find(query)
-      .populate({
-        path: 'selectedAssetId',
-        select: 'model brand priceUSD imageUrl imageIpfsUrls images arweaveTxId description serial',
-      })
+    // Fetch pools raw first so we can capture the original selectedAssetId
+    // (populate may null it out if the Asset doesn't exist in that collection)
+    const rawPools = await Pool.find(query)
       .populate({
         path: 'vendorId',
         select: 'businessName',
@@ -65,37 +62,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .limit(parseInt(limit))
       .lean();
 
-    // Fallback: populate missing asset data from MintRequest
-    // (vendor mint flow stores in MintRequest, not Asset collection)
-    const missingAssetIds = pools
-      .filter((p: any) => !p.selectedAssetId || typeof p.selectedAssetId === 'string' || !p.selectedAssetId.model)
-      .map((p: any) => typeof p.selectedAssetId === 'object' ? p.selectedAssetId?._id : p.selectedAssetId)
-      .filter(Boolean);
+    // Collect all unique asset IDs
+    const allAssetIds = rawPools.map((p: any) => p.selectedAssetId).filter(Boolean);
 
-    if (missingAssetIds.length > 0) {
-      const mintReqs = await MintRequest.find({ _id: { $in: missingAssetIds } }).lean();
-      const mintReqMap = new Map(mintReqs.map((m: any) => [m._id.toString(), m]));
+    // Look up in both Asset and MintRequest collections in parallel
+    const { Asset } = await import('../../../lib/models/Assets');
+    const [assets, mintReqs] = await Promise.all([
+      Asset.find({ _id: { $in: allAssetIds } }).lean(),
+      MintRequest.find({ _id: { $in: allAssetIds } }).lean(),
+    ]);
 
-      for (const pool of pools as any[]) {
-        const assetId = typeof pool.selectedAssetId === 'object' ? pool.selectedAssetId?._id?.toString() : pool.selectedAssetId?.toString();
-        if (assetId && mintReqMap.has(assetId)) {
-          const mintReq = mintReqMap.get(assetId) as any;
+    const assetMap = new Map(assets.map((a: any) => [a._id.toString(), a]));
+    const mintReqMap = new Map(mintReqs.map((m: any) => [m._id.toString(), m]));
+
+    // Attach asset data to each pool (prefer Asset collection, fall back to MintRequest)
+    const pools = rawPools.map((pool: any) => {
+      const assetIdStr = pool.selectedAssetId?.toString();
+      if (assetIdStr) {
+        const asset = assetMap.get(assetIdStr) as any;
+        const mintReq = mintReqMap.get(assetIdStr) as any;
+        const source = asset || mintReq;
+        if (source) {
           pool.selectedAssetId = {
-            _id: mintReq._id,
-            model: mintReq.model,
-            brand: mintReq.brand,
-            priceUSD: mintReq.priceUSD,
-            description: mintReq.description,
-            serial: mintReq.serial || mintReq.serialNumber,
-            imageUrl: mintReq.imageUrl,
-            imageIpfsUrls: mintReq.imageIpfsUrls,
-            images: mintReq.images,
-            arweaveTxId: mintReq.arweaveTxId,
-            nftMint: mintReq.mintAddress,
+            _id: source._id,
+            model: source.model,
+            brand: source.brand,
+            priceUSD: source.priceUSD,
+            description: source.description,
+            serial: source.serial || source.serialNumber,
+            imageUrl: source.imageUrl,
+            imageIpfsUrls: source.imageIpfsUrls,
+            images: source.images,
+            arweaveTxId: source.arweaveTxId,
+            nftMint: source.mintAddress || source.nftMint,
           };
         }
       }
-    }
+      return pool;
+    });
 
     // Get total count for pagination
     const total = await Pool.countDocuments(query);

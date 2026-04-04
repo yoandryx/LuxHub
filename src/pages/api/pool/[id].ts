@@ -19,11 +19,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await dbConnect();
 
+    // Fetch pool raw first so we keep the original selectedAssetId reference
     const poolDoc = await Pool.findOne({ _id: id, deleted: { $ne: true } })
-      .populate({
-        path: 'selectedAssetId',
-        select: 'model serial brand priceUSD description imageUrl imageIpfsUrls images category',
-      })
       .populate({
         path: 'vendorId',
         select: 'businessName username verified wallet',
@@ -44,27 +41,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const pool = poolDoc as any;
 
-    // If Asset populate returned null (asset is actually a MintRequest),
-    // fall back to MintRequest lookup to get brand/model/image/etc.
-    if (!pool.selectedAssetId || typeof pool.selectedAssetId === 'string' || !pool.selectedAssetId.model) {
-      const assetId = typeof pool.selectedAssetId === 'object' ? pool.selectedAssetId?._id : pool.selectedAssetId;
-      if (assetId) {
-        const mintReq = await MintRequest.findById(assetId).lean() as any;
-        if (mintReq) {
-          pool.selectedAssetId = {
-            _id: mintReq._id,
-            model: mintReq.model,
-            brand: mintReq.brand,
-            priceUSD: mintReq.priceUSD,
-            description: mintReq.description,
-            serial: mintReq.serial || mintReq.serialNumber,
-            imageUrl: mintReq.imageUrl,
-            imageIpfsUrls: mintReq.imageIpfsUrls,
-            images: mintReq.images,
-            category: mintReq.category,
-            nftMint: mintReq.mintAddress,
-          };
-        }
+    // Look up asset in Asset first, MintRequest as fallback
+    if (pool.selectedAssetId) {
+      const assetIdStr = pool.selectedAssetId.toString();
+      const { Asset } = await import('../../../lib/models/Assets');
+      const [assetDoc, mintReq] = await Promise.all([
+        Asset.findById(assetIdStr).lean() as any,
+        MintRequest.findById(assetIdStr).lean() as any,
+      ]);
+      const source = assetDoc || mintReq;
+      if (source) {
+        pool.selectedAssetId = {
+          _id: source._id,
+          model: source.model,
+          brand: source.brand,
+          priceUSD: source.priceUSD,
+          description: source.description,
+          serial: source.serial || source.serialNumber,
+          imageUrl: source.imageUrl,
+          imageIpfsUrls: source.imageIpfsUrls,
+          images: source.images,
+          category: source.category,
+          nftMint: source.mintAddress || source.nftMint,
+        };
       }
     }
 
