@@ -160,7 +160,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // ── Auto-mint Bags bonding curve token ──
     // Non-blocking: pool is created even if Bags API fails
-    let tokenResult: { success: boolean; mint?: string; transaction?: string; error?: string } = {
+    let tokenResult: { success: boolean; mint?: string; transactions?: any[]; error?: string } = {
       success: false,
       error: 'Not attempted',
     };
@@ -198,11 +198,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       token: tokenResult.success
         ? {
             mint: tokenResult.mint,
-            transaction: tokenResult.transaction,
+            transactions: tokenResult.transactions || [],
             message: 'Token created on Bags bonding curve. Transaction needs signing to finalize.',
           }
         : {
             minted: false,
+            mint: tokenResult.mint, // May have mint even if launch failed
+            transactions: tokenResult.transactions || [], // Fee-share txs to sign
             error: tokenResult.error,
             message:
               'Pool created but token mint failed. Admin can retry via /api/bags/create-pool-token.',

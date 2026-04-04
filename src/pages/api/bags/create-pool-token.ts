@@ -484,11 +484,14 @@ export async function createPoolTokenInternal(
 
     if (!launchRes.ok) {
       const err = await launchRes.json().catch(() => ({}));
+      // Fee-share txs need client signing before launch can work.
+      // Return them so the stepper can present the signing step.
       return {
         success: false,
         mint,
         meteoraConfigKey: feeShareResult.meteoraConfigKey,
-        error: `Launch tx failed: ${JSON.stringify(err)}. Fee share configured — retry launch manually.`,
+        transactions: feeShareResult.transactions || [],
+        error: `Launch tx failed: ${JSON.stringify(err)}. Sign fee-share transactions first, then retry launch.`,
       };
     }
 
