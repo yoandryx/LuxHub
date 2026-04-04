@@ -49,6 +49,34 @@ const STEPS = [
 ];
 
 /**
+ * Fetch an image URL and return as compressed base64 data URI.
+ * Used when no custom image is uploaded — sends the NFT image the browser already displays.
+ */
+function fetchImageAsBase64(url: string, maxSize = 800, quality = 0.8): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas not supported'));
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error('Failed to load NFT image'));
+    img.src = url;
+  });
+}
+
+/**
  * Compress image to fit within Vercel's 4.5MB JSON body limit.
  * Resizes to max 800x800 and uses JPEG quality 0.8 (~200-400KB output).
  */
@@ -141,8 +169,10 @@ export function PoolCreationStepper({
     setTokenSymbol('LUX0001');
 
     // Set NFT image as preview (user can upload different one for token)
-    const nftImage = asset.imageUrl || asset.imageIpfsUrls?.[0] || asset.images?.[0] || '';
-    if (nftImage) setTokenImagePreview(nftImage);
+    // Resolve through gateway so fetchImageAsBase64 gets a full URL
+    const { resolveImageUrl } = await import('../../utils/imageUtils');
+    const nftImage = resolveImageUrl(asset.imageUrl || asset.imageIpfsUrls?.[0] || asset.images?.[0] || '');
+    if (nftImage && !nftImage.endsWith('purpleLGG.png')) setTokenImagePreview(nftImage);
 
     // Description
     setTokenDescription(
@@ -253,7 +283,11 @@ export function PoolCreationStepper({
           assetId: selectedAssetId,
           targetAmountUSD: parseFloat(targetAmountUSD),
           minBuyInUSD: parseFloat(minBuyInUSD),
-          tokenImageBase64: tokenImageFile ? await compressImage(tokenImageFile) : undefined,
+          tokenImageBase64: tokenImageFile
+            ? await compressImage(tokenImageFile)
+            : tokenImagePreview
+              ? await fetchImageAsBase64(tokenImagePreview)
+              : undefined,
         }),
       });
 
