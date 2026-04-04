@@ -364,7 +364,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 export async function createPoolTokenInternal(
   poolId: string,
   creatorWallet: string,
-  tokenImageBase64?: string
+  tokenImageBase64?: string,
+  tokenImageUrl?: string
 ): Promise<{
   success: boolean;
   mint?: string;
@@ -403,10 +404,10 @@ export async function createPoolTokenInternal(
     }
 
     const assetModel = asset?.model || 'LuxHub Pool Asset';
-    // Resolve through gateway (handles Irys TX IDs, devnet/mainnet URLs, IPFS CIDs)
-    const rawImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
+    // Image priority: client-provided URL > DB asset image. Resolve through gateway.
+    const rawImage = tokenImageUrl || asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
     const assetImage = rawImage ? resolveImageUrl(rawImage) : '';
-    console.log(`[createPoolTokenInternal] Asset: ${assetModel}, Raw: ${rawImage?.slice(0, 60) || 'NONE'}, Resolved: ${assetImage?.slice(0, 80) || 'NONE'}`);
+    console.log(`[createPoolTokenInternal] Asset: ${assetModel}, Raw: ${rawImage?.slice(0, 60) || 'NONE'}, Resolved: ${assetImage?.slice(0, 80) || 'NONE'}, Source: ${tokenImageUrl ? 'client-url' : 'db'}`);
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
     const tokenName = `LuxHub Pool #${poolNumber} - ${assetModel}`.slice(0, 32);
     // Use pool number directly as symbol (LUX0001, LUX0002, etc.)
@@ -443,8 +444,9 @@ export async function createPoolTokenInternal(
     if (!imageAttached && assetImage) {
       // Try downloading from NFT image URL
       try {
-        console.log(`[createPoolTokenInternal] Downloading image: ${assetImage.slice(0, 80)}`);
+        console.log(`[createPoolTokenInternal] Downloading image: ${assetImage.slice(0, 120)}`);
         const imgRes = await fetch(assetImage);
+        console.log(`[createPoolTokenInternal] Image download status: ${imgRes.status}, content-type: ${imgRes.headers.get('content-type')}, size: ${imgRes.headers.get('content-length')}`);
         if (imgRes.ok) {
           const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
           const contentType = imgRes.headers.get('content-type') || 'image/png';
@@ -452,11 +454,12 @@ export async function createPoolTokenInternal(
           const blob = new Blob([imgBuffer], { type: contentType });
           formData.append('image', blob, `pool-token.${ext}`);
           imageAttached = true;
+          console.log(`[createPoolTokenInternal] Image attached successfully, buffer size: ${imgBuffer.length} bytes`);
         } else {
-          console.warn(`[createPoolTokenInternal] Image download failed: ${imgRes.status}`);
+          console.warn(`[createPoolTokenInternal] Image download failed: ${imgRes.status} ${imgRes.statusText}`);
         }
-      } catch (imgErr) {
-        console.warn('[createPoolTokenInternal] Image download error:', imgErr);
+      } catch (imgErr: any) {
+        console.warn('[createPoolTokenInternal] Image download error:', imgErr?.message || imgErr);
       }
     }
 

@@ -23,7 +23,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await dbConnect();
 
-    const { assetId, targetAmountUSD, minBuyInUSD, maxInvestors, projectedROI, tokenImageBase64 } = req.body;
+    const { assetId, targetAmountUSD, minBuyInUSD, maxInvestors, projectedROI, tokenImageBase64, tokenImageUrl } = req.body;
 
     // Validation
     if (!assetId || !targetAmountUSD) {
@@ -166,7 +166,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     };
 
     try {
-      tokenResult = await createPoolTokenInternal(pool._id.toString(), wallet, tokenImageBase64);
+      tokenResult = await createPoolTokenInternal(pool._id.toString(), wallet, tokenImageBase64, tokenImageUrl);
       if (!tokenResult.success) {
         // Bags token mint failed, pool still created
       }

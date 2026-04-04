@@ -272,6 +272,24 @@ export function PoolCreationStepper({
       }
 
       // Step 1a: Create pool in MongoDB
+      // Prepare image — try custom upload, then client-side fetch of NFT image.
+      // Fall back to passing the URL for server-side fetch if client fetch fails.
+      let tokenImageBase64: string | undefined;
+      let tokenImageUrl: string | undefined;
+      if (tokenImageFile) {
+        console.log('[PoolStepper] Compressing custom uploaded image');
+        tokenImageBase64 = await compressImage(tokenImageFile);
+      } else if (tokenImagePreview) {
+        console.log('[PoolStepper] Fetching NFT image for token:', tokenImagePreview);
+        try {
+          tokenImageBase64 = await fetchImageAsBase64(tokenImagePreview);
+          console.log('[PoolStepper] NFT image fetched & compressed, length:', tokenImageBase64.length);
+        } catch (imgErr) {
+          console.warn('[PoolStepper] Client-side image fetch failed (likely CORS), server will try:', imgErr);
+          tokenImageUrl = tokenImagePreview;
+        }
+      }
+
       const createRes = await fetch('/api/pool/create', {
         method: 'POST',
         headers: {
@@ -283,11 +301,8 @@ export function PoolCreationStepper({
           assetId: selectedAssetId,
           targetAmountUSD: parseFloat(targetAmountUSD),
           minBuyInUSD: parseFloat(minBuyInUSD),
-          tokenImageBase64: tokenImageFile
-            ? await compressImage(tokenImageFile)
-            : tokenImagePreview
-              ? await fetchImageAsBase64(tokenImagePreview)
-              : undefined,
+          tokenImageBase64,
+          tokenImageUrl, // Server fallback if client-side fetch failed
         }),
       });
 
