@@ -139,6 +139,153 @@
   text-transform: uppercase;
 }
 
+.tokenSymbolBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  background: var(--accent-dim);
+  color: var(--accent);
+  letter-spacing: 0.3px;
+}
+
+.lifecycleBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(200, 161, 255, 0.08);
+  color: var(--accent);
+  border: 1px solid rgba(200, 161, 255, 0.15);
+}
+
+.lifecycleBadge[data-stage="graduated"],
+.lifecycleBadge[data-stage="trading"] {
+  background: var(--positive-dim);
+  color: var(--positive);
+  border-color: rgba(74, 222, 128, 0.2);
+}
+
+.lifecycleBadge[data-stage="resale"] {
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--warning);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+.lifecycleBadge[data-stage="distributed"] {
+  background: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.2);
+}
+
+/* ─── Token Info Bar ─── */
+.tokenInfoBar {
+  composes: glassCard;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-left: 3px solid var(--accent);
+}
+
+.tokenInfoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tokenInfoLabel {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tokenInfoValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.mintCopyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.mintCopyBtn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.mintAddress {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tokenInfoLinks {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.tokenLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+
+.tokenLink:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ─── Status Value Styling ─── */
+.statusValue {
+  text-transform: capitalize;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.statusValue[data-status="open"] { color: var(--positive); }
+.statusValue[data-status="funded"] { color: var(--positive); }
+.statusValue[data-status="graduated"] { color: var(--positive); }
+.statusValue[data-status="closed"] { color: var(--text-muted); }
+.statusValue[data-status="distributed"] { color: #60a5fa; }
+
+.priceValue {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
 /* ─── Chart Container ─── */
 .chartContainer {
   composes: glassCard;
@@ -650,6 +797,17 @@
 
   .chartContainer {
     min-height: 280px;
+  }
+
+  .tokenInfoBar {
+    gap: 16px;
+    padding: 12px 16px;
+  }
+
+  .tokenInfoLinks {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .positionGrid {

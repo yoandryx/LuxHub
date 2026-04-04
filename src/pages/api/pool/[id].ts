@@ -108,8 +108,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         distributionAmount: pool.distributionAmount,
         distributionRoyalty: pool.distributionRoyalty,
         distributions: pool.distributions,
-        // Bags API
+        // Bags API / Token info
+        poolNumber: pool.poolNumber,
         bagsTokenMint: pool.bagsTokenMint,
+        bagsTokenName: pool.bagsTokenName,
+        bagsTokenSymbol: pool.bagsTokenSymbol,
+        bagsTokenMetadataUrl: pool.bagsTokenMetadataUrl,
+        meteoraConfigKey: pool.meteoraConfigKey,
+        bondingCurveActive: pool.bondingCurveActive,
+        graduated: pool.graduated,
+        tokenStatus: pool.tokenStatus,
+        currentBondingPrice: pool.currentBondingPrice,
+        lastPriceUSD: pool.lastPriceUSD,
+        claimWindowExpiresAt: pool.claimWindowExpiresAt,
         // Timestamps
         createdAt: pool.createdAt,
         updatedAt: pool.updatedAt,

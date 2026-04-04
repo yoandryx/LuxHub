@@ -6,10 +6,13 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { FaArrowLeft, FaExternalLinkAlt, FaUsers } from 'react-icons/fa';
+import { FaArrowLeft, FaExternalLinkAlt, FaUsers, FaCopy, FaCheckCircle } from 'react-icons/fa';
+import { SiSolana } from 'react-icons/si';
+import toast from 'react-hot-toast';
 import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { PublicKey } from '@solana/web3.js';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
+import { resolveImageUrl } from '../../utils/imageUtils';
 import { LifecycleStepper, getLifecycleStage } from '../../components/pool/LifecycleStepper';
 import { HowItWorks } from '../../components/pool/HowItWorks';
 import { TradeWidget } from '../../components/pool/TradeWidget';
@@ -43,6 +46,7 @@ interface Participant {
 
 interface PoolData {
   _id: string;
+  poolNumber?: string;
   asset?: Asset;
   status: string;
   totalShares: number;
@@ -59,6 +63,9 @@ interface PoolData {
   distributionStatus?: string;
   distributionAmount?: number;
   bagsTokenMint?: string;
+  bagsTokenName?: string;
+  bagsTokenSymbol?: string;
+  bagsTokenMetadataUrl?: string;
   createdAt?: string;
   graduated?: boolean;
   bondingCurveActive?: boolean;
@@ -68,6 +75,7 @@ interface PoolData {
   resaleSoldPriceUSD?: number;
   claimWindowExpiresAt?: string;
   recentTrades?: Array<{ price: number }>;
+  meteoraConfigKey?: string;
 }
 
 interface UserPosition {
@@ -217,11 +225,14 @@ const PoolDetailV2Page: React.FC = () => {
 
   // Helpers
   const getAssetImage = (): string => {
-    if (pool?.asset?.imageIpfsUrls?.[0]) return pool.asset.imageIpfsUrls[0];
-    if (pool?.asset?.images?.[0]) return pool.asset.images[0];
-    if (pool?.asset?.imageUrl) return pool.asset.imageUrl;
-    return '/placeholder-watch.png';
+    const raw = pool?.asset?.imageIpfsUrls?.[0] || pool?.asset?.images?.[0] || pool?.asset?.imageUrl;
+    return raw ? resolveImageUrl(raw) : '/images/purpleLGG.png';
   };
+
+  const copyAddress = useCallback((address: string, label: string) => {
+    navigator.clipboard.writeText(address);
+    toast.success(`${label} copied!`);
+  }, []);
 
   const lifecycleStage = pool ? getLifecycleStage(pool) : 'launch';
 
@@ -313,11 +324,77 @@ const PoolDetailV2Page: React.FC = () => {
                 )}
                 <div className={styles.priceRow}>
                   <span className={styles.currentPrice}>
-                    ${(pool.sharePriceUSD || 0).toFixed(6)}
+                    ${(pool.currentBondingPrice || pool.sharePriceUSD || 0).toFixed(6)}
+                  </span>
+                  {pool.poolNumber && (
+                    <span className={styles.tokenSymbolBadge}>
+                      {pool.bagsTokenSymbol || pool.poolNumber}
+                    </span>
+                  )}
+                  <span className={styles.lifecycleBadge} data-stage={lifecycleStage}>
+                    {lifecycleStage.charAt(0).toUpperCase() + lifecycleStage.slice(1)}
                   </span>
                 </div>
               </div>
             </div>
+
+            {/* Token Info Bar — shows mint, links when token exists */}
+            {pool.bagsTokenMint && (
+              <div className={styles.tokenInfoBar}>
+                <div className={styles.tokenInfoItem}>
+                  <span className={styles.tokenInfoLabel}>Mint Address</span>
+                  <button
+                    className={styles.mintCopyBtn}
+                    onClick={() => copyAddress(pool.bagsTokenMint!, 'Mint address')}
+                    title="Copy full address"
+                  >
+                    <span className={styles.mintAddress}>
+                      {pool.bagsTokenMint.slice(0, 6)}...{pool.bagsTokenMint.slice(-4)}
+                    </span>
+                    <FaCopy size={10} />
+                  </button>
+                </div>
+                {pool.bagsTokenSymbol && (
+                  <div className={styles.tokenInfoItem}>
+                    <span className={styles.tokenInfoLabel}>Symbol</span>
+                    <span className={styles.tokenInfoValue}>{pool.bagsTokenSymbol}</span>
+                  </div>
+                )}
+                <div className={styles.tokenInfoItem}>
+                  <span className={styles.tokenInfoLabel}>Supply</span>
+                  <span className={styles.tokenInfoValue}>{(pool.totalShares || 1_000_000_000).toLocaleString()}</span>
+                </div>
+                <div className={styles.tokenInfoLinks}>
+                  <a
+                    href={getClusterConfig().explorerUrl(pool.bagsTokenMint)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.tokenLink}
+                    title="View on Solscan"
+                  >
+                    <SiSolana size={12} /> Solscan
+                  </a>
+                  <a
+                    href={`https://bags.fm/token/${pool.bagsTokenMint}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.tokenLink}
+                    title="View on Bags"
+                  >
+                    <FaExternalLinkAlt size={10} /> Bags
+                  </a>
+                  <a
+                    href={`https://jup.ag/swap/SOL-${pool.bagsTokenMint}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.tokenLink}
+                    title="Trade on Jupiter"
+                  >
+                    <FaExternalLinkAlt size={10} /> Jupiter
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Price Chart */}
             <div className={styles.chartContainer}>
@@ -346,19 +423,11 @@ const PoolDetailV2Page: React.FC = () => {
               <h3>Pool Details</h3>
               <div className={styles.infoRow}>
                 <span>Status</span>
-                <span style={{ textTransform: 'capitalize' }}>{pool.status}</span>
+                <span className={styles.statusValue} data-status={pool.status}>{pool.status}</span>
               </div>
               <div className={styles.infoRow}>
-                <span>Total Supply</span>
-                <span>{pool.totalShares?.toLocaleString()}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span>Contributors</span>
-                <span>{pool.investorCount}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span>Funding Progress</span>
-                <span>{pool.fundingProgress?.toFixed(1)}%</span>
+                <span>Token Price</span>
+                <span className={styles.priceValue}>${(pool.currentBondingPrice || pool.sharePriceUSD || 0).toFixed(6)}</span>
               </div>
               {pool.targetAmountUSD && (
                 <div className={styles.infoRow}>
@@ -366,32 +435,44 @@ const PoolDetailV2Page: React.FC = () => {
                   <span>${pool.targetAmountUSD.toLocaleString()}</span>
                 </div>
               )}
-              {pool.bagsTokenMint && (
-                <div className={styles.infoRow}>
-                  <span>Token Mint</span>
-                  <a
-                    href={getClusterConfig().explorerUrl(pool.bagsTokenMint)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.addressLink}
-                  >
-                    {pool.bagsTokenMint.slice(0, 8)}...{pool.bagsTokenMint.slice(-6)}
-                    <FaExternalLinkAlt size={10} />
-                  </a>
-                </div>
-              )}
+              <div className={styles.infoRow}>
+                <span>Funding Progress</span>
+                <span>{pool.fundingProgress?.toFixed(1)}%</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span>Contributors</span>
+                <span>{pool.investorCount}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span>Total Supply</span>
+                <span>{pool.totalShares?.toLocaleString()}</span>
+              </div>
               {pool.escrowPda && (
                 <div className={styles.infoRow}>
                   <span>Escrow PDA</span>
-                  <a
-                    href={getClusterConfig().explorerUrl(pool.escrowPda)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.addressLink}
+                  <button
+                    className={styles.mintCopyBtn}
+                    onClick={() => copyAddress(pool.escrowPda!, 'Escrow PDA')}
                   >
-                    {pool.escrowPda.slice(0, 8)}...{pool.escrowPda.slice(-6)}
-                    <FaExternalLinkAlt size={10} />
-                  </a>
+                    <span className={styles.mintAddress}>
+                      {pool.escrowPda.slice(0, 6)}...{pool.escrowPda.slice(-4)}
+                    </span>
+                    <FaCopy size={10} />
+                  </button>
+                </div>
+              )}
+              {pool.meteoraConfigKey && (
+                <div className={styles.infoRow}>
+                  <span>Config Key</span>
+                  <button
+                    className={styles.mintCopyBtn}
+                    onClick={() => copyAddress(pool.meteoraConfigKey!, 'Config key')}
+                  >
+                    <span className={styles.mintAddress}>
+                      {pool.meteoraConfigKey.slice(0, 6)}...{pool.meteoraConfigKey.slice(-4)}
+                    </span>
+                    <FaCopy size={10} />
+                  </button>
                 </div>
               )}
               <div className={styles.infoRow}>
