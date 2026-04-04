@@ -308,21 +308,40 @@ export function PoolCreationStepper({
       const poolMint = createData.pool?.bagsTokenMint;
 
       if (tokenData?.mint || poolMint) {
-        // Token info already created by pool/create — use it
+        // Token info created by pool/create — now fetch FRESH fee-share txs
+        // just-in-time (the ones from pool/create were created server-side with
+        // stale blockhashes that expire before the user can sign them).
         const mint = tokenData?.mint || poolMint;
         setTokenMint(mint);
-        console.log('[PoolStepper] Token already created:', mint);
+        console.log('[PoolStepper] Token mint saved, fetching fresh fee-share txs:', mint);
 
-        // Check if there are transactions to sign (fee-share)
-        const transactions = tokenData?.transactions || [];
+        const setupRes = await fetch('/api/bags/create-pool-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            poolId: newPoolId,
+            adminWallet: walletAddress,
+            step: 'setup',
+          }),
+        });
+
+        if (!setupRes.ok) {
+          const err = await setupRes.json();
+          throw new Error(err.error || 'Failed to get fee-share transactions');
+        }
+
+        const setupData = await setupRes.json();
+        const transactions = setupData.transactions || [];
+        console.log('[PoolStepper] Fresh fee-share txs received:', transactions.length);
+
         if (transactions.length > 0) {
           setFeeShareTxs(transactions);
           setTxStatuses(transactions.map(() => 'pending' as const));
           updateStep(1);
           setLoading(false);
         } else {
-          // No txs to sign — token is ready, go to launch step
-          console.log('[PoolStepper] No fee-share txs — skipping to launch');
+          // No fee-share txs needed — go straight to launch
+          console.log('[PoolStepper] No fee-share txs — going to launch');
           updateStep(2);
           setLoading(false);
           await handleLaunch(newPoolId, walletAddress);

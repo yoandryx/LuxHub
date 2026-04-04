@@ -152,11 +152,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ──────────────────────────────────────────────────────────────
     // PHASE 1: Create token info + fee share config
     // ──────────────────────────────────────────────────────────────
+    // If mint already exists, skip create-token-info and go straight to
+    // fee-share configuration with fresh blockhash (just-in-time signing).
     if (pool.bagsTokenMint) {
-      return res.status(400).json({
-        error: 'Pool already has a token mint. Use step=launch to get the launch transaction.',
-        bagsTokenMint: pool.bagsTokenMint,
-        meteoraConfigKey: pool.meteoraConfigKey,
+      const feeShareResult = await configureFeeShareInternal(poolId, pool.bagsTokenMint, adminWallet);
+
+      if (!feeShareResult.success || !feeShareResult.meteoraConfigKey) {
+        return res.status(500).json({
+          error: 'Fee share configuration failed',
+          details: feeShareResult.error,
+          tokenMint: pool.bagsTokenMint,
+        });
+      }
+
+      const feeShareTransactions = feeShareResult.transactions || [];
+
+      return res.status(200).json({
+        success: true,
+        phase: 1,
+        resumed: true,
+        token: {
+          mint: pool.bagsTokenMint,
+          metadataUrl: pool.bagsTokenMetadataUrl,
+        },
+        feeShare: {
+          meteoraConfigKey: feeShareResult.meteoraConfigKey,
+          feeShareAuthority: feeShareResult.feeShareAuthority,
+          needsCreation: feeShareTransactions.length > 0,
+        },
+        pool: {
+          _id: pool._id,
+          bagsTokenMint: pool.bagsTokenMint,
+          meteoraConfigKey: feeShareResult.meteoraConfigKey,
+        },
+        transactions: feeShareTransactions.map((tx: any, i: number) => ({
+          step: `fee-share-${i + 1}`,
+          description: `Fee share config transaction ${i + 1}/${feeShareTransactions.length}`,
+          ...tx,
+        })),
+        transactionCount: feeShareTransactions.length,
+        message:
+          feeShareTransactions.length > 0
+            ? `Sign ${feeShareTransactions.length} fee share transaction(s), confirm on-chain, then call step=launch.`
+            : 'Fee share config already on-chain. Call again with step=launch.',
       });
     }
 
@@ -457,75 +495,25 @@ export async function createPoolTokenInternal(
       },
     });
 
-    // STEP 2: Configure fee share → get meteoraConfigKey
-    const feeShareResult = await configureFeeShareInternal(poolId, mint, creatorWallet);
-
-    if (!feeShareResult.success || !feeShareResult.meteoraConfigKey) {
-      console.warn('[createPoolTokenInternal] Fee share config failed:', feeShareResult.error);
-      return {
-        success: false,
-        mint,
-        error: `Fee share failed: ${feeShareResult.error}. Token info saved — retry fee share + launch manually.`,
-      };
-    }
-
-    // STEP 3: Create launch transaction
-    const launchRes = await fetch(`${BAGS_API_BASE}/token-launch/create-launch-transaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': bagsApiKey },
-      body: JSON.stringify({
-        ipfs: metadataUrl,
-        tokenMint: mint,
-        wallet: creatorWallet,
-        initialBuyLamports: 0,
-        configKey: feeShareResult.meteoraConfigKey,
-      }),
-    });
-
-    if (!launchRes.ok) {
-      const err = await launchRes.json().catch(() => ({}));
-      // Fee-share txs need client signing before launch can work.
-      // Return them so the stepper can present the signing step.
-      return {
-        success: false,
-        mint,
-        meteoraConfigKey: feeShareResult.meteoraConfigKey,
-        transactions: feeShareResult.transactions || [],
-        error: `Launch tx failed: ${JSON.stringify(err)}. Sign fee-share transactions first, then retry launch.`,
-      };
-    }
-
-    const launchResult = await launchRes.json();
-    const launchTx = launchResult.response || launchResult;
-
-    // Update pool
-    await Pool.findByIdAndUpdate(poolId, {
-      $set: {
-        tokenStatus: 'minted',
-        bondingCurveActive: true,
-        bondingCurveType: 'exponential',
-        initialBondingPrice: pool.sharePriceUSD || 0.01,
-        currentBondingPrice: pool.sharePriceUSD || 0.01,
-      },
-    });
-
-    // Collect all transactions in signing order
-    const allTransactions = [
-      ...(feeShareResult.transactions || []),
-      typeof launchTx === 'string' ? { transaction: launchTx } : launchTx,
-    ];
-
+    // STOP HERE — Steps 2 and 3 (fee-share + launch) MUST be called just-in-time
+    // by the client with fresh blockhashes. Calling them server-side produces
+    // transactions that expire before the user can sign them.
+    //
+    // The stepper will call:
+    //   POST /api/bags/create-pool-token { step: 'setup' }  → fresh fee-share txs
+    //   (user signs immediately, waits for confirmation)
+    //   POST /api/bags/create-pool-token { step: 'launch' } → fresh launch tx
+    //
     console.log(
-      `[createPoolTokenInternal] Token prepared for pool ${poolId}: ${mint} (${allTransactions.length} txs to sign)`
+      `[createPoolTokenInternal] Token info created for pool ${poolId}: ${mint}. Awaiting client fee-share signing.`
     );
 
     return {
       success: true,
       mint,
-      meteoraConfigKey: feeShareResult.meteoraConfigKey,
-      transactions: allTransactions,
     };
   } catch (error: any) {
     return { success: false, error: error?.message || 'Unknown error' };
   }
 }
+
