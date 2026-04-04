@@ -34,6 +34,7 @@ interface Asset {
   imageIpfsUrls?: string[];
   images?: string[];
   category?: string;
+  nftMint?: string;
 }
 
 interface Participant {
@@ -513,6 +514,33 @@ const PoolDetailV2Page: React.FC = () => {
                 </div>
                 {pool.asset.description && (
                   <p className={styles.assetDescription}>{pool.asset.description}</p>
+                )}
+                {pool.asset.nftMint && (
+                  <div className={styles.nftLinkRow}>
+                    <span className={styles.assetFieldLabel}>Backing NFT</span>
+                    <div className={styles.nftLinks}>
+                      <button
+                        className={styles.mintCopyBtn}
+                        onClick={() => copyAddress(pool.asset!.nftMint!, 'NFT mint')}
+                      >
+                        <span className={styles.mintAddress}>
+                          {pool.asset.nftMint.slice(0, 6)}...{pool.asset.nftMint.slice(-4)}
+                        </span>
+                        <FaCopy size={10} />
+                      </button>
+                      <Link href={`/nft/${pool.asset.nftMint}`} className={styles.tokenLink}>
+                        <FaExternalLinkAlt size={10} /> View NFT
+                      </Link>
+                      <a
+                        href={getClusterConfig().explorerUrl(pool.asset.nftMint)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.tokenLink}
+                      >
+                        <SiSolana size={12} /> Solscan
+                      </a>
+                    </div>
+                  </div>
                 )}
               </div>
             )}

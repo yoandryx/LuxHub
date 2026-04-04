@@ -3,6 +3,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
+import MintRequest from '../../../lib/models/MintRequest';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -42,6 +43,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const pool = poolDoc as any;
+
+    // If Asset populate returned null (asset is actually a MintRequest),
+    // fall back to MintRequest lookup to get brand/model/image/etc.
+    if (!pool.selectedAssetId || typeof pool.selectedAssetId === 'string' || !pool.selectedAssetId.model) {
+      const assetId = typeof pool.selectedAssetId === 'object' ? pool.selectedAssetId?._id : pool.selectedAssetId;
+      if (assetId) {
+        const mintReq = await MintRequest.findById(assetId).lean() as any;
+        if (mintReq) {
+          pool.selectedAssetId = {
+            _id: mintReq._id,
+            model: mintReq.model,
+            brand: mintReq.brand,
+            priceUSD: mintReq.priceUSD,
+            description: mintReq.description,
+            serial: mintReq.serial || mintReq.serialNumber,
+            imageUrl: mintReq.imageUrl,
+            imageIpfsUrls: mintReq.imageIpfsUrls,
+            images: mintReq.images,
+            category: mintReq.category,
+            nftMint: mintReq.mintAddress,
+          };
+        }
+      }
+    }
 
     // Calculate funding progress
     const fundingProgress = pool.totalShares > 0 ? (pool.sharesSold / pool.totalShares) * 100 : 0;

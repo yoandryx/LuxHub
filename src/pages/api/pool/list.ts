@@ -3,6 +3,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
+import MintRequest from '../../../lib/models/MintRequest';
 // Import models to register schemas for populate()
 import '../../../lib/models/Assets';
 import '../../../lib/models/Vendor';
@@ -64,6 +65,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .limit(parseInt(limit))
       .lean();
 
+    // Fallback: populate missing asset data from MintRequest
+    // (vendor mint flow stores in MintRequest, not Asset collection)
+    const missingAssetIds = pools
+      .filter((p: any) => !p.selectedAssetId || typeof p.selectedAssetId === 'string' || !p.selectedAssetId.model)
+      .map((p: any) => typeof p.selectedAssetId === 'object' ? p.selectedAssetId?._id : p.selectedAssetId)
+      .filter(Boolean);
+
+    if (missingAssetIds.length > 0) {
+      const mintReqs = await MintRequest.find({ _id: { $in: missingAssetIds } }).lean();
+      const mintReqMap = new Map(mintReqs.map((m: any) => [m._id.toString(), m]));
+
+      for (const pool of pools as any[]) {
+        const assetId = typeof pool.selectedAssetId === 'object' ? pool.selectedAssetId?._id?.toString() : pool.selectedAssetId?.toString();
+        if (assetId && mintReqMap.has(assetId)) {
+          const mintReq = mintReqMap.get(assetId) as any;
+          pool.selectedAssetId = {
+            _id: mintReq._id,
+            model: mintReq.model,
+            brand: mintReq.brand,
+            priceUSD: mintReq.priceUSD,
+            description: mintReq.description,
+            serial: mintReq.serial || mintReq.serialNumber,
+            imageUrl: mintReq.imageUrl,
+            imageIpfsUrls: mintReq.imageIpfsUrls,
+            images: mintReq.images,
+            arweaveTxId: mintReq.arweaveTxId,
+            nftMint: mintReq.mintAddress,
+          };
+        }
+      }
+    }
+
     // Get total count for pagination
     const total = await Pool.countDocuments(query);
 
@@ -86,6 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             imageIpfsUrls: pool.selectedAssetId.imageIpfsUrls,
             images: pool.selectedAssetId.images,
             arweaveTxId: pool.selectedAssetId.arweaveTxId,
+            nftMint: pool.selectedAssetId.nftMint,
           }
         : null,
 

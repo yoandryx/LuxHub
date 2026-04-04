@@ -213,7 +213,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Generate token name and symbol
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
     const finalTokenName = tokenName || `LuxHub Pool #${poolNumber} - ${assetModel}`;
-    const finalTokenSymbol = tokenSymbol || `LUX-${poolNumber.replace('LUX-', '')}`;
+    const finalTokenSymbol = (tokenSymbol || poolNumber).slice(0, 10);
 
     // ──────────────────────────────────────────────────────────────
     // STEP 1: Create token info + metadata via Bags API
@@ -409,7 +409,9 @@ export async function createPoolTokenInternal(
     console.log(`[createPoolTokenInternal] Asset: ${assetModel}, Raw: ${rawImage?.slice(0, 60) || 'NONE'}, Resolved: ${assetImage?.slice(0, 80) || 'NONE'}`);
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
     const tokenName = `LuxHub Pool #${poolNumber} - ${assetModel}`.slice(0, 32);
-    const tokenSymbol = `LUX-${poolNumber.replace('LUX-', '')}`.slice(0, 10);
+    // Use pool number directly as symbol (LUX0001, LUX0002, etc.)
+    // poolNumber is already prefixed "LUX" by create.ts, no need to add another prefix
+    const tokenSymbol = poolNumber.slice(0, 10);
 
     // STEP 1: Create token info
     const formData = new FormData();
