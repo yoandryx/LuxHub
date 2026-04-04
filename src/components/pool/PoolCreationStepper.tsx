@@ -390,15 +390,33 @@ export function PoolCreationStepper({
 
       try {
         const txData = feeShareTxs[i];
-        const txBase64 = txData.transaction || txData;
+        const txRaw = txData.transaction || txData;
 
-        // Deserialize the transaction
-        const txBuffer = Buffer.from(typeof txBase64 === 'string' ? txBase64 : txBase64.transaction, 'base64');
+        // Deserialize: try base64 first, then base58 (Bags API may use either)
         let tx: Transaction | VersionedTransaction;
+        const b64Buf = Buffer.from(typeof txRaw === 'string' ? txRaw : JSON.stringify(txRaw), 'base64');
         try {
-          tx = VersionedTransaction.deserialize(txBuffer);
+          tx = VersionedTransaction.deserialize(b64Buf);
         } catch {
-          tx = Transaction.from(txBuffer);
+          try {
+            tx = Transaction.from(b64Buf);
+          } catch {
+            // Fallback: try base58 decoding
+            const bs58 = (await import('bs58')).default;
+            const b58Buf = bs58.decode(typeof txRaw === 'string' ? txRaw : txRaw.transaction);
+            try {
+              tx = VersionedTransaction.deserialize(b58Buf);
+            } catch {
+              tx = Transaction.from(b58Buf);
+            }
+          }
+        }
+
+        // Refresh blockhash if it's a legacy Transaction (prevents stale blockhash errors)
+        if (tx instanceof Transaction) {
+          const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+          tx.recentBlockhash = blockhash;
+          tx.feePayer = publicKey;
         }
 
         // Sign it
@@ -459,13 +477,28 @@ export function PoolCreationStepper({
       const launchTxData = launchData.transactions?.[0];
 
       if (launchTxData) {
-        const txBase64 = launchTxData.transaction || launchTxData;
-        const txBuffer = Buffer.from(typeof txBase64 === 'string' ? txBase64 : txBase64.transaction, 'base64');
+        const txRaw = launchTxData.transaction || launchTxData;
         let tx: Transaction | VersionedTransaction;
+        const b64Buf = Buffer.from(typeof txRaw === 'string' ? txRaw : JSON.stringify(txRaw), 'base64');
         try {
-          tx = VersionedTransaction.deserialize(txBuffer);
+          tx = VersionedTransaction.deserialize(b64Buf);
         } catch {
-          tx = Transaction.from(txBuffer);
+          try {
+            tx = Transaction.from(b64Buf);
+          } catch {
+            const bs58 = (await import('bs58')).default;
+            const b58Buf = bs58.decode(typeof txRaw === 'string' ? txRaw : txRaw.transaction);
+            try {
+              tx = VersionedTransaction.deserialize(b58Buf);
+            } catch {
+              tx = Transaction.from(b58Buf);
+            }
+          }
+        }
+        if (tx instanceof Transaction) {
+          const { blockhash } = await connection.getLatestBlockhash('confirmed');
+          tx.recentBlockhash = blockhash;
+          tx.feePayer = publicKey!;
         }
 
         const signed = await signTransaction(tx);
