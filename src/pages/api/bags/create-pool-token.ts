@@ -17,6 +17,7 @@ import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 import { getAdminConfig } from '../../../lib/config/adminConfig';
 import { configureFeeShareInternal } from './configure-fee-share';
+import { resolveImageUrl } from '../../../utils/imageUtils';
 
 interface CreatePoolTokenRequest {
   poolId: string;
@@ -364,8 +365,10 @@ export async function createPoolTokenInternal(
     }
 
     const assetModel = asset?.model || 'LuxHub Pool Asset';
-    const assetImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
-    console.log(`[createPoolTokenInternal] Asset: ${assetModel}, Image URL: ${assetImage?.slice(0, 80) || 'NONE'}`);
+    // Resolve through gateway (handles Irys TX IDs, devnet/mainnet URLs, IPFS CIDs)
+    const rawImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
+    const assetImage = rawImage ? resolveImageUrl(rawImage) : '';
+    console.log(`[createPoolTokenInternal] Asset: ${assetModel}, Raw: ${rawImage?.slice(0, 60) || 'NONE'}, Resolved: ${assetImage?.slice(0, 80) || 'NONE'}`);
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
     const tokenName = `LuxHub Pool #${poolNumber} - ${assetModel}`.slice(0, 32);
     const tokenSymbol = `LUX-${poolNumber.replace('LUX-', '')}`.slice(0, 10);

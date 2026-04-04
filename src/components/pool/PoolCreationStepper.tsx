@@ -48,10 +48,33 @@ const STEPS = [
   { label: 'Confirm', icon: FiAward },
 ];
 
-function fileToBase64(file: File): Promise<string> {
+/**
+ * Compress image to fit within Vercel's 4.5MB JSON body limit.
+ * Resizes to max 800x800 and uses JPEG quality 0.8 (~200-400KB output).
+ */
+function compressImage(file: File, maxSize = 800, quality = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
+    const img = new Image();
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => {
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas not supported'));
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -230,7 +253,7 @@ export function PoolCreationStepper({
           assetId: selectedAssetId,
           targetAmountUSD: parseFloat(targetAmountUSD),
           minBuyInUSD: parseFloat(minBuyInUSD),
-          tokenImageBase64: tokenImageFile ? await fileToBase64(tokenImageFile) : undefined,
+          tokenImageBase64: tokenImageFile ? await compressImage(tokenImageFile) : undefined,
         }),
       });
 
