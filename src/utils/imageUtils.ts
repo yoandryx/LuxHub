@@ -3,10 +3,11 @@
 
 import { SyntheticEvent } from 'react';
 
-// Gateway configurations - use mainnet gateway by default, devnet only for local dev
-const isDevnet = typeof window !== 'undefined'
-  ? window.location.hostname === 'localhost'
-  : process.env.NEXT_PUBLIC_SOLANA_NETWORK !== 'mainnet-beta';
+// Gateway configurations - follow NEXT_PUBLIC_SOLANA_NETWORK (not hostname)
+// Localhost dev may run against mainnet data, so hostname is unreliable
+const isDevnet = process.env.NEXT_PUBLIC_SOLANA_NETWORK
+  ? process.env.NEXT_PUBLIC_SOLANA_NETWORK !== 'mainnet-beta'
+  : false; // Default to mainnet gateway when env var is missing
 export const IRYS_GATEWAY = isDevnet ? 'https://devnet.irys.xyz/' : 'https://gateway.irys.xyz/';
 // Fallback Pinata gateway for legacy IPFS CIDs
 export const PINATA_GATEWAY =
@@ -44,12 +45,13 @@ export function resolveImageUrl(idOrUrl: string | undefined | null): string {
 
   const trimmed = idOrUrl.trim();
 
-  // Already a full URL — normalize gateway if needed
+  // Already a full URL — normalize gateway to match current network
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     if (isDevnet) {
       return trimmed.replace('https://gateway.irys.xyz/', IRYS_GATEWAY);
     }
-    return trimmed;
+    // On mainnet: convert any devnet URLs to mainnet gateway
+    return trimmed.replace('https://devnet.irys.xyz/', IRYS_GATEWAY);
   }
 
   // Base64 data URI (from file upload previews)
