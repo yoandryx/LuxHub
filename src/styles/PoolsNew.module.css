@@ -793,6 +793,23 @@
   );
 }
 
+.lifecyclePill {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  background: rgba(200, 161, 255, 0.15);
+  color: #c8a1ff;
+  border: 1px solid rgba(200, 161, 255, 0.3);
+  text-transform: uppercase;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  letter-spacing: 0.03em;
+}
+
 .tradeablePill {
   position: relative;
   display: flex;

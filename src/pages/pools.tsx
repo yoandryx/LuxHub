@@ -417,6 +417,9 @@ const PoolCard = memo(
       pool.watchVerificationStatus === 'grace_period' ||
       pool.watchVerificationStatus === 'unresponsive';
 
+    const lifecycleStage = getLifecycleStage(pool);
+    const lifecycleLabel = LIFECYCLE_STAGES.find((s) => s.key === lifecycleStage)?.label || lifecycleStage;
+
     // Format large token numbers (1B supply)
     const formatTokens = (n: number) => {
       if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
@@ -469,6 +472,7 @@ const PoolCard = memo(
             <span className={`${styles.statusPill} ${styles[statusClass]}`}>
               {STATUS_LABEL[pool.status] || pool.status}
             </span>
+            <span className={styles.lifecyclePill}>{lifecycleLabel}</span>
             {isTradeable && <span className={styles.tradeablePill}>Tradeable</span>}
             {pool.status === 'graduated' && (
               <span className={styles.daoBadge}>DAO Coming Soon</span>
