@@ -47,11 +47,15 @@ export function resolveImageUrl(idOrUrl: string | undefined | null): string {
 
   // Already a full URL — normalize gateway to match current network
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    // Convert uploader URLs to gateway URLs (uploader is write-only, gateway serves reads)
+    let normalized = trimmed
+      .replace('https://uploader.irys.xyz/', IRYS_GATEWAY)
+      .replace('https://uploader.devnet.irys.xyz/', IRYS_GATEWAY);
     if (isDevnet) {
-      return trimmed.replace('https://gateway.irys.xyz/', IRYS_GATEWAY);
+      return normalized.replace('https://gateway.irys.xyz/', IRYS_GATEWAY);
     }
     // On mainnet: convert any devnet URLs to mainnet gateway
-    return trimmed.replace('https://devnet.irys.xyz/', IRYS_GATEWAY);
+    return normalized.replace('https://devnet.irys.xyz/', IRYS_GATEWAY);
   }
 
   // Base64 data URI (from file upload previews)

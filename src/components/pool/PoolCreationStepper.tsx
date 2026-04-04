@@ -76,37 +76,6 @@ function fetchImageAsBase64(url: string, maxSize = 800, quality = 0.8): Promise<
   });
 }
 
-/**
- * Compress image to fit within Vercel's 4.5MB JSON body limit.
- * Resizes to max 800x800 and uses JPEG quality 0.8 (~200-400KB output).
- */
-function compressImage(file: File, maxSize = 800, quality = 0.8): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const reader = new FileReader();
-    reader.onload = () => {
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxSize || height > maxSize) {
-          const ratio = Math.min(maxSize / width, maxSize / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Canvas not supported'));
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = reader.result as string;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 export function PoolCreationStepper({
   assetId: initialAssetId,
@@ -135,7 +104,6 @@ export function PoolCreationStepper({
   const [minBuyInUSD, setMinBuyInUSD] = useState('1.50');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [autoFilling, setAutoFilling] = useState(false);
-  const [tokenImageFile, setTokenImageFile] = useState<File | null>(null);
   const [tokenImagePreview, setTokenImagePreview] = useState<string>('');
 
   // Pool state
@@ -272,21 +240,17 @@ export function PoolCreationStepper({
       }
 
       // Step 1a: Create pool in MongoDB
-      // Prepare image — try custom upload, then client-side fetch of NFT image.
-      // Fall back to passing the URL for server-side fetch if client fetch fails.
+      // Prepare NFT image — server will fetch from this URL (we verified it works)
       let tokenImageBase64: string | undefined;
-      let tokenImageUrl: string | undefined;
-      if (tokenImageFile) {
-        console.log('[PoolStepper] Compressing custom uploaded image');
-        tokenImageBase64 = await compressImage(tokenImageFile);
-      } else if (tokenImagePreview) {
-        console.log('[PoolStepper] Fetching NFT image for token:', tokenImagePreview);
+      let tokenImageUrl: string | undefined = tokenImagePreview || undefined;
+      if (tokenImagePreview) {
+        console.log('[PoolStepper] Fetching NFT image client-side:', tokenImagePreview);
         try {
           tokenImageBase64 = await fetchImageAsBase64(tokenImagePreview);
           console.log('[PoolStepper] NFT image fetched & compressed, length:', tokenImageBase64.length);
         } catch (imgErr) {
-          console.warn('[PoolStepper] Client-side image fetch failed (likely CORS), server will try:', imgErr);
-          tokenImageUrl = tokenImagePreview;
+          console.warn('[PoolStepper] Client fetch failed (likely CORS), server will fetch from URL:', imgErr);
+          // tokenImageUrl already set — server will handle it
         }
       }
 
@@ -728,48 +692,22 @@ export function PoolCreationStepper({
         </div>
       )}
 
-      {/* Token Image Upload */}
-      <div className={styles.formGroup}>
-        <label className={styles.formLabel}>Token Image</label>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-        }}>
-          {(tokenImagePreview || tokenImageFile) && (
+      {/* Token Image — locked to NFT image for consistency */}
+      {tokenImagePreview && (
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel}>Token Image (from NFT)</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <img
-              src={tokenImageFile ? URL.createObjectURL(tokenImageFile) : tokenImagePreview}
+              src={tokenImagePreview}
               alt="Token"
               style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover', border: '1px solid rgba(200,161,255,0.15)' }}
             />
-          )}
-          <div style={{ flex: 1 }}>
-            <input
-              type="file"
-              accept="image/*"
-              id="tokenImageUpload"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setTokenImageFile(file);
-                  setTokenImagePreview(URL.createObjectURL(file));
-                }
-              }}
-            />
-            <label
-              htmlFor="tokenImageUpload"
-              className={styles.btnSecondary}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', padding: '6px 12px' }}
-            >
-              {tokenImageFile ? 'Change Image' : tokenImagePreview ? 'Replace NFT Image' : 'Upload Image'}
-            </label>
-            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginLeft: '8px' }}>
-              {tokenImageFile ? tokenImageFile.name : 'Uses NFT image by default'}
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+              Locked to NFT image — ensures visual consistency between the NFT and its pool token.
             </span>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Token Name — locked to NFT name */}
       <div className={styles.formGroup}>
