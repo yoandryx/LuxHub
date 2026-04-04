@@ -14,6 +14,7 @@ import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage, FiDrop
 import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
 import TvChart, { generatePriceHistory } from '../components/marketplace/TvChart';
 import { getLifecycleStage, LIFECYCLE_STAGES } from '../components/pool/LifecycleStepper';
+import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
 import styles from '../styles/PoolsNew.module.css';
 
 // ─── Status Config ──────────────────────────────────────────────
@@ -388,18 +389,14 @@ const PoolCard = memo(
       [pool.participants]
     );
 
-    // Resolve image: prefer imageUrl, then resolve IPFS/Irys CIDs to full URLs
+    // Resolve image through gateway (handles Irys TX IDs, IPFS CIDs, devnet URLs)
     const rawImage =
       pool.asset?.imageUrl ||
       pool.asset?.images?.[0] ||
       pool.asset?.imageIpfsUrls?.[0] ||
       pool.asset?.arweaveTxId ||
       '';
-    const image = rawImage
-      ? rawImage.startsWith('http')
-        ? rawImage
-        : `https://gateway.irys.xyz/${rawImage}`
-      : '/images/placeholder-watch.png';
+    const image = rawImage ? resolveImageUrl(rawImage) : PLACEHOLDER_IMAGE;
     const brand = pool.asset?.brand || '';
     const model = pool.asset?.model || 'Luxury Watch';
     const tokensLeft = pool.totalShares - pool.sharesSold;
