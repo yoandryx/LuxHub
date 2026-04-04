@@ -412,9 +412,11 @@ export function PoolCreationStepper({
           }
         }
 
-        // Refresh blockhash if it's a legacy Transaction (prevents stale blockhash errors)
-        if (tx instanceof Transaction) {
-          const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+        // Refresh blockhash (Bags-generated ones expire within ~90s)
+        const { blockhash } = await connection.getLatestBlockhash('confirmed');
+        if (tx instanceof VersionedTransaction) {
+          tx.message.recentBlockhash = blockhash;
+        } else {
           tx.recentBlockhash = blockhash;
           tx.feePayer = publicKey;
         }
@@ -495,8 +497,10 @@ export function PoolCreationStepper({
             }
           }
         }
-        if (tx instanceof Transaction) {
-          const { blockhash } = await connection.getLatestBlockhash('confirmed');
+        const { blockhash } = await connection.getLatestBlockhash('confirmed');
+        if (tx instanceof VersionedTransaction) {
+          tx.message.recentBlockhash = blockhash;
+        } else {
           tx.recentBlockhash = blockhash;
           tx.feePayer = publicKey!;
         }
