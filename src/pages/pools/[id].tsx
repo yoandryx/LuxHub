@@ -101,8 +101,9 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const PoolDetailV2Page: React.FC = () => {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, side } = router.query;
   const wallet = useEffectiveWallet();
+  const initialTradeSide = side === 'sell' ? 'sell' : 'buy';
 
   // Pool data via SWR
   const { data: poolRes, mutate: refreshPool } = useSWR(
@@ -589,6 +590,7 @@ const PoolDetailV2Page: React.FC = () => {
                   sharesSold: pool.sharesSold,
                   totalShares: pool.totalShares,
                 }}
+                initialSide={initialTradeSide}
                 onTradeComplete={() => refreshPool()}
               />
             ) : null}

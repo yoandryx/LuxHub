@@ -17,6 +17,10 @@ import { getLifecycleStage, LIFECYCLE_STAGES } from '../components/pool/Lifecycl
 import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
 import styles from '../styles/PoolsNew.module.css';
 
+// ─── Constants ──────────────────────────────────────────────────
+// Bags bonding curve graduates at ~$6k market cap by default
+const GRADUATION_TARGET_USD = 6000;
+
 // ─── Status Config ──────────────────────────────────────────────
 const STATUS_STYLE: Record<string, string> = {
   open: 'statusOpen',
@@ -297,6 +301,7 @@ const PoolCard = memo(
     );
     const [tradeMsg, setTradeMsg] = useState('');
     const { publicKey, signTransaction } = useEffectiveWallet();
+    const poolRouter = useRouter();
 
     // Reset local override when global mode changes
     useEffect(() => {
@@ -305,7 +310,7 @@ const PoolCard = memo(
     const { prices: priceHistory, dexData } = usePoolPriceHistory(pool);
 
     const executeQuickTrade = useCallback(
-      async (side: 'buy' | 'sell') => {
+      async () => {
         if (!publicKey || !signTransaction) {
           setTradeStatus('error');
           setTradeMsg('Connect wallet');
@@ -319,21 +324,26 @@ const PoolCard = memo(
           return;
         }
         const solAmount = selectedSol || '0.1';
-        const lamports = Math.round(parseFloat(solAmount) * 1e9);
         const SOL_MINT = 'So11111111111111111111111111111111111111112';
-        const inputMint = side === 'buy' ? SOL_MINT : pool.bagsTokenMint;
-        const outputMint = side === 'buy' ? pool.bagsTokenMint : SOL_MINT;
-        // For sells, we need the token amount — use lamports as placeholder, user should use modal for precise sells
-        const amount = side === 'buy' ? lamports.toString() : lamports.toString();
+        const inputMint = SOL_MINT;
+        const outputMint = pool.bagsTokenMint;
+        // SOL amount as decimal string — trade-quote expects human-readable amount
+        const amount = solAmount;
+        const slippageBps = '100'; // 1% default — matches TradeWidget
 
         setTradeStatus('loading');
-        setTradeMsg(side === 'buy' ? `Buying ${solAmount} SOL...` : `Selling...`);
+        setTradeMsg(`Buying ${solAmount} SOL...`);
 
         try {
-          // 1. Get quote
-          const quoteRes = await fetch(
-            `/api/bags/trade-quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}`
-          );
+          // 1. Get quote (pass poolId so server can validate + look up mint)
+          const quoteParams = new URLSearchParams({
+            poolId: pool._id,
+            inputMint,
+            outputMint,
+            amount,
+            slippageBps,
+          });
+          const quoteRes = await fetch(`/api/bags/trade-quote?${quoteParams.toString()}`);
           if (!quoteRes.ok) throw new Error('Quote failed');
           const quoteData = await quoteRes.json();
 
@@ -342,33 +352,34 @@ const PoolCard = memo(
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              poolId: pool._id,
               inputMint,
               outputMint,
-              amount: amount,
+              amount,
               userWallet: publicKey.toString(),
+              slippageBps,
             }),
           });
           if (!swapRes.ok) throw new Error('Swap build failed');
           const swapData = await swapRes.json();
 
-          // 3. Sign with wallet
-          const { VersionedTransaction } = await import('@solana/web3.js');
-          const bs58 = (await import('bs58')).default;
-          const txBytes = bs58.decode(swapData.transaction.serialized);
-          const tx = VersionedTransaction.deserialize(txBytes);
+          // 3. Sign with wallet — Bags returns base64-encoded VersionedTransaction
+          const { VersionedTransaction, Connection } = await import('@solana/web3.js');
+          const txBuffer = Buffer.from(swapData.transaction.serialized, 'base64');
+          const tx = VersionedTransaction.deserialize(txBuffer);
           const signed = await signTransaction(tx);
 
-          // 4. Send
-          const { Connection } = await import('@solana/web3.js');
+          // 4. Send + confirm
           const connection = new Connection(
             process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.mainnet-beta.solana.com'
           );
           const sig = await connection.sendRawTransaction(signed.serialize(), {
             skipPreflight: false,
           });
+          await connection.confirmTransaction(sig, 'confirmed');
 
           setTradeStatus('success');
-          setTradeMsg(side === 'buy' ? `Bought! ✓` : `Sold! ✓`);
+          setTradeMsg(`Bought! ✓`);
           setTimeout(() => setTradeStatus('idle'), 3000);
         } catch (err: any) {
           setTradeStatus('error');
@@ -376,13 +387,32 @@ const PoolCard = memo(
           setTimeout(() => setTradeStatus('idle'), 3000);
         }
       },
-      [publicKey, signTransaction, pool.bagsTokenMint, selectedSol]
+      [publicKey, signTransaction, pool._id, pool.bagsTokenMint, selectedSol]
     );
 
-    const percentFilled = useMemo(
-      () => (pool.totalShares > 0 ? (pool.sharesSold / pool.totalShares) * 100 : 0),
-      [pool.totalShares, pool.sharesSold]
-    );
+    // Progress semantics depend on pool lifecycle:
+    //   - Pre-token-launch (no bagsTokenMint): shows vendor funding % (sharesSold/totalShares)
+    //   - Bonding curve active: shows market cap progress toward graduation ($6k target)
+    //   - Graduated: no progress bar
+    const hasToken = !!pool.bagsTokenMint;
+    const livePrice = dexData?.priceUsd
+      ? parseFloat(dexData.priceUsd)
+      : pool.lastPriceUSD || pool.currentBondingPrice || pool.sharePriceUSD || 0;
+    const marketCapUSD = hasToken && livePrice > 0 ? livePrice * (pool.totalShares || 0) : 0;
+
+    const percentFilled = useMemo(() => {
+      if (pool.graduated) return 100;
+      if (hasToken && marketCapUSD > 0) {
+        return Math.min((marketCapUSD / GRADUATION_TARGET_USD) * 100, 100);
+      }
+      return pool.totalShares > 0 ? (pool.sharesSold / pool.totalShares) * 100 : 0;
+    }, [pool.graduated, hasToken, marketCapUSD, pool.totalShares, pool.sharesSold]);
+
+    const progressLabel = pool.graduated
+      ? 'Graduated'
+      : hasToken
+        ? 'To Graduation'
+        : 'Funding';
 
     const investorCount = useMemo(
       () => new Set(pool.participants?.map((p) => p.wallet) || []).size,
@@ -465,15 +495,12 @@ const PoolCard = memo(
           >
             {showChart ? <FiImage size={13} /> : <FiBarChart2 size={13} />}
           </button>
+          {/* Consolidated badges — one primary (lifecycle) + optional warnings.
+              Dropped: separate "Tradeable" pill (redundant with lifecycle=trade),
+                       "DAO Coming Soon" (shown in detail page), raw status
+                       (encoded in lifecycleLabel). */}
           <div className={styles.cardBadges}>
-            <span className={`${styles.statusPill} ${styles[statusClass]}`}>
-              {STATUS_LABEL[pool.status] || pool.status}
-            </span>
-            <span className={styles.lifecyclePill}>{lifecycleLabel}</span>
-            {isTradeable && <span className={styles.tradeablePill}>Tradeable</span>}
-            {pool.status === 'graduated' && (
-              <span className={styles.daoBadge}>DAO Coming Soon</span>
-            )}
+            <span className={`${styles.lifecyclePill} ${styles[statusClass]}`}>{lifecycleLabel}</span>
             {isUnverified && <span className={styles.unverifiedPill}>Unverified</span>}
             {isGracePeriod && <span className={styles.warningPill}>Verification Lapsing</span>}
           </div>
@@ -538,15 +565,18 @@ const PoolCard = memo(
                   <button
                     className={styles.cardBuyBtn}
                     disabled={tradeStatus === 'loading'}
-                    onClick={() => executeQuickTrade('buy')}
+                    onClick={() => executeQuickTrade()}
                   >
                     Buy{selectedSol ? ` ${selectedSol}` : ''}
                   </button>
                   <button
                     className={styles.cardSellBtn}
                     disabled={tradeStatus === 'loading'}
-                    onClick={onClick}
-                    title="Open detail to sell tokens"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      poolRouter.push(`/pools/${pool._id}?side=sell`);
+                    }}
+                    title="Open detail page to sell tokens (needs precise token amount)"
                   >
                     Sell
                   </button>
@@ -589,10 +619,10 @@ const PoolCard = memo(
 
           <div className={styles.cardProgress}>
             <div className={styles.cardProgressHeader}>
-              <span>{pool.graduated ? 'Trading' : 'Funding'}</span>
+              <span>{progressLabel}</span>
               <span className={styles.cardProgressPercent}>
                 {pool.graduated
-                  ? `$${(pool.lastPriceUSD || 0).toFixed(6)}`
+                  ? `$${livePrice.toFixed(6)}`
                   : `${percentFilled.toFixed(1)}%`}
               </span>
             </div>
@@ -605,9 +635,16 @@ const PoolCard = memo(
               </div>
             )}
             <div className={styles.cardProgressMeta}>
-              <span>
-                {formatTokens(pool.sharesSold)}/{formatTokens(pool.totalShares)}
-              </span>
+              {hasToken && !pool.graduated ? (
+                <span>
+                  ${marketCapUSD >= 1000 ? `${(marketCapUSD / 1000).toFixed(1)}K` : marketCapUSD.toFixed(0)}
+                  {' / '}${(GRADUATION_TARGET_USD / 1000).toFixed(0)}K mcap
+                </span>
+              ) : (
+                <span>
+                  {formatTokens(pool.sharesSold)}/{formatTokens(pool.totalShares)}
+                </span>
+              )}
               <span>
                 {investorCount} holder{investorCount !== 1 ? 's' : ''}
               </span>

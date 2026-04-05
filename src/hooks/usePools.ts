@@ -132,7 +132,7 @@ interface PoolListResponse {
 
 export function usePools(config?: SWRConfiguration) {
   const { data, error, isLoading, mutate } = useSWR<PoolListResponse>('/api/pool/list', fetcher, {
-    refreshInterval: 60000, // Refresh every minute
+    refreshInterval: 30000, // Refresh every 30s — keep grid data live during bonding-curve trading
     revalidateOnFocus: true,
     dedupingInterval: 5000,
     ...config,

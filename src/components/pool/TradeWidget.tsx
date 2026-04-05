@@ -31,15 +31,16 @@ interface TradeQuote {
 
 interface TradeWidgetProps {
   pool: PoolData;
+  initialSide?: 'buy' | 'sell';
   onTradeComplete?: () => void;
 }
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 const SLIPPAGE_OPTIONS = [50, 100, 300]; // 0.5%, 1%, 3%
 
-export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, onTradeComplete }) => {
+export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'buy', onTradeComplete }) => {
   const { publicKey, signTransaction, connected } = useEffectiveWallet();
-  const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
+  const [tradeType, setTradeType] = useState<'buy' | 'sell'>(initialSide);
   const [amount, setAmount] = useState('');
   const [slippageBps, setSlippageBps] = useState(100); // default 1%
   const [customSlippage, setCustomSlippage] = useState('');
