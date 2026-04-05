@@ -417,3 +417,60 @@ export function useUserPortfolio(walletAddress: string | null, config?: SWRConfi
     mutate,
   };
 }
+
+// ============================================
+// Live Pool Stats Hook (on-chain)
+// ============================================
+
+export interface LivePoolStats {
+  mint: string;
+  holderCount: number;
+  circulatingSupply: number;
+  decimals: number;
+  priceUSD: number;
+  marketCapUSD: number;
+  volume24hUSD: number;
+  priceChange24h: number | null;
+  graduated: boolean;
+  source: 'dexscreener' | 'bags' | 'none';
+  lastUpdated: string;
+}
+
+interface LivePoolStatsResponse {
+  success: boolean;
+  stats: Record<string, LivePoolStats>;
+  count: number;
+}
+
+/**
+ * Fetch live on-chain stats for a batch of pool token mints.
+ * Pulls holder count (Helius), supply (Helius), and price/volume (DexScreener).
+ *
+ * Pass an array of mint addresses. Empty/undefined mints are filtered.
+ * Returns a stats map keyed by mint address.
+ */
+export function useLivePoolStats(mints: (string | undefined)[]) {
+  // Stable, deduped, sorted key — prevents unnecessary refetches
+  const validMints = mints.filter((m): m is string => !!m);
+  const dedupedSorted = Array.from(new Set(validMints)).sort();
+  const key =
+    dedupedSorted.length > 0
+      ? `/api/pool/live-stats?mints=${dedupedSorted.join(',')}`
+      : null;
+
+  const { data, error, isLoading, mutate } = useSWR<LivePoolStatsResponse>(key, fetcher, {
+    refreshInterval: 30000, // 30s — live trading data
+    revalidateOnFocus: true,
+    dedupingInterval: 10000,
+  });
+
+  return {
+    stats: data?.stats || {},
+    getStats: (mint: string | undefined): LivePoolStats | undefined =>
+      mint ? data?.stats?.[mint] : undefined,
+    isLoading,
+    isError: !!error,
+    error,
+    mutate,
+  };
+}

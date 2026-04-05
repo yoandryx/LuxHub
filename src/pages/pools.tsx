@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { useUserRole } from '../hooks/useUserRole';
 import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage, FiDroplet } from 'react-icons/fi';
-import { usePlatformStats, usePools, useUserPortfolio, Pool } from '../hooks/usePools';
+import { usePlatformStats, usePools, useUserPortfolio, useLivePoolStats, Pool, LivePoolStats } from '../hooks/usePools';
 import TvChart, { generatePriceHistory } from '../components/marketplace/TvChart';
 import { getLifecycleStage, LIFECYCLE_STAGES } from '../components/pool/LifecycleStepper';
 import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
@@ -286,10 +286,12 @@ function usePoolPriceHistory(
 const PoolCard = memo(
   ({
     pool,
+    liveStats,
     onClick,
     globalChartMode = false,
   }: {
     pool: Pool;
+    liveStats?: LivePoolStats;
     onClick: () => void;
     globalChartMode?: boolean;
   }) => {
@@ -392,32 +394,45 @@ const PoolCard = memo(
 
     // Progress semantics depend on pool lifecycle:
     //   - Pre-token-launch (no bagsTokenMint): shows vendor funding % (sharesSold/totalShares)
-    //   - Bonding curve active: shows market cap progress toward graduation ($6k target)
+    //   - Bonding curve active: market cap progress toward graduation ($6k target)
     //   - Graduated: no progress bar
+    //
+    // Live on-chain data (liveStats) wins over stored/webhook data when available.
     const hasToken = !!pool.bagsTokenMint;
-    const livePrice = dexData?.priceUsd
-      ? parseFloat(dexData.priceUsd)
-      : pool.lastPriceUSD || pool.currentBondingPrice || pool.sharePriceUSD || 0;
-    const marketCapUSD = hasToken && livePrice > 0 ? livePrice * (pool.totalShares || 0) : 0;
+    const isGraduated = liveStats?.graduated ?? pool.graduated ?? false;
+    const livePrice =
+      liveStats?.priceUSD ||
+      (dexData?.priceUsd ? parseFloat(dexData.priceUsd) : 0) ||
+      pool.lastPriceUSD ||
+      pool.currentBondingPrice ||
+      pool.sharePriceUSD ||
+      0;
+    // Prefer live supply × price; fall back to price × totalShares
+    const marketCapUSD =
+      liveStats?.marketCapUSD ||
+      (hasToken && livePrice > 0 ? livePrice * (pool.totalShares || 0) : 0);
 
     const percentFilled = useMemo(() => {
-      if (pool.graduated) return 100;
+      if (isGraduated) return 100;
       if (hasToken && marketCapUSD > 0) {
         return Math.min((marketCapUSD / GRADUATION_TARGET_USD) * 100, 100);
       }
       return pool.totalShares > 0 ? (pool.sharesSold / pool.totalShares) * 100 : 0;
-    }, [pool.graduated, hasToken, marketCapUSD, pool.totalShares, pool.sharesSold]);
+    }, [isGraduated, hasToken, marketCapUSD, pool.totalShares, pool.sharesSold]);
 
-    const progressLabel = pool.graduated
+    const progressLabel = isGraduated
       ? 'Graduated'
       : hasToken
         ? 'To Graduation'
         : 'Funding';
 
-    const investorCount = useMemo(
-      () => new Set(pool.participants?.map((p) => p.wallet) || []).size,
-      [pool.participants]
-    );
+    // Prefer on-chain holder count (liveStats) over stale participants[] (legacy invest flow)
+    const investorCount = useMemo(() => {
+      if (liveStats?.holderCount !== undefined && liveStats.holderCount > 0) {
+        return liveStats.holderCount;
+      }
+      return new Set(pool.participants?.map((p) => p.wallet) || []).size;
+    }, [liveStats?.holderCount, pool.participants]);
 
     // Resolve image through gateway (handles Irys TX IDs, IPFS CIDs, devnet URLs)
     const rawImage =
@@ -430,8 +445,11 @@ const PoolCard = memo(
     const brand = pool.asset?.brand || '';
     const model = pool.asset?.model || 'Luxury Watch';
     const tokensLeft = pool.totalShares - pool.sharesSold;
-    // Use real price change from DexScreener when available, fallback to projectedROI
-    const realPriceChange = dexData?.priceChange?.h24;
+    // Use on-chain 24h change from liveStats when available, then dex fallback, then projectedROI
+    const realPriceChange =
+      liveStats?.priceChange24h !== undefined && liveStats?.priceChange24h !== null
+        ? liveStats.priceChange24h
+        : dexData?.priceChange?.h24;
     const hasRealChange = realPriceChange !== undefined && realPriceChange !== null;
     const changePercent = hasRealChange ? realPriceChange : (pool.projectedROI - 1) * 100;
     const changeIsPositive = changePercent >= 0;
@@ -621,12 +639,12 @@ const PoolCard = memo(
             <div className={styles.cardProgressHeader}>
               <span>{progressLabel}</span>
               <span className={styles.cardProgressPercent}>
-                {pool.graduated
+                {isGraduated
                   ? `$${livePrice.toFixed(6)}`
                   : `${percentFilled.toFixed(1)}%`}
               </span>
             </div>
-            {!pool.graduated && (
+            {!isGraduated && (
               <div className={styles.cardProgressTrack}>
                 <div
                   className={`${styles.cardProgressFill} ${percentFilled >= 80 ? styles.cardProgressFillHigh : ''}`}
@@ -635,7 +653,7 @@ const PoolCard = memo(
               </div>
             )}
             <div className={styles.cardProgressMeta}>
-              {hasToken && !pool.graduated ? (
+              {hasToken && !isGraduated ? (
                 <span>
                   ${marketCapUSD >= 1000 ? `${(marketCapUSD / 1000).toFixed(1)}K` : marketCapUSD.toFixed(0)}
                   {' / '}${(GRADUATION_TARGET_USD / 1000).toFixed(0)}K mcap
@@ -654,13 +672,15 @@ const PoolCard = memo(
           <div className={styles.cardStats}>
             <div className={styles.cardStat}>
               <span className={styles.cardStatLabel}>
-                {dexData ? 'Price' : pool.lastPriceUSD ? 'Price' : 'Entry'}
+                {liveStats?.priceUSD || dexData || pool.lastPriceUSD ? 'Price' : 'Entry'}
               </span>
               <span className={styles.cardStatValue}>
                 {(() => {
-                  const price = dexData?.priceUsd
-                    ? parseFloat(dexData.priceUsd)
-                    : pool.lastPriceUSD || pool.sharePriceUSD;
+                  const price =
+                    liveStats?.priceUSD ||
+                    (dexData?.priceUsd ? parseFloat(dexData.priceUsd) : 0) ||
+                    pool.lastPriceUSD ||
+                    pool.sharePriceUSD;
                   if (price >= 1) return `$${price.toFixed(2)}`;
                   if (price >= 0.001) return `$${price.toFixed(6)}`;
                   // Subscript zero notation for micro-prices
@@ -690,11 +710,12 @@ const PoolCard = memo(
               <span className={styles.cardStatValue}>${pool.targetAmountUSD.toLocaleString()}</span>
             </div>
             <div className={styles.cardStat}>
-              <span className={styles.cardStatLabel}>Vol</span>
+              <span className={styles.cardStatLabel}>Vol 24h</span>
               <span className={styles.cardStatValue}>
                 $
                 {(() => {
-                  const vol = dexData?.volume24h || pool.totalVolumeUSD || 0;
+                  const vol =
+                    liveStats?.volume24hUSD || dexData?.volume24h || pool.totalVolumeUSD || 0;
                   if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
                   if (vol >= 1000) return `${(vol / 1000).toFixed(1)}K`;
                   return vol > 0 ? vol.toFixed(0) : '0';
@@ -734,6 +755,14 @@ const PoolsPage: React.FC = () => {
   const { mutate: refreshStats } = usePlatformStats();
   const { pools, isLoading: poolsLoading, isError, error, mutate: refreshPools } = usePools();
   const { positions } = useUserPortfolio(wallet.publicKey?.toBase58() || null);
+
+  // Pull live on-chain stats (holders, supply, price, mcap, volume) for all pools with Bags tokens.
+  // Single batched call to /api/pool/live-stats; cards override stale DB fields with live data.
+  const poolMints = useMemo(
+    () => pools.map((p) => p.bagsTokenMint).filter((m): m is string => !!m),
+    [pools]
+  );
+  const { getStats: getLiveStats } = useLivePoolStats(poolMints);
 
   // Filter & sort
   const filteredPools = useMemo(() => {
@@ -958,6 +987,7 @@ const PoolsPage: React.FC = () => {
                 >
                   <PoolCard
                     pool={pool}
+                    liveStats={getLiveStats(pool.bagsTokenMint)}
                     onClick={() => handlePoolClick(pool)}
                     globalChartMode={viewMode === 'chart'}
                   />

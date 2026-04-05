@@ -13,6 +13,7 @@ import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
 import { PublicKey } from '@solana/web3.js';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 import { resolveImageUrl } from '../../utils/imageUtils';
+import { useLivePoolStats } from '../../hooks/usePools';
 import { LifecycleStepper, getLifecycleStage } from '../../components/pool/LifecycleStepper';
 import { HowItWorks } from '../../components/pool/HowItWorks';
 import { TradeWidget } from '../../components/pool/TradeWidget';
@@ -118,6 +119,11 @@ const PoolDetailV2Page: React.FC = () => {
   // SOL price
   const { data: priceData } = useSWR('/api/price/sol', fetcher, { refreshInterval: 60000 });
   const solPrice = priceData?.price || 0;
+
+  // Live on-chain stats (holder count, supply, live price, market cap, 24h volume).
+  // Refreshes every 30s — gives us authoritative data vs webhook-fed MongoDB fields.
+  const { getStats: getLiveStats } = useLivePoolStats([pool?.bagsTokenMint]);
+  const liveStats = getLiveStats(pool?.bagsTokenMint);
 
   // User position
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
@@ -326,7 +332,7 @@ const PoolDetailV2Page: React.FC = () => {
                 )}
                 <div className={styles.priceRow}>
                   <span className={styles.currentPrice}>
-                    ${(pool.currentBondingPrice || pool.sharePriceUSD || 0).toFixed(6)}
+                    ${(liveStats?.priceUSD || pool.currentBondingPrice || pool.sharePriceUSD || 0).toFixed(6)}
                   </span>
                   {pool.poolNumber && (
                     <span className={styles.tokenSymbolBadge}>
@@ -429,8 +435,20 @@ const PoolDetailV2Page: React.FC = () => {
               </div>
               <div className={styles.infoRow}>
                 <span>Token Price</span>
-                <span className={styles.priceValue}>${(pool.currentBondingPrice || pool.sharePriceUSD || 0).toFixed(6)}</span>
+                <span className={styles.priceValue}>${(liveStats?.priceUSD || pool.currentBondingPrice || pool.sharePriceUSD || 0).toFixed(6)}</span>
               </div>
+              {liveStats?.marketCapUSD ? (
+                <div className={styles.infoRow}>
+                  <span>Market Cap</span>
+                  <span>${liveStats.marketCapUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                </div>
+              ) : null}
+              {liveStats?.volume24hUSD ? (
+                <div className={styles.infoRow}>
+                  <span>24h Volume</span>
+                  <span>${liveStats.volume24hUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                </div>
+              ) : null}
               {pool.targetAmountUSD && (
                 <div className={styles.infoRow}>
                   <span>Target</span>
@@ -438,16 +456,12 @@ const PoolDetailV2Page: React.FC = () => {
                 </div>
               )}
               <div className={styles.infoRow}>
-                <span>Funding Progress</span>
-                <span>{pool.fundingProgress?.toFixed(1)}%</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span>Contributors</span>
-                <span>{pool.investorCount}</span>
+                <span>Holders</span>
+                <span>{liveStats?.holderCount ?? pool.investorCount}</span>
               </div>
               <div className={styles.infoRow}>
                 <span>Total Supply</span>
-                <span>{pool.totalShares?.toLocaleString()}</span>
+                <span>{(liveStats?.circulatingSupply || pool.totalShares || 0).toLocaleString()}</span>
               </div>
               {pool.escrowPda && (
                 <div className={styles.infoRow}>
@@ -616,7 +630,7 @@ const PoolDetailV2Page: React.FC = () => {
 
             {/* Pool Info (holders, volume) */}
             <div className={styles.poolInfoCard}>
-              <h3><FaUsers size={14} /> Token Holders ({pool.investorCount})</h3>
+              <h3><FaUsers size={14} /> Token Holders ({liveStats?.holderCount ?? pool.investorCount})</h3>
               {pool.participants && pool.participants.length > 0 ? (
                 pool.participants.slice(0, 10).map((p, i) => (
                   <div key={i} className={styles.infoRow}>
