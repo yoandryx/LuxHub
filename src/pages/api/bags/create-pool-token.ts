@@ -521,7 +521,15 @@ export async function createPoolTokenInternal(
 
     if (!imageAttached) {
       console.error('[createPoolTokenInternal] No image available for Bags token');
-      return { success: false, error: 'No image available. Please upload an image for the pool token.' };
+      console.error('[createPoolTokenInternal] DEBUG state:', {
+        hasTokenImageBase64: !!tokenImageBase64,
+        hasTokenImageUrl: !!tokenImageUrl,
+        rawImageFromAsset: rawImage?.slice(0, 80) || 'NONE',
+        resolvedUrl: assetImage?.slice(0, 80) || 'NONE',
+        assetBrand,
+        assetModel,
+      });
+      return { success: false, error: `No image available. DEBUG: tokenImageBase64=${!!tokenImageBase64}, tokenImageUrl=${!!tokenImageUrl}, rawImage=${rawImage ? 'yes' : 'no'}, resolved=${assetImage ? 'yes' : 'no'}` };
     }
 
     const infoRes = await fetch(`${BAGS_API_BASE}/token-launch/create-token-info`, {
@@ -539,15 +547,23 @@ export async function createPoolTokenInternal(
     const infoData = infoResult.response || infoResult;
     const mint = infoData.tokenMint;
     const metadataUrl = infoData.tokenMetadata;
+    // Bags returns the image URL it stored in tokenLaunch.image
+    const bagsImageUrl = infoData.tokenLaunch?.image || null;
+    console.log(`[createPoolTokenInternal] Bags response — mint: ${mint}, metadataUrl: ${metadataUrl}, image: ${bagsImageUrl || 'NONE'}, imageAttached sent: ${imageAttached}`);
 
     if (!mint || !metadataUrl) {
       return { success: false, error: 'Bags did not return tokenMint or tokenMetadata' };
+    }
+
+    if (imageAttached && !bagsImageUrl) {
+      console.error('[createPoolTokenInternal] ⚠ We sent image but Bags returned no image URL! Response:', JSON.stringify(infoData).slice(0, 500));
     }
 
     // Save mint immediately
     await Pool.findByIdAndUpdate(poolId, {
       $set: {
         bagsTokenMint: mint,
+        bagsTokenMetadataUrl: metadataUrl,
         bagsTokenCreatedAt: new Date(),
         fractionalMint: mint,
         bagsTokenName: tokenName,
