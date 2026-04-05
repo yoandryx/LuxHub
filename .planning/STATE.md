@@ -115,8 +115,14 @@ None yet.
 
 - Bags partner config PDA — check if created on mainnet (user unsure)
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260405-c3k | Smoke test buy/sell on mainnet bonding curve (72DexA...BAGS) — audit + runbook | 2026-04-05 | 4da37dd | [260405-c3k-smoke-test-buy-sell-on-mainnet-bonding-c](./quick/260405-c3k-smoke-test-buy-sell-on-mainnet-bonding-c/) |
+
 ## Session Continuity
 
-Last activity: 2026-04-04
-Stopped at: Completed 08-03-PLAN.md
-Key context: confirm_delivery proven on mainnet (TX: 3VqZFwcr...), 8 bugs fixed, program redeployed 2x. Offers still need confirm_delivery flow.
+Last activity: 2026-04-05 - Completed quick task 260405-c3k: smoke-test audit + runbook ready
+Stopped at: Runbook ready for manual mainnet execution (buy/sell on 72DexA...BAGS)
+Key context: confirm_delivery proven on mainnet (TX: 3VqZFwcr...), 8 bugs fixed, program redeployed 2x. Trade endpoints audited — 2 medium slippage bugs flagged (non-blocking at 1% default). Awaiting user to execute SMOKE-TEST-RUNBOOK.md.
