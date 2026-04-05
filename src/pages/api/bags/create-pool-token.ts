@@ -404,25 +404,37 @@ export async function createPoolTokenInternal(
   try {
     await dbConnect();
 
-    const pool = await Pool.findById(poolId).populate('selectedAssetId');
+    // Fetch pool WITHOUT populate so we keep the original selectedAssetId ObjectId
+    // (populate() would null it out if the Asset doc doesn't exist, making
+    // MintRequest fallback impossible)
+    const pool = await Pool.findById(poolId).lean() as any;
     if (!pool) return { success: false, error: 'Pool not found' };
     if (pool.bagsTokenMint) return { success: true, mint: pool.bagsTokenMint };
 
-    // Get asset data — try populated Asset first, then fall back to MintRequest
-    let asset = pool.selectedAssetId as any;
-    if (!asset || !asset.model) {
-      // Populate failed (MintRequest ID, not Asset) — fetch from MintRequest
+    // Look up asset in both Asset and MintRequest collections
+    const assetIdStr = pool.selectedAssetId?.toString();
+    let asset: any = null;
+    if (assetIdStr) {
+      const { Asset } = await import('../../../lib/models/Assets');
       const { default: MintRequest } = await import('../../../lib/models/MintRequest');
-      const mintReq = await MintRequest.findById(pool.selectedAssetId);
-      if (mintReq) {
+      const [assetDoc, mintReq] = await Promise.all([
+        Asset.findById(assetIdStr).lean() as any,
+        MintRequest.findById(assetIdStr).lean() as any,
+      ]);
+      const source = assetDoc || mintReq;
+      if (source) {
         asset = {
-          model: mintReq.model,
-          brand: mintReq.brand,
-          imageUrl: mintReq.imageUrl,
-          imageIpfsUrls: mintReq.imageIpfsUrls,
-          images: mintReq.images,
+          model: source.model,
+          brand: source.brand,
+          serial: source.serial || source.serialNumber,
+          description: source.description,
+          priceUSD: source.priceUSD,
+          imageUrl: source.imageUrl,
+          imageIpfsUrls: source.imageIpfsUrls,
+          images: source.images,
+          mintAddress: source.mintAddress,
         };
-        console.log(`[createPoolTokenInternal] Loaded asset from MintRequest: ${mintReq.brand} ${mintReq.model}, image: ${mintReq.imageUrl?.slice(0, 60)}`);
+        console.log(`[createPoolTokenInternal] Loaded asset: ${source.brand} ${source.model} (from ${assetDoc ? 'Asset' : 'MintRequest'}), image: ${source.imageUrl?.slice(0, 60)}`);
       }
     }
 
