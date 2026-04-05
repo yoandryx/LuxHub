@@ -204,30 +204,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const MintRequest = (await import('../../../lib/models/MintRequest')).default;
       const mintReq = await MintRequest.findById(pool.selectedAssetId);
       if (mintReq) {
-        asset = { model: mintReq.model, brand: mintReq.brand, imageUrl: mintReq.imageUrl, imageIpfsUrls: mintReq.imageIpfsUrls, images: mintReq.images };
+        asset = {
+          model: mintReq.model,
+          brand: mintReq.brand,
+          serial: mintReq.serial || mintReq.serialNumber,
+          description: mintReq.description,
+          priceUSD: mintReq.priceUSD,
+          imageUrl: mintReq.imageUrl,
+          imageIpfsUrls: mintReq.imageIpfsUrls,
+          images: mintReq.images,
+          mintAddress: mintReq.mintAddress,
+        };
       }
     }
+    const assetBrand = asset?.brand || '';
     const assetModel = asset?.model || 'LuxHub Pool Asset';
-    const assetImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
+    const assetSerial = asset?.serial || asset?.serialNumber || '';
+    const assetDescription = asset?.description || '';
+    const assetNftMint = asset?.mintAddress || asset?.nftMint || '';
+    const assetPrice = asset?.priceUSD ? `$${asset.priceUSD.toLocaleString()}` : '';
+    const { resolveImageUrl: resolveImg } = await import('../../../utils/imageUtils');
+    const rawImage = asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
+    const assetImage = rawImage ? resolveImg(rawImage) : '';
 
     // Generate token name and symbol
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
-    const finalTokenName = tokenName || `LuxHub Pool #${poolNumber} - ${assetModel}`;
+    const rawName = tokenName || (assetBrand && assetModel ? `${assetBrand} ${assetModel}` : `LuxHub Pool ${poolNumber}`);
+    const finalTokenName = rawName.slice(0, 32);
     const finalTokenSymbol = (tokenSymbol || poolNumber).slice(0, 10);
+
+    // Rich description with watch details
+    const descParts = [
+      `Tokenized ownership pool for an authenticated ${assetBrand} ${assetModel}.`,
+      assetSerial ? `Serial: ${assetSerial}.` : '',
+      assetPrice ? `Appraised at ${assetPrice}.` : '',
+      assetDescription ? assetDescription : '',
+      assetNftMint ? `Backing NFT: ${assetNftMint}.` : '',
+      `Pool: ${poolNumber}. Custody verified via LuxHub marketplace.`,
+    ].filter(Boolean).join(' ');
+    const finalDescription = descParts.slice(0, 1000);
 
     // ──────────────────────────────────────────────────────────────
     // STEP 1: Create token info + metadata via Bags API
     // ──────────────────────────────────────────────────────────────
     const formData = new FormData();
-    formData.append('name', finalTokenName.slice(0, 32)); // Max 32 chars
-    formData.append('symbol', finalTokenSymbol.slice(0, 10)); // Max 10 chars
-    formData.append(
-      'description',
-      `Tokenized pool for authenticated ${assetModel}. Trade on secondary markets. Pool ID: ${poolId}`.slice(
-        0,
-        1000
-      )
-    );
+    formData.append('name', finalTokenName);
+    formData.append('symbol', finalTokenSymbol);
+    formData.append('description', finalDescription);
     // Bags requires an actual image file upload
     if (assetImage) {
       try {
@@ -239,14 +262,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const blob = new Blob([imgBuffer], { type: contentType });
           formData.append('image', blob, `pool-asset.${ext}`);
         } else {
-          formData.append('imageUrl', assetImage);
+          console.warn(`[create-pool-token] Image download failed: ${imgRes.status}`);
         }
-      } catch {
-        formData.append('imageUrl', assetImage);
+      } catch (err: any) {
+        console.warn('[create-pool-token] Image download error:', err?.message);
       }
     }
     formData.append('twitter', 'https://x.com/LuxHubStudio');
-    formData.append('website', process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold');
+    formData.append('website', `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/pools/${poolId}`);
 
     const tokenInfoResponse = await fetch(`${BAGS_API_BASE}/token-launch/create-token-info`, {
       method: 'POST',
@@ -403,27 +426,48 @@ export async function createPoolTokenInternal(
       }
     }
 
+    const assetBrand = asset?.brand || '';
     const assetModel = asset?.model || 'LuxHub Pool Asset';
+    const assetSerial = asset?.serial || asset?.serialNumber || '';
+    const assetDescription = asset?.description || '';
+    const assetNftMint = asset?.mintAddress || asset?.nftMint || '';
+    const assetPrice = asset?.priceUSD ? `$${asset.priceUSD.toLocaleString()}` : '';
+
     // Image priority: client-provided URL > DB asset image. Resolve through gateway.
     const rawImage = tokenImageUrl || asset?.imageUrl || asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || '';
     const assetImage = rawImage ? resolveImageUrl(rawImage) : '';
-    console.log(`[createPoolTokenInternal] Asset: ${assetModel}, Raw: ${rawImage?.slice(0, 60) || 'NONE'}, Resolved: ${assetImage?.slice(0, 80) || 'NONE'}, Source: ${tokenImageUrl ? 'client-url' : 'db'}`);
+    console.log(`[createPoolTokenInternal] Asset: ${assetBrand} ${assetModel}, Raw: ${rawImage?.slice(0, 60) || 'NONE'}, Resolved: ${assetImage?.slice(0, 80) || 'NONE'}, Source: ${tokenImageUrl ? 'client-url' : 'db'}`);
     const poolNumber = pool.poolNumber || pool._id.toString().slice(-6).toUpperCase();
-    const tokenName = `LuxHub Pool #${poolNumber} - ${assetModel}`.slice(0, 32);
+
+    // Token name — prefer "{brand} {model}" to "LuxHub Pool #..." for meaningful identity
+    // (32 char limit means we pack brand+model first, fall back gracefully)
+    const rawName = assetBrand && assetModel
+      ? `${assetBrand} ${assetModel}`
+      : `LuxHub Pool ${poolNumber}`;
+    const tokenName = rawName.slice(0, 32);
+
     // Use pool number directly as symbol (LUX0001, LUX0002, etc.)
     // poolNumber is already prefixed "LUX" by create.ts, no need to add another prefix
     const tokenSymbol = poolNumber.slice(0, 10);
+
+    // Rich description — packs watch details, authentication, and backing NFT link
+    const descParts = [
+      `Tokenized ownership pool for an authenticated ${assetBrand} ${assetModel}.`,
+      assetSerial ? `Serial: ${assetSerial}.` : '',
+      assetPrice ? `Appraised at ${assetPrice}.` : '',
+      assetDescription ? assetDescription : '',
+      assetNftMint ? `Backing NFT: ${assetNftMint}.` : '',
+      `Pool: ${poolNumber}. Custody verified via LuxHub marketplace.`,
+    ].filter(Boolean).join(' ');
+    const tokenDescription = descParts.slice(0, 1000);
 
     // STEP 1: Create token info
     const formData = new FormData();
     formData.append('name', tokenName);
     formData.append('symbol', tokenSymbol);
-    formData.append(
-      'description',
-      `Tokenized pool for authenticated ${assetModel}. Pool ID: ${poolId}`.slice(0, 1000)
-    );
+    formData.append('description', tokenDescription);
     formData.append('twitter', 'https://x.com/LuxHubStudio');
-    formData.append('website', process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold');
+    formData.append('website', `${process.env.NEXT_PUBLIC_APP_URL || 'https://luxhub.gold'}/pools/${poolId}`);
 
     // Image: prefer user-uploaded base64 > download from URL > fallback to imageUrl string
     let imageAttached = false;

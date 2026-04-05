@@ -23,6 +23,7 @@ export function useEffectiveWallet() {
     publicKey: walletAdapterPublicKey,
     connected,
     signTransaction: walletAdapterSignTransaction,
+    signAllTransactions: walletAdapterSignAllTransactions,
     signMessage: walletAdapterSignMessage,
   } = useWallet();
   const { authenticated } = usePrivy();
@@ -59,6 +60,25 @@ export function useEffectiveWallet() {
     [walletAdapterSignTransaction, usingPrivy, privyWallet]
   );
 
+  // Bridge signAllTransactions (single wallet prompt for multiple txs)
+  const signAllTransactions = useCallback(
+    async <T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> => {
+      if (walletAdapterSignAllTransactions) {
+        return walletAdapterSignAllTransactions(txs);
+      }
+      if (usingPrivy && privyWallet) {
+        // Privy doesn't have signAllTransactions — sign sequentially
+        const signed: T[] = [];
+        for (const tx of txs) {
+          signed.push(await (privyWallet as any).signTransaction(tx));
+        }
+        return signed;
+      }
+      throw new Error('No wallet available for batch signing');
+    },
+    [walletAdapterSignAllTransactions, usingPrivy, privyWallet]
+  );
+
   // Bridge Privy signMessage to match wallet adapter signature: (message: Uint8Array) => Promise<Uint8Array>
   const signMessage = useCallback(
     async (message: Uint8Array): Promise<Uint8Array> => {
@@ -78,6 +98,7 @@ export function useEffectiveWallet() {
     publicKey: effectivePublicKey,
     connected: connected || (authenticated && !!effectivePublicKey),
     signTransaction: effectivePublicKey ? signTransaction : undefined,
+    signAllTransactions: effectivePublicKey ? signAllTransactions : undefined,
     signMessage: effectivePublicKey ? signMessage : undefined,
     source: walletAdapterPublicKey ? ('wallet-adapter' as const) : ('privy' as const),
   };

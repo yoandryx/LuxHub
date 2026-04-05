@@ -86,7 +86,7 @@ export function PoolCreationStepper({
   adminMode,
 }: PoolCreationStepperProps) {
   const { connection } = useConnection();
-  const { publicKey, signTransaction } = useEffectiveWallet();
+  const { publicKey, signTransaction, signAllTransactions } = useEffectiveWallet();
 
   // Step state
   const [currentStep, setCurrentStep] = useState(0);
@@ -113,6 +113,7 @@ export function PoolCreationStepper({
 
   // Signing state (Step 2)
   const [signingIndex, setSigningIndex] = useState(-1);
+  const [statusMessage, setStatusMessage] = useState<string>('');
   const [txStatuses, setTxStatuses] = useState<('pending' | 'signing' | 'done' | 'failed')[]>([]);
 
   // General state
@@ -154,6 +155,19 @@ export function PoolCreationStepper({
       autoFillFromAsset(initialAssetData);
     }
   }, [initialAssetData, autoFillFromAsset]);
+
+  // Warn user not to leave while signing/launching
+  useEffect(() => {
+    const isInProgress = (currentStep === 1 || currentStep === 2) && !stepStatuses.includes('error');
+    if (!isInProgress) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Pool creation in progress — leaving will abandon the Bags token mint. Are you sure?';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [currentStep, stepStatuses]);
 
   // Load available assets from mint-request API
   useEffect(() => {
@@ -318,6 +332,10 @@ export function PoolCreationStepper({
           setTxStatuses(transactions.map(() => 'pending' as const));
           updateStep(1);
           setLoading(false);
+          // Auto-trigger batch signing — one wallet prompt for all txs
+          setTimeout(() => {
+            handleSignFeeShare(transactions, newPoolId, walletAddress).catch(console.error);
+          }, 500);
         } else {
           // No fee-share txs needed — go straight to launch
           console.log('[PoolStepper] No fee-share txs — going to launch');
@@ -373,91 +391,87 @@ export function PoolCreationStepper({
     }
   };
 
-  // Step 2: Sign fee-share transactions
-  const handleSignFeeShare = async () => {
-    if (!signTransaction || !publicKey) {
+  // Step 2: Sign fee-share transactions — BATCH signs all in one wallet prompt
+  const handleSignFeeShare = async (
+    txsToSign?: any[],
+    overridePoolId?: string,
+    overrideWallet?: string
+  ) => {
+    const txs = txsToSign || feeShareTxs;
+    const activePoolId = overridePoolId || poolId;
+    const activeWallet = overrideWallet || publicKey?.toBase58();
+
+    if (!signAllTransactions || !publicKey || !activeWallet) {
       setError('Wallet not connected');
       return;
     }
 
     setError('');
+    setStatusMessage(`Preparing ${txs.length} transactions...`);
 
-    for (let i = 0; i < feeShareTxs.length; i++) {
-      setSigningIndex(i);
-      setTxStatuses((prev) => prev.map((s, idx) => (idx === i ? 'signing' : s)));
-
-      try {
-        const txData = feeShareTxs[i];
+    // Decode all transactions
+    const decodedTxs: (Transaction | VersionedTransaction)[] = [];
+    try {
+      for (let i = 0; i < txs.length; i++) {
+        const txData = txs[i];
         const txRaw = txData.transaction || txData;
-        console.log(`[PoolStepper] Processing tx ${i + 1}:`, {
-          hasTransaction: !!txData.transaction,
-          hasBlockhash: !!txData.blockhash,
-          txType: typeof txRaw,
-          length: typeof txRaw === 'string' ? txRaw.length : 'N/A',
-        });
-
-        // Deserialize: try base64 first, then base58 (Bags API may use either)
         let tx: Transaction | VersionedTransaction;
-        let decodeMethod = 'base64';
         const b64Buf = Buffer.from(typeof txRaw === 'string' ? txRaw : JSON.stringify(txRaw), 'base64');
         try {
           tx = VersionedTransaction.deserialize(b64Buf);
-          decodeMethod = 'base64 → VersionedTransaction';
         } catch {
           try {
             tx = Transaction.from(b64Buf);
-            decodeMethod = 'base64 → Transaction';
           } catch {
-            // Fallback: try base58 decoding
             const bs58 = (await import('bs58')).default;
             const b58Buf = bs58.decode(typeof txRaw === 'string' ? txRaw : txRaw.transaction);
             try {
               tx = VersionedTransaction.deserialize(b58Buf);
-              decodeMethod = 'base58 → VersionedTransaction';
             } catch {
               tx = Transaction.from(b58Buf);
-              decodeMethod = 'base58 → Transaction';
             }
           }
         }
-        console.log(`[PoolStepper] Tx ${i + 1} decoded via: ${decodeMethod}`);
+        decodedTxs.push(tx);
+      }
+    } catch (err: any) {
+      console.error('[PoolStepper] Failed to decode txs:', err);
+      setError(`Failed to decode transactions: ${err.message}`);
+      updateStepError(1);
+      return;
+    }
 
-        // Inspect signatures before we touch anything
-        if (tx instanceof VersionedTransaction) {
-          console.log(`[PoolStepper] Tx ${i + 1} signatures before:`, tx.signatures.map((s, idx) => ({
-            index: idx,
-            isEmpty: s.every(b => b === 0),
-            firstBytes: Array.from(s.slice(0, 4)),
-          })));
-          console.log(`[PoolStepper] Tx ${i + 1} required signers:`, tx.message.staticAccountKeys.slice(0, tx.message.header.numRequiredSignatures).map(k => k.toBase58()));
-        } else {
-          console.log(`[PoolStepper] Tx ${i + 1} (legacy) signers:`, tx.signatures.map(s => ({ pubkey: s.publicKey.toBase58(), signed: !!s.signature })));
-        }
+    // BATCH SIGN — one wallet prompt for all transactions
+    setStatusMessage(`Please approve ${txs.length} transactions in your wallet...`);
+    setTxStatuses(txs.map(() => 'signing' as const));
+    let signedTxs: (Transaction | VersionedTransaction)[];
+    try {
+      console.log(`[PoolStepper] Batch signing ${decodedTxs.length} txs`);
+      signedTxs = await signAllTransactions(decodedTxs);
+      console.log('[PoolStepper] All txs signed by user');
+    } catch (err: any) {
+      console.error('[PoolStepper] Batch signing failed:', err);
+      setError(err.message?.includes('User rejected') ? 'Transaction rejected in wallet' : `Signing failed: ${err.message}`);
+      setTxStatuses(txs.map(() => 'failed' as const));
+      updateStepError(1);
+      return;
+    }
 
-        // Do NOT modify blockhash — Bags partially signs with authority keypairs
-        // and modifying the message invalidates their signatures.
-        // The blockhash must be fresh from just-in-time fetch (which it is).
-
-        // Sign it
-        console.log(`[PoolStepper] Tx ${i + 1} asking Phantom to sign...`);
-        const signed = await signTransaction(tx);
-        console.log(`[PoolStepper] Tx ${i + 1} signed by user`);
-
-        // Send it
-        const rawTx = signed.serialize();
-        console.log(`[PoolStepper] Tx ${i + 1} sending to network, size: ${rawTx.length} bytes`);
-        const sig = await connection.sendRawTransaction(rawTx, {
-          skipPreflight: false,
-          maxRetries: 3,
-        });
+    // Submit all transactions and wait for confirmations
+    for (let i = 0; i < signedTxs.length; i++) {
+      setSigningIndex(i);
+      setStatusMessage(`Submitting transaction ${i + 1} of ${signedTxs.length} to the network...`);
+      try {
+        const rawTx = signedTxs[i].serialize();
+        const sig = await connection.sendRawTransaction(rawTx, { skipPreflight: false, maxRetries: 3 });
         console.log(`[PoolStepper] Tx ${i + 1} submitted: ${sig}`);
+        setStatusMessage(`Confirming transaction ${i + 1} of ${signedTxs.length} on Solana...`);
         await connection.confirmTransaction(sig, 'confirmed');
-        console.log(`[PoolStepper] Tx ${i + 1} confirmed on-chain: https://solscan.io/tx/${sig}`);
-
+        console.log(`[PoolStepper] Tx ${i + 1} confirmed: https://solscan.io/tx/${sig}`);
         setTxStatuses((prev) => prev.map((s, idx) => (idx === i ? 'done' : s)));
       } catch (err: any) {
-        console.error(`[PoolStepper] Tx ${i + 1} FAILED:`, err);
-        if (err.logs) console.error(`[PoolStepper] Tx ${i + 1} logs:`, err.logs);
+        console.error(`[PoolStepper] Tx ${i + 1} submission failed:`, err);
+        if (err.logs) console.error('Logs:', err.logs);
         setTxStatuses((prev) => prev.map((s, idx) => (idx === i ? 'failed' : s)));
         setError(`Transaction ${i + 1} failed: ${err.message || 'Unknown error'}`);
         updateStepError(1);
@@ -466,15 +480,14 @@ export function PoolCreationStepper({
     }
 
     setSigningIndex(-1);
+    setStatusMessage('Fee-share configured. Preparing launch transaction...');
 
-    // All signed - advance to step 3
-    console.log('[PoolStepper] All fee-share txs confirmed. Waiting 3s for Bags to detect on-chain config...');
+    // Advance to launch step
     updateStep(2);
     // Small delay so Bags' indexer catches up to the on-chain fee-share config
     await new Promise((r) => setTimeout(r, 3000));
-    const walletAddress = publicKey.toBase58();
     console.log('[PoolStepper] Starting launch step');
-    await handleLaunch(poolId, walletAddress);
+    await handleLaunch(activePoolId, activeWallet);
   };
 
   // Step 3: Launch token
@@ -491,6 +504,7 @@ export function PoolCreationStepper({
     setError('');
 
     try {
+      setStatusMessage('Fetching launch transaction from Bags...');
       console.log('[PoolStepper] Requesting launch tx from Bags');
       const launchRes = await fetch('/api/bags/create-pool-token', {
         method: 'POST',
@@ -536,15 +550,19 @@ export function PoolCreationStepper({
         }
       }
       console.log('[PoolStepper] Launch tx decoded, asking Phantom to sign');
+      setStatusMessage('Please approve the launch transaction in your wallet...');
 
       // Do NOT refresh blockhash — Bags signs with authority keypairs
       const signed = await signTransaction(tx);
       console.log('[PoolStepper] Launch tx signed, submitting');
+      setStatusMessage('Submitting launch transaction to Solana...');
       const rawTx = signed.serialize();
       const sig = await connection.sendRawTransaction(rawTx, { skipPreflight: false, maxRetries: 3 });
       console.log('[PoolStepper] Launch tx submitted:', sig);
+      setStatusMessage('Confirming launch on Solana...');
       await connection.confirmTransaction(sig, 'confirmed');
       console.log('[PoolStepper] Launch tx CONFIRMED:', `https://solscan.io/tx/${sig}`);
+      setStatusMessage('');
 
       // Advance to step 4 (confirm)
       updateStep(3);
@@ -798,9 +816,12 @@ export function PoolCreationStepper({
   const renderFeeShare = () => (
     <div className={styles.stepContent}>
       <div className={styles.stepTitle}>Sign Fee-Share Transactions</div>
-      <p style={{ fontSize: '13px', color: '#a1a1a1', marginBottom: '16px' }}>
-        Sign {feeShareTxs.length} transaction{feeShareTxs.length !== 1 ? 's' : ''} to configure fee-share on-chain.
+      <p style={{ fontSize: '13px', color: '#a1a1a1', marginBottom: '8px' }}>
+        {statusMessage || `Your wallet will prompt to approve ${feeShareTxs.length} transaction${feeShareTxs.length !== 1 ? 's' : ''} at once.`}
       </p>
+      <div style={{ fontSize: '11px', color: '#fbbf24', marginBottom: '16px', padding: '8px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '6px' }}>
+        ⚠ Do not close this window — pool creation is in progress.
+      </div>
 
       <div className={styles.txList}>
         {feeShareTxs.map((_, i) => {
@@ -847,7 +868,7 @@ export function PoolCreationStepper({
           </button>
         )}
         {signingIndex === -1 && !txStatuses.every((s) => s === 'done') && (
-          <button className={styles.btnPrimary} onClick={handleSignFeeShare} disabled={loading}>
+          <button className={styles.btnPrimary} onClick={() => handleSignFeeShare()} disabled={loading}>
             Sign All Transactions
           </button>
         )}
@@ -859,9 +880,12 @@ export function PoolCreationStepper({
   const renderLaunch = () => (
     <div className={styles.stepContent}>
       <div className={styles.stepTitle}>Launch Token</div>
-      <p style={{ fontSize: '13px', color: '#a1a1a1', marginBottom: '16px' }}>
-        Launching bonding curve...
+      <p style={{ fontSize: '13px', color: '#a1a1a1', marginBottom: '8px' }}>
+        {statusMessage || 'Launching bonding curve...'}
       </p>
+      <div style={{ fontSize: '11px', color: '#fbbf24', marginBottom: '16px', padding: '8px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '6px' }}>
+        ⚠ Do not close this window — your wallet will prompt once more to launch.
+      </div>
 
       {loading && (
         <div className={styles.loadingState}>
@@ -897,18 +921,49 @@ export function PoolCreationStepper({
           <FiCheckCircle />
         </div>
         <div className={styles.successTitle}>Pool Created Successfully!</div>
+        <p style={{ fontSize: '13px', color: '#a1a1a1', marginBottom: '16px', textAlign: 'center' }}>
+          Your {tokenName || 'token'} bonding curve is live on Bags. Tokens are now tradeable.
+        </p>
 
         {tokenMint && (
-          <div
-            className={styles.successMint}
-            onClick={() => copyToClipboard(tokenMint)}
-            title="Click to copy"
-          >
-            Token: {truncateAddress(tokenMint)} <FiCopy size={12} />
-          </div>
+          <>
+            <div
+              className={styles.successMint}
+              onClick={() => copyToClipboard(tokenMint)}
+              title="Click to copy"
+            >
+              Token: {truncateAddress(tokenMint)} <FiCopy size={12} />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '12px', flexWrap: 'wrap' }}>
+              <a
+                href={`https://solscan.io/token/${tokenMint}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: '11px', color: '#c8a1ff', padding: '4px 10px', border: '1px solid rgba(200,161,255,0.25)', borderRadius: '6px', textDecoration: 'none' }}
+              >
+                Solscan
+              </a>
+              <a
+                href={`https://bags.fm/${tokenMint}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: '11px', color: '#c8a1ff', padding: '4px 10px', border: '1px solid rgba(200,161,255,0.25)', borderRadius: '6px', textDecoration: 'none' }}
+              >
+                Bags
+              </a>
+              <a
+                href={`https://jup.ag/swap/SOL-${tokenMint}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: '11px', color: '#c8a1ff', padding: '4px 10px', border: '1px solid rgba(200,161,255,0.25)', borderRadius: '6px', textDecoration: 'none' }}
+              >
+                Jupiter
+              </a>
+            </div>
+          </>
         )}
 
-        <div className={styles.btnRow} style={{ justifyContent: 'center' }}>
+        <div className={styles.btnRow} style={{ justifyContent: 'center', marginTop: '20px' }}>
           <a
             href={`/pools/${poolId}`}
             className={styles.btnPrimary}
