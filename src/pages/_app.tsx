@@ -32,7 +32,7 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 // Consolidated to single toast library (react-hot-toast) - saves ~5KB
 import LuxuryAssistant from '../components/user/LuxuryAssistant';
 import VendorFab from '../components/vendor/VendorFab';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
 import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
@@ -51,6 +51,35 @@ const App = ({ Component, pageProps }: AppProps) => {
 
   useEffect(() => {
     setIsClient(true); // Ensuring everything is loaded on the client side
+  }, []);
+
+  // Show testing notice on page load (production is live but in testing)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // Show once per session
+    if (sessionStorage.getItem('luxhub_testing_notice_shown')) return;
+    sessionStorage.setItem('luxhub_testing_notice_shown', '1');
+    setTimeout(() => {
+      toast(
+        '⚠️ LuxHub is live on mainnet and currently in active testing. Real transactions use real SOL. Please proceed with caution.',
+        {
+          duration: 10000,
+          icon: null,
+          style: {
+            background: 'rgba(13, 13, 13, 0.95)',
+            color: '#ffffff',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+            borderLeft: '3px solid #fbbf24',
+            padding: '14px 18px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            maxWidth: '420px',
+            backdropFilter: 'blur(20px)',
+            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          },
+        }
+      );
+    }, 1200);
   }, []);
 
   // Memoize wallet adapter setup
