@@ -4,7 +4,7 @@
    ======================================== */
 
 .pageContainer {
-  --bg: #0a0a0f;
+  --bg: #0a0a0c;
   --surface: rgba(18, 18, 28, 0.65);
   --border: rgba(200, 161, 255, 0.1);
   --border-light: rgba(255, 255, 255, 0.06);
@@ -28,15 +28,30 @@
 
   min-height: 100vh;
   background: var(--bg);
-  background-image:
-    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(200, 161, 255, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 70% at 80% 90%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
   max-width: 1280px;
   margin: 0 auto;
-  padding: 80px 32px 48px;
+  padding: 72px 24px 48px;
   color: var(--text);
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/* Ambient background glow — match /pools browse page */
+.pageContainer::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(200, 161, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(138, 43, 226, 0.06) 0%, transparent 50%);
+}
+
+.pageContainer > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ─── Back Link ─── */
@@ -56,19 +71,35 @@
   color: var(--accent);
 }
 
-/* ─── Content Grid ─── */
+/* ─── Content Grid — pump.fun-style 2-col layout ─── */
 .contentGrid {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 24px;
-  margin-top: 16px;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  margin-top: 12px;
 }
 
-.leftColumn,
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
 .rightColumn {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  position: sticky;
+  top: 72px;
+  align-self: start;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.rightColumn::-webkit-scrollbar {
+  display: none;
 }
 
 /* ─── Glass Card base ─── */
@@ -82,17 +113,18 @@
   transition: border-color var(--transition);
 }
 
-/* ─── Pool Header ─── */
+/* ─── Pool Header — compact ─── */
 .poolHeader {
   composes: glassCard;
   display: flex;
-  gap: 20px;
+  gap: 14px;
   align-items: center;
+  padding: 14px 18px;
 }
 
 .poolHeaderImage {
-  width: 120px;
-  height: 120px;
+  width: 64px;
+  height: 64px;
   border-radius: var(--radius);
   object-fit: cover;
   flex-shrink: 0;
@@ -104,17 +136,17 @@
 }
 
 .poolHeaderInfo h1 {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   color: var(--text);
 }
 
 .vendorName {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin: 0 0 8px;
+  margin: 0 0 4px;
 }
 
 .priceRow {
@@ -124,7 +156,7 @@
 }
 
 .currentPrice {
-  font-size: 22px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--accent);
   font-family: var(--font-mono);
@@ -190,10 +222,10 @@
   composes: glassCard;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   flex-wrap: wrap;
-  padding: 14px 20px;
-  border-left: 3px solid var(--accent);
+  padding: 10px 16px;
+  border-left: 2px solid var(--accent);
 }
 
 .tokenInfoItem {
@@ -286,11 +318,12 @@
   font-weight: 600;
 }
 
-/* ─── Chart Container ─── */
+/* ─── Chart Container — fill available space ─── */
 .chartContainer {
   composes: glassCard;
-  padding: 12px;
-  min-height: 360px;
+  padding: 8px;
+  min-height: 400px;
+  flex: 1;
 }
 
 .chartFallback {
@@ -311,25 +344,26 @@
   font-family: var(--font-mono);
 }
 
-/* ─── Pool Details Card ─── */
+/* ─── Pool Details Card — compact ─── */
 .detailsCard {
   composes: glassCard;
+  padding: 14px 16px;
 }
 
 .detailsCard h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 650;
   color: var(--text);
-  margin: 0 0 14px;
+  margin: 0 0 10px;
 }
 
 .infoRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--border-light);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .infoRow:last-child {
@@ -739,19 +773,20 @@
   line-height: 1.5;
 }
 
-/* ─── Pool Info Card (right column) ─── */
+/* ─── Pool Info Card (right column) — compact ─── */
 .poolInfoCard {
   composes: glassCard;
+  padding: 14px 16px;
 }
 
 .poolInfoCard h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 650;
   color: var(--text);
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* ─── Loading / Error ─── */

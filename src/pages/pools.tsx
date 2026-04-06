@@ -576,9 +576,8 @@ const PoolCard = memo(
                   ))}
                   <input
                     type="number"
-                    className={styles.cardTradeChip}
-                    placeholder="SOL"
-                    style={{ width: '52px', textAlign: 'center', background: 'rgba(200,161,255,0.06)', border: selectedSol && !['0.01','0.1','0.5','1'].includes(selectedSol) ? '1px solid #c8a1ff' : '1px solid rgba(255,255,255,0.08)' }}
+                    className={`${styles.cardTradeChip} ${selectedSol && !['0.01','0.1','0.5','1'].includes(selectedSol) ? styles.cardTradeChipActive : ''}`}
+                    placeholder="Custom"
                     min="0.001"
                     step="0.01"
                     onChange={(e) => {
