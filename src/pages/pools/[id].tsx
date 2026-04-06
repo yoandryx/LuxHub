@@ -426,52 +426,6 @@ const PoolDetailV2Page: React.FC = () => {
               )}
             </div>
 
-            {/* Trade Widget — directly under chart */}
-            {isDistributionMode && claimInfo ? (
-              <ClaimDistribution
-                poolId={pool._id}
-                claimerWallet={wallet.publicKey?.toBase58() || ''}
-                claimableAmount={claimInfo.claimableAmount}
-                ownershipPercent={claimInfo.ownershipPercent}
-                claimed={claimInfo.claimed}
-                claimWindowExpiresAt={pool.claimWindowExpiresAt}
-                txSignature={claimInfo.txSignature}
-              />
-            ) : isDistributionMode ? (
-              <ClaimDistribution
-                poolId={pool._id}
-                claimerWallet={wallet.publicKey?.toBase58() || ''}
-                claimableAmount={0}
-                ownershipPercent={0}
-                claimed={false}
-              />
-            ) : isResaleMode ? (
-              <div className={styles.resaleMessage}>
-                <h3>Resale in Progress</h3>
-                <p>
-                  The watch is being sold. Once the sale is confirmed, proceeds will be
-                  available for distribution to token holders.
-                </p>
-              </div>
-            ) : showTradeWidget ? (
-              <TradeWidget
-                pool={{
-                  _id: pool._id,
-                  bagsTokenMint: pool.bagsTokenMint,
-                  graduated: pool.graduated,
-                  status: pool.status,
-                  bondingCurveActive: pool.bondingCurveActive,
-                  lastPriceUSD: pool.lastPriceUSD,
-                  currentBondingPrice: pool.currentBondingPrice,
-                  targetAmountUSD: pool.targetAmountUSD,
-                  sharesSold: pool.sharesSold,
-                  totalShares: pool.totalShares,
-                }}
-                initialSide={initialTradeSide}
-                onTradeComplete={() => refreshPool()}
-              />
-            ) : null}
-
             {/* Pool Details */}
             <div className={styles.detailsCard}>
               <h3>Pool Details</h3>
@@ -620,8 +574,54 @@ const PoolDetailV2Page: React.FC = () => {
             )}
           </div>
 
-          {/* ─── Right Column — position, holders, details ─── */}
+          {/* ─── Right Column ─── */}
           <div className={styles.rightColumn}>
+            {/* Trade Widget OR Claim Panel OR Resale Message */}
+            {isDistributionMode && claimInfo ? (
+              <ClaimDistribution
+                poolId={pool._id}
+                claimerWallet={wallet.publicKey?.toBase58() || ''}
+                claimableAmount={claimInfo.claimableAmount}
+                ownershipPercent={claimInfo.ownershipPercent}
+                claimed={claimInfo.claimed}
+                claimWindowExpiresAt={pool.claimWindowExpiresAt}
+                txSignature={claimInfo.txSignature}
+              />
+            ) : isDistributionMode ? (
+              <ClaimDistribution
+                poolId={pool._id}
+                claimerWallet={wallet.publicKey?.toBase58() || ''}
+                claimableAmount={0}
+                ownershipPercent={0}
+                claimed={false}
+              />
+            ) : isResaleMode ? (
+              <div className={styles.resaleMessage}>
+                <h3>Resale in Progress</h3>
+                <p>
+                  The watch is being sold. Once the sale is confirmed, proceeds will be
+                  available for distribution to token holders.
+                </p>
+              </div>
+            ) : showTradeWidget ? (
+              <TradeWidget
+                pool={{
+                  _id: pool._id,
+                  bagsTokenMint: pool.bagsTokenMint,
+                  graduated: pool.graduated,
+                  status: pool.status,
+                  bondingCurveActive: pool.bondingCurveActive,
+                  lastPriceUSD: pool.lastPriceUSD,
+                  currentBondingPrice: pool.currentBondingPrice,
+                  targetAmountUSD: pool.targetAmountUSD,
+                  sharesSold: pool.sharesSold,
+                  totalShares: pool.totalShares,
+                }}
+                initialSide={initialTradeSide}
+                onTradeComplete={() => refreshPool()}
+              />
+            ) : null}
+
             {/* Position Summary */}
             {userPosition ? (
               <PositionSummary
