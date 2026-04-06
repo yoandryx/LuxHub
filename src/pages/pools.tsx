@@ -380,9 +380,12 @@ const PoolCard = memo(
           setTradeMsg(`Bought! ✓`);
           setTimeout(() => setTradeStatus('idle'), 3000);
         } catch (err: any) {
+          console.error('[PoolCard] Trade error:', err);
+          console.error('[PoolCard] Error name:', err?.name, 'message:', err?.message);
+          console.error('[PoolCard] Error stack:', err?.stack);
           setTradeStatus('error');
-          setTradeMsg(err?.message?.slice(0, 30) || 'Trade failed');
-          setTimeout(() => setTradeStatus('idle'), 3000);
+          setTradeMsg(err?.message?.slice(0, 40) || 'Trade failed');
+          setTimeout(() => setTradeStatus('idle'), 5000);
         }
       },
       [publicKey, signTransaction, pool._id, pool.bagsTokenMint, selectedSol]

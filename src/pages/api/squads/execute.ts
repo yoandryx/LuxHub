@@ -110,6 +110,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Execute the vault transaction
+    const latest = await connection.getLatestBlockhash('confirmed');
     const signature = await multisig.rpc.vaultTransactionExecute({
       connection,
       feePayer: payer,
@@ -118,8 +119,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       member: payer.publicKey,
     });
 
-    // Wait for confirmation
-    await connection.confirmTransaction(signature, 'confirmed');
+    // Wait for confirmation using blockhash-based strategy (not legacy 30s websocket)
+    const conf = await connection.confirmTransaction(
+      {
+        signature,
+        blockhash: latest.blockhash,
+        lastValidBlockHeight: latest.lastValidBlockHeight,
+      },
+      'confirmed'
+    );
+    if (conf.value.err) {
+      console.error('[execute] tx failed on-chain:', conf.value.err);
+      return res.status(500).json({
+        error: `Execute tx failed on-chain: ${JSON.stringify(conf.value.err)}`,
+        signature,
+      });
+    }
 
     // Auto-sync MongoDB state after successful execution
     // This closes Gap 2: Squads execution now triggers DB sync

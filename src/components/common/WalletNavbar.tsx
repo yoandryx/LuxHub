@@ -417,7 +417,7 @@ export default function WalletNavbar() {
 
     try {
       const [ordersRes, mintRes] = await Promise.allSettled([
-        fetch(`/api/escrow/orders?wallet=${wallet}&status=funded,shipped`),
+        fetch(`/api/escrow/list?vendorWallet=${wallet}&status=funded,shipped`),
         role === 'vendor' || role === 'admin'
           ? fetch(`/api/vendor/mint-request?wallet=${wallet}&status=pending`)
           : Promise.resolve(null),
@@ -425,7 +425,11 @@ export default function WalletNavbar() {
 
       if (ordersRes.status === 'fulfilled' && ordersRes.value?.ok) {
         const data = await ordersRes.value.json();
-        setPendingOrders(Array.isArray(data) ? data.length : data.orders?.length || 0);
+        setPendingOrders(
+          Array.isArray(data)
+            ? data.length
+            : data.listings?.length || data.orders?.length || 0
+        );
       }
 
       if (mintRes.status === 'fulfilled' && mintRes.value?.ok) {

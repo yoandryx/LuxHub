@@ -548,10 +548,13 @@ const AdminDashboard: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transactionIndex }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
 
       if (!res.ok) {
-        throw new Error(data.error || 'Execution failed');
+        const errMsg = typeof data?.error === 'string' ? data.error : JSON.stringify(data?.error || 'Execution failed');
+        console.error('[executeSquadsProposal] server error:', errMsg, data);
+        toast.error(`❌ Execution failed: ${errMsg}`);
+        return;
       }
 
       toast.success(`✅ Proposal executed! Signature: ${data.signature?.slice(0, 8)}...`);
@@ -561,7 +564,7 @@ const AdminDashboard: React.FC = () => {
       await fetchSquadsProposals(squadsFilter);
     } catch (err: any) {
       console.error('Error executing Squads proposal:', err);
-      toast.error(`❌ Execution failed: ${err.message}`);
+      toast.error(`❌ Execution failed: ${String(err?.message || err)}`);
     } finally {
       setSquadsLoading(false);
     }
@@ -1190,13 +1193,26 @@ const AdminDashboard: React.FC = () => {
       const { Transaction: LegacyTransaction } = await import('@solana/web3.js');
       const proposalTx = new LegacyTransaction();
       proposalTx.add(createVaultTxIx, createProposalIx, approveIx);
-      const { blockhash } = await connection.getLatestBlockhash();
-      proposalTx.recentBlockhash = blockhash;
+      const latest = await connection.getLatestBlockhash('confirmed');
+      proposalTx.recentBlockhash = latest.blockhash;
       proposalTx.feePayer = publicKey;
 
       const signedTx = await anchorWallet.signTransaction!(proposalTx);
-      const sig = await connection.sendRawTransaction(signedTx.serialize());
-      await connection.confirmTransaction(sig, 'confirmed');
+      const sig = await connection.sendRawTransaction(signedTx.serialize(), {
+        skipPreflight: false,
+        maxRetries: 3,
+      });
+      const conf = await connection.confirmTransaction(
+        {
+          signature: sig,
+          blockhash: latest.blockhash,
+          lastValidBlockHeight: latest.lastValidBlockHeight,
+        },
+        'confirmed'
+      );
+      if (conf.value.err) {
+        throw new Error(`Proposal tx failed on-chain: ${JSON.stringify(conf.value.err)}`);
+      }
 
       toast.loading('Step 2/3: Executing on-chain...', { id: 'delivery' });
 
@@ -1226,13 +1242,26 @@ const AdminDashboard: React.FC = () => {
       const executeTx = new LegacyTransaction();
       executeTx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
       executeTx.add(executeResult!.instruction);
-      const { blockhash: execBlockhash } = await connection.getLatestBlockhash();
-      executeTx.recentBlockhash = execBlockhash;
+      const execLatest = await connection.getLatestBlockhash('confirmed');
+      executeTx.recentBlockhash = execLatest.blockhash;
       executeTx.feePayer = publicKey;
 
       const signedExecTx = await anchorWallet.signTransaction!(executeTx);
-      const execSig = await connection.sendRawTransaction(signedExecTx.serialize());
-      await connection.confirmTransaction(execSig, 'confirmed');
+      const execSig = await connection.sendRawTransaction(signedExecTx.serialize(), {
+        skipPreflight: false,
+        maxRetries: 3,
+      });
+      const execConf = await connection.confirmTransaction(
+        {
+          signature: execSig,
+          blockhash: execLatest.blockhash,
+          lastValidBlockHeight: execLatest.lastValidBlockHeight,
+        },
+        'confirmed'
+      );
+      if (execConf.value.err) {
+        throw new Error(`Execute tx failed on-chain: ${JSON.stringify(execConf.value.err)}`);
+      }
 
       toast.success(`Delivery confirmed! TX: ${execSig.slice(0, 8)}...`, { id: 'delivery', duration: 6000 });
       addLog('Confirm Delivery (executed)', execSig, `Escrow ${escrow.escrowPda}`);

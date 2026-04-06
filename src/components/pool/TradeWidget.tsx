@@ -172,6 +172,9 @@ export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'b
       setQuote(null);
       onTradeComplete?.();
     } catch (err: any) {
+      console.error('[TradeWidget] Trade error:', err);
+      console.error('[TradeWidget] Error name:', err?.name, 'message:', err?.message);
+      console.error('[TradeWidget] Error stack:', err?.stack);
       setError(err.message || 'Transaction failed. Check your wallet balance and try again.');
     } finally {
       setLoading(false);
