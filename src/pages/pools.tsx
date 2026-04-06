@@ -363,7 +363,8 @@ const PoolCard = memo(
 
           // 3. Sign with wallet — Bags returns base58-encoded VersionedTransaction
           const { VersionedTransaction, Connection } = await import('@solana/web3.js');
-          const bs58 = (await import('bs58')).default;
+          const bs58Module = await import('bs58');
+          const bs58 = bs58Module.default?.decode ? bs58Module.default : bs58Module.default?.default;
           const txBuffer = bs58.decode(swapData.transaction.serialized);
           const tx = VersionedTransaction.deserialize(txBuffer);
           const signed = await signTransaction(tx);

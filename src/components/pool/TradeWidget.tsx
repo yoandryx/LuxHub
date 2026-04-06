@@ -161,7 +161,8 @@ export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'b
       // Deserialize, sign, and send — Bags returns base58-encoded transaction
       const { endpoint } = getClusterConfig();
       const connection = new Connection(endpoint);
-      const bs58 = (await import('bs58')).default;
+      const bs58Module = await import('bs58');
+      const bs58 = bs58Module.default?.decode ? bs58Module.default : bs58Module.default?.default;
       const txBuffer = bs58.decode(data.transaction.serialized);
       const transaction = VersionedTransaction.deserialize(txBuffer);
       const signedTx = await signTransaction(transaction);
