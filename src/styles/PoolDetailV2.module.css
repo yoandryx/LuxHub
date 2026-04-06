@@ -922,10 +922,43 @@
 
   .contentGrid {
     padding: 0 10px;
+    max-width: calc(100vw - 20px);
   }
 
   .backLink {
     padding-left: 10px;
+  }
+
+  /* Force ALL children to respect viewport */
+  .leftColumn > *,
+  .rightColumn > * {
+    max-width: calc(100vw - 20px);
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .tokenInfoBar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .tokenInfoLinks {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .tokenLink {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+
+  .mintCopyBtn {
+    padding: 2px 6px;
+  }
+
+  .mintAddress {
+    font-size: 11px;
   }
 
   .backLink {
