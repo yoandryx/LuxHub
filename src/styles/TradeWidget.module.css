@@ -249,43 +249,144 @@
   font-family: var(--font-mono);
 }
 
-/* ─── Execute Button — matches card Buy/Sell buttons ─── */
+/* ─── Execute Button — gradient border + radial glow (matches card Buy/Sell) ─── */
 .executeBtn {
+  position: relative;
   width: 100%;
-  height: 40px;
-  background: var(--accent-gradient);
+  padding: 11px 0;
+  background: transparent;
   border: none;
-  border-radius: var(--radius);
-  color: #ffffff;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.3s ease;
   font-family: var(--font);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-/* Buy = green gradient */
+.executeBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: 10px;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.executeBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.executeBtn span,
+.executeBtn svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* Buy = green gradient border + glow */
 .executeBtnBuy {
-  background: linear-gradient(135deg, #26a69a 0%, #2dd4bf 100%);
+  color: #4ade80;
+}
+
+.executeBtnBuy::before {
+  background: linear-gradient(
+    135deg,
+    rgba(74, 222, 128, 0.5),
+    rgba(74, 222, 128, 0.12),
+    rgba(74, 222, 128, 0.5)
+  );
+}
+
+.executeBtnBuy::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(74, 222, 128, 0.08) 0%,
+    rgba(74, 222, 128, 0) 70%
+  );
 }
 
 .executeBtnBuy:hover:not(:disabled) {
-  box-shadow: 0 4px 16px rgba(38, 166, 154, 0.3);
-  transform: translateY(-1px);
+  color: #86efac;
+  transform: translateY(-2px);
 }
 
-/* Sell = red gradient */
+.executeBtnBuy:hover:not(:disabled)::before {
+  background: linear-gradient(
+    135deg,
+    rgba(74, 222, 128, 0.7),
+    rgba(74, 222, 128, 0.2),
+    rgba(74, 222, 128, 0.7)
+  );
+}
+
+.executeBtnBuy:hover:not(:disabled)::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(74, 222, 128, 0.12) 0%,
+    rgba(74, 222, 128, 0) 70%
+  );
+}
+
+/* Sell = red gradient border + glow */
 .executeBtnSell {
-  background: linear-gradient(135deg, #ef5350 0%, #f87171 100%);
+  color: #f87171;
+}
+
+.executeBtnSell::before {
+  background: linear-gradient(
+    135deg,
+    rgba(248, 113, 113, 0.5),
+    rgba(248, 113, 113, 0.12),
+    rgba(248, 113, 113, 0.5)
+  );
+}
+
+.executeBtnSell::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(248, 113, 113, 0.08) 0%,
+    rgba(248, 113, 113, 0) 70%
+  );
 }
 
 .executeBtnSell:hover:not(:disabled) {
-  box-shadow: 0 4px 16px rgba(239, 83, 80, 0.3);
-  transform: translateY(-1px);
+  color: #fca5a5;
+  transform: translateY(-2px);
+}
+
+.executeBtnSell:hover:not(:disabled)::before {
+  background: linear-gradient(
+    135deg,
+    rgba(248, 113, 113, 0.7),
+    rgba(248, 113, 113, 0.2),
+    rgba(248, 113, 113, 0.7)
+  );
+}
+
+.executeBtnSell:hover:not(:disabled)::after {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(248, 113, 113, 0.12) 0%,
+    rgba(248, 113, 113, 0) 70%
+  );
 }
 
 .executeBtn:disabled {

@@ -27,9 +27,10 @@
   --transition: 150ms ease;
 
   min-height: 100vh;
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 72px 24px 48px;
+  width: 100%;
   color: var(--text);
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
@@ -51,6 +52,11 @@
 .pageContainer > * {
   position: relative;
   z-index: 1;
+}
+
+/* ─── Desktop Only Wrapper ─── */
+.desktopOnly {
+  display: block;
 }
 
 /* ─── Back Link ─── */
@@ -919,11 +925,15 @@
     gap: 12px;
   }
 
-  /* On mobile: trade widget comes BEFORE chart for immediate action */
+  /* On mobile: natural order — header/chart first, then trade widget below */
   .rightColumn {
     position: static;
     max-height: none;
-    order: -1;
+    overflow: visible;
+  }
+
+  .leftColumn {
+    gap: 10px;
   }
 
   .poolHeader {
@@ -946,7 +956,12 @@
   }
 
   .chartContainer {
-    min-height: 260px;
+    min-height: 220px;
+  }
+
+  /* Hide stepper + how-it-works on mobile — save scroll space */
+  .desktopOnly {
+    display: none;
   }
 
   .tokenInfoBar {

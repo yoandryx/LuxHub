@@ -308,11 +308,11 @@ const PoolDetailV2Page: React.FC = () => {
           <FaArrowLeft /> Back to Pools
         </Link>
 
-        {/* Lifecycle Stepper */}
-        <LifecycleStepper currentStage={lifecycleStage} />
-
-        {/* How It Works */}
-        <HowItWorks />
+        {/* Lifecycle Stepper + How It Works (hidden on mobile) */}
+        <div className={styles.desktopOnly}>
+          <LifecycleStepper currentStage={lifecycleStage} />
+          <HowItWorks />
+        </div>
 
         {/* Content Grid */}
         <div className={styles.contentGrid}>
