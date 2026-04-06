@@ -1,15 +1,14 @@
 /* ========================================
    Trade Widget — Chrome Glass
-   Embedded buy/sell for pool detail page
+   Matches /pools card quick-trade + /security glass
    ======================================== */
 
 .container {
   --accent: #c8a1ff;
   --accent-dim: rgba(200, 161, 255, 0.12);
   --accent-gradient: linear-gradient(135deg, #c8a1ff 0%, #a855f7 100%);
-  --surface: rgba(18, 18, 28, 0.65);
-  --border: rgba(200, 161, 255, 0.1);
-  --border-light: rgba(255, 255, 255, 0.06);
+  --surface: rgba(8, 8, 10, 0.82);
+  --border: rgba(200, 161, 255, 0.08);
   --text: #f5f5f7;
   --text-muted: rgba(255, 255, 255, 0.4);
   --text-secondary: rgba(255, 255, 255, 0.65);
@@ -20,61 +19,100 @@
   --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', monospace;
 
-  background: var(--surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
+  position: relative;
+  background: #0a0a0c;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border: none;
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  overflow: hidden;
+}
+
+/* Gradient border */
+.container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(185, 145, 255, 0.35),
+    rgba(185, 145, 255, 0.06),
+    rgba(185, 145, 255, 0.35)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Subtle top glow */
+.container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse at 50% 0%, rgba(185, 145, 255, 0.06) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 /* ─── DEX Badge ─── */
 .dexBadge {
   display: inline-flex;
   align-self: flex-start;
-  padding: 4px 12px;
+  padding: 3px 10px;
   background: rgba(74, 222, 128, 0.1);
   color: var(--positive);
   border-radius: 100px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
-/* ─── Tabs ─── */
+/* ─── Tabs — pill style like card Buy/Sell ─── */
 .tabs {
-  display: flex;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 100px;
-  padding: 3px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 0;
 }
 
 .tab {
-  flex: 1;
   padding: 10px 0;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  border-radius: 100px;
+  border-radius: var(--radius);
   transition: all 0.15s ease;
   font-family: var(--font);
 }
 
-.tabActive {
-  background: var(--accent);
-  color: #0a0a0f;
+.tab:hover {
+  border-color: rgba(185, 145, 255, 0.3);
+  color: var(--text-secondary);
 }
 
-/* ─── Progress Bar ─── */
+.tabActive {
+  background: rgba(185, 145, 255, 0.1);
+  border-color: rgba(185, 145, 255, 0.5);
+  color: var(--accent);
+}
+
+/* ─── Progress Bar — thin, modern ─── */
 .progressSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .progressLabel {
@@ -83,23 +121,23 @@
 }
 
 .progressText {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--text-secondary);
 }
 
 .progressBar {
   width: 100%;
-  height: 8px;
-  background: rgba(200, 161, 255, 0.1);
-  border-radius: 4px;
+  height: 4px;
+  background: rgba(200, 161, 255, 0.08);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
   background: var(--accent-gradient);
-  border-radius: 4px;
+  border-radius: 2px;
   transition: width 0.6s ease;
 }
 
@@ -107,42 +145,44 @@
   background: var(--positive);
 }
 
-/* ─── Input ─── */
+/* ─── Input — matches card chip aesthetic ─── */
 .inputSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .inputLabel {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--text-muted);
-  font-weight: 400;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .inputWrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .input {
   flex: 1;
-  height: 48px;
-  padding: 0 16px;
+  height: 40px;
+  padding: 0 12px;
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius);
   color: var(--text);
-  font-size: 16px;
+  font-size: 15px;
   font-family: var(--font-mono);
   outline: none;
   transition: border-color 0.15s ease;
 }
 
 .input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(200, 161, 255, 0.12);
+  border-color: rgba(185, 145, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(200, 161, 255, 0.08);
 }
 
 .input:disabled {
@@ -155,12 +195,12 @@
 }
 
 .maxBtn {
-  padding: 8px 14px;
-  background: var(--accent-dim);
-  border: 1px solid rgba(200, 161, 255, 0.2);
+  padding: 6px 12px;
+  background: rgba(185, 145, 255, 0.08);
+  border: 1px solid rgba(185, 145, 255, 0.2);
   border-radius: var(--radius);
   color: var(--accent);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -169,11 +209,12 @@
 }
 
 .maxBtn:hover {
-  background: rgba(200, 161, 255, 0.2);
+  background: rgba(185, 145, 255, 0.15);
+  border-color: rgba(185, 145, 255, 0.4);
 }
 
 .balanceLabel {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   font-family: var(--font-mono);
 }
@@ -182,41 +223,41 @@
 .quoteLoading {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .quoteRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: var(--radius);
 }
 
 .quoteLabel {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
 .quoteValue {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   font-family: var(--font-mono);
 }
 
-/* ─── Execute Button ─── */
+/* ─── Execute Button — matches card Buy/Sell buttons ─── */
 .executeBtn {
   width: 100%;
-  height: 48px;
+  height: 40px;
   background: var(--accent-gradient);
   border: none;
   border-radius: var(--radius);
   color: #ffffff;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -224,16 +265,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.executeBtn:hover:not(:disabled) {
-  box-shadow: 0 4px 20px rgba(200, 161, 255, 0.3);
+/* Buy = green gradient */
+.executeBtnBuy {
+  background: linear-gradient(135deg, #26a69a 0%, #2dd4bf 100%);
+}
+
+.executeBtnBuy:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(38, 166, 154, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Sell = red gradient */
+.executeBtnSell {
+  background: linear-gradient(135deg, #ef5350 0%, #f87171 100%);
+}
+
+.executeBtnSell:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(239, 83, 80, 0.3);
   transform: translateY(-1px);
 }
 
 .executeBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   transform: none;
 }
@@ -243,13 +299,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .slippageLabel {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
-  margin-right: 4px;
+  margin-right: 2px;
 }
 
 .slippagePills {
@@ -258,9 +314,9 @@
 }
 
 .slippagePill {
-  padding: 4px 10px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--border);
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 100px;
   color: var(--text-muted);
   font-size: 11px;
@@ -270,17 +326,22 @@
   font-family: var(--font);
 }
 
+.slippagePill:hover {
+  border-color: rgba(185, 145, 255, 0.3);
+  color: var(--accent);
+}
+
 .slippagePillActive {
-  background: var(--accent-dim);
-  border-color: rgba(200, 161, 255, 0.3);
+  background: rgba(185, 145, 255, 0.1);
+  border-color: rgba(185, 145, 255, 0.5);
   color: var(--accent);
 }
 
 .slippageInput {
-  width: 60px;
-  padding: 4px 8px;
+  width: 50px;
+  padding: 3px 6px;
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius);
   color: var(--text);
   font-size: 11px;
@@ -288,23 +349,27 @@
   outline: none;
 }
 
+.slippageInput:focus {
+  border-color: rgba(185, 145, 255, 0.5);
+}
+
 /* ─── Messages ─── */
 .error {
-  padding: 10px 14px;
-  background: rgba(248, 113, 113, 0.1);
-  border: 1px solid rgba(248, 113, 113, 0.2);
+  padding: 8px 12px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.15);
   border-radius: var(--radius);
   color: var(--error);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .success {
-  padding: 10px 14px;
-  background: rgba(74, 222, 128, 0.1);
-  border: 1px solid rgba(74, 222, 128, 0.2);
+  padding: 8px 12px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.15);
   border-radius: var(--radius);
   color: var(--positive);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* ─── Spinner ─── */

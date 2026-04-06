@@ -281,9 +281,9 @@ export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'b
         </div>
       ) : null}
 
-      {/* Execute button */}
+      {/* Execute button — green for buy, red for sell */}
       <button
-        className={styles.executeBtn}
+        className={`${styles.executeBtn} ${tradeType === 'sell' ? styles.executeBtnSell : styles.executeBtnBuy}`}
         onClick={executeTrade}
         disabled={loading || !quote || !connected}
       >
