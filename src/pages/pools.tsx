@@ -362,9 +362,12 @@ const PoolCard = memo(
           const swapData = await swapRes.json();
 
           // 3. Sign with wallet — server converts Bags base58 → base64 for us
+          // Use Uint8Array (not Buffer polyfill) for proper wallet compatibility
           const { VersionedTransaction, Connection } = await import('@solana/web3.js');
-          const txBuffer = Buffer.from(swapData.transaction.serialized, 'base64');
-          const tx = VersionedTransaction.deserialize(txBuffer);
+          const binaryStr = atob(swapData.transaction.serialized);
+          const txBytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) txBytes[i] = binaryStr.charCodeAt(i);
+          const tx = VersionedTransaction.deserialize(txBytes);
           const signed = await signTransaction(tx);
 
           // 4. Send + confirm

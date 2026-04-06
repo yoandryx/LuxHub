@@ -159,10 +159,13 @@ export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'b
       }
 
       // Deserialize, sign, and send — server converts Bags base58 → base64 for us
+      // Use Uint8Array (not Buffer polyfill) for proper wallet compatibility
       const { endpoint } = getClusterConfig();
       const connection = new Connection(endpoint);
-      const txBuffer = Buffer.from(data.transaction.serialized, 'base64');
-      const transaction = VersionedTransaction.deserialize(txBuffer);
+      const binaryStr = atob(data.transaction.serialized);
+      const txBytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) txBytes[i] = binaryStr.charCodeAt(i);
+      const transaction = VersionedTransaction.deserialize(txBytes);
       const signedTx = await signTransaction(transaction);
       const signature = await connection.sendRawTransaction(signedTx.serialize());
       await connection.confirmTransaction(signature, 'confirmed');
