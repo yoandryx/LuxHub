@@ -914,18 +914,18 @@
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .pageContainer {
-    padding: 64px 10px 32px;
+    padding: 64px 0 32px;
     max-width: 100vw;
+    width: 100vw;
+    overflow-x: hidden;
   }
 
-  .glassCard,
-  .positionCard,
-  .claimCard,
-  .howItWorksCard,
-  .poolInfoCard,
-  .detailsCard {
-    max-width: 100%;
-    box-sizing: border-box;
+  .contentGrid {
+    padding: 0 10px;
+  }
+
+  .backLink {
+    padding-left: 10px;
   }
 
   .backLink {
