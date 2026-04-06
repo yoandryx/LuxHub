@@ -481,3 +481,12 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ─── Mobile ─── */
+@media (max-width: 768px) {
+  .container {
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 14px 12px;
+  }
+}
