@@ -142,6 +142,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const swapJson = await swapResponse.json();
     const swapData = swapJson.response || swapJson;
 
+    // Bags returns base58-encoded transaction. Convert to base64 server-side
+    // so the browser client can use simple Buffer.from(str, 'base64').
+    const bs58Module = await import('bs58');
+    const bs58 = (bs58Module as any).default;
+    const txBytes = bs58.decode(swapData.swapTransaction);
+    const txBase64 = Buffer.from(txBytes).toString('base64');
+
     return res.status(200).json({
       success: true,
       trade: {
@@ -154,8 +161,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       pool: poolInfo,
       transaction: {
-        // The serialized transaction for the user to sign
-        serialized: swapData.swapTransaction,
+        // Base64-encoded transaction (converted from Bags' base58 on server)
+        serialized: txBase64,
         // Last valid block height for the transaction
         lastValidBlockHeight: swapData.lastValidBlockHeight,
       },

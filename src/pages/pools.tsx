@@ -361,11 +361,9 @@ const PoolCard = memo(
           if (!swapRes.ok) throw new Error('Swap build failed');
           const swapData = await swapRes.json();
 
-          // 3. Sign with wallet — Bags returns base58-encoded VersionedTransaction
+          // 3. Sign with wallet — server converts Bags base58 → base64 for us
           const { VersionedTransaction, Connection } = await import('@solana/web3.js');
-          const bs58Module = await import('bs58');
-          const bs58 = bs58Module.default?.decode ? bs58Module.default : bs58Module.default?.default;
-          const txBuffer = bs58.decode(swapData.transaction.serialized);
+          const txBuffer = Buffer.from(swapData.transaction.serialized, 'base64');
           const tx = VersionedTransaction.deserialize(txBuffer);
           const signed = await signTransaction(tx);
 
