@@ -158,10 +158,11 @@ export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'b
         throw new Error(data.error || 'Transaction failed. Check your wallet balance and try again.');
       }
 
-      // Deserialize, sign, and send
+      // Deserialize, sign, and send — Bags returns base58-encoded transaction
       const { endpoint } = getClusterConfig();
       const connection = new Connection(endpoint);
-      const txBuffer = Buffer.from(data.transaction.serialized, 'base64');
+      const bs58 = (await import('bs58')).default;
+      const txBuffer = bs58.decode(data.transaction.serialized);
       const transaction = VersionedTransaction.deserialize(txBuffer);
       const signedTx = await signTransaction(transaction);
       const signature = await connection.sendRawTransaction(signedTx.serialize());
