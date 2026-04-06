@@ -87,11 +87,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Convert human-readable amount to raw units (lamports / smallest denomination).
+    // Bags API expects raw integer amounts, not decimals.
+    const DECIMALS = 9; // Both SOL and Bags SPL tokens use 9 decimals
+    const parsedAmount = parseFloat(amount);
+    const rawAmount = Math.round(parsedAmount * 10 ** DECIMALS).toString();
+
     // Step 1: Get fresh quote
     const quoteUrl = new URL(`${BAGS_API_BASE}/trade/quote`);
     quoteUrl.searchParams.set('inputMint', finalInputMint);
     quoteUrl.searchParams.set('outputMint', finalOutputMint);
-    quoteUrl.searchParams.set('amount', amount);
+    quoteUrl.searchParams.set('amount', rawAmount);
     quoteUrl.searchParams.set('slippageBps', slippageBps);
 
     const quoteResponse = await fetch(quoteUrl.toString(), {

@@ -273,7 +273,10 @@ export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'b
             Estimated {tradeType === 'buy' ? 'tokens' : 'SOL'}
           </span>
           <span className={styles.quoteValue}>
-            {parseFloat(quote.outputAmount).toLocaleString()}
+            {/* Bags returns raw amounts (lamports/smallest unit). Convert to human-readable. */}
+            {(parseFloat(quote.outputAmount) / 1e9).toLocaleString(undefined, {
+              maximumFractionDigits: tradeType === 'buy' ? 0 : 6,
+            })}
           </span>
         </div>
       ) : null}

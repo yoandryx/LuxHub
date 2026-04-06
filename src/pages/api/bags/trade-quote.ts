@@ -79,11 +79,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Convert human-readable amount to raw units (lamports / smallest denomination).
+    // Bags API expects raw integer amounts, not decimals.
+    // SOL = 9 decimals, SPL tokens = typically 9 decimals on Bags.
+    const DECIMALS = 9; // Both SOL and Bags SPL tokens use 9 decimals
+    const parsedAmount = parseFloat(amount);
+    const rawAmount = Math.round(parsedAmount * 10 ** DECIMALS).toString();
+
     // Get quote from Bags API
     const quoteUrl = new URL(`${BAGS_API_BASE}/trade/quote`);
     quoteUrl.searchParams.set('inputMint', finalInputMint);
     quoteUrl.searchParams.set('outputMint', finalOutputMint);
-    quoteUrl.searchParams.set('amount', amount);
+    quoteUrl.searchParams.set('amount', rawAmount);
     // Bags supports slippageMode: 'auto' (default) or 'manual' (requires slippageBps)
     if (slippageBps && slippageBps !== '100') {
       quoteUrl.searchParams.set('slippageMode', 'manual');
