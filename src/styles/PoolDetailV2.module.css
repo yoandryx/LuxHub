@@ -31,6 +31,8 @@
   margin: 0 auto;
   padding: 72px 24px 48px;
   width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
   color: var(--text);
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
