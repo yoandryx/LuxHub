@@ -450,10 +450,23 @@ const PoolDetailV2Page: React.FC = () => {
                 </div>
               ) : null}
               {pool.targetAmountUSD && (
-                <div className={styles.infoRow}>
-                  <span>Target</span>
-                  <span>${pool.targetAmountUSD.toLocaleString()}</span>
-                </div>
+                <>
+                  <div className={styles.infoRow}>
+                    <span>Watch Price</span>
+                    <span>${pool.targetAmountUSD.toLocaleString()}</span>
+                  </div>
+                  <div className={styles.infoRow}>
+                    <span>Vendor Funding</span>
+                    <span>
+                      {(() => {
+                        const vendorTarget = pool.targetAmountUSD * 0.97;
+                        const fees = (pool as any).accumulatedTradingFees || 0;
+                        const pct = vendorTarget > 0 ? Math.min((fees / vendorTarget) * 100, 100) : 0;
+                        return `${pct.toFixed(1)}% ($${fees.toFixed(0)} / $${vendorTarget.toFixed(0)})`;
+                      })()}
+                    </span>
+                  </div>
+                </>
               )}
               <div className={styles.infoRow}>
                 <span>Holders</span>

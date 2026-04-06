@@ -1,5 +1,12 @@
 // src/pages/api/pool/pay-vendor.ts
-// Pay vendor ONLY after pool fills AND custody is verified (escrow-protected flow)
+// Pay vendor from Pools Treasury after:
+//   1. Pool token has graduated (bonding curve → DEX)
+//   2. Accumulated trading fees cover watch price (accumulatedTradingFees >= target * 0.97)
+//   3. Watch custody is verified by LuxHub admin
+//
+// Flow: Pools Treasury → 97% vendor (USDC via Squads) + 3% stays in treasury
+// The 1% creator fee from ALL pool token trades accumulates in Pools Treasury.
+// MongoDB tracks per-pool fee accumulation; one treasury wallet serves all pools.
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
@@ -16,6 +23,7 @@ interface PayVendorRequest {
   adminWallet: string;
   createSquadsProposal?: boolean;
   skipCustodyCheck?: boolean; // Only for emergencies, requires special admin
+  skipFundingCheck?: boolean; // Pay vendor before fees accumulate (treasury-funded)
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -29,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       adminWallet,
       createSquadsProposal = true,
       skipCustodyCheck = false,
+      skipFundingCheck = false,
     } = req.body as PayVendorRequest;
 
     // Validation
@@ -62,16 +71,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Pool not found' });
     }
 
-    // ========== ESCROW-PROTECTED FLOW ==========
-    // Vendor payment is ONLY released after custody is verified
+    // ========== FUNDING CHECK ==========
+    // Vendor payment requires accumulated trading fees to cover watch price.
+    // Pools Treasury collects 1% of all pool token trades via Bags fee-share.
+    // MongoDB tracks per-pool accumulation (accumulatedTradingFees).
 
-    // Check pool status - must be 'filled' or 'custody'
-    const allowedStatuses = ['filled', 'custody'];
-    if (!allowedStatuses.includes(pool.status)) {
+    const vendorPayoutTarget = (pool.targetAmountUSD || 0) * 0.97;
+    const accumulatedFees = pool.accumulatedTradingFees || 0;
+    const fundingProgress = vendorPayoutTarget > 0
+      ? Math.min((accumulatedFees / vendorPayoutTarget) * 100, 100)
+      : 0;
+
+    if (!skipFundingCheck) {
+      if (accumulatedFees < vendorPayoutTarget) {
+        return res.status(400).json({
+          error: 'Pool has not accumulated enough trading fees to pay vendor',
+          fundingProgress: `${fundingProgress.toFixed(1)}%`,
+          accumulatedFees,
+          vendorPayoutTarget,
+          shortfall: vendorPayoutTarget - accumulatedFees,
+          message: `Need $${(vendorPayoutTarget - accumulatedFees).toFixed(2)} more in trading fees. Current: $${accumulatedFees.toFixed(2)} / $${vendorPayoutTarget.toFixed(2)}`,
+        });
+      }
+    }
+
+    // Skip funding check requires super admin (treasury-funded early payout)
+    if (skipFundingCheck && !isSuperAdmin) {
+      return res.status(403).json({
+        error: 'Super admin access required to skip funding check (treasury-funded payout)',
+      });
+    }
+
+    // Pool must have an active token (bonding curve launched)
+    const allowedStatuses = ['open', 'filled', 'custody', 'active'];
+    if (!allowedStatuses.includes(pool.status) && !pool.graduated) {
       return res.status(400).json({
-        error: `Pool must be in 'filled' or 'custody' status. Current status: ${pool.status}`,
+        error: `Pool must have an active bonding curve or be graduated. Current status: ${pool.status}`,
         currentStatus: pool.status,
-        allowedStatuses,
+        graduated: pool.graduated,
       });
     }
 
@@ -123,40 +160,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // ========== CALCULATE PAYMENT AMOUNTS ==========
-    // Payment varies based on liquidity model (P2P vs AMM)
+    // Vendor gets 97% of watch price (targetAmountUSD).
+    // 3% stays in Pools Treasury as platform fee.
+    // Payment source: Pools Treasury wallet (funded by 1% trading fees across all pools).
+    // AMM liquidity is handled by Bags automatically at graduation — not part of vendor payout.
 
-    const totalCollected = pool.fundsInEscrow || pool.sharesSold * pool.sharePriceUSD;
-    const liquidityModel = pool.liquidityModel || 'p2p';
-    const vendorPaymentPercent = pool.vendorPaymentPercent || 97;
+    const watchPrice = pool.targetAmountUSD || 0;
+    const vendorPayment = watchPrice * 0.97;
+    const luxhubFee = watchPrice * 0.03; // Stays in treasury (not transferred)
 
-    let vendorPayment: number;
-    let ammLiquidityAmount: number;
-    let luxhubFee: number;
-
-    if (liquidityModel === 'amm' || liquidityModel === 'hybrid') {
-      // AMM model: vendor gets (100 - ammPercent - 3)%, AMM gets ammPercent%, LuxHub gets 3%
-      const ammPercent = pool.ammLiquidityPercent || 30;
-      const vendorPercent = (100 - ammPercent - 3) / 100; // e.g. 67% if 30% AMM + 3% fee
-      vendorPayment = totalCollected * vendorPercent;
-      ammLiquidityAmount = totalCollected * (ammPercent / 100);
-      luxhubFee = totalCollected * 0.03;
-    } else {
-      // P2P model: vendor gets 97%, LuxHub gets 3%
-      vendorPayment = totalCollected * 0.97;
-      ammLiquidityAmount = 0;
-      luxhubFee = totalCollected * 0.03;
-    }
-
-    // Create Squads proposal for payment
+    // Create Squads proposal for payment from Pools Treasury → vendor
     let squadsResult = null;
     if (createSquadsProposal) {
-      squadsResult = await createVendorPaymentProposal(
-        pool,
-        vendorPayment,
-        luxhubFee,
-        ammLiquidityAmount,
-        liquidityModel
-      );
+      squadsResult = await createVendorPaymentProposal(pool, vendorPayment);
 
       if (!squadsResult.success) {
         return res.status(500).json({
@@ -171,84 +187,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           squadsVendorPaymentIndex: squadsResult.transactionIndex,
           vendorPaidAmount: vendorPayment,
           vendorPaidAt: new Date(),
-          status: 'funded', // Move to funded status
+          status: 'funded',
           escrowReleasedAt: new Date(),
         },
       });
     }
 
-    // ========== UNLOCK TOKENS FOR TRADING ==========
-    // Now that custody is verified and vendor paid, tokens can be traded
-    if (pool.bagsTokenMint && pool.tokenStatus === 'minted') {
-      await Pool.findByIdAndUpdate(poolId, {
-        $set: {
-          tokenStatus: 'unlocked',
-          tokenUnlockedAt: new Date(),
-        },
-      });
-
-      // If AMM model, create the AMM liquidity pool via Bags API
-      if (ammLiquidityAmount > 0) {
-        const ammResult = await createAmmLiquidityPool(pool, ammLiquidityAmount);
-        if (ammResult.success) {
-          await Pool.findByIdAndUpdate(poolId, {
-            $set: {
-              ammEnabled: true,
-              ammPoolAddress: ammResult.poolAddress,
-              ammLiquidityAmount,
-              ammCreatedAt: new Date(),
-              bagsPoolAddress: ammResult.poolAddress,
-              bagsPoolCreatedAt: new Date(),
-            },
-          });
-        } else {
-          console.warn('[pay-vendor] AMM pool creation failed:', ammResult.error);
-          // Non-blocking — vendor payment still proceeds, AMM can be retried
-        }
-      }
-    }
-
     return res.status(200).json({
       success: true,
       escrowProtection: {
-        custodyVerified: true,
+        custodyVerified: !skipCustodyCheck,
         custodyStatus: pool.custodyStatus,
         custodyVerifiedBy: pool.custodyVerifiedBy,
         custodyProofCount: pool.custodyProofUrls?.length || 0,
       },
+      funding: {
+        watchPrice,
+        accumulatedFees,
+        vendorPayoutTarget,
+        fundingProgress: `${fundingProgress.toFixed(1)}%`,
+        fundingCheckSkipped: skipFundingCheck,
+      },
       payment: {
-        totalCollected,
         vendorPayment,
-        vendorPaymentPercent: `${vendorPaymentPercent}%`,
+        vendorPaymentPercent: '97%',
         luxhubFee,
         luxhubFeePercent: '3%',
-        ammLiquidity: ammLiquidityAmount,
-        ammLiquidityPercent: pool.ammLiquidityPercent ? `${pool.ammLiquidityPercent}%` : 'N/A',
-        liquidityModel,
+        source: 'Pools Treasury',
       },
       pool: {
         _id: pool._id,
         vendorWallet: pool.vendorWallet,
         status: 'funded',
-        tokenStatus: pool.bagsTokenMint ? 'unlocked' : 'pending',
+        bagsTokenMint: pool.bagsTokenMint,
+        graduated: pool.graduated,
       },
       squadsProposal: squadsResult,
-      tokenTrading: {
-        enabled: !!pool.bagsTokenMint,
-        tokenMint: pool.bagsTokenMint,
-        message: pool.bagsTokenMint
-          ? 'Tokens now UNLOCKED for secondary market trading via Bags'
-          : 'No token minted for this pool',
-      },
       message: squadsResult?.success
-        ? 'Vendor payment proposal created. Custody verified, tokens unlocked for trading.'
+        ? 'Vendor payment proposal created from Pools Treasury. Approve in Squads UI to execute.'
         : 'Payment amounts calculated. Create Squads proposal to execute payment.',
       nextSteps: [
         '1. Multisig members approve payment in Squads UI',
         '2. Execute payment via /api/squads/execute',
-        '3. Vendor receives payment',
-        '4. Tokens now tradeable on secondary market',
-        '5. LuxHub lists asset for resale when ready',
+        '3. Vendor receives SOL/USDC from Pools Treasury',
+        '4. Vendor ships watch to LuxHub custody',
+        '5. Admin verifies custody, pool status → "custody"',
+        '6. When watch resells → 97% distributed to token holders, 3% to Marketplace Treasury',
       ],
     });
   } catch (error: any) {
@@ -260,57 +244,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
-
-// NOTE: Bags API does not have a /liquidity/create-pool endpoint.
-// AMM liquidity pools are created automatically when a token graduates from bonding curve.
-// This function is a no-op stub retained for interface compatibility.
-async function createAmmLiquidityPool(
-  pool: any,
-  _liquidityAmountUSD: number
-): Promise<{ success: boolean; poolAddress?: string; error?: string }> {
-  if (!pool.bagsTokenMint) {
-    return { success: false, error: 'Pool has no Bags token mint' };
-  }
-  // Liquidity pools are created automatically upon bonding curve graduation via Bags.
-  // No manual API call needed.
-  console.warn(
-    '[createAmmLiquidityPool] No-op: Bags API does not support manual liquidity pool creation. ' +
-      'Pools are created automatically on graduation.'
-  );
-  return {
-    success: false,
-    error:
-      'Bags API does not support manual liquidity pool creation. Pools graduate automatically.',
-  };
-}
-
-// Build real Squads multi-transfer proposal for vendor payment
+// Build Squads proposal: transfer vendor payout from Pools Treasury → vendor wallet.
+// The 3% LuxHub fee is implicit — it stays in the treasury (never transferred out).
 async function createVendorPaymentProposal(
   pool: any,
-  vendorPayment: number,
-  luxhubFee: number,
-  _ammLiquidity: number,
-  _liquidityModel: string
+  vendorPayment: number
 ): Promise<{
   success: boolean;
   transactionIndex?: string;
   squadsDeepLink?: string;
   error?: string;
 }> {
-  const treasuryWallet = getTreasury('pools');
   if (!pool.vendorWallet) {
     return { success: false, error: 'Pool has no vendorWallet set' };
   }
 
   const recipients: TransferRecipient[] = [
-    { wallet: pool.vendorWallet, amountUSD: vendorPayment, label: 'Vendor payment' },
-    { wallet: treasuryWallet, amountUSD: luxhubFee, label: 'Pools Treasury 3% fee' },
+    { wallet: pool.vendorWallet, amountUSD: vendorPayment, label: `Vendor payout (97% of $${pool.targetAmountUSD})` },
   ];
 
   const result = await buildMultiTransferProposal(recipients, {
     autoApprove: getSquadsAutoApprove(),
-    memo: `Vendor payment for pool ${pool._id}`,
+    memo: `Vendor payment for pool ${pool._id} — $${vendorPayment.toFixed(2)}`,
   });
 
   return {

@@ -17,10 +17,6 @@ import { getLifecycleStage, LIFECYCLE_STAGES } from '../components/pool/Lifecycl
 import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
 import styles from '../styles/PoolsNew.module.css';
 
-// ─── Constants ──────────────────────────────────────────────────
-// Bags bonding curve graduates at ~$6k market cap by default
-const GRADUATION_TARGET_USD = 6000;
-
 // ─── Status Config ──────────────────────────────────────────────
 const STATUS_STYLE: Record<string, string> = {
   open: 'statusOpen',
@@ -392,12 +388,10 @@ const PoolCard = memo(
       [publicKey, signTransaction, pool._id, pool.bagsTokenMint, selectedSol]
     );
 
-    // Progress semantics depend on pool lifecycle:
-    //   - Pre-token-launch (no bagsTokenMint): shows vendor funding % (sharesSold/totalShares)
-    //   - Bonding curve active: market cap progress toward graduation ($6k target)
-    //   - Graduated: no progress bar
+    // Progress = vendor funding from accumulated trading fees (1% of all trades → Pools Treasury).
+    // This is the REAL "funding the watch" metric — how much the pool has earned toward paying the vendor.
     //
-    // Live on-chain data (liveStats) wins over stored/webhook data when available.
+    // Live on-chain data (liveStats) for price/mcap/holders. Funding progress from MongoDB (webhook-tracked).
     const hasToken = !!pool.bagsTokenMint;
     const isGraduated = liveStats?.graduated ?? pool.graduated ?? false;
     const livePrice =
@@ -407,24 +401,26 @@ const PoolCard = memo(
       pool.currentBondingPrice ||
       pool.sharePriceUSD ||
       0;
-    // Prefer live supply × price; fall back to price × totalShares
     const marketCapUSD =
       liveStats?.marketCapUSD ||
       (hasToken && livePrice > 0 ? livePrice * (pool.totalShares || 0) : 0);
 
-    const percentFilled = useMemo(() => {
-      if (isGraduated) return 100;
-      if (hasToken && marketCapUSD > 0) {
-        return Math.min((marketCapUSD / GRADUATION_TARGET_USD) * 100, 100);
-      }
-      return pool.totalShares > 0 ? (pool.sharesSold / pool.totalShares) * 100 : 0;
-    }, [isGraduated, hasToken, marketCapUSD, pool.totalShares, pool.sharesSold]);
+    // Vendor funding progress: accumulatedTradingFees / (watchPrice * 0.97)
+    const vendorTarget = (pool.targetAmountUSD || 0) * 0.97;
+    const accumulatedFees = pool.accumulatedTradingFees || 0;
+    const vendorFundingPercent = vendorTarget > 0
+      ? Math.min((accumulatedFees / vendorTarget) * 100, 100)
+      : 0;
+    const isVendorFunded = vendorFundingPercent >= 100;
 
-    const progressLabel = isGraduated
-      ? 'Graduated'
+    // Use vendor funding progress for the progress bar
+    const percentFilled = vendorFundingPercent;
+
+    const progressLabel = isVendorFunded
+      ? 'Funded'
       : hasToken
-        ? 'To Graduation'
-        : 'Funding';
+        ? 'Funding Watch'
+        : 'Pre-Launch';
 
     // Prefer on-chain holder count (liveStats) over stale participants[] (legacy invest flow)
     const investorCount = useMemo(() => {
@@ -639,12 +635,12 @@ const PoolCard = memo(
             <div className={styles.cardProgressHeader}>
               <span>{progressLabel}</span>
               <span className={styles.cardProgressPercent}>
-                {isGraduated
+                {isVendorFunded
                   ? `$${livePrice.toFixed(6)}`
                   : `${percentFilled.toFixed(1)}%`}
               </span>
             </div>
-            {!isGraduated && (
+            {!isVendorFunded && (
               <div className={styles.cardProgressTrack}>
                 <div
                   className={`${styles.cardProgressFill} ${percentFilled >= 80 ? styles.cardProgressFillHigh : ''}`}
@@ -653,16 +649,11 @@ const PoolCard = memo(
               </div>
             )}
             <div className={styles.cardProgressMeta}>
-              {hasToken && !isGraduated ? (
-                <span>
-                  ${marketCapUSD >= 1000 ? `${(marketCapUSD / 1000).toFixed(1)}K` : marketCapUSD.toFixed(0)}
-                  {' / '}${(GRADUATION_TARGET_USD / 1000).toFixed(0)}K mcap
-                </span>
-              ) : (
-                <span>
-                  {formatTokens(pool.sharesSold)}/{formatTokens(pool.totalShares)}
-                </span>
-              )}
+              <span>
+                ${accumulatedFees >= 1000 ? `${(accumulatedFees / 1000).toFixed(1)}K` : accumulatedFees.toFixed(0)}
+                {' / '}${vendorTarget >= 1000 ? `${(vendorTarget / 1000).toFixed(1)}K` : vendorTarget.toFixed(0)}
+                {' earned'}
+              </span>
               <span>
                 {investorCount} holder{investorCount !== 1 ? 's' : ''}
               </span>
