@@ -152,7 +152,7 @@ const fmtSol = (price: number): string => fmtPrice(price, '') + ' SOL';
 
 const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComplete }) => {
   const wallet = useWallet(); // kept for sendTransaction
-  const { publicKey, connected, signTransaction } = useEffectiveWallet();
+  const { publicKey, connected, signTransaction, sendVersionedTransaction } = useEffectiveWallet();
 
   // Unified send: prefer wallet adapter sendTransaction, fallback to sign+sendRaw
   const sendTx = async (tx: Transaction, connection: Connection): Promise<string> => {
@@ -283,22 +283,21 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
         const buyData = await buyRes.json();
         if (!buyRes.ok) throw new Error(buyData.error || 'Failed to get swap transaction');
 
-        // 2. Deserialize and sign the transaction from Bags
+        // 2. Deserialize and sign+send the transaction from Bags
         const txBuf = Buffer.from(buyData.transaction, 'base64');
         let sig: string;
-        if (!signTransaction) throw new Error('No wallet available');
+        if (!sendVersionedTransaction) throw new Error('No wallet available');
         try {
           // Try VersionedTransaction first (Bags typically returns these)
           const vtx = VersionedTransaction.deserialize(txBuf);
-          const signed = await signTransaction(vtx);
-          sig = await connection.sendRawTransaction(signed.serialize());
-        } catch {
-          // Fallback to legacy Transaction
+          sig = await sendVersionedTransaction(vtx, connection);
+        } catch (vtxErr: any) {
+          // Fallback to legacy Transaction only if it's a deserialization error
+          if (vtxErr?.message?.includes('No wallet') || vtxErr?.message?.includes('No signature')) throw vtxErr;
           const tx = Transaction.from(txBuf);
           sig = await sendTx(tx, connection);
+          await connection.confirmTransaction(sig, 'confirmed');
         }
-
-        await connection.confirmTransaction(sig, 'confirmed');
         setSuccess(true);
         // Pool stats update via Bags webhook automatically
       } else {
@@ -372,16 +371,16 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
         if (sellData.transaction) {
           const txBuf = Buffer.from(sellData.transaction, 'base64');
           let sig: string;
-          if (!signTransaction) throw new Error('No wallet available');
+          if (!sendVersionedTransaction) throw new Error('No wallet available');
           try {
             const vtx = VersionedTransaction.deserialize(txBuf);
-            const signed = await signTransaction(vtx);
-            sig = await connection.sendRawTransaction(signed.serialize());
-          } catch {
+            sig = await sendVersionedTransaction(vtx, connection);
+          } catch (vtxErr: any) {
+            if (vtxErr?.message?.includes('No wallet') || vtxErr?.message?.includes('No signature')) throw vtxErr;
             const tx = Transaction.from(txBuf);
             sig = await sendTx(tx, connection);
+            await connection.confirmTransaction(sig, 'confirmed');
           }
-          await connection.confirmTransaction(sig, 'confirmed');
         }
 
         setSuccess(true);

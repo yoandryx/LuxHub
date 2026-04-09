@@ -106,9 +106,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!quoteResponse.ok) {
       const errorData = await quoteResponse.json().catch(() => ({}));
-      return res.status(500).json({
+      console.error('[/api/bags/trade-quote] Bags API error:', quoteResponse.status, JSON.stringify(errorData));
+      return res.status(502).json({
         error: 'Failed to get trade quote from Bags API',
-        details: errorData,
+        details: errorData?.message || errorData?.error || JSON.stringify(errorData),
+        bagsStatus: quoteResponse.status,
       });
     }
 

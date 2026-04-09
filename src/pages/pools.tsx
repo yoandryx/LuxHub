@@ -298,7 +298,7 @@ const PoolCard = memo(
       'idle'
     );
     const [tradeMsg, setTradeMsg] = useState('');
-    const { publicKey, signTransaction } = useEffectiveWallet();
+    const { publicKey, signTransaction, sendVersionedTransaction } = useEffectiveWallet();
     const poolRouter = useRouter();
 
     // Reset local override when global mode changes
@@ -309,7 +309,7 @@ const PoolCard = memo(
 
     const executeQuickTrade = useCallback(
       async () => {
-        if (!publicKey || !signTransaction) {
+        if (!publicKey || !sendVersionedTransaction) {
           setTradeStatus('error');
           setTradeMsg('Connect wallet');
           setTimeout(() => setTradeStatus('idle'), 2000);
@@ -342,7 +342,10 @@ const PoolCard = memo(
             slippageBps,
           });
           const quoteRes = await fetch(`/api/bags/trade-quote?${quoteParams.toString()}`);
-          if (!quoteRes.ok) throw new Error('Quote failed');
+          if (!quoteRes.ok) {
+            const errBody = await quoteRes.json().catch(() => ({}));
+            throw new Error(errBody?.details || errBody?.error || 'Quote failed');
+          }
           const quoteData = await quoteRes.json();
 
           // 2. Build swap tx
@@ -358,26 +361,23 @@ const PoolCard = memo(
               slippageBps,
             }),
           });
-          if (!swapRes.ok) throw new Error('Swap build failed');
+          if (!swapRes.ok) {
+            const errBody = await swapRes.json().catch(() => ({}));
+            throw new Error(errBody?.details || errBody?.error || 'Swap build failed');
+          }
           const swapData = await swapRes.json();
 
-          // 3. Sign with wallet — server converts Bags base58 → base64 for us
-          // Use Uint8Array (not Buffer polyfill) for proper wallet compatibility
+          // 3. Deserialize tx and sign+send via wallet adapter (avoids Privy/Phantom bridge bugs)
           const { VersionedTransaction, Connection } = await import('@solana/web3.js');
           const binaryStr = atob(swapData.transaction.serialized);
           const txBytes = new Uint8Array(binaryStr.length);
           for (let i = 0; i < binaryStr.length; i++) txBytes[i] = binaryStr.charCodeAt(i);
           const tx = VersionedTransaction.deserialize(txBytes);
-          const signed = await signTransaction(tx);
 
-          // 4. Send + confirm
           const connection = new Connection(
             process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || 'https://api.mainnet-beta.solana.com'
           );
-          const sig = await connection.sendRawTransaction(signed.serialize(), {
-            skipPreflight: false,
-          });
-          await connection.confirmTransaction(sig, 'confirmed');
+          await sendVersionedTransaction(tx, connection);
 
           setTradeStatus('success');
           setTradeMsg(`Bought! ✓`);
@@ -391,7 +391,7 @@ const PoolCard = memo(
           setTimeout(() => setTradeStatus('idle'), 5000);
         }
       },
-      [publicKey, signTransaction, pool._id, pool.bagsTokenMint, selectedSol]
+      [publicKey, sendVersionedTransaction, pool._id, pool.bagsTokenMint, selectedSol]
     );
 
     // Progress = vendor funding from accumulated trading fees (1% of all trades → Pools Treasury).

@@ -6,7 +6,7 @@ import { useMemo, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useWallets } from '@privy-io/react-auth/solana';
-import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
+import { PublicKey, Transaction, VersionedTransaction, Connection } from '@solana/web3.js';
 
 function isValidSolanaAddress(address: string | undefined): boolean {
   if (!address) return false;
@@ -25,6 +25,7 @@ export function useEffectiveWallet() {
     signTransaction: walletAdapterSignTransaction,
     signAllTransactions: walletAdapterSignAllTransactions,
     signMessage: walletAdapterSignMessage,
+    sendTransaction,
   } = useWallet();
   const { authenticated } = usePrivy();
   const { wallets: privySolanaWallets, ready: walletsReady } = useWallets();
@@ -33,14 +34,17 @@ export function useEffectiveWallet() {
   const usingPrivy = !walletAdapterPublicKey && authenticated && !!privyWallet;
 
   const effectivePublicKey = useMemo(() => {
-    if (walletAdapterPublicKey) return walletAdapterPublicKey;
-
+    // When Privy is authenticated with a wallet, prefer it — Privy is the primary
+    // connection method. Wallet adapter may have a stale auto-connected wallet from
+    // a previous session, causing the top navbar and bottom navbar to show different wallets.
     if (authenticated && walletsReady && privyWallet) {
       const addr = privyWallet.address;
       if (isValidSolanaAddress(addr)) {
         return new PublicKey(addr);
       }
     }
+
+    if (walletAdapterPublicKey) return walletAdapterPublicKey;
 
     return null;
   }, [walletAdapterPublicKey, authenticated, walletsReady, privyWallet]);
@@ -94,12 +98,59 @@ export function useEffectiveWallet() {
     [walletAdapterSignMessage, usingPrivy, privyWallet]
   );
 
+  // Send a VersionedTransaction: sign + send + confirm in one call.
+  // Uses wallet adapter's native sendTransaction when available (avoids Privy/Phantom
+  // extension bridge serialization bugs like "e is not iterable").
+  // Falls back to signTransaction + sendRawTransaction for legacy paths.
+  const sendVersionedTransaction = useCallback(
+    async (tx: VersionedTransaction, connection: Connection): Promise<string> => {
+      // Wallet adapter path — sendTransaction handles extension bridge correctly
+      if (walletAdapterPublicKey && sendTransaction) {
+        const sig = await sendTransaction(tx, connection, {
+          skipPreflight: false,
+          maxRetries: 3,
+        });
+        await connection.confirmTransaction(sig, 'confirmed');
+        return sig;
+      }
+      // Privy path — use signAndSendTransaction with serialized bytes.
+      // Passing a VersionedTransaction JS object through the Wallet Standard bridge
+      // causes "e is not iterable" because Phantom receives spread object properties
+      // instead of { transaction: Uint8Array }. Serializing to bytes fixes this.
+      if (usingPrivy && privyWallet) {
+        const serializedTx = tx.serialize();
+        const result = await (privyWallet as any).signAndSendTransaction({
+          transaction: serializedTx,
+          chain: 'solana:mainnet',
+        });
+        // Wallet Standard returns { signature: Uint8Array } — encode to base58
+        const bs58Module = await import('bs58');
+        const bs58 = (bs58Module as any).default || bs58Module;
+        let sig: string;
+        if (typeof result === 'string') {
+          sig = result;
+        } else if (result?.signature instanceof Uint8Array) {
+          sig = bs58.encode(result.signature);
+        } else if (result?.signature) {
+          sig = String(result.signature);
+        } else {
+          throw new Error('No signature returned from wallet');
+        }
+        await connection.confirmTransaction(sig, 'confirmed');
+        return sig;
+      }
+      throw new Error('No wallet available for transaction sending');
+    },
+    [walletAdapterPublicKey, sendTransaction, usingPrivy, privyWallet]
+  );
+
   return {
     publicKey: effectivePublicKey,
     connected: connected || (authenticated && !!effectivePublicKey),
     signTransaction: effectivePublicKey ? signTransaction : undefined,
     signAllTransactions: effectivePublicKey ? signAllTransactions : undefined,
     signMessage: effectivePublicKey ? signMessage : undefined,
+    sendVersionedTransaction: effectivePublicKey ? sendVersionedTransaction : undefined,
     source: walletAdapterPublicKey ? ('wallet-adapter' as const) : ('privy' as const),
   };
 }

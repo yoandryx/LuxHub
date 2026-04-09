@@ -39,7 +39,7 @@ const SOL_MINT = 'So11111111111111111111111111111111111111112';
 const SLIPPAGE_OPTIONS = [50, 100, 300]; // 0.5%, 1%, 3%
 
 export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'buy', onTradeComplete }) => {
-  const { publicKey, signTransaction, connected } = useEffectiveWallet();
+  const { publicKey, sendVersionedTransaction, connected } = useEffectiveWallet();
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>(initialSide);
   const [amount, setAmount] = useState('');
   const [slippageBps, setSlippageBps] = useState(100); // default 1%
@@ -126,7 +126,7 @@ export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'b
   }, [fetchQuote, tokenMint, amount]);
 
   const executeTrade = async () => {
-    if (!connected || !publicKey || !signTransaction) {
+    if (!connected || !publicKey || !sendVersionedTransaction) {
       setError('Please connect your wallet');
       return;
     }
@@ -166,9 +166,7 @@ export const TradeWidget: React.FC<TradeWidgetProps> = ({ pool, initialSide = 'b
       const txBytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) txBytes[i] = binaryStr.charCodeAt(i);
       const transaction = VersionedTransaction.deserialize(txBytes);
-      const signedTx = await signTransaction(transaction);
-      const signature = await connection.sendRawTransaction(signedTx.serialize());
-      await connection.confirmTransaction(signature, 'confirmed');
+      await sendVersionedTransaction(transaction, connection);
 
       setSuccess('Trade executed successfully!');
       setAmount('');

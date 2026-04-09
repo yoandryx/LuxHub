@@ -49,18 +49,19 @@ export function useUserRole(): UserRoleState {
     return privyWallets[0]?.address;
   }, [privyWallets]);
 
-  // Get active public key (wallet adapter or Privy)
+  // Get active public key — prefer Privy when authenticated (primary connection method).
+  // Wallet adapter may have a stale auto-connected wallet from a previous session.
   const activePublicKey = useMemo(() => {
-    if (wallet.publicKey) return wallet.publicKey;
-    if (privyWalletAddress) {
+    if (authenticated && privyWalletAddress) {
       try {
         return new PublicKey(privyWalletAddress);
       } catch {
-        return null;
+        // fall through
       }
     }
+    if (wallet.publicKey) return wallet.publicKey;
     return null;
-  }, [wallet.publicKey, privyWalletAddress]);
+  }, [wallet.publicKey, authenticated, privyWalletAddress]);
 
   // Check if connected via any method
   const isConnected = wallet.connected || (authenticated && !!privyWalletAddress);
