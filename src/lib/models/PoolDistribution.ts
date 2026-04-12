@@ -45,7 +45,7 @@ const PoolDistributionSchema = new Schema(
     treasuryPda: String, // LuxHub royalty receiver PDA
     status: {
       type: String,
-      enum: ['pending', 'distributed', 'failed', 'snapshot_failed', 'expired'],
+      enum: ['pending', 'partial_distributed', 'distributed', 'failed', 'snapshot_failed', 'expired'],
       default: 'pending',
     },
     deleted: { type: Boolean, default: false },
