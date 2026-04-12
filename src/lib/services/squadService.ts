@@ -1,45 +1,19 @@
 // src/lib/services/squadService.ts
-// Service for Squads Protocol v4 DAO management
+// Service for Squads Protocol v4 proposal management
+//
+// Phase 11 cleanup (11-18): `createPoolSquad` and `transferNftToSquadVault` were
+// deleted as phase 8 Squad-DAO-from-holders orphans. Holder governance is no
+// longer part of the pool lifecycle; all fund movements route through the
+// existing LuxHub Squads multisig via `squadsTransferService.ts`.
 import {
   Connection,
   Keypair,
   PublicKey,
   TransactionMessage,
   VersionedTransaction,
-  SystemProgram,
-  LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import * as multisig from '@sqds/multisig';
 import { readFileSync } from 'fs';
-
-// Default configuration
-const DEFAULT_THRESHOLD_PERCENT = 60; // 60% approval threshold
-const DEFAULT_TIME_LOCK = 0; // No time lock by default
-const MIN_HOLDER_BALANCE = parseInt(process.env.MIN_HOLDER_BALANCE_FOR_MEMBERSHIP || '1000', 10);
-const TOP_HOLDERS_COUNT = parseInt(process.env.TOP_HOLDERS_COUNT || '100', 10);
-
-interface SquadMember {
-  wallet: string;
-  tokenBalance: number;
-  ownershipPercent: number;
-  permissions: number;
-}
-
-interface CreateSquadResult {
-  multisigPda: string;
-  vaultPda: string;
-  createKey: string;
-  signature: string;
-  threshold: number;
-  members: SquadMember[];
-}
-
-interface TransferNftResult {
-  signature: string;
-  fromWallet: string;
-  toVault: string;
-  nftMint: string;
-}
 
 interface ProposalResult {
   transactionIndex: string;
@@ -73,101 +47,6 @@ function getConnection(): Connection {
     throw new Error('NEXT_PUBLIC_SOLANA_ENDPOINT not configured');
   }
   return new Connection(rpc, 'confirmed');
-}
-
-/**
- * Create a new Squad multisig from pool token holders
- * Top holders become members with voting power based on ownership
- *
- * @param poolId - Pool ID for reference
- * @param holders - Array of token holders (should be sorted by balance desc)
- * @param thresholdPercent - Approval threshold percentage (default 60)
- */
-export async function createPoolSquad(
-  poolId: string,
-  holders: SquadMember[],
-  thresholdPercent: number = DEFAULT_THRESHOLD_PERCENT
-): Promise<CreateSquadResult> {
-  const connection = getConnection();
-  const payer = loadPayerKeypair();
-
-  // Filter holders meeting minimum balance and take top N
-  const eligibleHolders = holders
-    .filter((h) => h.tokenBalance >= MIN_HOLDER_BALANCE)
-    .slice(0, TOP_HOLDERS_COUNT);
-
-  if (eligibleHolders.length < 2) {
-    throw new Error('Need at least 2 eligible holders to create a Squad');
-  }
-
-  // Create a unique key for this multisig
-  const createKey = Keypair.generate();
-
-  // Calculate threshold (minimum 1, at least 60% of members by default)
-  const threshold = Math.max(1, Math.ceil(eligibleHolders.length * (thresholdPercent / 100)));
-
-  // Build members config - all members get basic permissions (vote, execute)
-  const members = eligibleHolders.map((holder) => ({
-    key: new PublicKey(holder.wallet),
-    permissions: multisig.types.Permissions.all(), // Full permissions for governance
-  }));
-
-  // Create the multisig
-  const [multisigPda] = multisig.getMultisigPda({
-    createKey: createKey.publicKey,
-  });
-
-  const [vaultPda] = multisig.getVaultPda({
-    multisigPda,
-    index: 0,
-  });
-
-  const { blockhash } = await connection.getLatestBlockhash();
-
-  // Build create instruction
-  const createIx = multisig.instructions.multisigCreateV2({
-    createKey: createKey.publicKey,
-    creator: payer.publicKey,
-    multisigPda,
-    configAuthority: null, // No external authority
-    threshold,
-    members,
-    timeLock: DEFAULT_TIME_LOCK,
-    rentCollector: null,
-    treasury: vaultPda, // Use vault as treasury
-    memo: `LuxHub Pool Squad: ${poolId}`,
-  });
-
-  const message = new TransactionMessage({
-    payerKey: payer.publicKey,
-    recentBlockhash: blockhash,
-    instructions: [createIx],
-  }).compileToV0Message();
-
-  const transaction = new VersionedTransaction(message);
-  transaction.sign([payer, createKey]);
-
-  const signature = await connection.sendTransaction(transaction, {
-    skipPreflight: false,
-  });
-  await connection.confirmTransaction(signature, 'confirmed');
-
-  // Return results with member data
-  const squadMembers: SquadMember[] = eligibleHolders.map((h) => ({
-    wallet: h.wallet,
-    tokenBalance: h.tokenBalance,
-    ownershipPercent: h.ownershipPercent,
-    permissions: 1, // Basic member
-  }));
-
-  return {
-    multisigPda: multisigPda.toBase58(),
-    vaultPda: vaultPda.toBase58(),
-    createKey: createKey.publicKey.toBase58(),
-    signature,
-    threshold,
-    members: squadMembers,
-  };
 }
 
 /**
@@ -303,38 +182,6 @@ export async function createGovernanceProposal(
     vaultTransactionPda: vaultTxPda.toBase58(),
     signature,
     squadsDeepLink,
-  };
-}
-
-/**
- * Transfer an NFT to the Squad vault
- * This should be called after Squad creation to custody the pool's NFT
- *
- * @param nftMint - The NFT mint address
- * @param fromWallet - Current NFT holder wallet
- * @param vaultPda - Squad vault PDA to receive the NFT
- */
-export async function transferNftToSquadVault(
-  nftMint: string,
-  fromWallet: string,
-  vaultPda: string
-): Promise<TransferNftResult> {
-  // Note: This requires the NFT owner to sign the transaction
-  // In practice, this would be initiated by the admin/platform when
-  // the pool graduates and the NFT should be transferred to the DAO
-
-  const connection = getConnection();
-  const payer = loadPayerKeypair();
-
-  // For now, return the parameters needed for the transfer
-  // The actual transfer would need to be done via a signed transaction
-  // from the current NFT owner (likely LuxHub custody wallet)
-
-  return {
-    signature: 'pending', // Would be filled after actual transfer
-    fromWallet,
-    toVault: vaultPda,
-    nftMint,
   };
 }
 

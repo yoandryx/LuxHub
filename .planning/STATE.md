@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 11
-stopped_at: Completed 11-16-PLAN.md
-last_updated: "2026-04-12T19:58:22.495Z"
-last_activity: 2026-04-12 — Wave C complete. 11-11 (confirm-resale hook + DAS snapshot) done.
+stopped_at: Completed 11-15-PLAN.md
+last_updated: "2026-04-12T20:10:00.000Z"
+last_activity: 2026-04-12 — Wave E plan 11-15 complete. Webhooks + reconcile cron rewired for phase 11 fee-funded model, fail-loud Helius filter canary shipped.
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 41
-  completed_plans: 38
-  percent: 93
+  completed_plans: 39
+  percent: 95
 ---
 
 # Project State
@@ -79,6 +79,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P11 | 3min | 3 tasks | 3 files |
 | Phase 11 P17 | 249s | 3 tasks | 3 files |
 | Phase 11 P16 | 12min | 5 tasks | 9 files |
+| Phase 11 P15 | 25min | 5 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,12 @@ Recent decisions affecting current work:
 - [Phase 11]: confirm-resale at /api/pool/confirm-resale (singular) with poolId param; triggerPoolDistribution rewired to HTTP call
 - [Phase 11]: SSE endpoint at /api/pool/events/stream?poolId=<id> (singular) — 5s poll + 20s keepalive, Node runtime + responseLimit:false, emits snapshot/fees/state events only on delta; EventSource auto-reconnect handles Vercel 60s serverless cap
 - [Phase 11]: [Phase 11-16]: Phase 11 8-state stepper maps resale_unlisted->custody and partial_distributed->resold instead of adding off-canonical nodes
+- [Phase 11-15]: Helius webhook for TREASURY_POOLS is READ-ONLY on Pool documents — writes only TreasuryDeposit audit rows, never Pool.accumulatedFeesLamports (Pitfall 3 double-counting defence)
+- [Phase 11-15]: Bags DBC graduation is fully informational — handleTokenGraduated is a log-only no-op; LuxHub graduation is fee-driven via claim-pool-fees cron + /api/pool/graduate
+- [Phase 11-15]: TRADE_EXECUTED tertiary fee estimate uses partnerFee lamports when present, else coarse $150/SOL fallback; claim cron owns the authoritative value
+- [Phase 11-15]: Helius filter smoke test emits Sentry level=error (not warning) so on-call is paged; folded into daily drift-check-pool-fees cron to avoid a new Vercel cron slot
+- [Phase 11-15]: pool/finalize.ts + createPoolSquad deletion deferred to plan 11-18 (already scoped there) to keep plan 11-15 focused on the three rewired endpoints
+- [Phase 11-15]: new env var HELIUS_WEBHOOK_ID required for /api/internal/smoke-test-helius-filter canary
 
 ### Roadmap Evolution
 
@@ -144,6 +151,7 @@ None yet.
 ### Blockers/Concerns
 
 - ~~Bags partner config PDA — check if created on mainnet (user unsure)~~ RESOLVED 2026-04-12: PDA `9sgH...txXo` exists, env vars corrected.
+- **Post-deploy action (plan 11-15):** Update Helius webhook dashboard filter to include TREASURY_POOLS (`FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ`) in `accountAddresses`, and set `HELIUS_WEBHOOK_ID` env var in Vercel + .env.local + .env.mainnet. Verify post-deploy by calling `GET /api/internal/smoke-test-helius-filter` and expecting `{ ok: true }`. The daily drift-check-pool-fees cron will also surface any drift via Sentry level=error.
 
 ### Quick Tasks Completed
 
