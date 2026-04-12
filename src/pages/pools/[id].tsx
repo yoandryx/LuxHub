@@ -231,6 +231,87 @@ const PoolDetailV2Page: React.FC = () => {
     fetchClaim();
   }, [pool, wallet.publicKey]);
 
+  // ─── SSE live fee arrival stream (Phase 11-17) ─────────────────
+  // Subscribes to /api/pool/events/stream while the pool has a live token.
+  // On fee delta: refresh pool data + toast the incoming SOL amount.
+  // On state change: refresh pool data + toast the lifecycle transition.
+  // EventSource auto-reconnects on disconnect (including the Vercel 60s cap).
+  useEffect(() => {
+    if (!id || typeof id !== 'string') return;
+    if (!pool?.bagsTokenMint) return; // No token yet => nothing to stream
+    if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
+
+    let closed = false;
+    const es = new EventSource(
+      `/api/pool/events/stream?poolId=${encodeURIComponent(id)}`
+    );
+
+    const onSnapshot = (_e: MessageEvent) => {
+      // Snapshot aligns the client with current server state; no toast needed.
+    };
+
+    const onFees = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as {
+          accumulatedDelta?: number;
+          pendingDelta?: number;
+          delta?: number;
+        };
+        const deltaLamports = Number(data.delta || 0);
+        if (deltaLamports > 0) {
+          const deltaSol = deltaLamports / 1e9;
+          // Only toast notable fee arrivals (>= 0.0001 SOL) to avoid spam.
+          if (deltaSol >= 0.0001) {
+            toast.success(`+${deltaSol.toFixed(4)} SOL in fees arrived`);
+          }
+        }
+        // Always refresh pool data so UI reflects the new accumulated totals.
+        refreshPool();
+      } catch {
+        // Ignore malformed event
+      }
+    };
+
+    const onState = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as {
+          tokenStatus?: string;
+          previous?: string;
+        };
+        if (data.tokenStatus && data.tokenStatus !== data.previous) {
+          toast.success(`Pool state: ${data.previous || '—'} → ${data.tokenStatus}`);
+        }
+        refreshPool();
+      } catch {
+        // Ignore malformed event
+      }
+    };
+
+    es.addEventListener('snapshot', onSnapshot as EventListener);
+    es.addEventListener('fees', onFees as EventListener);
+    es.addEventListener('state', onState as EventListener);
+
+    es.onerror = () => {
+      // EventSource auto-reconnects by default; noop. Log for diagnostics.
+      if (!closed) {
+        // eslint-disable-next-line no-console
+        console.debug('[pool SSE] transient connection error, auto-reconnecting');
+      }
+    };
+
+    return () => {
+      closed = true;
+      es.removeEventListener('snapshot', onSnapshot as EventListener);
+      es.removeEventListener('fees', onFees as EventListener);
+      es.removeEventListener('state', onState as EventListener);
+      try {
+        es.close();
+      } catch {
+        /* noop */
+      }
+    };
+  }, [id, pool?.bagsTokenMint, refreshPool]);
+
   // Helpers
   const getAssetImage = (): string => {
     const raw = pool?.asset?.imageIpfsUrls?.[0] || pool?.asset?.images?.[0] || pool?.asset?.imageUrl;
