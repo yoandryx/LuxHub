@@ -21,6 +21,8 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/src/$1",
     // Force bson to use CJS build (avoids ESM parse errors in Jest)
     "^bson$": "<rootDir>/node_modules/bson/lib/bson.cjs",
+    // Force uuid to use CJS build (jsdom resolves esm-browser which breaks Jest)
+    "^uuid$": "<rootDir>/node_modules/uuid/dist/index.js",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.cjs"],
   testPathIgnorePatterns: [
