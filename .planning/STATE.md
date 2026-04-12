@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
-status: Executing Phase 08
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-04-04T15:10:36.993Z"
-last_activity: 2026-04-04
+status: Executing Phase 11
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-04-12T15:00:01.055Z"
+last_activity: 2026-04-12 — Resumed. 5 pending updates applied, Wave 0.6 executed (vault PDA derived, env vars updated), Wave A launching.
 progress:
-  total_phases: 6
-  completed_phases: 4
-  total_plans: 21
-  completed_plans: 19
+  total_phases: 7
+  completed_phases: 5
+  total_plans: 41
+  completed_plans: 22
+  percent: 54
 ---
 
 # Project State
@@ -20,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 08 — pool-lifecycle
+**Current focus:** Phase 11 — pool-fee-funded-rewire (supersedes phase 8)
 
 ## Current Position
 
-Phase: 08 (pool-lifecycle) — EXECUTING
-Plan: 1 of 4
-Execution order: Phase 9 → 10 → 8
+Phase: 11 (pool-fee-funded-rewire) — EXECUTING
+Plan: Wave 0 (11-00) complete. Wave A (11-01 through 11-04) next.
+Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 
 ## Performance Metrics
 
@@ -65,6 +66,7 @@ Execution order: Phase 9 → 10 → 8
 | Phase 08 P01 | 176s | 2 tasks | 5 files |
 | Phase 08 P02 | 6min | 2 tasks | 10 files |
 | Phase 08 P03 | 10min | 2 tasks | 6 files |
+| Phase 11 P03 | 145s | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -102,6 +104,7 @@ Recent decisions affecting current work:
 - [Phase 08]: Pool browse page navigates to /pools/[id] dedicated page instead of modal
 - [Phase 08]: PoolCreationStepper uses adminMode prop for D-02 direct pool creation
 - [Phase 08]: getLifecycleStage duplicated locally in PoolManagement (parallel worktree; merge reconciles)
+- [Phase 11]: Refactored duplicate sol-price.ts proxy to use shared solPriceService (DRY)
 
 ### Roadmap Evolution
 
@@ -113,7 +116,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- Bags partner config PDA — check if created on mainnet (user unsure)
+- ~~Bags partner config PDA — check if created on mainnet (user unsure)~~ RESOLVED 2026-04-12: PDA `9sgH...txXo` exists, env vars corrected.
 
 ### Quick Tasks Completed
 
@@ -123,6 +126,100 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-04-05 - Completed quick task 260405-c3k: smoke-test audit + runbook ready
-Stopped at: Runbook ready for manual mainnet execution (buy/sell on 72DexA...BAGS)
-Key context: confirm_delivery proven on mainnet (TX: 3VqZFwcr...), 8 bugs fixed, program redeployed 2x. Trade endpoints audited — 2 medium slippage bugs flagged (non-blocking at 1% default). Awaiting user to execute SMOKE-TEST-RUNBOOK.md.
+Last activity: 2026-04-12 — Resumed. 5 pending updates applied, Wave 0.6 executed (vault PDA derived, env vars updated), Wave A launching.
+Stopped at: Completed 11-03-PLAN.md
+Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
+
+## 2026-04-10 — Phase 11 Context Captured
+
+Phase 11 (Pool Fee-Funded Rewire) CONTEXT.md written at `.planning/phases/11-pool-fee-funded-rewire/11-CONTEXT.md`.
+
+**Key decision:** Phase 11 supersedes phase 8. Phase 8 code is treated as scaffolding to be rewired in-place; phase 8 will not execute on mainnet as originally scoped.
+
+**Architectural keystone:** Vendor payout reuses the existing marketplace escrow program's `confirm_delivery` (phase 5.1 hardened). Fee graduation triggers a Squads proposal to bridge accumulated Pools Treasury fees into the pool's existing backing escrow PDA. From there, normal marketplace delivery flow applies. Zero new payout logic; maximum reuse of audited primitives.
+
+**Wave 0 (blocking validation) before implementation:**
+
+- 0.1 Bags creator fee payout tx structure (can we attribute to pool from tx alone?)
+- 0.2 Marketplace escrow pool-funded bridging (path a, b, or c? does it need new Rust code?)
+- 0.3 Production pool inventory (any phase-8-built pools to migrate?)
+- 0.4 Bags partner program provisioning (env vars set, earnings flowing?)
+
+**Next command:** `/gsd:plan-phase 11` — researcher will execute Wave 0 investigation as part of the research pass and feed findings into the planner.
+
+## 2026-04-10 — Phase 11 Planning Complete, Approved for Execution
+
+Phase 11 has finished planning. Full artifact inventory:
+
+**Artifacts:**
+
+- `11-CONTEXT.md` (revised 4x post-research) — business invariant + locked decisions
+- `11-RESEARCH.md` (995 lines) — wave 0 resolutions + research findings
+- `11-VALIDATION.md` (NEW) — test framework, requirements→tests map, success criteria→verification map
+- `11-PLAN-INDEX.md` — wave ordering, dependency graph, traceability matrices
+- `11-00` through `11-18-PLAN.md` — 19 executable plans
+
+**Verification status:** Plan check ran twice. First pass returned PASS_WITH_WARNINGS (14 PASS, 1 WARN). All 5 recommendations applied. Confirmation check returned PASS / APPROVED FOR EXECUTION.
+
+**Wave structure:**
+
+- Wave 0: 11-00 (blocking validation — 4 runtime tasks + Jupiter swap tx size measurement)
+- Wave A: 11-01 through 11-04 (schema, state machine, price service)
+- Wave B: 11-05 through 11-08 (claim cron, bridge service, graduation trigger)
+- Wave C: 11-09 through 11-11 (custody, resale, distribution snapshot)
+- Wave D: 11-12 through 11-14 (holder claim, crons, abort safety valve)
+- Wave E: 11-15 through 11-18 (webhooks, UI, SSE, cleanup)
+
+**Total complexity:** ~18 complexity points, 40-50 focused executor hours.
+
+**Architectural keystone locked:** Vendor payout reuses marketplace escrow `confirm_delivery`. Bridge = Jupiter swap (SOL→USDC) + `exchange` instruction via Squads vault proposal. Zero new Rust. Graduation is USD-equivalent comparison with 2% slippage buffer.
+
+**Business invariant locked:** USDC denomination is intentional — vendor receives exact listed USD amount with zero SOL-volatility risk.
+
+**Next command:** `/gsd:execute-phase 11` — Wave 0 must complete before Waves A-E.
+
+## 2026-04-12 — Wave 0 Complete, All Resolutions Captured
+
+### Wave 0 Final Resolutions
+
+| Task | Resolution | Key detail |
+|---|---|---|
+| 0.1 TREASURY_POOLS type | **EOA → migrating to Squads vault index 1** | User confirmed Squads pivot. Derive vault from existing multisig `5hy7Hgd...VRZor` at index 1. Original EOA `HvAB36TpqVgBRitWSCi9nHUEP6QdWP6jg3kjBqpiQcWU` preserved offline at `/keys/mainnet/` (gitignored). |
+| 0.2 Prod pool inventory | **Scenario 2 — 1 pool, not graduated** | `totalPools: 1, withBagsToken: 1, graduated: 0, withSquadDao: 0`. Schema migration in 11-18 (add new fields, no data loss risk). |
+| 0.3 Partner config | **EXISTS and env fixed** | Config Key PDA `9sgH...txXo` (ref code `luxhubstudio`, 25% platform fee). Bags wallet: `BDtU37eGbKQwhvMuZYute5zgCxfxcmj5v6GjAvHbHqbg`. User fixed env: `BAGS_PARTNER_WALLET=BDtU37...bHqbg`, `BAGS_PARTNER_CONFIG_PDA=9sgH...txXo` — set in `.env.local`, `.env.mainnet`, and Vercel production. |
+| 0.4 Jupiter tx size | **v0+ALT = 798 bytes, fits** | Single-proposal path viable. `BRIDGE_PATTERN=auto` (v0+ALT primary, two-proposal fallback). Legacy (979 bytes) is borderline. |
+| 0.5 Test harness | **Setup needed** | Jest OK, `mongodb-memory-server` not installed, `tests/fixtures/` and `tests/integration/` don't exist. First task of 11-01. |
+
+### Squads Pivot Decision (2026-04-12)
+
+**User explicitly chose Squads vault index 1 for TREASURY_POOLS over server-side keypair.**
+
+Rationale: user intentionally kept TREASURY_POOLS keypair off-server for security (stored at `/keys/mainnet/`, gitignored). Squads matches phase 5.1 security posture, keeps all fund movements in one multisig UI, provides revocable authority.
+
+**Impact on plans:**
+
+- `11-05` (poolFeeClaimService): claim via Squads proposal, not direct keypair signing
+- `11-07` (poolBridgeService): bridge is vault-to-vault within same multisig (simpler than cross-wallet)
+- `11-CONTEXT.md`: needs update to reflect Squads vault as TREASURY_POOLS
+- New Wave 0.6 task: derive vault PDA at index 1 from existing multisig, update env vars
+
+### Partner Config Env Fix (2026-04-12)
+
+Was: `BAGS_PARTNER_WALLET=9sgH...txXo` (wrong — this is the PDA, not the wallet), `BAGS_PARTNER_CONFIG_PDA` not set.
+Now: `BAGS_PARTNER_WALLET=BDtU37eGbKQwhvMuZYute5zgCxfxcmj5v6GjAvHbHqbg`, `BAGS_PARTNER_CONFIG_PDA=9sgH...txXo`. Set in `.env.local`, `.env.mainnet`, and Vercel production.
+
+### Strategic Context (from user, 2026-04-12)
+
+User's goal: launch the pools feature as the differentiator for crypto Twitter traction. A simple crypto-only watch marketplace won't make noise — the fee-funded tokenized pools feature IS what makes LuxHub interesting and worth tweeting about. Phase 11 is launch-critical, not post-launch polish.
+
+### Pending Updates Before Wave A
+
+These must be applied at the START of the next session (before Wave A executors spawn):
+
+1. **Update `11-CONTEXT.md`:** Replace EOA-based signing with Squads vault index 1. Add Wave 0.6 (derive vault PDA). Update Gray area 2 and Gray area 5 to reference Squads claim path.
+2. **Update `11-WAVE-0-FINDINGS.md`:** Add resolution sections for all 5 tasks with the answers above.
+3. **Update plan `11-05`:** Claim service uses Squads proposal pattern from `squadsTransferService.ts` instead of keypair signing. Both the `claimPoolFees()` function and the `claim-pool-fees` cron.
+4. **Update plan `11-07`:** `BRIDGE_PATTERN=auto` (v0+ALT primary, two-proposal fallback). Bridge is now vault-to-vault transfer within the same multisig (index 0 marketplace vault → index 1 pools vault → backing escrow). Simpler account layout.
+5. **Add Wave 0.6 task:** Derive Squads vault PDA at index 1, update `TREASURY_POOLS` env var in `.env.local` + `.env.mainnet` + Vercel, verify on-chain that the new PDA exists and is owned by the Squads multisig.
+
+**Next command:** `/gsd:resume-work` in a fresh context window. Claude reads this STATE.md, applies the 5 pending updates, then executes Wave A (11-01, 11-02, 11-03, 11-04 in parallel).

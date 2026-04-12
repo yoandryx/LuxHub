@@ -28,7 +28,8 @@
 - [x] **Phase 7: On-Chain Flow Validation** - Verify buy, delivery, and notification flows work with real SOL on mainnet
 - [x] **Phase 9: Offer UX & UI Polish** - Countdown timers on offers, offer confirm_delivery flow, landing page refresh, navbar reorganization
 - [ ] **Phase 10: AI Bulk Inventory Upload** - AI-powered CSV parsing, image analysis, admin review queue, batch minting
-- [ ] **Phase 8: Pool Lifecycle** - Validate full pool tokenization from launch through graduation to distribution on mainnet
+- [~] **Phase 8: Pool Lifecycle** — **SUPERSEDED BY PHASE 11** (see 2026-04-10 decision). Phase 8's code is treated as scaffolding to be rewired by phase 11; phase 8 will NOT execute on mainnet as originally scoped.
+- [ ] **Phase 11: Pool Fee-Funded Rewire** - Canonical pool lifecycle execution. Replaces phase 8. Fee-driven graduation via cumulative Bags trading fees accumulated to Pools Treasury, vendor payout gated by existing marketplace escrow `confirm_delivery`, Helius DAS holder snapshot at resale, claimable distribution with 90-day graceful expiry.
 
 ## Phase Details
 
@@ -89,7 +90,13 @@ Plans:
 - [ ] 07-01-PLAN.md — Auto-approve env toggle, retry with escalating priority fees, unit tests
 - [ ] 07-02-PLAN.md — Integrate sendWithRetry into Squads service, mainnet end-to-end validation
 
-### Phase 8: Pool Lifecycle
+### Phase 8: Pool Lifecycle (SUPERSEDED BY PHASE 11 — 2026-04-10)
+
+**Status:** Scaffolding only. Phase 8's plans built code that implements an incompatible tokenomics model (Bags-DBC graduation + Squad DAO from top holders) which conflicts with the canonical `LuxHub_Pool_Lifecycle_Workflow.pdf` (2026-04-02) + `.claude/docs/bags_tokenomics_flow.md` (rewritten 2026-04-10). Phase 11 inherits POOL-01 through POOL-06 requirements and rewires phase 8's existing files in-place. Phase 8 will NOT execute as originally scoped on mainnet.
+
+**Original phase 8 definition (retained for context):**
+
+
 **Goal**: Users can participate in pool tokenization from launch through graduation to distribution on mainnet
 **Depends on**: Phase 7
 **Requirements**: POOL-01, POOL-02, POOL-03, POOL-04, POOL-05, POOL-06, UI-03, INFRA-02, INFRA-03, INFRA-04
@@ -142,11 +149,58 @@ Plans:
 - [ ] 10-03-PLAN.md — Admin batch review and batch mint UI in MintRequestsPanel
 - [ ] 10-04-PLAN.md — Build validation and end-to-end flow verification (human checkpoint)
 
+### Phase 11: Pool Fee-Funded Rewire
+**Goal**: Trading fees accumulated to Pools Treasury become the graduation trigger. When cumulative fees ≥ watch price, LuxHub pays the vendor 97% and takes 3% for treasury, vendor ships to LuxHub custody, LuxHub relists via marketplace escrow, and snapshot holders claim 97% of resale proceeds proportionally.
+**Depends on**: Phase 8 (Pool Lifecycle baseline — phase 8 built the Bags-DBC-graduation model that this phase replaces)
+**Why this phase exists**: Phase 8 implemented a pool feature where graduation fires on Bags DBC migration (volume-driven) and finalization creates a Squad DAO from top holders. The 2026-04-02 Pool Lifecycle PDF + `.claude/docs/bags_tokenomics_flow.md` (rewritten 2026-04-10) define a different contract: graduation is fee-driven (cumulative 1% creator fees routed to Pools Treasury must sum to the watch price), the NFT is paid for in full by trading volume, and holders are passive claimants at resale rather than DAO governors. This phase rewires the existing infrastructure to match that contract.
+**UI hint**: Yes (pool detail page stepper + admin dashboard new states)
+**Requirements**:
+  - POOL-11-01: Helius webhook watches TREASURY_POOLS for incoming Bags fee transfers and attributes each deposit to a Pool by parsing the tx for `bagsTokenMint`
+  - POOL-11-02: Pool model has `watchPriceUSD` (or `watchPriceLamports`) target and `accumulatedTradingFees` is the authoritative cumulative fee counter
+  - POOL-11-03: Every fee-attribution update runs a graduation check; when cumulative ≥ target, fires a fee-funded graduation flow
+  - POOL-11-04: Fee-funded graduation creates two Squads proposals — 97% × watch price → vendor wallet, 3% × watch price → LuxHub Treasury — and advances Pool state to `graduated`
+  - POOL-11-05: Bags webhook `TOKEN_GRADUATED` event becomes informational-only (logged, no side-effect); Bags DBC migration and LuxHub fee graduation are independent
+  - POOL-11-06: Pool state machine implements the 8-state PDF lifecycle (`pending → minted → funding → graduated → custody → resale_listed → resold → distributed`) and the reconcile-pools cron is updated to match
+  - POOL-11-07: Admin confirm-custody endpoint moves NFT from vendor escrow to LuxHub custody wallet and advances state to `custody`
+  - POOL-11-08: Admin list-resale endpoint lists the NFT via marketplace escrow at an admin-set resale price
+  - POOL-11-09: Marketplace escrow completion on a pool-backed NFT creates a `PoolDistribution` record with a frozen holder snapshot fetched via Helius DAS `getTokenHolders`
+  - POOL-11-10: Holders can claim their proportional share via a self-serve endpoint; each claim burns their tokens via SPL burn instruction
+  - POOL-11-11: A daily Inngest cron sweeps `PoolDistribution` records older than 90 days with unclaimed balances to LuxHub Treasury
+  - POOL-11-12: `/api/pool/finalize` + Squad-DAO-from-holders flow is deprecated or re-scoped — decided during `/gsd:discuss-phase 11`
+  - POOL-11-13: Orphan Pool fields from the old fee-split model (`accumulatedHolderFees`, `accumulatedVendorFees`, `accumulatedTradeRewards`) are removed or migrated
+  - POOL-11-14: Pool detail UI stepper reflects the 8-state lifecycle with funding progress based on `accumulatedTradingFees / watchPriceUSD`
+
+**Success Criteria** (what must be TRUE):
+  1. A test pool with a $100 `watchPriceUSD` target graduates automatically when `accumulatedTradingFees` reaches $100 — vendor receives 97% and LuxHub Treasury receives 3%, both via Squads proposals, with no admin intervention beyond Squads approval
+  2. When Bags DBC graduates the same pool (PRE_GRAD → MIGRATED to DAMM v2), LuxHub logs the event but does NOT trigger any state change, vendor payout, or Squad DAO creation
+  3. An admin can confirm custody and list a graduated pool's NFT for resale through the existing marketplace escrow, and the pool state advances to `resale_listed`
+  4. When the NFT resells through marketplace escrow, a `PoolDistribution` record is created with a frozen holder snapshot pulled from Helius DAS, pre-populated with each holder's claimable amount based on their token balance at sale time
+  5. Snapshot holders can call the claim endpoint and receive their proportional share of 97% of the resale price, with their tokens burned in the same transaction; LuxHub Treasury receives 3% upfront at resale completion
+  6. Unclaimed `PoolDistribution` balances older than 90 days are swept to LuxHub Treasury by a daily cron with an audit trail in `TreasuryDeposit`
+  7. The Pool detail page (`/pools/[id]`) displays the 8-state lifecycle stepper correctly across all states, with the "Funding" progress bar driven by `accumulatedTradingFees / watchPriceUSD`, and the "Distribution" state showing a claim button for eligible holders
+  8. A reconciliation audit comparing Helius-attributed fees (authoritative) against Bags webhook `TRADE_EXECUTED` accumulation (secondary) shows less than 1% drift for a pool that has seen at least 20 trades
+  9. All orphan Pool fields from the old fee-split model are either removed from the schema or explicitly marked deprecated in a migration note; the Bags webhook no longer writes to them
+
+**Plans**: To be determined via `/gsd:discuss-phase 11` — expected ~6-8 plans grouped into waves:
+  - Wave A: Helius fee attribution + Pool schema updates + state machine
+  - Wave B: Fee-funded graduation flow + Squads proposals for vendor payout
+  - Wave C: Custody transfer + resale listing wiring to marketplace escrow
+  - Wave D: PoolDistribution enhancements + snapshot + claim endpoint + cron
+  - Wave E: UI updates + cleanup of orphan fields + deprecation decisions
+
+**Open discussion questions** (to resolve before planning):
+  - What is the source of truth for `watchPriceUSD`? `selectedAssetId.priceUSD`, `pool.sharePriceUSD * totalShares`, or a new explicit field?
+  - Fees arrive as SOL/USDC. Do we accumulate in USD (requiring price conversion at each fee arrival) or in the native unit (requiring a target conversion)? Either way: which price oracle?
+  - When the vendor "converts listing to pool," where does the NFT physically live until fee graduation? Vendor wallet, vendor-specific escrow PDA, or a pending-pool escrow?
+  - Keep the Squad-DAO-from-holders flow as an optional post-custody governance layer, or delete entirely?
+  - Does the vendor payout need a `shipping_confirmed` gate before it releases, or does the Squads proposal fire immediately on fee graduation and trust the existing marketplace timeout/dispute system to enforce shipping?
+  - Migration path for existing (phase-8-built) pools — if any exist in prod, do they get migrated to the new state machine, or are they grandfathered into the old flow?
+
 ## Progress
 
 **Execution Order:**
-Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 8
-(Phases 5.1/6/7/9 complete. Phase 10 next. Phase 8 last: Bags PDA setup needed.)
+Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 11
+(Phases 5.1/6/7/9 complete. Phase 10 next. Phase 11 final: canonical pool lifecycle, supersedes phase 8. Phase 8 scaffolding is rewired in-place by phase 11 and never executes as originally scoped.)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -161,7 +215,8 @@ Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 8
 | 7. On-Chain Flow Validation | v1.1 | 2/2 | Complete | 2026-03-29 |
 | 9. Offer UX & UI Polish | v1.1 | 3/3 | Complete | 2026-03-29 |
 | 10. AI Bulk Inventory Upload | v1.1 | 2/4 | In Progress|  |
-| 8. Pool Lifecycle | v1.1 | 0/4 | Not started | - |
+| 8. Pool Lifecycle | v1.1 | — | Superseded by 11 | - |
+| 11. Pool Fee-Funded Rewire | v1.1 | 2/20 | In Progress|  |
 
 ---
 *Full v1.0 details: .planning/milestones/v1.0-ROADMAP.md*
