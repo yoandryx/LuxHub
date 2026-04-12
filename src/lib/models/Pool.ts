@@ -153,6 +153,10 @@ const PoolSchema = new Schema(
       type: String,
       enum: ['PRE_LAUNCH', 'PRE_GRAD', 'MIGRATING', 'MIGRATED'],
     },
+    // Phase 11: informational Bags DBC state (raw string from Bags public API).
+    // Written by reconcile-pools cron, purely informational (Feature 3 dual
+    // progress bar). Does NOT gate LuxHub graduation.
+    bagsDbcState: { type: String, required: false },
 
     // Bags trading stats (updated via webhooks)
     totalTrades: { type: Number, default: 0 },

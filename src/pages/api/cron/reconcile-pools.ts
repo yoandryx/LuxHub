@@ -1,9 +1,14 @@
 // src/pages/api/cron/reconcile-pools.ts
-// Vercel cron job: reconcile Bags graduation status every 6 hours (INFRA-03).
-// Detects pools where graduated=false in MongoDB but graduated on Bags API,
-// syncs the graduation state, and triggers Squad DAO creation.
+// Vercel cron job: informational Bags DBC state reconciliation (every 6 hours).
+//
+// Phase 11: Bags DBC graduation is informational-only. LuxHub graduation is
+// fee-driven via poolFeeClaimService + /api/pool/graduate. This cron does NOT
+// trigger Squad DAO creation, does NOT bridge funds, and does NOT gate the
+// LuxHub lifecycle on Bags state. It simply polls the Bags public API and
+// records the observed DBC state on Pool.bagsDbcState + price/volume sync so
+// the Feature 3 dual progress bar has fresh data.
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { withErrorMonitoring, errorMonitor } from '../../../lib/monitoring/errorHandler';
+import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import dbConnect from '../../../lib/database/mongodb';
 import { Pool } from '../../../lib/models/Pool';
 
@@ -17,40 +22,6 @@ interface BagsTokenResponse {
   name?: string;
   symbol?: string;
   [key: string]: unknown;
-}
-
-/**
- * Trigger Squad DAO creation for a graduated pool.
- * Mirrors the pattern from src/pages/api/webhooks/bags.ts triggerSquadCreation.
- */
-async function triggerSquadCreation(poolId: string): Promise<void> {
-  const adminWallet = process.env.ADMIN_WALLETS?.split(',')[0];
-  if (!adminWallet) {
-    console.warn('[reconcile-pools] No ADMIN_WALLETS configured, cannot trigger Squad creation');
-    return;
-  }
-
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-  const finalizeUrl = `${baseUrl}/api/pool/finalize`;
-
-  const response = await fetch(finalizeUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-internal-webhook': process.env.BAGS_WEBHOOK_SECRET || 'internal',
-    },
-    body: JSON.stringify({
-      poolId,
-      adminWallet,
-      skipNftTransfer: true,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Squad creation failed: ${JSON.stringify(errorData)}`);
-  }
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -71,31 +42,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await dbConnect();
 
-    // Find all pools with a Bags token that haven't graduated yet
+    // Phase 11 state filter: only active lifecycle states with a Bags token.
+    // minted / funding / graduated are the states where Bags DBC state can
+    // still evolve and matters for the dual progress bar.
     const pools = await Pool.find({
+      tokenStatus: { $in: ['minted', 'funding', 'graduated'] },
       bagsTokenMint: { $exists: true, $ne: null },
-      graduated: false,
-      status: { $in: ['open', 'funded', 'filled', 'custody', 'active'] },
       deleted: { $ne: true },
-    }).select('_id bagsTokenMint bagsTokenStatus status');
+    }).select('_id bagsTokenMint bagsTokenStatus tokenStatus');
 
     if (pools.length === 0) {
       return res.status(200).json({
         success: true,
         checked: 0,
-        reconciled: 0,
+        synced: 0,
         errors: 0,
-        message: 'No pre-graduation pools found to reconcile.',
+        message: 'No active pools with a Bags token found.',
       });
     }
 
-    let reconciled = 0;
+    let synced = 0;
     let errors = 0;
     const bagsApiKey = process.env.BAGS_API_KEY;
 
     for (const pool of pools) {
       try {
-        // Check Bags API for token status
         const headers: Record<string, string> = {
           Accept: 'application/json',
         };
@@ -115,51 +86,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
         const tokenData: BagsTokenResponse = await response.json();
 
-        // Check if Bags says graduated but MongoDB doesn't
-        const isGraduatedOnBags =
-          tokenData.status === 'MIGRATED' || tokenData.graduated === true;
+        // Informational sync: record Bags DBC state + latest price / market
+        // cap. We do NOT trigger graduation here — that path lives in the
+        // claim-pool-fees cron + /api/pool/graduate. We do NOT flip
+        // Pool.tokenStatus on the basis of Bags DBC state.
+        const bagsDbcState =
+          typeof tokenData.status === 'string'
+            ? tokenData.status
+            : tokenData.graduated === true
+              ? 'MIGRATED'
+              : undefined;
 
-        if (isGraduatedOnBags) {
-          // Reconcile: update MongoDB to reflect graduation
-          const updateFields: Record<string, unknown> = {
-            graduated: true,
-            graduatedAt: new Date(),
-            bagsTokenStatus: 'MIGRATED',
-            bondingCurveActive: false,
-          };
-
-          if (tokenData.marketCap) {
-            updateFields.graduationMarketCap = tokenData.marketCap;
+        const updateFields: Record<string, unknown> = {
+          lastUpdatedAt: new Date(),
+        };
+        if (bagsDbcState) {
+          updateFields.bagsDbcState = bagsDbcState;
+          // Keep the legacy bagsTokenStatus enum in sync when it maps cleanly
+          // so existing UI that reads bagsTokenStatus still works.
+          if (['PRE_LAUNCH', 'PRE_GRAD', 'MIGRATING', 'MIGRATED'].includes(bagsDbcState)) {
+            updateFields.bagsTokenStatus = bagsDbcState;
           }
-          if (tokenData.priceUSD) {
-            updateFields.graduationPriceUSD = tokenData.priceUSD;
-          }
-
-          await Pool.findByIdAndUpdate(pool._id, { $set: updateFields });
-
-          // Log reconciliation event to Sentry
-          errorMonitor.captureMessage(
-            `Reconciliation: Pool graduation detected - ${pool._id} (${pool.bagsTokenMint})`,
-            'info'
-          );
-
-          // Trigger Squad DAO creation (non-blocking)
-          triggerSquadCreation(pool._id.toString()).catch((err) => {
-            console.error(
-              `[reconcile-pools] Squad creation failed for pool ${pool._id}:`,
-              err.message
-            );
-            errorMonitor.captureException(err as Error, {
-              extra: {
-                poolId: pool._id.toString(),
-                bagsTokenMint: pool.bagsTokenMint,
-                context: 'reconciliation-squad-creation',
-              },
-            });
-          });
-
-          reconciled++;
         }
+        if (typeof tokenData.marketCap === 'number') {
+          updateFields.lastMarketCap = tokenData.marketCap;
+        }
+        if (typeof tokenData.priceUSD === 'number') {
+          updateFields.lastPriceUSD = tokenData.priceUSD;
+        }
+
+        await Pool.findByIdAndUpdate(pool._id, { $set: updateFields });
+        synced++;
       } catch (poolError: any) {
         console.error(
           `[reconcile-pools] Error checking pool ${pool._id}:`,
@@ -172,8 +129,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(200).json({
       success: true,
       checked: pools.length,
-      reconciled,
+      synced,
       errors,
+      note: 'Informational Bags DBC sync only. LuxHub graduation is fee-driven.',
     });
   } catch (error: any) {
     console.error('[reconcile-pools] Error:', error);
