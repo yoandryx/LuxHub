@@ -385,121 +385,57 @@ async function createConfirmDeliverySquadsProposal(
   }
 }
 
-// Auto-trigger pool distribution when a pool-linked escrow completes
+// Auto-trigger pool distribution when a pool-linked escrow completes.
+// Phase 11-11: delegates to the dedicated confirm-resale endpoint which
+// takes a full Helius DAS snapshot (getAllTokenHolders), creates a
+// PoolDistribution record, and transitions pool state resale_listed -> resold.
 async function triggerPoolDistribution(
   escrow: any
 ): Promise<{ success: boolean; message?: string; error?: string }> {
-  const { Pool } = await import('../../../lib/models/Pool');
-  const { buildMultiTransferProposal, getTopTokenHolders } =
-    await import('../../../lib/services/squadsTransferService');
-
-  const pool = await Pool.findById(escrow.poolId);
-  if (!pool) {
-    return { success: false, error: 'Linked pool not found' };
-  }
-
-  // Only distribute if pool is in a distributable state
-  // Pool should be 'listed' (relisted for resale) or 'sold'
-  if (!['listed', 'sold', 'custody'].includes(pool.status)) {
-    return { success: false, error: `Pool status "${pool.status}" not eligible for distribution` };
-  }
-
-  // Don't double-distribute
-  if (pool.distributionStatus && pool.distributionStatus !== 'pending') {
-    return { success: false, error: `Distribution already ${pool.distributionStatus}` };
-  }
-
-  // Get resale price from the escrow that just completed
   const resalePriceUSD = escrow.listingPriceUSD || escrow.fundedAmount || 0;
   if (resalePriceUSD <= 0) {
     return { success: false, error: 'No resale price found on escrow' };
   }
 
-  // Update pool to 'sold' with resale info
-  await Pool.findByIdAndUpdate(pool._id, {
-    $set: {
-      status: 'sold',
-      resaleSoldPriceUSD: resalePriceUSD,
-      resaleSoldAt: new Date(),
-      resaleBuyerWallet: escrow.buyerWallet,
-      resaleEscrowId: escrow._id,
-    },
-  });
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const poolId = escrow.poolId?.toString?.() || escrow.poolId;
 
-  // Calculate distribution
-  const royaltyAmount = resalePriceUSD * 0.03;
-  const distributionPool = resalePriceUSD * 0.97;
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/pool/confirm-resale?poolId=${poolId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.CRON_SECRET}`,
+        },
+        body: JSON.stringify({
+          confirmDeliveryTxSignature: escrow.confirmDeliveryTxSignature || 'confirm-delivery-internal',
+          resalePriceUsdc: resalePriceUSD,
+          poolId,
+        }),
+      }
+    );
 
-  // Get token holders
-  let distributions: { wallet: string; ownershipPercent: number; amount: number }[];
+    const result = await response.json();
 
-  if (pool.bagsTokenMint) {
-    const holders = await getTopTokenHolders(pool.bagsTokenMint, 200);
-    if (holders.length === 0) {
-      return { success: false, error: 'No token holders found' };
-    }
-    distributions = holders.map((h: any) => ({
-      wallet: h.wallet,
-      ownershipPercent: h.ownershipPercent,
-      amount: distributionPool * (h.ownershipPercent / 100),
-    }));
-  } else {
-    // Fallback to MongoDB participants
-    distributions = (pool.participants || []).map((p: any) => {
-      const pct = pool.totalShares > 0 ? (p.shares / pool.totalShares) * 100 : 0;
+    if (!response.ok) {
       return {
-        wallet: p.wallet,
-        ownershipPercent: pct,
-        amount: distributionPool * (pct / 100),
+        success: false,
+        error: result.error || `confirm-resale returned ${response.status}`,
       };
-    });
+    }
+
+    return {
+      success: true,
+      message: result.idempotent
+        ? 'Distribution already exists (idempotent)'
+        : `Distribution snapshot created for ${result.distribution?.holders || 0} holders ($${result.distribution?.totalDistributedUSD?.toFixed(2) || '0'} total)`,
+    };
+  } catch (err: any) {
+    console.error('[triggerPoolDistribution] confirm-resale call failed:', err);
+    return { success: false, error: err?.message || 'confirm-resale call failed' };
   }
-
-  if (distributions.length === 0) {
-    return { success: false, error: 'No investors to distribute to' };
-  }
-
-  // Build Squads distribution proposal
-  const treasuryWallet = getTreasury('pools');
-
-  const recipients = [
-    ...distributions
-      .filter((d) => d.amount > 0)
-      .map((d) => ({
-        wallet: d.wallet,
-        amountUSD: d.amount,
-        label: `Investor ${d.wallet.slice(0, 8)}... (${d.ownershipPercent.toFixed(1)}%)`,
-      })),
-    { wallet: treasuryWallet, amountUSD: royaltyAmount, label: 'Pools Treasury 3% royalty' },
-  ];
-
-  const squadsResult = await buildMultiTransferProposal(recipients, {
-    autoApprove: getSquadsAutoApprove(),
-    memo: `Auto-distribution for pool ${pool._id} (resale $${resalePriceUSD.toFixed(2)})`,
-  });
-
-  // Update pool with distribution info
-  await Pool.findByIdAndUpdate(pool._id, {
-    $set: {
-      distributionStatus: squadsResult.success ? 'proposed' : 'pending',
-      distributionAmount: distributionPool,
-      distributionRoyalty: royaltyAmount,
-      ...(squadsResult.success && { squadsDistributionIndex: squadsResult.transactionIndex }),
-      distributions: distributions.map((d) => ({
-        wallet: d.wallet,
-        ownershipPercent: d.ownershipPercent,
-        amount: d.amount,
-      })),
-    },
-  });
-
-  return {
-    success: squadsResult.success,
-    message: squadsResult.success
-      ? `Distribution proposal created for ${distributions.length} token holders ($${distributionPool.toFixed(2)} total)`
-      : 'Distribution calculated but Squads proposal failed — manual action needed',
-    error: squadsResult.success ? undefined : squadsResult.error,
-  };
 }
 
 // Rate limit confirm-delivery: 5 per minute per IP
