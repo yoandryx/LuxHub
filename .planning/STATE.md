@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 11
-stopped_at: Completed 11-06-PLAN.md
-last_updated: "2026-04-12T16:00:29.302Z"
+stopped_at: Completed 11-08-PLAN.md
+last_updated: "2026-04-12T16:05:07.240Z"
 last_activity: 2026-04-12 — Wave B executing. 11-05 (poolFeeClaimService) complete.
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 41
-  completed_plans: 29
-  percent: 71
+  completed_plans: 30
+  percent: 73
 ---
 
 # Project State
@@ -73,6 +73,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P05 | 333s | 5 tasks | 3 files |
 | Phase 11 P07 | 11min | 7 tasks | 5 files |
 | Phase 11 P06 | 237s | 3 tasks | 3 files |
+| Phase 11 P08 | 180s | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,8 @@ Recent decisions affecting current work:
 - [Phase 11]: uuid CJS moduleNameMapper in jest.config.cjs fixes jsdom ESM resolution for Solana tests
 - [Phase 11]: API endpoint at /api/pool/bridge-to-escrow (singular) matching existing pool route convention
 - [Phase 11]: Graduation trigger stubbed as no-op until 11-08; auth follows reconcile-pools CRON_SECRET pattern
+- [Phase 11]: Graduation endpoint at /api/pool/graduate (singular) with poolId as param, not /api/pools/[id]/graduate
+- [Phase 11]: Admin auth uses getAdminConfig().isAdmin() pattern (requireAdmin does not exist)
 
 ### Roadmap Evolution
 
@@ -140,7 +143,7 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-04-12 — Wave B executing. 11-05 (poolFeeClaimService) complete.
-Stopped at: Completed 11-06-PLAN.md
+Stopped at: Completed 11-08-PLAN.md
 Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
 
 ## 2026-04-10 — Phase 11 Context Captured
