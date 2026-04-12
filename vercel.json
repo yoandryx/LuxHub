@@ -11,6 +11,18 @@
     {
       "path": "/api/cron/claim-pool-fees",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/sweep-expired-distributions",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/drift-check-pool-fees",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/notify-pending-claims",
+      "schedule": "0 14 * * *"
     }
   ]
 }
