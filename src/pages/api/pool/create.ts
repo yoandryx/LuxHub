@@ -125,9 +125,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       status: 'open',
       sharesSold: 0,
       participants: [],
-      liquidityModel: 'amm',
-      ammEnabled: true,
-      ammLiquidityPercent: 30,
+      // Phase 11: no liquidityModel / ammEnabled — fee-funded model uses
+      // bonding-curve trading via Bags until graduation, then backing escrow
+      // funds vendor via the existing marketplace escrow flow.
       bondingCurveActive: true,
       bondingCurveType: 'exponential',
       initialBondingPrice: calculatedSharePrice,
@@ -189,8 +189,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         status: updatedPool?.status || pool.status,
         bondingCurveActive: updatedPool?.bondingCurveActive ?? pool.bondingCurveActive,
         bondingCurveType: updatedPool?.bondingCurveType || pool.bondingCurveType,
-        liquidityModel: updatedPool?.liquidityModel || pool.liquidityModel,
-        ammEnabled: updatedPool?.ammEnabled ?? pool.ammEnabled,
         // Token info (auto-minted)
         bagsTokenMint: updatedPool?.bagsTokenMint || null,
         tokenStatus: updatedPool?.tokenStatus || 'pending',

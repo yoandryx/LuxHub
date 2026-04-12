@@ -164,13 +164,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bagsTokenMint: pool.bagsTokenMint,
       bagsFeeShareConfigId: pool.bagsFeeShareConfigId,
 
-      // Tokenization & Liquidity
+      // Tokenization (phase 11 fee-funded model)
       tokenStatus: pool.tokenStatus || 'pending',
-      liquidityModel: pool.liquidityModel || 'p2p',
-      ammEnabled: pool.ammEnabled || false,
-      ammLiquidityPercent: pool.ammLiquidityPercent,
       vendorPaymentPercent: pool.vendorPaymentPercent,
       fundsInEscrow: pool.fundsInEscrow || 0,
+      accumulatedFeesLamports: pool.accumulatedFeesLamports || 0,
+      accumulatedFeesLamportsPending: pool.accumulatedFeesLamportsPending || 0,
 
       // Trading data
       currentBondingPrice: pool.currentBondingPrice,
@@ -186,7 +185,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         txSignature: t.txSignature,
       })),
       graduated: pool.graduated || false,
-      squadMultisigPda: pool.squadMultisigPda,
 
       // Timestamps
       createdAt: pool.createdAt,

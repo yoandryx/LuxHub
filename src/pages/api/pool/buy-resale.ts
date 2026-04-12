@@ -96,7 +96,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         amount: paidPriceLamports || 0,
         amountUSD: paidPriceUSD,
         txSignature,
-        nftMint: pool.fractionalMint || pool.bagsTokenMint,
+        nftMint: pool.bagsTokenMint,
         status: 'confirmed',
         poolId: pool._id,
         metadata: {

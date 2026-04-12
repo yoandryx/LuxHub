@@ -98,9 +98,6 @@ export interface Pool {
   // Bags integration
   bagsTokenMint?: string;
   tokenStatus?: string;
-  liquidityModel?: string;
-  ammEnabled?: boolean;
-  ammLiquidityPercent?: number;
   totalTrades?: number;
   totalVolumeUSD?: number;
   lastPriceUSD?: number;
@@ -115,10 +112,9 @@ export interface Pool {
     timestamp: string;
     txSignature?: string;
   }>;
-  // Fee allocations
-  accumulatedTradingFees?: number;
-  accumulatedHolderFees?: number;
-  accumulatedVendorFees?: number;
+  // Phase 11 fee-funded counters
+  accumulatedFeesLamports?: number;
+  accumulatedFeesLamportsPending?: number;
   // Bonding curve
   bondingCurveActive?: boolean;
   currentBondingPrice?: number;

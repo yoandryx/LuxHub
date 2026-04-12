@@ -303,7 +303,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bagsTokenMint: tokenMintAddress,
         bagsTokenMetadataUrl: tokenMetadataUrl,
         bagsTokenCreatedAt: new Date(),
-        fractionalMint: tokenMintAddress,
         bagsTokenName: finalTokenName,
         bagsTokenSymbol: finalTokenSymbol,
         tokenStatus: 'pending', // Not yet launched — needs signing
@@ -565,7 +564,6 @@ export async function createPoolTokenInternal(
         bagsTokenMint: mint,
         bagsTokenMetadataUrl: metadataUrl,
         bagsTokenCreatedAt: new Date(),
-        fractionalMint: mint,
         bagsTokenName: tokenName,
         bagsTokenSymbol: tokenSymbol,
         tokenStatus: 'pending',

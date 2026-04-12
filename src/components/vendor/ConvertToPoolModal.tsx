@@ -49,22 +49,17 @@ const ConvertToPoolModal: React.FC<ConvertToPoolModalProps> = ({ asset, onClose,
     setSubmitting(true);
 
     try {
-      let endpoint: string;
-      let body: Record<string, unknown>;
-
+      // Phase 11 (11-18): /api/pool/convert-from-escrow was deleted as a
+      // phase 8 orphan (liquidityModel/AMM model). All pool creation now
+      // routes through /api/pool/create. The `escrowPda` is still passed
+      // so the pool can be linked back to its backing escrow.
+      const endpoint = '/api/pool/create';
+      const body: Record<string, unknown> = {
+        assetId: asset._id,
+        targetAmountUSD: targetAmount,
+      };
       if (asset.escrowPda) {
-        endpoint = '/api/pool/convert-from-escrow';
-        body = {
-          escrowPda: asset.escrowPda,
-          vendorWallet: wallet.publicKey.toBase58(),
-          targetAmountUSD: targetAmount,
-        };
-      } else {
-        endpoint = '/api/pool/create';
-        body = {
-          assetId: asset._id,
-          targetAmountUSD: targetAmount,
-        };
+        body.escrowPda = asset.escrowPda;
       }
 
       const res = await fetch(endpoint, {

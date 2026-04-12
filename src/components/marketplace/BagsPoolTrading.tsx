@@ -19,12 +19,8 @@ interface Pool {
     model?: string;
     brand?: string;
   };
-  // Tokenization & Liquidity fields
-  tokenStatus?: string; // pending, minted, unlocked, frozen, burned
-  liquidityModel?: string; // p2p, amm, hybrid
-  ammEnabled?: boolean;
-  ammLiquidityPercent?: number;
-  windDownStatus?: string;
+  // Tokenization fields (phase 11: pool fee-funded model)
+  tokenStatus?: string; // see Pool.ts tokenStatus enum
   bondingCurveActive?: boolean;
 }
 
@@ -66,10 +62,8 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
   const poolTokenMint = pool.bagsTokenMint;
   const hasToken = !!poolTokenMint;
   const tokenStatus = pool.tokenStatus || 'pending';
-  const liquidityModel = pool.liquidityModel || 'p2p';
-  const isTokenTradeable = hasToken && tokenStatus === 'unlocked';
+  const isTokenTradeable = hasToken && (tokenStatus === 'funding' || tokenStatus === 'graduated');
   const isTokenLocked = hasToken && tokenStatus === 'minted';
-  const isAmmEnabled = pool.ammEnabled && (liquidityModel === 'amm' || liquidityModel === 'hybrid');
 
   // Fetch quote when amount or trade type changes
   const fetchQuote = useCallback(async () => {
@@ -259,43 +253,22 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
             </div>
           </div>
         </div>
-        {/* Liquidity Model Badge */}
-        <div className={styles.liquidityBadge}>
-          {liquidityModel === 'amm' && (
-            <>
-              <span className={styles.ammBadge}>💧 AMM Liquidity</span>
-              <span>{pool.ammLiquidityPercent || 30}% instant liquidity pool</span>
-            </>
-          )}
-          {liquidityModel === 'p2p' && (
-            <>
-              <span className={styles.p2pBadge}>🤝 P2P Trading</span>
-              <span>Peer-to-peer order book trading</span>
-            </>
-          )}
-          {liquidityModel === 'hybrid' && (
-            <>
-              <span className={styles.hybridBadge}>⚡ Hybrid Model</span>
-              <span>AMM + P2P for maximum liquidity</span>
-            </>
-          )}
-        </div>
       </div>
     );
   }
 
-  // Wind-down: trading disabled after snapshot
-  if (['snapshot_taken', 'distributing', 'completed'].includes(pool.windDownStatus || '')) {
+  // Aborted or distributed: trading disabled
+  if (['aborted', 'distributed', 'partial_distributed'].includes(tokenStatus)) {
     return (
       <div className={styles.container}>
         <div className={styles.tradingDisabled}>
-          <p>Trading is closed. This pool is in the wind-down process.</p>
+          <p>Trading is closed. This pool is in the distribution phase.</p>
         </div>
       </div>
     );
   }
 
-  // Token frozen or burned
+  // Legacy safety (kept for historical docs)
   if (tokenStatus === 'frozen' || tokenStatus === 'burned') {
     return (
       <div className={styles.container}>
@@ -343,24 +316,7 @@ const BagsPoolTrading: React.FC<BagsPoolTradingProps> = ({
         <p className={styles.tokenMint}>
           Token: {poolTokenMint?.slice(0, 8)}...{poolTokenMint?.slice(-6)}
         </p>
-        {/* Liquidity Model Indicator */}
-        <div className={styles.liquidityIndicator}>
-          {isAmmEnabled ? (
-            <span className={styles.ammActive}>
-              💧 AMM Active ({pool.ammLiquidityPercent || 30}% liquidity)
-            </span>
-          ) : (
-            <span className={styles.p2pActive}>🤝 P2P Trading</span>
-          )}
-        </div>
       </div>
-
-      {/* Wind-Down Notice */}
-      {pool.windDownStatus === 'announced' && (
-        <div className={styles.windDownNotice}>
-          This pool is winding down. Trading will close after the snapshot deadline.
-        </div>
-      )}
 
       {/* Trade Type Tabs */}
       <div className={styles.tabs}>

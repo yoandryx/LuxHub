@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Cannot change to crowdfunded via this endpoint
       if ((saleMode as string) === 'crowdfunded') {
         return res.status(400).json({
-          error: 'Use /api/pool/convert-from-escrow to convert to crowdfunded mode',
+          error: 'Use /api/pool/create to create a crowdfunded pool for this escrow',
         });
       }
       updateFields.saleMode = saleMode;

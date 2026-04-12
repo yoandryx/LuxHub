@@ -24,7 +24,6 @@ import {
 } from 'react-icons/fi';
 import BagsPoolTrading from './BagsPoolTrading';
 import TvChart, { generatePriceHistory } from './TvChart';
-import { GovernanceDashboard } from '../governance';
 import { usePoolStatus } from '../../hooks/usePools';
 import { usePriceDisplay } from './PriceDisplay';
 import { resolveAssetImage, handleImageError } from '../../utils/imageUtils';
@@ -64,21 +63,10 @@ interface Pool {
   custodyStatus?: string;
   resaleListingPriceUSD?: number;
   createdAt?: string;
-  windDownStatus?: string;
-  windDownDeadline?: string;
-  windDownClaimDeadline?: string;
-  windDownSnapshotHolders?: Array<{
-    wallet: string;
-    balance: number;
-    ownershipPercent: number;
-    choice: string;
-  }>;
   bagsTokenMint?: string;
   tokenStatus?: string;
-  liquidityModel?: string;
   ammEnabled?: boolean;
   graduated?: boolean;
-  squadMultisigPda?: string;
   fundsInEscrow?: number;
   currentBondingPrice?: number;
   bondingCurveActive?: boolean;
@@ -178,7 +166,7 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'buy' | 'trade' | 'governance'>('buy');
+  const [activeTab, setActiveTab] = useState<'buy' | 'trade'>('buy');
 
   const { poolStatus, mutate: refreshStatus } = usePoolStatus(pool._id);
   const p: Pool = { ...pool, ...(poolStatus || {}) };
@@ -206,14 +194,12 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
   const userTkns = userPos?.shares || 0;
   const hasToken = !!p.bagsTokenMint;
   const canTrade = hasToken && p.status !== 'open';
-  const hasGov = p.graduated && !!p.squadMultisigPda;
   const holders = new Set(p.participants?.map((x) => x.wallet) || []).size;
 
   useEffect(() => {
-    if (hasGov) setActiveTab('governance');
-    else if (p.status !== 'open' && hasToken) setActiveTab('trade');
+    if (p.status !== 'open' && hasToken) setActiveTab('trade');
     else setActiveTab('buy');
-  }, [p.status, hasToken, hasGov]);
+  }, [p.status, hasToken]);
 
   const assetImage = resolveAssetImage(p.asset);
   // Fetch real price data from DexScreener when token is live
@@ -605,14 +591,6 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
                   Trade
                 </button>
               )}
-              {hasGov && (
-                <button
-                  className={`${styles.tab} ${activeTab === 'governance' ? styles.tabActive : ''}`}
-                  onClick={() => setActiveTab('governance')}
-                >
-                  DAO
-                </button>
-              )}
             </div>
 
             {/* Buy/Sell Panel */}
@@ -807,16 +785,6 @@ const PoolDetail: React.FC<PoolDetailProps> = ({ pool, onClose, onInvestmentComp
                     refreshStatus();
                     onInvestmentComplete?.();
                   }}
-                />
-              </div>
-            )}
-
-            {activeTab === 'governance' && hasGov && (
-              <div className={styles.tradePanel}>
-                <GovernanceDashboard
-                  pool={p}
-                  onProposalCreated={refreshStatus}
-                  onVoteComplete={refreshStatus}
                 />
               </div>
             )}
