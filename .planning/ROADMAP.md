@@ -216,7 +216,7 @@ Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 11
 | 9. Offer UX & UI Polish | v1.1 | 3/3 | Complete | 2026-03-29 |
 | 10. AI Bulk Inventory Upload | v1.1 | 2/4 | In Progress|  |
 | 8. Pool Lifecycle | v1.1 | — | Superseded by 11 | - |
-| 11. Pool Fee-Funded Rewire | v1.1 | 11/20 | In Progress|  |
+| 11. Pool Fee-Funded Rewire | v1.1 | 12/20 | In Progress|  |
 
 ---
 *Full v1.0 details: .planning/milestones/v1.0-ROADMAP.md*
