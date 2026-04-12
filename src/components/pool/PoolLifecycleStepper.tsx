@@ -49,8 +49,6 @@ const CANONICAL_STAGES = [
   { key: 'distributed', label: 'Distributed', icon: FaUsers },
 ] as const;
 
-type CanonicalKey = (typeof CANONICAL_STAGES)[number]['key'];
-
 /**
  * Map a canonical token status to its index on the 8-node stepper.
  * Off-path states get mapped to the closest canonical state for visual display.
