@@ -10,6 +10,11 @@ jest.mock('@/lib/services/poolFeeClaimService', () => ({
   reconcilePoolFeeCounters: (...args: any[]) => mockReconcile(...args),
 }));
 
+const mockRunHeliusFilterSmokeTest = jest.fn();
+jest.mock('../internal/smoke-test-helius-filter', () => ({
+  runHeliusFilterSmokeTest: (...args: any[]) => mockRunHeliusFilterSmokeTest(...args),
+}));
+
 const mockCaptureException = jest.fn();
 jest.mock('@sentry/nextjs', () => ({
   captureException: (...args: any[]) => mockCaptureException(...args),
@@ -52,6 +57,13 @@ describe('drift-check-pool-fees cron', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env = { ...OLD_ENV, CRON_SECRET: 'test-secret', NODE_ENV: 'production' };
+    // Default: Helius filter is healthy. Individual tests can override.
+    mockRunHeliusFilterSmokeTest.mockResolvedValue({
+      ok: true,
+      webhookId: 'wh-1',
+      filter: ['PoolsTreasury1111111111111111111111111111111'],
+      poolsTreasury: 'PoolsTreasury1111111111111111111111111111111',
+    });
   });
 
   afterAll(() => {
@@ -116,6 +128,39 @@ describe('drift-check-pool-fees cron', () => {
 
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ driftedCount: 2 })
+    );
+  });
+
+  it('emits Sentry error when Helius filter smoke test fails', async () => {
+    mockReconcile.mockResolvedValue({ checked: 1, drifted: [] });
+    mockRunHeliusFilterSmokeTest.mockResolvedValueOnce({
+      ok: false,
+      reason: 'TREASURY_POOLS not in filter',
+      actionRequired: 'Update Helius dashboard',
+      webhookId: 'wh-1',
+      filter: ['other-addr'],
+      poolsTreasury: 'PoolsTreasury1111111111111111111111111111111',
+    });
+
+    const req = mockReq();
+    const res = mockRes();
+    await handler(req, res);
+
+    // Exactly one captureException for the Helius filter failure
+    const heliusCalls = mockCaptureException.mock.calls.filter((call) =>
+      String(call[0]?.message || '').includes('Helius webhook filter smoke test FAILED')
+    );
+    expect(heliusCalls).toHaveLength(1);
+    expect(heliusCalls[0][1]).toMatchObject({
+      level: 'error',
+      tags: { category: 'helius_filter_smoke_test' },
+    });
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        heliusFilterOk: false,
+        heliusFilterReason: 'TREASURY_POOLS not in filter',
+      })
     );
   });
 });

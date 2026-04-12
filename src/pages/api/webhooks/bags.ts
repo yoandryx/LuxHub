@@ -303,7 +303,7 @@ async function handleTokenGraduated(event: BagsPoolEvent): Promise<void> {
     marketCap: event.marketCap,
     priceUSD: event.priceUSD,
   });
-  // No Pool state change, no Squad DAO creation, no triggerSquadCreation.
+  // No Pool state change. No Squad DAO creation. Graduation is fee-driven.
 }
 
 /**

@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/nextjs';
 import { withErrorMonitoring } from '../../../lib/monitoring/errorHandler';
 import dbConnect from '../../../lib/database/mongodb';
 import { reconcilePoolFeeCounters } from '../../../lib/services/poolFeeClaimService';
+import { runHeliusFilterSmokeTest } from '../internal/smoke-test-helius-filter';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -47,11 +48,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     );
   }
 
+  // Phase 11 plan 15 Task 15.5: daily Helius webhook filter smoke test.
+  // If the dashboard filter is missing TREASURY_POOLS, the audit ledger
+  // silently degrades — emit a Sentry error (level=error) so the on-call
+  // admin is paged.
+  const heliusFilterResult = await runHeliusFilterSmokeTest();
+  if (!heliusFilterResult.ok) {
+    Sentry.captureException(
+      new Error(
+        `Helius webhook filter smoke test FAILED (daily): ${heliusFilterResult.reason}`
+      ),
+      {
+        level: 'error',
+        tags: { category: 'helius_filter_smoke_test' },
+        extra: {
+          reason: heliusFilterResult.reason,
+          actionRequired: heliusFilterResult.actionRequired,
+          webhookId: heliusFilterResult.webhookId,
+          filter: heliusFilterResult.filter,
+          poolsTreasury: heliusFilterResult.poolsTreasury,
+        },
+      }
+    );
+  }
+
   return res.status(200).json({
     success: true,
     checked: result.checked,
     driftedCount: result.drifted.length,
     drifted: result.drifted,
+    heliusFilterOk: heliusFilterResult.ok,
+    heliusFilterReason: heliusFilterResult.ok ? undefined : heliusFilterResult.reason,
   });
 }
 

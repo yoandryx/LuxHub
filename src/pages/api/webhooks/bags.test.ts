@@ -54,7 +54,7 @@ jest.mock('@/lib/monitoring/errorHandler', () => ({
   },
 }));
 
-// Make sure any stray fetch call (e.g. legacy triggerSquadCreation) is
+// Make sure any stray fetch call (e.g. legacy Squad DAO trigger) is
 // detectable.
 const mockFetch = jest.fn();
 (globalThis as any).fetch = mockFetch;

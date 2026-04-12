@@ -28,7 +28,7 @@ jest.mock('../../../lib/monitoring/errorHandler', () => ({
   },
 }));
 
-// Any stray fetch should be caught here (legacy triggerSquadCreation path).
+// Any stray fetch should be caught here (legacy Squad DAO trigger path).
 const mockFetch = jest.fn();
 (globalThis as any).fetch = mockFetch;
 
