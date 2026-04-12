@@ -19,6 +19,8 @@ module.exports = {
     "^.+\\.(png|jpg|jpeg|gif|webp|avif|ico|bmp|svg)$": "<rootDir>/__mocks__/fileMock.js",
     // Handle module aliases
     "^@/(.*)$": "<rootDir>/src/$1",
+    // Force bson to use CJS build (avoids ESM parse errors in Jest)
+    "^bson$": "<rootDir>/node_modules/bson/lib/bson.cjs",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.cjs"],
   testPathIgnorePatterns: [
@@ -28,7 +30,7 @@ module.exports = {
   ],
   // Transform ESM-only Solana packages (uuid, jayson, @solana/wallet-adapter-*)
   transformIgnorePatterns: [
-    "node_modules/(?!(@solana/wallet-adapter-base|@solana/wallet-adapter-react|uuid|jayson|@noble)/)",
+    "node_modules/(?!(@solana/wallet-adapter-base|@solana/wallet-adapter-react|uuid|jayson|@noble|bson|mongodb)/)",
   ],
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
