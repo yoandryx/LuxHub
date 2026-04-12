@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 11
-stopped_at: Completed 11-10-PLAN.md
-last_updated: "2026-04-12T16:18:00Z"
-last_activity: 2026-04-12 — Wave C executing. 11-10 (list-resale endpoint) complete.
+stopped_at: Completed 11-11-PLAN.md
+last_updated: "2026-04-12T16:25:43Z"
+last_activity: 2026-04-12 — Wave C complete. 11-11 (confirm-resale hook + DAS snapshot) done.
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 41
-  completed_plans: 32
-  percent: 78
+  completed_plans: 33
+  percent: 80
 ---
 
 # Project State
@@ -76,6 +76,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P08 | 180s | 3 tasks | 3 files |
 | Phase 11 P09 | 218s | 3 tasks | 3 files |
 | Phase 11 P10 | 5min | 5 tasks | 2 files |
+| Phase 11 P11 | 3min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,7 @@ Recent decisions affecting current work:
 - [Phase 11]: confirm-custody at /api/pool/confirm-custody (singular) with poolId param, matching existing convention
 - [Phase 11]: list-resale reuses existing Escrow.convertedToPool + Escrow.poolId fields instead of adding new poolBacked field
 - [Phase 11]: list-resale uses vault PDA as both admin and seller in initialize instruction (Squads CPI signs both)
+- [Phase 11]: confirm-resale at /api/pool/confirm-resale (singular) with poolId param; triggerPoolDistribution rewired to HTTP call
 
 ### Roadmap Evolution
 
@@ -147,8 +149,8 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-04-12 — Wave C executing. 11-10 (list-resale endpoint) complete.
-Stopped at: Completed 11-10-PLAN.md
+Last activity: 2026-04-12 — Wave C complete. 11-11 (confirm-resale hook + DAS snapshot) done.
+Stopped at: Completed 11-11-PLAN.md
 Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
 
 ## 2026-04-10 — Phase 11 Context Captured
