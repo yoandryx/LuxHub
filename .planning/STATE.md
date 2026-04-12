@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 11
-stopped_at: Completed 11-08-PLAN.md
-last_updated: "2026-04-12T16:05:07.240Z"
-last_activity: 2026-04-12 — Wave B executing. 11-05 (poolFeeClaimService) complete.
+stopped_at: Completed 11-09-PLAN.md
+last_updated: "2026-04-12T16:10:17Z"
+last_activity: 2026-04-12 — Wave C executing. 11-09 (confirm-custody endpoint) complete.
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 41
-  completed_plans: 30
-  percent: 73
+  completed_plans: 31
+  percent: 76
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 11 (pool-fee-funded-rewire) — EXECUTING
-Plan: Wave 0 (11-00) + Wave A (11-01 through 11-04) complete. Wave B (11-05 through 11-08) executing.
+Plan: Wave 0 (11-00) + Wave A (11-01 through 11-04) + Wave B (11-05 through 11-08) complete. Wave C (11-09 through 11-11) executing.
 Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 
 ## Performance Metrics
@@ -74,6 +74,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P07 | 11min | 7 tasks | 5 files |
 | Phase 11 P06 | 237s | 3 tasks | 3 files |
 | Phase 11 P08 | 180s | 3 tasks | 3 files |
+| Phase 11 P09 | 218s | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,7 @@ Recent decisions affecting current work:
 - [Phase 11]: Graduation trigger stubbed as no-op until 11-08; auth follows reconcile-pools CRON_SECRET pattern
 - [Phase 11]: Graduation endpoint at /api/pool/graduate (singular) with poolId as param, not /api/pools/[id]/graduate
 - [Phase 11]: Admin auth uses getAdminConfig().isAdmin() pattern (requireAdmin does not exist)
+- [Phase 11]: confirm-custody at /api/pool/confirm-custody (singular) with poolId param, matching existing convention
 
 ### Roadmap Evolution
 
@@ -142,8 +144,8 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-04-12 — Wave B executing. 11-05 (poolFeeClaimService) complete.
-Stopped at: Completed 11-08-PLAN.md
+Last activity: 2026-04-12 — Wave C executing. 11-09 (confirm-custody endpoint) complete.
+Stopped at: Completed 11-09-PLAN.md
 Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
 
 ## 2026-04-10 — Phase 11 Context Captured
