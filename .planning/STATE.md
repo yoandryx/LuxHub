@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 11
-stopped_at: Completed 11-04-PLAN.md
+stopped_at: Completed 11-05-PLAN.md
 last_updated: "2026-04-12T15:09:15.165Z"
 last_activity: 2026-04-12 — Resumed. 5 pending updates applied, Wave 0.6 executed (vault PDA derived, env vars updated), Wave A launching.
 progress:
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 11 (pool-fee-funded-rewire) — EXECUTING
-Plan: Wave 0 (11-00) complete. Wave A (11-01 through 11-04) next.
+Plan: Wave 0 (11-00) + Wave A (11-01 through 11-04) complete. Wave B (11-05 through 11-08) executing.
 Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 
 ## Performance Metrics
@@ -70,6 +70,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P02 | 240s | 5 tasks | 3 files |
 | Phase 11 P01 | 388s | 6 tasks | 9 files |
 | Phase 11 P04 | 169s | 5 tasks | 2 files |
+| Phase 11 P05 | 333s | 5 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -133,8 +134,8 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-04-12 — Resumed. 5 pending updates applied, Wave 0.6 executed (vault PDA derived, env vars updated), Wave A launching.
-Stopped at: Completed 11-04-PLAN.md
+Last activity: 2026-04-12 — Wave B executing. 11-05 (poolFeeClaimService) complete.
+Stopped at: Completed 11-05-PLAN.md
 Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
 
 ## 2026-04-10 — Phase 11 Context Captured
