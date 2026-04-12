@@ -312,49 +312,7 @@ export function buildRefundBuyerKeys(
   ];
 }
 
-/**
- * Fetch top token holders for a given SPL mint.
- * Uses Helius DAS getTokenAccounts (1 call) with fallback to standard RPC (N+1 calls).
- * Returns wallets sorted by balance descending.
- */
-export async function getTopTokenHolders(
-  tokenMint: string,
-  limit: number = 100
-): Promise<{ wallet: string; balance: number; ownershipPercent: number }[]> {
-  // Try DAS API first (single call, much faster)
-  try {
-    const { getTokenHolders } = await import('./dasApi');
-    return await getTokenHolders(tokenMint, limit);
-  } catch (dasError) {
-    console.warn('[getTopTokenHolders] DAS API failed, falling back to standard RPC:', dasError);
-  }
-
-  // Fallback: standard Solana RPC (N+1 calls)
-  const connection = getCentralConnection();
-  const mintPk = new PublicKey(tokenMint);
-  const largestAccounts = await connection.getTokenLargestAccounts(mintPk);
-
-  const holders: { wallet: string; balance: number }[] = [];
-  const accountInfos = await connection.getMultipleAccountsInfo(
-    largestAccounts.value.map((a) => a.address)
-  );
-
-  for (let i = 0; i < largestAccounts.value.length && holders.length < limit; i++) {
-    const accountInfo = accountInfos[i];
-    const uiAmount = largestAccounts.value[i].uiAmount ?? 0;
-
-    if (!accountInfo || uiAmount === 0) continue;
-    if (accountInfo.data.length !== 165 || !accountInfo.owner.equals(TOKEN_PROGRAM_ID)) continue;
-
-    const owner = new PublicKey(accountInfo.data.slice(32, 64));
-    holders.push({ wallet: owner.toBase58(), balance: uiAmount });
-  }
-
-  const totalBalance = holders.reduce((sum, h) => sum + h.balance, 0);
-
-  return holders.map((h) => ({
-    wallet: h.wallet,
-    balance: h.balance,
-    ownershipPercent: totalBalance > 0 ? (h.balance / totalBalance) * 100 : 0,
-  }));
-}
+// Phase 11 cleanup (11-18): `getTopTokenHolders` removed as a duplicate.
+// Canonical implementation lives in `dasApi.getAllTokenHolders` (paginated
+// full-set snapshot). Legacy callers should migrate to that function and
+// slice(0, N) at the call site if they only want the top N.

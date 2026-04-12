@@ -348,7 +348,7 @@ export function isNFT(asset: DASAsset): boolean {
 /**
  * Get token holders for an SPL mint via DAS.
  * Returns sorted by balance descending with ownership percentages.
- * Replaces: heliusService.getTopTokenHolders (N+1 RPC calls → 1 DAS call)
+ * Prefer `getAllTokenHolders` for distribution snapshots (fully paginated).
  */
 export async function getTokenHolders(
   mint: string,

@@ -1,5 +1,11 @@
 // src/lib/services/heliusService.ts
-// Service for interacting with Helius API for token holder data
+// Service for interacting with Helius API for token holder data.
+//
+// Phase 11 cleanup (11-18): `getTopTokenHolders` was removed. It had an N+1
+// getAccountInfo call path that was superseded by `getAllTokenHolders`
+// (dasApi.ts) — the canonical paginated snapshot used by pool distribution.
+// Call sites (only `pool/finalize.ts`) were deleted in the same commit as the
+// Squad-DAO-from-holders orphan sweep.
 
 interface TokenHolder {
   wallet: string;
@@ -12,109 +18,6 @@ interface HeliusTokenHolder {
   balance: number;
   // Helius may return additional fields
   [key: string]: unknown;
-}
-
-/**
- * Get the top token holders for a given SPL token mint
- * Uses Helius DAS API for efficient holder lookup
- *
- * @param mint - SPL token mint address
- * @param limit - Maximum number of holders to return (default 100)
- * @returns Array of TokenHolder objects sorted by balance descending
- */
-export async function getTopTokenHolders(
-  mint: string,
-  limit: number = 100
-): Promise<TokenHolder[]> {
-  const heliusApiKey = process.env.HELIUS_API_KEY;
-  const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT;
-
-  if (!heliusApiKey && !rpcUrl?.includes('helius')) {
-    throw new Error('HELIUS_API_KEY or Helius RPC endpoint required');
-  }
-
-  // Determine the API base URL
-  const apiBase = heliusApiKey ? `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}` : rpcUrl;
-
-  try {
-    // Use Helius getTokenLargestAccounts for top holders
-    const response = await fetch(apiBase!, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 'get-token-holders',
-        method: 'getTokenLargestAccounts',
-        params: [mint],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Helius API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(`Helius RPC error: ${data.error.message}`);
-    }
-
-    const accounts = data.result?.value || [];
-
-    // Get owner addresses for each token account
-    const holdersWithOwners = await Promise.all(
-      accounts.slice(0, limit).map(async (account: { address: string; amount: string }) => {
-        try {
-          // Fetch account info to get owner
-          const accountInfoResponse = await fetch(apiBase!, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 'get-account-info',
-              method: 'getAccountInfo',
-              params: [account.address, { encoding: 'jsonParsed' }],
-            }),
-          });
-
-          const accountData = await accountInfoResponse.json();
-          const parsedInfo = accountData.result?.value?.data?.parsed?.info;
-
-          return {
-            wallet: parsedInfo?.owner || account.address,
-            balance: parseInt(account.amount, 10),
-          };
-        } catch {
-          return {
-            wallet: account.address,
-            balance: parseInt(account.amount, 10),
-          };
-        }
-      })
-    );
-
-    // Calculate total supply for ownership percentage
-    const totalBalance = holdersWithOwners.reduce((sum, h) => sum + h.balance, 0);
-
-    // Map to TokenHolder format with ownership percentage
-    const holders: TokenHolder[] = holdersWithOwners.map((holder) => ({
-      wallet: holder.wallet,
-      balance: holder.balance,
-      ownershipPercent: totalBalance > 0 ? (holder.balance / totalBalance) * 100 : 0,
-    }));
-
-    // Sort by balance descending
-    holders.sort((a, b) => b.balance - a.balance);
-
-    return holders;
-  } catch (error) {
-    console.error('[heliusService] Error fetching token holders:', error);
-    throw error;
-  }
 }
 
 /**
