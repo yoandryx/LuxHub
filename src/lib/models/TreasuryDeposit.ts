@@ -30,6 +30,8 @@ const TreasuryDepositSchema = new Schema(
         'direct_deposit', // Direct SOL transfer
         'mint_fee', // Fee from NFT minting
         'platform_fee', // General platform fees
+        'pool_trading_fee', // Logged by Helius webhook when TREASURY_POOLS receives a claim tx
+        'unclaimed_sweep', // Logged by sweep-expired-distributions cron
         'unknown', // Unclassified deposit
       ],
       default: 'unknown',
