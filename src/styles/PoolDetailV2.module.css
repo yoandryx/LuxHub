@@ -1039,3 +1039,142 @@
     display: none;
   }
 }
+
+/* ========================================
+   Phase 11 — Fee-funded rewire UI additions
+   Progress bar wrapper, P&L card, claim card
+   ======================================== */
+
+.phase11ProgressWrapper {
+  margin: 12px auto 16px;
+  max-width: 1280px;
+}
+
+/* ─── Position P&L card ─── */
+.phase11PnlCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.phase11PnlLabel {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.phase11PnlValue {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.phase11PnlPct {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.phase11PnlPositive {
+  color: var(--positive);
+}
+
+.phase11PnlNegative {
+  color: var(--error);
+}
+
+/* ─── Claim card ─── */
+.phase11ClaimCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--accent-medium);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 0 24px rgba(200, 161, 255, 0.08);
+}
+
+.phase11ClaimTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.phase11ClaimAmount {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.phase11ClaimPct {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.phase11ClaimHelper {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.phase11ClaimBtn {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0d0d0d;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.phase11ClaimBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(200, 161, 255, 0.25);
+}
+
+.phase11ClaimBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.phase11ClaimTxLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.phase11ClaimTxLink:hover {
+  text-decoration: underline;
+}
+

@@ -138,6 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bagsTokenName: pool.bagsTokenName,
         bagsTokenSymbol: pool.bagsTokenSymbol,
         bagsTokenMetadataUrl: pool.bagsTokenMetadataUrl,
+        bagsTokenStatus: pool.bagsTokenStatus,
         meteoraConfigKey: pool.meteoraConfigKey,
         bondingCurveActive: pool.bondingCurveActive,
         graduated: pool.graduated,
@@ -145,6 +146,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         currentBondingPrice: pool.currentBondingPrice,
         lastPriceUSD: pool.lastPriceUSD,
         claimWindowExpiresAt: pool.claimWindowExpiresAt,
+        // Phase 11: fee-funded rewire
+        fundingTargetUsdc: pool.fundingTargetUsdc,
+        fundingTargetUsdcSource: pool.fundingTargetUsdcSource,
+        accumulatedFeesLamports: pool.accumulatedFeesLamports,
+        accumulatedFeesLamportsPending: pool.accumulatedFeesLamportsPending,
+        lastFeeClaimAt: pool.lastFeeClaimAt,
+        lifecycleMemos: pool.lifecycleMemos,
+        backingEscrowPda: pool.backingEscrowPda,
+        custodyVaultPda: pool.custodyVaultPda,
         // Timestamps
         createdAt: pool.createdAt,
         updatedAt: pool.updatedAt,

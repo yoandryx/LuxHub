@@ -1,7 +1,7 @@
 // src/pages/pools/[id].tsx
 // Dedicated pool detail page with lifecycle stepper, chart, trade widget,
 // position summary, claim distribution, and how-it-works explainer (D-05)
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -10,17 +10,30 @@ import { FaArrowLeft, FaExternalLinkAlt, FaUsers, FaCopy, FaCheckCircle } from '
 import { SiSolana } from 'react-icons/si';
 import toast from 'react-hot-toast';
 import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
-import { PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
+import { buildBurnTx } from '@/lib/solana/buildBurnTx';
 import { resolveImageUrl } from '../../utils/imageUtils';
 import { useLivePoolStats } from '../../hooks/usePools';
 import { LifecycleStepper, getLifecycleStage } from '../../components/pool/LifecycleStepper';
+import PoolLifecycleStepper, {
+  PoolTokenStatus,
+} from '../../components/pool/PoolLifecycleStepper';
+import { PoolProgressBar } from '../../components/marketplace/PoolProgressBar';
 import { HowItWorks } from '../../components/pool/HowItWorks';
 import { TradeWidget } from '../../components/pool/TradeWidget';
 import { PositionSummary } from '../../components/pool/PositionSummary';
 import { ClaimDistribution } from '../../components/pool/ClaimDistribution';
 import TvChart, { generatePriceHistory } from '../../components/marketplace/TvChart';
 import styles from '../../styles/PoolDetailV2.module.css';
+
+// Bags tokens always use 9 decimals (per bags-fm skill reference).
+const BAGS_TOKEN_DECIMALS = 9;
+// Phase 11 token statuses eligible for holder claim.
+const CLAIM_ELIGIBLE_TOKEN_STATUSES: readonly PoolTokenStatus[] = [
+  'resold',
+  'partial_distributed',
+] as const;
 
 // ─── Interfaces ─────────────────────────────────────────────────
 
@@ -68,16 +81,25 @@ interface PoolData {
   bagsTokenName?: string;
   bagsTokenSymbol?: string;
   bagsTokenMetadataUrl?: string;
+  bagsTokenStatus?: 'PRE_LAUNCH' | 'PRE_GRAD' | 'MIGRATING' | 'MIGRATED';
   createdAt?: string;
   graduated?: boolean;
   bondingCurveActive?: boolean;
-  tokenStatus?: string;
+  tokenStatus?: PoolTokenStatus;
   lastPriceUSD?: number;
   currentBondingPrice?: number;
   resaleSoldPriceUSD?: number;
   claimWindowExpiresAt?: string;
   recentTrades?: Array<{ price: number }>;
   meteoraConfigKey?: string;
+  // Phase 11 fee-funded rewire fields
+  fundingTargetUsdc?: number; // USDC base units (6 decimals)
+  fundingTargetUsdcSource?: 'listing_price' | 'vendor_override';
+  accumulatedFeesLamports?: number;
+  accumulatedFeesLamportsPending?: number;
+  lastFeeClaimAt?: string;
+  backingEscrowPda?: string;
+  custodyVaultPda?: string;
 }
 
 interface UserPosition {
@@ -325,6 +347,146 @@ const PoolDetailV2Page: React.FC = () => {
 
   const lifecycleStage = pool ? getLifecycleStage(pool) : 'launch';
 
+  // ─── Phase 11: Fee-funded progress + claim ────────────────────
+  // USD-denominated graduation target (authoritative, comes from fundingTargetUsdc).
+  const targetUsd = pool?.fundingTargetUsdc
+    ? pool.fundingTargetUsdc / 1e6
+    : pool?.targetAmountUSD || 0;
+
+  const accumulatedUsd = solPrice
+    ? ((pool?.accumulatedFeesLamports || 0) / 1e9) * solPrice
+    : 0;
+  const pendingUsd = solPrice
+    ? ((pool?.accumulatedFeesLamportsPending || 0) / 1e9) * solPrice
+    : 0;
+
+  // Highlight pulse when accumulatedFeesLamports changes (local delta tracking
+  // gives a visual "fee arrived" feedback even when SSE isn't available).
+  const lastFeeLamportsRef = useRef<number>(pool?.accumulatedFeesLamports || 0);
+  const [feeHighlight, setFeeHighlight] = useState(false);
+  useEffect(() => {
+    if (!pool) return;
+    const current = pool.accumulatedFeesLamports || 0;
+    if (current > lastFeeLamportsRef.current) {
+      setFeeHighlight(true);
+      const t = setTimeout(() => setFeeHighlight(false), 1800);
+      lastFeeLamportsRef.current = current;
+      return () => clearTimeout(t);
+    }
+    lastFeeLamportsRef.current = current;
+  }, [pool?.accumulatedFeesLamports]);
+
+  // Bags DBC informational state (from bagsTokenStatus; may be absent).
+  const bagsDbcState = pool?.bagsTokenStatus as
+    | 'PRE_LAUNCH'
+    | 'PRE_GRAD'
+    | 'MIGRATING'
+    | 'MIGRATED'
+    | undefined;
+
+  // Rough DBC progress estimate: fully filled if migrated, else mirror funding %.
+  const bagsDbcProgress = bagsDbcState
+    ? bagsDbcState === 'MIGRATED'
+      ? 100
+      : bagsDbcState === 'MIGRATING'
+        ? 95
+        : targetUsd > 0
+          ? Math.min(100, (accumulatedUsd / targetUsd) * 100)
+          : 0
+    : undefined;
+
+  // Position P&L (only meaningful if we have a current token price and cost basis)
+  const positionPnlUsd = userPosition
+    ? userPosition.currentValue - userPosition.costBasis
+    : 0;
+  const positionPnlPct =
+    userPosition && userPosition.costBasis > 0
+      ? (positionPnlUsd / userPosition.costBasis) * 100
+      : 0;
+  const hasPnl = !!userPosition && userPosition.costBasis > 0;
+
+  // ─── Phase 11 claim eligibility + handler ─────────────────────
+  const isClaimEligibleState = !!(
+    pool?.tokenStatus &&
+    CLAIM_ELIGIBLE_TOKEN_STATUSES.includes(pool.tokenStatus as PoolTokenStatus)
+  );
+  const walletB58 = wallet.publicKey?.toBase58();
+  const canClaim = !!(
+    isClaimEligibleState &&
+    walletB58 &&
+    claimInfo &&
+    !claimInfo.claimed &&
+    claimInfo.claimableAmount > 0
+  );
+  const [claiming, setClaiming] = useState(false);
+
+  const handleClaim = useCallback(async () => {
+    if (!pool || !pool.bagsTokenMint || !wallet.publicKey || !wallet.signTransaction) {
+      toast.error('Wallet not connected');
+      return;
+    }
+    if (!userPosition || userPosition.balance <= 0) {
+      toast.error('No tokens in your wallet to burn');
+      return;
+    }
+    setClaiming(true);
+    const connection = new Connection(getClusterConfig().endpoint, 'confirmed');
+    try {
+      toast('Preparing burn transaction…', { icon: '🔨' });
+
+      // Convert UI balance → raw amount for burn (Bags uses 9 decimals).
+      const rawAmount = BigInt(
+        Math.floor(userPosition.balance * 10 ** BAGS_TOKEN_DECIMALS)
+      );
+
+      const tx = await buildBurnTx({
+        connection,
+        holderWallet: wallet.publicKey,
+        mint: new PublicKey(pool.bagsTokenMint),
+        amount: rawAmount,
+        decimals: BAGS_TOKEN_DECIMALS,
+      });
+
+      toast('Sign the burn in your wallet…', { icon: '✍️' });
+      const signed = await wallet.signTransaction(tx);
+      const sig = await connection.sendRawTransaction(signed.serialize(), {
+        skipPreflight: false,
+        maxRetries: 3,
+      });
+
+      toast('Waiting for burn confirmation…', { icon: '⏳' });
+      await connection.confirmTransaction(sig, 'confirmed');
+
+      toast('Submitting claim to LuxHub…', { icon: '📨' });
+      const res = await fetch(
+        `/api/pools/distribution/${encodeURIComponent(pool._id)}/claim`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            holderWallet: wallet.publicKey.toBase58(),
+            burnTxSignature: sig,
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || data?.detail || 'Claim failed');
+      }
+
+      toast.success(`Claim submitted! $${(data.payoutUSD || 0).toFixed(2)} payout queued.`);
+      refreshPool();
+      setClaimInfo((prev) =>
+        prev ? { ...prev, claimed: true, txSignature: sig } : prev
+      );
+    } catch (err: any) {
+      console.error('[claim] error:', err);
+      toast.error(err?.message || 'Claim failed');
+    } finally {
+      setClaiming(false);
+    }
+  }, [pool, wallet, userPosition, refreshPool]);
+
   // Determine what to show in right column
   const isDistributionMode =
     pool &&
@@ -389,9 +551,29 @@ const PoolDetailV2Page: React.FC = () => {
           <FaArrowLeft /> Back to Pools
         </Link>
 
-        {/* Lifecycle Stepper + How It Works (hidden on mobile) */}
+        {/* Phase 11: 8-state canonical Lifecycle Stepper (replaces legacy 6-state).
+            Falls back to legacy stepper if pool.tokenStatus is not a phase-11 value. */}
         <div className={styles.desktopOnly}>
-          <LifecycleStepper currentStage={lifecycleStage} />
+          {pool.tokenStatus ? (
+            <PoolLifecycleStepper currentState={pool.tokenStatus as PoolTokenStatus} />
+          ) : (
+            <LifecycleStepper currentStage={lifecycleStage} />
+          )}
+
+          {/* Phase 11: Dual progress bars — LuxHub fees primary, Bags DBC informational */}
+          {targetUsd > 0 && (
+            <div className={styles.phase11ProgressWrapper}>
+              <PoolProgressBar
+                accumulatedUsd={accumulatedUsd}
+                pendingUsd={pendingUsd || undefined}
+                targetUsd={targetUsd}
+                bagsDbcState={bagsDbcState}
+                bagsDbcProgress={bagsDbcProgress}
+                highlightPrimary={feeHighlight}
+              />
+            </div>
+          )}
+
           <HowItWorks />
         </div>
 
@@ -720,6 +902,77 @@ const PoolDetailV2Page: React.FC = () => {
                 currentValue={0}
                 poolStatus={pool.status}
               />
+            )}
+
+            {/* Phase 11: Position P&L (when holding + have cost basis) */}
+            {hasPnl && (
+              <div className={styles.phase11PnlCard}>
+                <div className={styles.phase11PnlLabel}>Unrealized P&L</div>
+                <div
+                  className={`${styles.phase11PnlValue} ${positionPnlUsd >= 0 ? styles.phase11PnlPositive : styles.phase11PnlNegative}`}
+                >
+                  {positionPnlUsd >= 0 ? '+' : ''}
+                  ${positionPnlUsd.toFixed(2)}
+                  <span className={styles.phase11PnlPct}>
+                    {' '}
+                    ({positionPnlUsd >= 0 ? '+' : ''}
+                    {positionPnlPct.toFixed(1)}%)
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Phase 11: Self-serve claim button for resold/partial_distributed states */}
+            {isClaimEligibleState && walletB58 && (
+              <div className={styles.phase11ClaimCard}>
+                <h3 className={styles.phase11ClaimTitle}>
+                  <FaCheckCircle size={14} /> Claim Distribution
+                </h3>
+                {claimInfo?.claimed ? (
+                  <>
+                    <p className={styles.phase11ClaimHelper}>
+                      You have already claimed your distribution for this pool.
+                    </p>
+                    {claimInfo.txSignature && (
+                      <a
+                        className={styles.phase11ClaimTxLink}
+                        href={getClusterConfig().explorerUrl(claimInfo.txSignature)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View burn tx <FaExternalLinkAlt size={9} />
+                      </a>
+                    )}
+                  </>
+                ) : claimInfo && claimInfo.claimableAmount > 0 ? (
+                  <>
+                    <div className={styles.phase11ClaimAmount}>
+                      ${claimInfo.claimableAmount.toFixed(2)}
+                      <span className={styles.phase11ClaimPct}>
+                        {' '}
+                        ({claimInfo.ownershipPercent.toFixed(2)}%)
+                      </span>
+                    </div>
+                    <p className={styles.phase11ClaimHelper}>
+                      Burns your pool tokens in one tx, then queues a USDC payout via
+                      Squads multisig. Bags tokens use 9 decimals.
+                    </p>
+                    <button
+                      className={styles.phase11ClaimBtn}
+                      disabled={!canClaim || claiming}
+                      onClick={handleClaim}
+                    >
+                      {claiming
+                        ? 'Claiming…'
+                        : `Claim $${claimInfo.claimableAmount.toFixed(2)}`}
+                    </button>
+                  </>
+                ) : (
+                  <p className={styles.phase11ClaimHelper}>
+                    Your wallet is not in the distribution snapshot for this pool.
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Pool Info (holders, volume) */}
