@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 11
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-04-12T15:04:15.263Z"
+stopped_at: Completed 11-04-PLAN.md
+last_updated: "2026-04-12T15:09:15.165Z"
 last_activity: 2026-04-12 — Resumed. 5 pending updates applied, Wave 0.6 executed (vault PDA derived, env vars updated), Wave A launching.
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 41
-  completed_plans: 24
-  percent: 59
+  completed_plans: 25
+  percent: 61
 ---
 
 # Project State
@@ -69,6 +69,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P03 | 145s | 4 tasks | 4 files |
 | Phase 11 P02 | 240s | 5 tasks | 3 files |
 | Phase 11 P01 | 388s | 6 tasks | 9 files |
+| Phase 11 P04 | 169s | 5 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,7 @@ Recent decisions affecting current work:
 - [Phase 11]: Used pool field (not poolId) for index consistency with existing schema
 - [Phase 11]: Added bson CJS mapping to jest.config.cjs to enable Mongoose model unit tests
 - [Phase 11]: Pre-save hook simplified to P2P-only vendor payment (AMM path removed with orphan fields)
+- [Phase 11]: Memo signer uses direct keypair (not Squads proposals) per Pitfall 7; falls back to SQUADS_MEMBER_KEYPAIR
 
 ### Roadmap Evolution
 
@@ -132,7 +134,7 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-04-12 — Resumed. 5 pending updates applied, Wave 0.6 executed (vault PDA derived, env vars updated), Wave A launching.
-Stopped at: Completed 11-01-PLAN.md
+Stopped at: Completed 11-04-PLAN.md
 Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
 
 ## 2026-04-10 — Phase 11 Context Captured
