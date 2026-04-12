@@ -169,19 +169,15 @@ function isStaleClaim(pool: any): boolean {
 
 /**
  * Trigger graduation check for a pool after a successful fee claim.
- * Uses direct import from 11-08's graduation endpoint.
- * Stubbed as no-op until 11-08 is implemented.
+ * Uses direct import from the graduation endpoint (11-08).
  */
 async function maybeTriggerGraduation(poolId: string): Promise<boolean> {
   try {
-    // 11-08 will export triggerGraduationCheck from @/pages/api/pools/[id]/graduate
-    // Until then, this is a no-op stub.
-    // const { triggerGraduationCheck } = await import('@/pages/api/pools/[id]/graduate');
-    // await triggerGraduationCheck(poolId);
-    console.log(
-      `[claim-pool-fees] Graduation check stub for pool ${poolId} -- wire in 11-08`
+    const { triggerGraduationCheck } = await import(
+      '@/pages/api/pool/graduate'
     );
-    return false;
+    const result = await triggerGraduationCheck(poolId);
+    return result.graduated && result.reason === 'graduated_now';
   } catch (err: any) {
     console.error(
       `[claim-pool-fees] Graduation check failed for pool ${poolId}:`,
