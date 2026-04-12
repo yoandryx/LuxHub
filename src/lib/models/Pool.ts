@@ -69,6 +69,7 @@ const PoolSchema = new Schema(
     // ========== ESCROW LINKAGE + CUSTODY ==========
     backingEscrowPda: { type: String, required: false }, // Marketplace escrow PDA holding the NFT
     custodyVaultPda: { type: String, required: false }, // Squads vault PDA after confirm_delivery
+    custodyConfirmedAt: { type: Date, required: false }, // When NFT custody was verified on-chain
 
     // ========== POOLS TREASURY VAULT ==========
     treasuryPoolsVaultPda: { type: String, required: false }, // Squads vault PDA index 1
