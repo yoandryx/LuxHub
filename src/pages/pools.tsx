@@ -12,6 +12,7 @@ import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { useUserRole } from '../hooks/useUserRole';
 import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiBarChart2, FiImage, FiDroplet } from 'react-icons/fi';
 import { usePlatformStats, usePools, useUserPortfolio, useLivePoolStats, Pool, LivePoolStats } from '../hooks/usePools';
+import { usePriceDisplay } from '../components/marketplace/PriceDisplay';
 import TvChart, { generatePriceHistory } from '../components/marketplace/TvChart';
 import { getLifecycleStage, LIFECYCLE_STAGES } from '../components/pool/LifecycleStepper';
 import { resolveImageUrl, PLACEHOLDER_IMAGE } from '../utils/imageUtils';
@@ -299,6 +300,7 @@ const PoolCard = memo(
     );
     const [tradeMsg, setTradeMsg] = useState('');
     const { publicKey, signTransaction, sendVersionedTransaction } = useEffectiveWallet();
+    const { solPriceInUSD } = usePriceDisplay();
     const poolRouter = useRouter();
 
     // Reset local override when global mode changes
@@ -411,9 +413,13 @@ const PoolCard = memo(
       liveStats?.marketCapUSD ||
       (hasToken && livePrice > 0 ? livePrice * (pool.totalShares || 0) : 0);
 
-    // Vendor funding progress: accumulatedTradingFees / (watchPrice * 0.97)
+    // Vendor funding progress (phase 11 fee-funded model):
+    // accumulatedFeesLamports is the confirmed-on-chain SOL fees claimed from
+    // Bags bonding curve trades. Convert to USD at the live SOL price and
+    // compare against the vendor payout target (97% of listing price).
     const vendorTarget = (pool.targetAmountUSD || 0) * 0.97;
-    const accumulatedFees = pool.accumulatedTradingFees || 0;
+    const accumulatedFeesSol = (pool.accumulatedFeesLamports || 0) / 1_000_000_000;
+    const accumulatedFees = accumulatedFeesSol * (solPriceInUSD || 0);
     const vendorFundingPercent = vendorTarget > 0
       ? Math.min((accumulatedFees / vendorTarget) * 100, 100)
       : 0;
