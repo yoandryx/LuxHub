@@ -9,7 +9,6 @@ import { TreasuryDeposit } from '@/lib/models/TreasuryDeposit';
 import { TreasuryVesting } from '@/lib/models/TreasuryVesting';
 import { webhookLimiter } from '@/lib/middleware/rateLimit';
 import { withErrorMonitoring, errorMonitor } from '@/lib/monitoring/errorHandler';
-import { getTreasury } from '@/lib/config/treasuryConfig';
 
 // Bags API event types
 type BagsEventType =
@@ -125,14 +124,23 @@ function verifyBagsSignature(
 }
 
 /**
- * Handle trade execution events
+ * Handle trade execution events.
+ *
+ * Phase 11: this handler is the TERTIARY fee counter. It only increments
+ * Pool.accumulatedFeesLamportsPending (the live UI estimate) and updates
+ * trade statistics. It MUST NOT write to Pool.accumulatedFeesLamports —
+ * that authoritative counter is owned exclusively by
+ * poolFeeClaimService.claimPoolFees.
+ *
+ * The creator fee is derived from the Bags partnerFee field (lamports) if
+ * present, otherwise estimated as 1% of trade volume in lamports for UI
+ * feedback (the primary claim cron will reconcile the real amount later).
  */
 async function handleTradeExecuted(event: BagsTradeEvent): Promise<void> {
   const {
     tokenMint,
     signature,
     tradeType,
-    inputAmount,
     outputAmount,
     priceUSD,
     traderWallet,
@@ -143,82 +151,67 @@ async function handleTradeExecuted(event: BagsTradeEvent): Promise<void> {
     // Find the pool by token mint
     const pool = await Pool.findOne({ bagsTokenMint: tokenMint });
 
-    if (pool) {
-      // Update pool stats
-      const tradeAmountUSD = priceUSD ? parseFloat(outputAmount) * priceUSD : 0;
-
-      // Update pool stats + recent trades feed
-      const tradeEntry = {
-        wallet: traderWallet.slice(0, 4) + '...' + traderWallet.slice(-4),
-        type: tradeType,
-        amount: parseFloat(outputAmount),
-        amountUSD: tradeAmountUSD,
-        timestamp: new Date(event.timestamp * 1000),
-        txSignature: signature,
-      };
-
-      // Calculate fee allocations
-      // Bags creator fee = 1% of trade volume (split on-chain via fee-share config)
-      // Partner fee = additional ~0.25% (25% of Bags platform fee)
-      // We track the creator fee portion here for internal analytics
-      const creatorFeeUSD = tradeAmountUSD * 0.01; // 1% creator fee
-      // Internal split of creator fee (based on pool's fee-share claimers):
-      // Default: 83.33% treasury (8333 BPS) + 16.67% vendor (1667 BPS)
-      const treasuryShare = pool.feeShareClaimers?.find((c: any) => c.label === 'LuxHub Treasury');
-      const vendorShare = pool.feeShareClaimers?.find((c: any) => c.label === 'Vendor');
-      const treasuryBps = treasuryShare?.basisPoints || 10000;
-      const vendorBps = vendorShare?.basisPoints || 0;
-      const holderFeeUSD = creatorFeeUSD * (treasuryBps / 10000) * 0.5; // Half of treasury share → holder rewards
-      const vendorFeeUSD = creatorFeeUSD * (vendorBps / 10000); // Vendor's on-chain share
-      const tradeRewardUSD = creatorFeeUSD * (treasuryBps / 10000) * 0.5; // Other half → trade rewards
-
-      await Pool.findByIdAndUpdate(pool._id, {
-        $inc: {
-          totalTrades: 1,
-          totalVolumeUSD: tradeAmountUSD,
-          accumulatedTradingFees: creatorFeeUSD,
-          accumulatedHolderFees: holderFeeUSD,
-          accumulatedVendorFees: vendorFeeUSD,
-          accumulatedTradeRewards: tradeRewardUSD,
-        },
-        $set: {
-          lastTradeAt: new Date(event.timestamp * 1000),
-          lastPriceUSD: priceUSD,
-        },
-        $push: {
-          recentTrades: {
-            $each: [tradeEntry],
-            $slice: -5, // Keep only the last 5 trades
-          },
-        },
-      });
-
-      // Record transaction
-      await Transaction.create({
-        type: tradeType === 'buy' ? 'contribution' : 'pool_distribution',
-        pool: pool._id,
-        fromWallet: traderWallet,
-        amountUSD: tradeAmountUSD,
-        txSignature: signature,
-        status: 'success',
-      });
+    if (!pool) {
+      return; // Unknown token — no-op
     }
 
-    // Track partner fee if earned
-    if (partnerFee && parseFloat(partnerFee) > 0) {
-      await TreasuryDeposit.create({
-        txSignature: `${signature}-partner-fee`,
-        blockTime: new Date(event.timestamp * 1000),
-        amountLamports: parseInt(partnerFee),
-        amountSOL: parseInt(partnerFee) / 1e9,
-        fromWallet: traderWallet,
-        toWallet: getTreasury('partner'),
-        depositType: 'pool_royalty',
-        pool: pool?._id,
-        heliusEventType: 'BAGS_TRADE',
-        description: `Partner fee from ${tradeType} trade`,
-      });
+    const tradeAmountUSD = priceUSD ? parseFloat(outputAmount) * priceUSD : 0;
+    const volumeUsd = Number.isFinite(tradeAmountUSD) ? tradeAmountUSD : 0;
+
+    // Derive the creator fee in lamports. Prefer the exact partnerFee from the
+    // Bags event payload if present (lamports). Fall back to 1% of the USD
+    // volume converted to lamports via a coarse $150/SOL assumption — this is
+    // the live-UI "pending" estimate only; the claim cron writes the
+    // authoritative value.
+    let tradeFeeLamports = 0;
+    if (partnerFee && !Number.isNaN(parseInt(partnerFee))) {
+      tradeFeeLamports = parseInt(partnerFee);
+    } else if (volumeUsd > 0) {
+      const estCreatorFeeUsd = volumeUsd * 0.01;
+      const approxSolPrice = 150;
+      tradeFeeLamports = Math.floor((estCreatorFeeUsd / approxSolPrice) * 1e9);
     }
+
+    const tradeEntry = {
+      wallet: traderWallet.slice(0, 4) + '...' + traderWallet.slice(-4),
+      type: tradeType,
+      amount: parseFloat(outputAmount),
+      amountUSD: volumeUsd,
+      timestamp: new Date(event.timestamp * 1000),
+      txSignature: signature,
+    };
+
+    // Single atomic update: pending counter + trade stats.
+    // DO NOT write to accumulatedFeesLamports (authoritative counter).
+    // DO NOT call graduation logic here — graduation is fee-driven via
+    // claim-pool-fees cron + /api/pool/graduate.
+    await Pool.findByIdAndUpdate(pool._id, {
+      $inc: {
+        accumulatedFeesLamportsPending: tradeFeeLamports,
+        totalTrades: 1,
+        totalVolumeUSD: volumeUsd,
+      },
+      $set: {
+        lastTradeAt: new Date(event.timestamp * 1000),
+        lastPriceUSD: priceUSD || pool.lastPriceUSD,
+      },
+      $push: {
+        recentTrades: {
+          $each: [tradeEntry],
+          $slice: -20, // Keep last 20 trades for the live feed
+        },
+      },
+    });
+
+    // Record transaction for analytics (unchanged — legacy Transaction feed)
+    await Transaction.create({
+      type: tradeType === 'buy' ? 'contribution' : 'pool_distribution',
+      pool: pool._id,
+      fromWallet: traderWallet,
+      amountUSD: volumeUsd,
+      txSignature: signature,
+      status: 'success',
+    });
   } catch (error) {
     errorMonitor.captureException(error as Error, {
       endpoint: '/api/webhooks/bags',
@@ -292,87 +285,25 @@ async function handlePoolUpdated(event: BagsPoolEvent): Promise<void> {
 }
 
 /**
- * Handle token graduation events (bonding curve completed)
- * Triggers Squad DAO creation from top token holders
+ * Handle token graduation events (Bags DBC bonding curve completed).
+ *
+ * Phase 11: Bags DBC graduation is INFORMATIONAL-ONLY. LuxHub graduation is
+ * fee-driven via poolFeeClaimService + /api/pool/graduate, and the pool
+ * lifecycle is gated on accumulated trading fees (not Bags DBC state). This
+ * handler is a no-op: it logs the observation so the dual progress bar in
+ * Feature 3 can reflect Bags state, but it does NOT change Pool state,
+ * does NOT create a Squad DAO, and does NOT flip bondingCurveActive.
  */
 async function handleTokenGraduated(event: BagsPoolEvent): Promise<void> {
-  const { tokenMint, graduatedAt, marketCap, priceUSD } = event;
-
-  try {
-    const result = await Pool.findOneAndUpdate(
-      { bagsTokenMint: tokenMint },
-      {
-        $set: {
-          graduated: true,
-          graduatedAt: graduatedAt
-            ? new Date(graduatedAt * 1000)
-            : new Date(event.timestamp * 1000),
-          graduationMarketCap: marketCap,
-          graduationPriceUSD: priceUSD,
-          bondingCurveActive: false, // Bonding curve is now complete
-        },
-      },
-      { new: true }
-    );
-
-    if (result) {
-      // Trigger Squad creation asynchronously
-      // Note: We don't await this to avoid blocking the webhook response
-      triggerSquadCreation(result._id.toString()).catch((err) => {
-        console.error(
-          `[bags-webhook] Failed to trigger Squad creation for pool ${result._id}:`,
-          err
-        );
-        errorMonitor.captureException(err as Error, {
-          endpoint: '/api/webhooks/bags',
-          extra: { event: 'TOKEN_GRADUATED', poolId: result._id.toString(), tokenMint },
-        });
-      });
-    }
-  } catch (error) {
-    errorMonitor.captureException(error as Error, {
-      endpoint: '/api/webhooks/bags',
-      extra: { event: 'TOKEN_GRADUATED', tokenMint },
-    });
-  }
-}
-
-/**
- * Trigger Squad DAO creation for a graduated pool
- * Called automatically when TOKEN_GRADUATED event is received
- */
-async function triggerSquadCreation(poolId: string): Promise<void> {
-  // Get admin wallet from environment for the internal call
-  const adminWallet = process.env.ADMIN_WALLETS?.split(',')[0];
-  if (!adminWallet) {
-    return;
-  }
-
-  // Call the finalize endpoint internally
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-  const finalizeUrl = `${baseUrl}/api/pool/finalize`;
-
-  const response = await fetch(finalizeUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Add internal auth header to bypass normal auth
-      'x-internal-webhook': process.env.BAGS_WEBHOOK_SECRET || 'internal',
-    },
-    body: JSON.stringify({
-      poolId,
-      adminWallet,
-      skipNftTransfer: true, // NFT transfer handled separately
-    }),
+  // Phase 11: Bags DBC graduation is informational-only.
+  // LuxHub graduation is fee-driven (see poolFeeClaimService + graduate.ts).
+  console.log('[bags webhook] Bags DBC graduation observed (no-op):', {
+    mint: event.tokenMint,
+    timestamp: new Date().toISOString(),
+    marketCap: event.marketCap,
+    priceUSD: event.priceUSD,
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Squad creation failed: ${JSON.stringify(errorData)}`);
-  }
-
-  const result = await response.json();
+  // No Pool state change, no Squad DAO creation, no triggerSquadCreation.
 }
 
 /**
@@ -474,30 +405,21 @@ async function handleLiquidityEvent(event: BagsLiquidityEvent): Promise<void> {
 }
 
 /**
- * Handle holder dividend distribution events
+ * Handle holder dividend distribution events.
+ *
+ * Phase 11: orphan. The phase 8 holder-dividend model was replaced with the
+ * phase 11 claim-driven distribution (distributions[] + holder claim flow).
+ * This handler is a log-only observer so the webhook endpoint still
+ * acknowledges the event type if Bags ever emits it. No Pool state change.
  */
 async function handleHolderDividend(event: BagsHolderDividendEvent): Promise<void> {
-  const { tokenMint, totalAmount, recipients } = event;
-
-  try {
-    const pool = await Pool.findOne({ bagsTokenMint: tokenMint });
-
-    if (pool) {
-      await Pool.findByIdAndUpdate(pool._id, {
-        $inc: {
-          totalDividendsDistributed: parseFloat(totalAmount),
-        },
-        $set: {
-          lastDividendAt: new Date(event.timestamp * 1000),
-        },
-      });
-    }
-  } catch (error) {
-    errorMonitor.captureException(error as Error, {
-      endpoint: '/api/webhooks/bags',
-      extra: { event: 'HOLDER_DIVIDEND_DISTRIBUTED', tokenMint },
-    });
-  }
+  console.log('[bags webhook] HOLDER_DIVIDEND_DISTRIBUTED observed (no-op):', {
+    mint: event.tokenMint,
+    totalAmount: event.totalAmount,
+    recipients: event.recipients,
+    timestamp: new Date().toISOString(),
+  });
+  // No-op: phase 11 distributes via claim-driven pull model, not push dividends.
 }
 
 /**
