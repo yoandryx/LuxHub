@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import dbConnect from '@/lib/database/mongodb';
 import { Asset } from '@/lib/models/Assets';
 import { Escrow } from '@/lib/models/Escrow';
+import { Pool } from '@/lib/models/Pool';
 import { Transaction } from '@/lib/models/Transaction';
 import { TreasuryDeposit } from '@/lib/models/TreasuryDeposit';
 import { webhookLimiter } from '@/lib/middleware/rateLimit';
@@ -178,65 +179,132 @@ async function classifyDeposit(
 }
 
 /**
- * Handle treasury wallet deposits (SOL transfers to LuxHub wallet)
+ * Handle treasury wallet deposits (SOL transfers to LuxHub wallets).
+ *
+ * Watches both TREASURY_MARKETPLACE and TREASURY_POOLS. For the marketplace
+ * treasury we classify the deposit (escrow fee, platform fee, etc). For the
+ * pools treasury we record an audit-trail TreasuryDeposit with
+ * depositType='pool_trading_fee' and attempt to link to a Pool via
+ * feeClaimTxSignatures. IMPORTANT: this handler MUST NOT write to
+ * Pool.accumulatedFeesLamports — that counter is owned exclusively by
+ * poolFeeClaimService.claimPoolFees. This webhook is the SECONDARY audit
+ * path only (see CONTEXT Feature 1 and RESEARCH Pitfall 3: double-counting).
  */
 async function handleTreasuryDeposit(event: HeliusEvent): Promise<void> {
-  let treasuryWallet: string;
+  let marketplaceTreasury: string | null = null;
   try {
-    treasuryWallet = getTreasury('marketplace');
+    marketplaceTreasury = getTreasury('marketplace');
   } catch {
-    return; // Treasury not configured
+    // Marketplace treasury not configured — continue, pools may still be configured.
+  }
+
+  let poolsTreasury: string | null = null;
+  try {
+    poolsTreasury = getTreasury('pools');
+  } catch {
+    // Pools treasury not configured — skip pools audit path.
+  }
+
+  if (!marketplaceTreasury && !poolsTreasury) {
+    return; // Nothing to watch
   }
 
   const nativeTransfers = event.nativeTransfers || [];
 
   for (const transfer of nativeTransfers) {
-    // Only track transfers TO the treasury wallet
-    if (transfer.toUserAccount !== treasuryWallet) continue;
     if (transfer.amount <= 0) continue;
 
-    const { fromUserAccount, amount } = transfer;
+    const { fromUserAccount, toUserAccount, amount } = transfer;
 
-    try {
-      // Check if we've already recorded this deposit
-      const existing = await TreasuryDeposit.findOne({ txSignature: event.signature });
-      if (existing) {
-        continue;
-      }
+    // ========== MARKETPLACE TREASURY ==========
+    if (marketplaceTreasury && toUserAccount === marketplaceTreasury) {
+      try {
+        // Check if we've already recorded this deposit
+        const existing = await TreasuryDeposit.findOne({ txSignature: event.signature });
+        if (existing) {
+          continue;
+        }
 
-      // Classify the deposit type
-      const classification = await classifyDeposit(fromUserAccount, amount, event);
+        // Classify the deposit type
+        const classification = await classifyDeposit(fromUserAccount, amount, event);
 
-      // Create treasury deposit record
-      const deposit = await TreasuryDeposit.create({
-        txSignature: event.signature,
-        slot: event.slot,
-        blockTime: new Date(event.timestamp * 1000),
-        amountLamports: amount,
-        amountSOL: amount / 1e9,
-        fromWallet: fromUserAccount,
-        toWallet: treasuryWallet,
-        depositType: classification.depositType,
-        escrow: classification.escrowId,
-        asset: classification.assetId,
-        heliusEventType: event.type,
-        description: event.description,
-      });
+        // Create treasury deposit record
+        await TreasuryDeposit.create({
+          txSignature: event.signature,
+          slot: event.slot,
+          blockTime: new Date(event.timestamp * 1000),
+          amountLamports: amount,
+          amountSOL: amount / 1e9,
+          fromWallet: fromUserAccount,
+          toWallet: marketplaceTreasury,
+          depositType: classification.depositType,
+          escrow: classification.escrowId,
+          asset: classification.assetId,
+          heliusEventType: event.type,
+          description: event.description,
+        });
 
-      // If this is an escrow fee, update the related escrow
-      if (classification.escrowId) {
-        await Escrow.findByIdAndUpdate(classification.escrowId, {
-          $set: {
-            royaltyPaid: true,
-            royaltyTxSignature: event.signature,
-          },
+        // If this is an escrow fee, update the related escrow
+        if (classification.escrowId) {
+          await Escrow.findByIdAndUpdate(classification.escrowId, {
+            $set: {
+              royaltyPaid: true,
+              royaltyTxSignature: event.signature,
+            },
+          });
+        }
+      } catch (error) {
+        errorMonitor.captureException(error as Error, {
+          endpoint: '/api/webhooks/helius',
+          extra: { event: 'TREASURY_DEPOSIT', fromWallet: fromUserAccount, amount },
         });
       }
-    } catch (error) {
-      errorMonitor.captureException(error as Error, {
-        endpoint: '/api/webhooks/helius',
-        extra: { event: 'TREASURY_DEPOSIT', fromWallet: fromUserAccount, amount },
-      });
+      continue;
+    }
+
+    // ========== POOLS TREASURY (SECONDARY AUDIT PATH) ==========
+    if (poolsTreasury && toUserAccount === poolsTreasury) {
+      try {
+        // Idempotency: do not double-write the same tx
+        const existing = await TreasuryDeposit.findOne({ txSignature: event.signature });
+        if (existing) {
+          continue;
+        }
+
+        // Try to link this tx to a Pool via feeClaimTxSignatures audit trail.
+        // If no match, we still record the deposit with pool=null and let the
+        // drift-check cron surface it as unlinked-arrival drift.
+        const linkedPool = await Pool.findOne({
+          feeClaimTxSignatures: event.signature,
+        }).select('_id');
+
+        await TreasuryDeposit.create({
+          txSignature: event.signature,
+          slot: event.slot,
+          blockTime: new Date(event.timestamp * 1000),
+          amountLamports: amount,
+          amountSOL: amount / 1e9,
+          fromWallet: fromUserAccount,
+          toWallet: poolsTreasury,
+          depositType: 'pool_trading_fee',
+          pool: linkedPool?._id || undefined,
+          heliusEventType: event.type,
+          description: linkedPool
+            ? `Pool trading fee claim (linked to pool ${linkedPool._id})`
+            : 'Pool trading fee arrival (unlinked — drift-check candidate)',
+        });
+
+        // CRITICAL: Do NOT write to Pool.accumulatedFeesLamports here.
+        // The primary counter is owned EXCLUSIVELY by
+        // poolFeeClaimService.claimPoolFees (see CONTEXT Feature 1 and
+        // RESEARCH Pitfall 3: double-counting). This branch is read-only on
+        // the pool document and acts solely as the secondary audit ledger.
+      } catch (error) {
+        errorMonitor.captureException(error as Error, {
+          endpoint: '/api/webhooks/helius',
+          extra: { event: 'POOLS_TREASURY_DEPOSIT', fromWallet: fromUserAccount, amount },
+        });
+      }
     }
   }
 }
