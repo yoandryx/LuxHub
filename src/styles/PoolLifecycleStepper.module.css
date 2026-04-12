@@ -1,0 +1,197 @@
+/* ========================================
+   Pool Lifecycle Stepper — Chrome Glass
+   Phase 11 canonical 8-state stepper.
+   ======================================== */
+
+.container {
+  --accent: #c8a1ff;
+  --accent-dim: rgba(200, 161, 255, 0.12);
+  --accent-border: rgba(200, 161, 255, 0.2);
+  --accent-glow: rgba(200, 161, 255, 0.4);
+  --bg-card: rgba(13, 13, 13, 0.85);
+  --border: #222222;
+  --text-muted: #a1a1a1;
+  --text-active: #ffffff;
+  --danger: #ff5c5c;
+  --warn: #f5c76e;
+
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto 8px;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.container::-webkit-scrollbar {
+  display: none;
+}
+
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 540px;
+  padding: 4px 0;
+}
+
+/* ─── Stage ─── */
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+  transition: all 0.2s ease;
+}
+
+.stageCompleted .dot {
+  background: var(--accent);
+}
+
+.stageCurrent .dot {
+  background: var(--accent);
+}
+
+.glowRing {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.stageFuture .dot {
+  background: transparent;
+  border: 2px solid var(--accent-border);
+}
+
+/* ─── Labels ─── */
+.label {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-active);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.labelMuted {
+  color: var(--text-muted);
+}
+
+.labelActive {
+  font-weight: 600;
+  color: var(--text-active);
+}
+
+/* ─── Connecting Lines ─── */
+.line {
+  flex: 1;
+  height: 2px;
+  min-width: 22px;
+  margin-top: 4px;
+  transition: all 0.2s ease;
+}
+
+.lineCompleted {
+  background: var(--accent);
+}
+
+.lineFuture {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent-border) 0,
+    var(--accent-border) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+/* ─── Aborted (terminal) ─── */
+.containerAborted {
+  padding: 1rem 1.25rem;
+}
+
+.abortedBox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 92, 92, 0.08);
+  border: 1px solid rgba(255, 92, 92, 0.3);
+  border-radius: 10px;
+}
+
+.abortedIcon {
+  color: var(--danger);
+  flex-shrink: 0;
+}
+
+.abortedLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.abortedHelper {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Partial distributed banner ─── */
+.partialBanner {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 11px;
+  color: var(--warn);
+  background: rgba(245, 199, 110, 0.08);
+  border: 1px solid rgba(245, 199, 110, 0.25);
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 768px) {
+  .stepper {
+    justify-content: flex-start;
+    min-width: 520px;
+    padding: 8px 4px;
+  }
+
+  .label {
+    font-size: 10px;
+  }
+
+  .line {
+    min-width: 18px;
+  }
+}

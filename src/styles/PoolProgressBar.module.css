@@ -1,0 +1,179 @@
+/* ========================================
+   Pool Progress Bar — Chrome Glass
+   Dual progress bars: LuxHub fee funding (primary) +
+   Bags DBC state (informational secondary)
+   ======================================== */
+
+.container {
+  --accent: #c8a1ff;
+  --accent-dim: #c8a1ff40;
+  --accent-glow: #c8a1ff20;
+  --bg-dark: #0d0d0d;
+  --bg-card: #111111;
+  --border: #222222;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1a1;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: rgba(13, 13, 13, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: border-color 0.2s ease;
+}
+
+.container:hover {
+  border-color: var(--accent-dim);
+}
+
+/* ─── Primary (LuxHub fee funding) ─── */
+.primaryGroup,
+.secondaryGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.labelText {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+}
+
+/* ─── Bar track + fills ─── */
+.barTrack {
+  position: relative;
+  height: 12px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.barTrackSecondary {
+  height: 8px;
+}
+
+.barPrimary {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 0 10px var(--accent-glow);
+  z-index: 2;
+}
+
+.barPrimaryPulse {
+  animation: feeArrivalPulse 1.8s ease-out;
+}
+
+@keyframes feeArrivalPulse {
+  0% {
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+  30% {
+    box-shadow: 0 0 22px rgba(200, 161, 255, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+}
+
+.barPending {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: var(--accent-dim);
+  border-radius: 6px;
+  opacity: 0.35;
+  transition: width 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  z-index: 1;
+}
+
+.barSecondary {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: linear-gradient(90deg, #666, #888);
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ─── Secondary state badge ─── */
+.secondaryState {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.secondaryState[data-state='MIGRATED'] {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  background: var(--accent-glow);
+}
+
+.secondaryState[data-state='MIGRATING'] {
+  color: #f5c76e;
+  border-color: rgba(245, 199, 110, 0.3);
+  background: rgba(245, 199, 110, 0.08);
+}
+
+.secondaryState[data-state='PRE_GRAD'],
+.secondaryState[data-state='PRE_LAUNCH'] {
+  color: var(--text-secondary);
+}
+
+/* ─── Helpers ─── */
+.helper {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .label {
+    font-size: 11px;
+  }
+
+  .amount {
+    font-size: 12px;
+  }
+}
