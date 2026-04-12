@@ -77,6 +77,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P09 | 218s | 3 tasks | 3 files |
 | Phase 11 P10 | 5min | 5 tasks | 2 files |
 | Phase 11 P11 | 3min | 3 tasks | 3 files |
+| Phase 11 P17 | 249s | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,7 @@ Recent decisions affecting current work:
 - [Phase 11]: list-resale reuses existing Escrow.convertedToPool + Escrow.poolId fields instead of adding new poolBacked field
 - [Phase 11]: list-resale uses vault PDA as both admin and seller in initialize instruction (Squads CPI signs both)
 - [Phase 11]: confirm-resale at /api/pool/confirm-resale (singular) with poolId param; triggerPoolDistribution rewired to HTTP call
+- [Phase 11]: SSE endpoint at /api/pool/events/stream?poolId=<id> (singular) — 5s poll + 20s keepalive, Node runtime + responseLimit:false, emits snapshot/fees/state events only on delta; EventSource auto-reconnect handles Vercel 60s serverless cap
 
 ### Roadmap Evolution
 
