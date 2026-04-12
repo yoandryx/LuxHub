@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 11
-stopped_at: Completed 11-11-PLAN.md
-last_updated: "2026-04-12T16:25:43Z"
+stopped_at: Completed 11-16-PLAN.md
+last_updated: "2026-04-12T19:58:22.495Z"
 last_activity: 2026-04-12 — Wave C complete. 11-11 (confirm-resale hook + DAS snapshot) done.
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 41
-  completed_plans: 33
-  percent: 80
+  completed_plans: 38
+  percent: 93
 ---
 
 # Project State
@@ -78,6 +78,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P10 | 5min | 5 tasks | 2 files |
 | Phase 11 P11 | 3min | 3 tasks | 3 files |
 | Phase 11 P17 | 249s | 3 tasks | 3 files |
+| Phase 11 P16 | 12min | 5 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,7 @@ Recent decisions affecting current work:
 - [Phase 11]: list-resale uses vault PDA as both admin and seller in initialize instruction (Squads CPI signs both)
 - [Phase 11]: confirm-resale at /api/pool/confirm-resale (singular) with poolId param; triggerPoolDistribution rewired to HTTP call
 - [Phase 11]: SSE endpoint at /api/pool/events/stream?poolId=<id> (singular) — 5s poll + 20s keepalive, Node runtime + responseLimit:false, emits snapshot/fees/state events only on delta; EventSource auto-reconnect handles Vercel 60s serverless cap
+- [Phase 11]: [Phase 11-16]: Phase 11 8-state stepper maps resale_unlisted->custody and partial_distributed->resold instead of adding off-canonical nodes
 
 ### Roadmap Evolution
 
@@ -152,7 +154,7 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-04-12 — Wave C complete. 11-11 (confirm-resale hook + DAS snapshot) done.
-Stopped at: Completed 11-11-PLAN.md
+Stopped at: Completed 11-16-PLAN.md
 Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
 
 ## 2026-04-10 — Phase 11 Context Captured
