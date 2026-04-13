@@ -57,7 +57,7 @@ function mockRes() {
 
 // ── Import handler after mocks ──
 
-import handler from './notify-pending-claims';
+import handler from '@/pages/api/cron/notify-pending-claims';
 
 describe('notify-pending-claims cron', () => {
   const OLD_ENV = process.env;

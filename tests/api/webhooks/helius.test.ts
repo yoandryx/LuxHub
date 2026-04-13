@@ -95,7 +95,7 @@ function mockRes() {
 
 // ── Import handler after mocks ──
 
-import handler from './helius';
+import handler from '@/pages/api/webhooks/helius';
 
 describe('helius webhook — TREASURY_POOLS audit path', () => {
   const OLD_ENV = process.env;

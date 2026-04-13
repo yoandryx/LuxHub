@@ -63,7 +63,7 @@ jest.mock('@/lib/config/adminConfig', () => ({
 // ---------------------------------------------------------------------------
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import handler from './confirm-resale';
+import handler from '@/pages/api/pool/confirm-resale';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -32,7 +32,7 @@ jest.mock('@/lib/database/mongodb', () => ({
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { EventEmitter } from 'events';
-import handler from './stream';
+import handler from '@/pages/api/pool/events/stream';
 
 // ---------------------------------------------------------------------------
 // Helpers

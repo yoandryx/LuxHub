@@ -64,7 +64,7 @@ jest.mock('@/lib/services/solPriceService', () => ({
 // ---------------------------------------------------------------------------
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import handler from './abort';
+import handler from '@/pages/api/pool/abort';
 
 // ---------------------------------------------------------------------------
 // Helpers

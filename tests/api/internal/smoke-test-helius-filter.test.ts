@@ -54,7 +54,7 @@ function mockRes() {
 
 // ── Import after mocks ──
 
-import handler, { runHeliusFilterSmokeTest } from './smoke-test-helius-filter';
+import handler, { runHeliusFilterSmokeTest } from '@/pages/api/internal/smoke-test-helius-filter';
 
 describe('smoke-test-helius-filter', () => {
   const OLD_ENV = process.env;

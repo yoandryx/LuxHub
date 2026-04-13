@@ -57,7 +57,7 @@ function mockRes() {
 
 // ── Import handler after mocks ──
 
-import handler from './sweep-expired-distributions';
+import handler from '@/pages/api/cron/sweep-expired-distributions';
 
 describe('sweep-expired-distributions cron', () => {
   const OLD_ENV = process.env;

@@ -150,7 +150,7 @@ global.fetch = mockFetch as any;
 // Import handler
 // ---------------------------------------------------------------------------
 
-import handler from './list-resale';
+import handler from '@/pages/api/pool/list-resale';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 // ---------------------------------------------------------------------------

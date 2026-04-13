@@ -94,7 +94,7 @@ function setupPoolFind(pools: any[]) {
 // ── Tests ──
 
 // Must import AFTER mocks are set up
-import handler from './claim-pool-fees';
+import handler from '@/pages/api/cron/claim-pool-fees';
 
 describe('claim-pool-fees cron', () => {
   const VALID_SECRET = 'test-cron-secret-123';

@@ -31,7 +31,7 @@ jest.mock('@/lib/config/adminConfig', () => ({
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 // Import the handler (default export)
-import handler from './bridge-to-escrow';
+import handler from '@/pages/api/pool/bridge-to-escrow';
 
 // ---------------------------------------------------------------------------
 // Helpers

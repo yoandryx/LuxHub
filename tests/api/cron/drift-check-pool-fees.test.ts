@@ -11,7 +11,7 @@ jest.mock('@/lib/services/poolFeeClaimService', () => ({
 }));
 
 const mockRunHeliusFilterSmokeTest = jest.fn();
-jest.mock('../internal/smoke-test-helius-filter', () => ({
+jest.mock('@/pages/api/internal/smoke-test-helius-filter', () => ({
   runHeliusFilterSmokeTest: (...args: any[]) => mockRunHeliusFilterSmokeTest(...args),
 }));
 
@@ -49,7 +49,7 @@ function mockRes() {
 
 // ── Import handler after mocks ──
 
-import handler from './drift-check-pool-fees';
+import handler from '@/pages/api/cron/drift-check-pool-fees';
 
 describe('drift-check-pool-fees cron', () => {
   const OLD_ENV = process.env;

@@ -66,7 +66,7 @@ jest.mock('@/lib/middleware/rateLimit', () => ({
 // ---------------------------------------------------------------------------
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import handler from './claim';
+import handler from '@/pages/api/pools/distribution/[poolId]/claim';
 
 function mockReq(
   overrides: Partial<NextApiRequest> & { body?: any; query?: any } = {}

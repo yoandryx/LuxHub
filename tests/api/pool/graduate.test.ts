@@ -57,7 +57,7 @@ jest.mock('@/lib/config/adminConfig', () => ({
 // ---------------------------------------------------------------------------
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import handler, { triggerGraduationCheck } from './graduate';
+import handler, { triggerGraduationCheck } from '@/pages/api/pool/graduate';
 
 // ---------------------------------------------------------------------------
 // Helpers

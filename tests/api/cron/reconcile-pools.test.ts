@@ -8,19 +8,19 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 const mockPoolFind = jest.fn();
 const mockPoolFindByIdAndUpdate = jest.fn();
-jest.mock('../../../lib/models/Pool', () => ({
+jest.mock('@/lib/models/Pool', () => ({
   Pool: {
     find: (...args: any[]) => mockPoolFind(...args),
     findByIdAndUpdate: (...args: any[]) => mockPoolFindByIdAndUpdate(...args),
   },
 }));
 
-jest.mock('../../../lib/database/mongodb', () => ({
+jest.mock('@/lib/database/mongodb', () => ({
   __esModule: true,
   default: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('../../../lib/monitoring/errorHandler', () => ({
+jest.mock('@/lib/monitoring/errorHandler', () => ({
   withErrorMonitoring: (handler: any) => handler,
   errorMonitor: {
     captureException: jest.fn(),
@@ -56,7 +56,7 @@ function makeSelect(result: any[]) {
 
 // ── Import handler after mocks ──
 
-import handler from './reconcile-pools';
+import handler from '@/pages/api/cron/reconcile-pools';
 
 describe('reconcile-pools cron — phase 11 rewire', () => {
   const OLD_ENV = process.env;

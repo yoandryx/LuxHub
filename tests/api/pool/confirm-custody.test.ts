@@ -92,7 +92,7 @@ jest.mock('@/lib/models/Escrow', () => ({
 // ---------------------------------------------------------------------------
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import handler from './confirm-custody';
+import handler from '@/pages/api/pool/confirm-custody';
 
 // ---------------------------------------------------------------------------
 // Helpers

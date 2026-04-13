@@ -78,7 +78,7 @@ function mockRes() {
 
 // ── Import handler after mocks ──
 
-import handler from './bags';
+import handler from '@/pages/api/webhooks/bags';
 
 describe('bags webhook — phase 11 rewire', () => {
   const OLD_ENV = process.env;
