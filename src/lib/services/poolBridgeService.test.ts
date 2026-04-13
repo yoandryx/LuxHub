@@ -6,7 +6,7 @@ process.env.PROGRAM_ID = 'kW2w2pHhAP8hFGRLganziunchKu6tjaXyomvF6jxNpj';
 process.env.NEXT_PUBLIC_SQUADS_MSIG = '5hy7HgdqM3vCPPtBY8crXqDhy3DttBvzrY3rzWnVRZor';
 process.env.NEXT_PUBLIC_SOLANA_ENDPOINT = 'https://api.devnet.solana.com';
 process.env.NEXT_PUBLIC_SOLANA_NETWORK = 'devnet';
-process.env.TREASURY_POOLS = 'FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ';
+process.env.TREASURY_POOLS = '45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt';
 process.env.SQUADS_MEMBER_KEYPAIR_JSON = JSON.stringify([112,24,224,156,136,197,167,236,171,199,35,80,74,113,210,250,151,140,31,254,112,151,204,189,229,254,136,6,181,121,208,75,77,148,247,128,136,158,4,92,112,195,15,129,142,5,221,20,113,17,99,134,43,69,91,59,81,185,148,210,188,37,96,9]);
 
 // We use the real @solana/web3.js PublicKey (needs transformIgnorePatterns for uuid)
@@ -73,7 +73,7 @@ jest.mock('@sqds/multisig', () => {
     data: Buffer.alloc(0),
   };
   return {
-    getVaultPda: jest.fn().mockReturnValue([new PK('FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ')]),
+    getVaultPda: jest.fn().mockReturnValue([new PK('45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt')]),
     accounts: {
       Multisig: {
         fromAccountAddress: jest.fn().mockResolvedValue({ transactionIndex: 5 }),
@@ -108,7 +108,7 @@ jest.mock('@/lib/solana/clusterConfig', () => ({
 
 // Mock treasuryConfig
 jest.mock('@/lib/config/treasuryConfig', () => ({
-  getTreasury: jest.fn().mockReturnValue('FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ'),
+  getTreasury: jest.fn().mockReturnValue('45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt'),
 }));
 
 // Mock global fetch for Jupiter API
@@ -192,7 +192,7 @@ function mockJupiterResponses(expectedOutAmount: string = '2000000000') {
         swapInstruction: {
           programId: 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
           accounts: [
-            { pubkey: 'FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ', isSigner: true, isWritable: true },
+            { pubkey: '45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt', isSigner: true, isWritable: true },
           ],
           data: Buffer.from([1, 2, 3]).toString('base64'),
         },

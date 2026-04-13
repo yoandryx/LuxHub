@@ -48,7 +48,7 @@ jest.mock('@/lib/config/adminConfig', () => ({
 jest.mock('@/lib/config/treasuryConfig', () => ({
   getTreasury: (type: string) => {
     if (type === 'pools') return FAKE_VAULT;
-    return 'FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ';
+    return '45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt';
   },
 }));
 

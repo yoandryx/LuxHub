@@ -35,7 +35,7 @@ jest.mock('@/lib/models/TreasuryDeposit', () => ({
 
 jest.mock('@/lib/config/treasuryConfig', () => ({
   getTreasury: (type: string) => {
-    if (type === 'pools') return 'FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ';
+    if (type === 'pools') return '45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt';
     throw new Error(`Unknown treasury: ${type}`);
   },
 }));
@@ -72,7 +72,7 @@ import {
 
 const POOL_ID = new Types.ObjectId().toString();
 const TOKEN_MINT = '72DexAuaFcpDcLLZtu4mZMkYXa2USo4AyTGmuig8BAGS';
-const TREASURY_POOLS = 'FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ';
+const TREASURY_POOLS = '45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt';
 const TX_SIG = 'abc123txsig';
 
 function makePool(overrides: Record<string, any> = {}) {
