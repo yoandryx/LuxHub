@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
-status: Executing Phase 11
-stopped_at: Completed 11-15-PLAN.md
-last_updated: "2026-04-12T20:10:00.000Z"
-last_activity: 2026-04-12 — Wave E plan 11-15 complete. Webhooks + reconcile cron rewired for phase 11 fee-funded model, fail-loud Helius filter canary shipped.
+status: Executing Phase 07
+stopped_at: Completed quick task 260518-xbx — floating WalletNavbar widget deleted (2,862 lines), UserMenuDropdown now sole wallet UI
+last_updated: "2026-05-19T04:14:54Z"
+last_activity: 2026-05-19
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 41
-  completed_plans: 39
-  percent: 95
+  completed_plans: 40
 ---
 
 # Project State
@@ -21,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 11 — pool-fee-funded-rewire (supersedes phase 8)
+**Current focus:** Phase 07 — on-chain-flow-validation
 
 ## Current Position
 
-Phase: 11 (pool-fee-funded-rewire) — EXECUTING
-Plan: Wave 0 (11-00) + Wave A (11-01 through 11-04) + Wave B (11-05 through 11-08) complete. Wave C (11-09 through 11-11) executing.
+Phase: 07 (on-chain-flow-validation) — EXECUTING
+Plan: 1 of 2
 Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 
 ## Performance Metrics
@@ -80,6 +79,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P17 | 249s | 3 tasks | 3 files |
 | Phase 11 P16 | 12min | 5 tasks | 9 files |
 | Phase 11 P15 | 25min | 5 tasks | 11 files |
+| Phase 11 P18 | 16min | 6 tasks | 29 files |
 
 ## Accumulated Context
 
@@ -139,6 +139,10 @@ Recent decisions affecting current work:
 - [Phase 11-15]: Helius filter smoke test emits Sentry level=error (not warning) so on-call is paged; folded into daily drift-check-pool-fees cron to avoid a new Vercel cron slot
 - [Phase 11-15]: pool/finalize.ts + createPoolSquad deletion deferred to plan 11-18 (already scoped there) to keep plan 11-15 focused on the three rewired endpoints
 - [Phase 11-15]: new env var HELIUS_WEBHOOK_ID required for /api/internal/smoke-test-helius-filter canary
+- [Phase 11]: [Phase 11-18]: Migration script execution (Task 18.4) deferred to operator — non-reversible production data mutation requires operator-held mongodump backup. Procedure documented in 11-WAVE-0-FINDINGS.md.
+- [Phase 11]: [Phase 11-18]: Task 18.5 (remove legacy tokenStatus enum values) gated on operator confirming 18.4 migration ran cleanly — follow-up PR.
+- [Phase 11]: [Phase 11-18]: Phase 8 governance/wind-down/convert-from-escrow features deleted entirely — consistent with 11-CONTEXT.md Gray area 4 'Delete entirely' decision. Larger blast radius (22 files) than plan listed but required to satisfy Task 18.6 'zero matches'.
+- [Phase 11]: [Phase 11-18]: dasApi.getAllTokenHolders is canonical paginated holder snapshot function; getTopTokenHolders removed from both heliusService and squadsTransferService.
 
 ### Roadmap Evolution
 
@@ -151,19 +155,23 @@ None yet.
 ### Blockers/Concerns
 
 - ~~Bags partner config PDA — check if created on mainnet (user unsure)~~ RESOLVED 2026-04-12: PDA `9sgH...txXo` exists, env vars corrected.
-- **Post-deploy action (plan 11-15):** Update Helius webhook dashboard filter to include TREASURY_POOLS (`FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ`) in `accountAddresses`, and set `HELIUS_WEBHOOK_ID` env var in Vercel + .env.local + .env.mainnet. Verify post-deploy by calling `GET /api/internal/smoke-test-helius-filter` and expecting `{ ok: true }`. The daily drift-check-pool-fees cron will also surface any drift via Sentry level=error.
+- **Post-deploy action (plan 11-15):** Update Helius webhook dashboard filter to include TREASURY_POOLS (`45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt`) in `accountAddresses`, and set `HELIUS_WEBHOOK_ID` env var in Vercel + .env.local + .env.mainnet. Verify post-deploy by calling `GET /api/internal/smoke-test-helius-filter` and expecting `{ ok: true }`. The daily drift-check-pool-fees cron will also surface any drift via Sentry level=error.
 
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260405-c3k | Smoke test buy/sell on mainnet bonding curve (72DexA...BAGS) — audit + runbook | 2026-04-05 | 4da37dd | [260405-c3k-smoke-test-buy-sell-on-mainnet-bonding-c](./quick/260405-c3k-smoke-test-buy-sell-on-mainnet-bonding-c/) |
+| 260518-tcq | Hide pools feature pre-JC-Gold launch (nav + route guards) | 2026-05-19 | 9a2b038 | [260518-tcq-hide-pools-feature-pre-jc-gold-launch-na](./quick/260518-tcq-hide-pools-feature-pre-jc-gold-launch-na/) |
+| 260518-v69 | Remove vestigial Direct Sales tab from marketplace (TSX state/JSX + ~150 lines dead CSS) | 2026-05-18 | 4a6b2bc | [260518-v69-remove-vestigial-direct-sales-tab-from-m](./quick/260518-v69-remove-vestigial-direct-sales-tab-from-m/) |
+| 260518-w6h | Homepage polish — drop 50-particle canvas + WalletAwareness banner, match marketplace ambient bg | 2026-05-19 | 9da72d1 | [260518-w6h-homepage-polish-remove-particles-walleta](./quick/260518-w6h-homepage-polish-remove-particles-walleta/) |
+| 260518-xbx | Remove floating WalletNavbar widget conflict — 3 files / 2,862 lines deleted, _app.tsx scrubbed | 2026-05-19 | c08b009 | [260518-xbx-remove-floating-walletnavbar-widget-conf](./quick/260518-xbx-remove-floating-walletnavbar-widget-conf/) |
 
 ## Session Continuity
 
-Last activity: 2026-04-12 — Wave C complete. 11-11 (confirm-resale hook + DAS snapshot) done.
-Stopped at: Completed 11-16-PLAN.md
-Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
+Last activity: 2026-05-19 - Completed quick task 260518-xbx: Removed floating WalletNavbar widget (2,862 lines) — UserMenuDropdown now sole wallet UI
+Stopped at: Completed 11-18-PLAN.md — phase 11 code-complete
+Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `45L5fwfNLx6Y52nsd1SwcnUunPXDF8BLj1sETRCuwTtt` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
 
 ## 2026-04-10 — Phase 11 Context Captured
 
