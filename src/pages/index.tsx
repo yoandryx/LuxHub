@@ -8,7 +8,6 @@ import { FaLock, FaArrowRight, FaChartLine } from 'react-icons/fa';
 import { HiCube } from 'react-icons/hi2';
 import { MdVerified } from 'react-icons/md';
 import { SiSolana } from 'react-icons/si';
-import WalletAwareness from '../components/common/WalletAwareness';
 import Footer from '../components/common/Footer';
 import NFTCard from '../components/marketplace/NFTCard';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
@@ -84,7 +83,6 @@ export default function IndexTest() {
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [selectedBuyNFT, setSelectedBuyNFT] = useState<NFT | null>(null);
   const [selectedOfferNFT, setSelectedOfferNFT] = useState<NFT | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const pointerDownRef = useRef(false);
@@ -208,73 +206,6 @@ export default function IndexTest() {
     };
   }, [featuredNFTs.length, resetScrollLoop]);
 
-  // Floating particles animation
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles: Array<{
-      x: number;
-      y: number;
-      size: number;
-      speedX: number;
-      speedY: number;
-      opacity: number;
-    }> = [];
-
-    for (let i = 0; i < 50; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: Math.random() * 2 + 0.5,
-        speedX: (Math.random() - 0.5) * 0.3,
-        speedY: (Math.random() - 0.5) * 0.3,
-        opacity: Math.random() * 0.5 + 0.1,
-      });
-    }
-
-    let animationId: number;
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      particles.forEach((p) => {
-        p.x += p.speedX;
-        p.y += p.speedY;
-
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200, 161, 255, ${p.opacity})`;
-        ctx.fill();
-      });
-
-      animationId = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      cancelAnimationFrame(animationId);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
   // Fetch featured vendor listings (daily-randomized for fair display)
   useEffect(() => {
     const fetchNFTs = async () => {
@@ -311,8 +242,7 @@ export default function IndexTest() {
 
   return (
     <div className={styles.container}>
-      {/* Ambient floating particles */}
-      <canvas ref={canvasRef} className={styles.particleCanvas} />
+      <div className={styles.ambientBg} />
 
       {/* ===== NAVBAR ===== */}
       {/* <Navbar /> */}
@@ -385,9 +315,6 @@ export default function IndexTest() {
             </motion.nav>
           </div>
         </section>
-
-        {/* ===== WALLET AWARENESS - Post-connect capability prompt ===== */}
-        <WalletAwareness />
 
         {/* ===== FEATURED LISTINGS - Infinite Slider ===== */}
         <section id="featured" className={styles.sliderSection}>
