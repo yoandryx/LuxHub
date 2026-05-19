@@ -1040,7 +1040,11 @@ const PoolsPage: React.FC = () => {
 
 export default PoolsPage;
 
-// ISR: pre-render page shell at edge, revalidate every 30s
-export async function getStaticProps() {
-  return { props: {}, revalidate: 30 };
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: '/marketplace',
+      permanent: false,
+    },
+  };
 }

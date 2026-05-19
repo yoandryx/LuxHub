@@ -278,3 +278,12 @@ export default function VendorPoolsPage() {
     </>
   );
 }
+
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: '/marketplace',
+      permanent: false,
+    },
+  };
+}

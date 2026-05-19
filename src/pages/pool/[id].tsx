@@ -1,17 +1,14 @@
 // src/pages/pool/[id].tsx
-// Redirect from old /pool/[id] URL to new /pools/[id] dedicated page
-import { useRouter } from 'next/router';
-import { useEffect } from 'react';
-
+// Pool detail page hidden pre-launch — server-side redirect to /marketplace
 export default function PoolRedirect() {
-  const router = useRouter();
-  const { id } = router.query;
-
-  useEffect(() => {
-    if (id) {
-      router.replace(`/pools/${id}`);
-    }
-  }, [id, router]);
-
   return null;
+}
+
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: '/marketplace',
+      permanent: false,
+    },
+  };
 }

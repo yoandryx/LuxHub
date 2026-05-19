@@ -1002,3 +1002,12 @@ const PoolDetailV2Page: React.FC = () => {
 };
 
 export default PoolDetailV2Page;
+
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: '/marketplace',
+      permanent: false,
+    },
+  };
+}

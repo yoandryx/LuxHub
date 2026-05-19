@@ -403,3 +403,12 @@ const BagsPage: React.FC = () => {
 };
 
 export default BagsPage;
+
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: '/marketplace',
+      permanent: false,
+    },
+  };
+}
