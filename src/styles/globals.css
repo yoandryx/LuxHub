@@ -1,21 +1,4 @@
 /* styles/globals.css */
-@font-face {
-  font-family: 'Clash Display';
-  src: url('/fonts/ClashDisplay-Variable.ttf') format('truetype-variations'),
-       url('/fonts/ClashDisplay-Variable.ttf') format('truetype');
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Public Sans';
-  src: url('/fonts/PublicSans-Variable.ttf') format('truetype-variations'),
-       url('/fonts/PublicSans-Variable.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
   --background: linear-gradient(180deg, #0d0d0d, #1a1a1a);
   --foreground: #0d0d0d;
