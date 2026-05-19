@@ -19,7 +19,6 @@ import {
   HiOutlineChevronRight,
 } from 'react-icons/hi';
 import { FaStore } from 'react-icons/fa';
-import { HiOutlineBuildingStorefront } from 'react-icons/hi2';
 import { SiSolana } from 'react-icons/si';
 import styles from '../styles/Marketplace.module.css';
 import MakeOfferModal from '../components/marketplace/MakeOfferModal';
@@ -33,8 +32,6 @@ import { VendorCard } from '../components/common/VendorCard';
 import { useVendors, useEscrowListings, useSolPrice } from '../hooks/useSWR';
 
 // Types
-type MarketSection = 'direct_sales';
-
 interface EscrowListing {
   _id: string;
   escrowPda: string;
@@ -233,13 +230,6 @@ const MARKETPLACE_TOUR_STEPS: TourStep[] = [
     title: 'Verified Dealers',
     description:
       'Browse our network of authenticated luxury watch dealers. Each vendor is manually verified before listing on LuxHub. Click any dealer to view their full collection and reputation.',
-    position: 'bottom',
-  },
-  {
-    target: 'section-tabs',
-    title: 'Browse by Category',
-    description:
-      'Direct Sales are individual listings you can buy outright or make offers on.',
     position: 'bottom',
   },
   {
@@ -453,7 +443,6 @@ export default function Marketplace() {
 
   // View state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [activeSection, setActiveSection] = useState<MarketSection>('direct_sales');
   const [showFilters, setShowFilters] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -772,18 +761,6 @@ export default function Marketplace() {
             </div>
           </div>
 
-          {/* Section Tabs */}
-          <div className={styles.sectionTabs} data-tour="section-tabs">
-            <button
-              className={`${styles.sectionTab} ${activeSection === 'direct_sales' ? styles.activeTab : ''}`}
-              onClick={() => setActiveSection('direct_sales')}
-            >
-              <HiOutlineBuildingStorefront className={styles.tabIcon} />
-              <span>Direct Sales</span>
-              <span className={styles.tabCount}>{filteredListings.length}</span>
-            </button>
-          </div>
-
           {/* Top Bar */}
           <div className={styles.topBar}>
             {/* Search */}
@@ -867,7 +844,7 @@ export default function Marketplace() {
           {/* Content Area */}
           <div className={styles.contentArea}>
             {/* Sidebar Filters (Desktop) */}
-            {activeSection === 'direct_sales' && showFilters && (
+            {showFilters && (
               <FilterSidebar
                 groups={filterGroups}
                 activeCount={activeFilterCount}
@@ -931,108 +908,104 @@ export default function Marketplace() {
                 </div>
               )}
 
-              {/* Direct Sales Section */}
-              {activeSection === 'direct_sales' && (
-                <>
-                  {isLoading ? (
-                    <div className={styles.skeletonGrid}>
-                      {[...Array(8)].map((_, i) => (
-                        <div key={i} className={styles.skeletonCard}>
-                          <div className={styles.skeletonImage} />
-                          <div className={styles.skeletonContent}>
-                            <div className={styles.skeletonTitle} />
-                            <div className={styles.skeletonPrice} />
-                          </div>
-                        </div>
-                      ))}
+              {/* Listings */}
+              {isLoading ? (
+                <div className={styles.skeletonGrid}>
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className={styles.skeletonCard}>
+                      <div className={styles.skeletonImage} />
+                      <div className={styles.skeletonContent}>
+                        <div className={styles.skeletonTitle} />
+                        <div className={styles.skeletonPrice} />
+                      </div>
                     </div>
-                  ) : filteredListings.length > 0 ? (
-                    <motion.div
-                      className={styles.nftGrid}
-                      variants={containerVariants}
-                      initial="hidden"
-                      animate="visible"
-                      key={`${sortBy}-${activeFilterCount}`}
-                    >
-                      {filteredListings.map((listing: EscrowListing) => {
-                        const isDemo = listing._id.startsWith('demo_');
-                        const priceSol = parseFloat(formatSol(listing.listingPriceUSD || 0));
-                        const walletAddr = wallet.publicKey?.toBase58();
-                        const isOwnListing = !!(
-                          walletAddr &&
-                          (listing.sellerWallet === walletAddr ||
-                            listing.vendorWallet === walletAddr)
-                        );
-                        return (
-                          <motion.div
-                            key={listing._id}
-                            className={styles.cardWrapper}
-                            variants={cardVariants}
-                          >
-                            {isDemo && <span className={styles.demoBadge}>Demo</span>}
-                            <UnifiedNFTCard
-                              title={listing.asset?.model || 'Unknown Watch'}
-                              image={resolveImage(listing)}
-                              price={listing.listingPriceUSD || 0}
-                              priceLabel="USD"
-                              subtitle={solPrice ? `${priceSol} SOL` : undefined}
-                              mintAddress={listing.nftMint}
-                              owner={listing.sellerWallet}
-                              brand={listing.asset?.brand}
-                              model={listing.asset?.model}
-                              material={listing.asset?.material}
-                              dialColor={listing.asset?.dialColor}
-                              caseSize={listing.asset?.caseSize}
-                              condition={listing.asset?.condition}
-                              status={
-                                listing.status === 'offer_accepted' &&
-                                listing.buyerWallet === wallet.publicKey?.toBase58()
-                                  ? 'escrow'
-                                  : 'listed'
-                              }
-                              isVerified={listing.vendor?.verified}
-                              acceptingOffers={
-                                listing.status !== 'offer_accepted' && listing.acceptingOffers
-                              }
-                              showBadge={true}
-                              showPrice={true}
-                              showOverlay={true}
-                              showActionButtons={!isOwnListing}
-                              onQuickBuy={
-                                isOwnListing
-                                  ? undefined
-                                  : () => {
-                                      if (isDemo) return handleDemoClick(listing);
-                                      handleBuy(listing);
-                                    }
-                              }
-                              onOffer={
-                                isOwnListing
-                                  ? undefined
-                                  : listing.escrowPda && listing.status !== 'offer_accepted'
-                                    ? () =>
-                                        isDemo ? handleDemoClick(listing) : handleOffer(listing)
-                                    : undefined
-                              }
-                              onViewDetails={() =>
-                                isDemo ? handleDemoClick(listing) : handleViewDetails(listing)
-                              }
-                            />
-                          </motion.div>
-                        );
-                      })}
-                    </motion.div>
-                  ) : (
-                    <div className={styles.emptyState}>
-                      <HiOutlineCube className={styles.emptyIcon} />
-                      <h3>No watches found</h3>
-                      <p>Try adjusting your filters or search query</p>
-                      <button className={styles.clearFiltersBtn} onClick={clearFilters}>
-                        Clear All Filters
-                      </button>
-                    </div>
-                  )}
-                </>
+                  ))}
+                </div>
+              ) : filteredListings.length > 0 ? (
+                <motion.div
+                  className={styles.nftGrid}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  key={`${sortBy}-${activeFilterCount}`}
+                >
+                  {filteredListings.map((listing: EscrowListing) => {
+                    const isDemo = listing._id.startsWith('demo_');
+                    const priceSol = parseFloat(formatSol(listing.listingPriceUSD || 0));
+                    const walletAddr = wallet.publicKey?.toBase58();
+                    const isOwnListing = !!(
+                      walletAddr &&
+                      (listing.sellerWallet === walletAddr ||
+                        listing.vendorWallet === walletAddr)
+                    );
+                    return (
+                      <motion.div
+                        key={listing._id}
+                        className={styles.cardWrapper}
+                        variants={cardVariants}
+                      >
+                        {isDemo && <span className={styles.demoBadge}>Demo</span>}
+                        <UnifiedNFTCard
+                          title={listing.asset?.model || 'Unknown Watch'}
+                          image={resolveImage(listing)}
+                          price={listing.listingPriceUSD || 0}
+                          priceLabel="USD"
+                          subtitle={solPrice ? `${priceSol} SOL` : undefined}
+                          mintAddress={listing.nftMint}
+                          owner={listing.sellerWallet}
+                          brand={listing.asset?.brand}
+                          model={listing.asset?.model}
+                          material={listing.asset?.material}
+                          dialColor={listing.asset?.dialColor}
+                          caseSize={listing.asset?.caseSize}
+                          condition={listing.asset?.condition}
+                          status={
+                            listing.status === 'offer_accepted' &&
+                            listing.buyerWallet === wallet.publicKey?.toBase58()
+                              ? 'escrow'
+                              : 'listed'
+                          }
+                          isVerified={listing.vendor?.verified}
+                          acceptingOffers={
+                            listing.status !== 'offer_accepted' && listing.acceptingOffers
+                          }
+                          showBadge={true}
+                          showPrice={true}
+                          showOverlay={true}
+                          showActionButtons={!isOwnListing}
+                          onQuickBuy={
+                            isOwnListing
+                              ? undefined
+                              : () => {
+                                  if (isDemo) return handleDemoClick(listing);
+                                  handleBuy(listing);
+                                }
+                          }
+                          onOffer={
+                            isOwnListing
+                              ? undefined
+                              : listing.escrowPda && listing.status !== 'offer_accepted'
+                                ? () =>
+                                    isDemo ? handleDemoClick(listing) : handleOffer(listing)
+                                : undefined
+                          }
+                          onViewDetails={() =>
+                            isDemo ? handleDemoClick(listing) : handleViewDetails(listing)
+                          }
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+              ) : (
+                <div className={styles.emptyState}>
+                  <HiOutlineCube className={styles.emptyIcon} />
+                  <h3>No watches found</h3>
+                  <p>Try adjusting your filters or search query</p>
+                  <button className={styles.clearFiltersBtn} onClick={clearFilters}>
+                    Clear All Filters
+                  </button>
+                </div>
               )}
 
             </div>
