@@ -2810,7 +2810,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className={styles.dashboard}>
-      {/* FAB Nav Bubble — gradient-border pill matching AI Assistant & WalletNavbar */}
+      {/* FAB Nav Bubble — gradient-border pill matching AI Assistant */}
       <div className={styles.fabContainer}>
         <div className={styles.fabLabel}>
           {[...navItems, ...nftNavItems, ...securityNavItems].find((i) => i.id === tabIndex)

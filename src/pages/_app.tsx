@@ -12,8 +12,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 // import { EscrowProvider } from "../context/src/EscrowContext";
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
-import WalletNavbar from '../components/common/WalletNavbar';
-import WalletNavbarSimple from '../components/common/WalletNavbarSimple';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Fallback } from '../components/common/Fallback';
 import '../styles/globals.css';
@@ -115,8 +113,7 @@ const App = ({ Component, pageProps }: AppProps) => {
   }, [hasValidPrivyId]);
 
   // Inner content wrapped with providers
-  // WalletNavbar uses Privy hooks, so we use WalletNavbarSimple when Privy is not configured
-  const createInnerContent = (usePrivyWallet: boolean) => (
+  const createInnerContent = () => (
     <PriceDisplayProvider>
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect>
@@ -150,7 +147,6 @@ const App = ({ Component, pageProps }: AppProps) => {
                 },
               }}
             />
-            {usePrivyWallet ? <WalletNavbar /> : <WalletNavbarSimple />}
             <Component {...pageProps} />
             <VendorFab />
             <LuxuryAssistant />
@@ -206,10 +202,10 @@ const App = ({ Component, pageProps }: AppProps) => {
               },
             }}
           >
-            {createInnerContent(true)}
+            {createInnerContent()}
           </PrivyProvider>
         ) : (
-          createInnerContent(false)
+          createInnerContent()
         )}
       </ErrorBoundary>
     </ClusterErrorBoundary>
