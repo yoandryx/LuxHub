@@ -9,7 +9,6 @@ import {
   FaChevronDown,
   FaExternalLinkAlt,
   FaGem,
-  FaChartLine,
   FaUsers,
   FaShoppingBag,
   FaUser,
@@ -134,7 +133,6 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
         label: 'Vendor Tools',
         items: [
           { href: '/vendor/vendorDashboard', label: 'Vendor Dashboard', icon: <FaStore />, roles: ['vendor', 'admin'] },
-          { href: '/vendor/pools', label: 'My Pools', icon: <FaChartLine />, roles: ['vendor', 'admin'] },
           { href: '/vendor/vendorDashboard?tab=inventory', label: 'Add Listing', icon: <FaPlus />, roles: ['vendor', 'admin'] },
         ],
       });
@@ -143,7 +141,6 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
       label: 'Browse',
       items: [
         { href: '/marketplace', label: 'Marketplace', icon: <FaGem />, roles: ['user', 'vendor', 'admin'] },
-        { href: '/pools', label: 'Pools', icon: <FaChartLine />, roles: ['user', 'vendor', 'admin'] },
         { href: '/vendors', label: 'Vendors', icon: <FaUsers />, roles: ['user', 'vendor', 'admin'] },
       ],
     });

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { FaTimes } from 'react-icons/fa';
 import { CiSearch } from 'react-icons/ci';
-import { FaGem, FaStore, FaChartPie, FaTag } from 'react-icons/fa';
+import { FaGem, FaStore, FaTag } from 'react-icons/fa';
 import NotificationBell from './NotificationBell';
 import { useUserRole } from '@/hooks/useUserRole';
 
@@ -17,7 +17,7 @@ const UserMenuDropdown = dynamic(() => import('./UserMenuDropdown'), {
 });
 
 interface SearchResult {
-  type: 'asset' | 'vendor' | 'pool' | 'listing';
+  type: 'asset' | 'vendor' | 'listing';
   id: string;
   title: string;
   subtitle: string;
@@ -28,14 +28,12 @@ interface SearchResult {
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   asset: <FaGem />,
   vendor: <FaStore />,
-  pool: <FaChartPie />,
   listing: <FaTag />,
 };
 
 const TYPE_LABELS: Record<string, string> = {
   asset: 'Asset',
   vendor: 'Vendor',
-  pool: 'Pool',
   listing: 'Listing',
 };
 
@@ -57,7 +55,6 @@ export default function Navbar() {
   const navLinks = useMemo(() => {
     const links: { href: string; label: string }[] = [
       { href: '/marketplace', label: 'Marketplace' },
-      { href: '/pools', label: 'Pools' },
     ];
     if (isConnected) links.push({ href: '/orders', label: 'Orders' });
     if (isVendor) links.push({ href: '/vendor/vendorDashboard', label: 'Dashboard' });
@@ -194,7 +191,7 @@ export default function Navbar() {
               <CiSearch className={styles.searchIcon} />
               <input
                 type="text"
-                placeholder="Search watches, vendors, pools..."
+                placeholder="Search watches, vendors..."
                 className={styles.searchBar}
                 value={query}
                 onChange={(e) => handleSearch(e.target.value)}

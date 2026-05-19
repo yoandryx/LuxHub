@@ -326,11 +326,6 @@ const EscrowDetailPage: React.FC = () => {
                     )}
                   </>
                 )}
-                {escrow.convertedToPool && escrow.poolId && (
-                  <Link href={`/pool/${escrow.poolId}`} className={styles.poolButton}>
-                    <FaUsers /> View Asset Pool
-                  </Link>
-                )}
               </div>
             </div>
 

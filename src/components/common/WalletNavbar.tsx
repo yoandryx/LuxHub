@@ -17,7 +17,6 @@ import {
   FaWandMagicSparkles,
   FaRotate,
   FaBoxesStacked,
-  FaChartLine,
   FaClipboardList,
   FaCircleCheck,
   FaBoxOpen,
@@ -673,10 +672,6 @@ export default function WalletNavbar() {
                   <FaBoxesStacked />
                   <span>Browse</span>
                 </button>
-                <button onClick={() => navigateTo('/pools')} className={styles.quickAction}>
-                  <FaChartLine />
-                  <span>Pools</span>
-                </button>
                 <button
                   onClick={() => navigateTo(`/user/${activePublicKey!.toBase58()}`)}
                   className={styles.quickAction}
@@ -740,13 +735,6 @@ export default function WalletNavbar() {
                     <FaFileCirclePlus />
                     <span>Upload</span>
                     {pendingMintRequests > 0 && <span className={styles.badge}>{pendingMintRequests}</span>}
-                  </button>
-                  <button
-                    onClick={() => navigateTo('/vendor/pools')}
-                    className={styles.quickAction}
-                  >
-                    <FaChartLine />
-                    <span>Pools</span>
                   </button>
                 </div>
               </div>

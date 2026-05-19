@@ -6,7 +6,6 @@ import {
   FaWallet,
   FaSignOutAlt,
   FaStore,
-  FaSwimmingPool,
   FaUsers,
   FaInfoCircle,
 } from 'react-icons/fa';
@@ -154,10 +153,6 @@ function MobileDrawer({ isOpen, onClose, balance }: MobileDrawerProps) {
                   <FaStore className={styles.primaryLinkIcon} />
                   <span className={styles.primaryLinkLabel}>Marketplace</span>
                 </Link>
-                <Link href="/pools" className={styles.primaryLink} onClick={handleLinkClick}>
-                  <FaSwimmingPool className={styles.primaryLinkIcon} />
-                  <span className={styles.primaryLinkLabel}>Investment Pools</span>
-                </Link>
                 <Link href="/vendors" className={styles.primaryLink} onClick={handleLinkClick}>
                   <FaUsers className={styles.primaryLinkIcon} />
                   <span className={styles.primaryLinkLabel}>Vendors</span>
@@ -202,10 +197,6 @@ function MobileDrawer({ isOpen, onClose, balance }: MobileDrawerProps) {
                 <Link href="/marketplace" className={styles.primaryLink} onClick={handleLinkClick}>
                   <FaStore className={styles.primaryLinkIcon} />
                   <span className={styles.primaryLinkLabel}>Marketplace</span>
-                </Link>
-                <Link href="/pools" className={styles.primaryLink} onClick={handleLinkClick}>
-                  <FaSwimmingPool className={styles.primaryLinkIcon} />
-                  <span className={styles.primaryLinkLabel}>Pools</span>
                 </Link>
                 <Link href="/vendors" className={styles.primaryLink} onClick={handleLinkClick}>
                   <FaUsers className={styles.primaryLinkIcon} />

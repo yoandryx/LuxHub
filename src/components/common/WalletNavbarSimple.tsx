@@ -20,7 +20,6 @@ import {
   FaWandMagicSparkles,
   FaRotate,
   FaBoxesStacked,
-  FaChartLine,
   FaClipboardList,
   FaRightFromBracket,
   FaCircleCheck,
@@ -283,9 +282,6 @@ export default function WalletNavbarSimple() {
               <div className={styles.menuList}>
                 <button onClick={() => navigateTo('/marketplace')} className={styles.menuItem}>
                   <FaBoxesStacked /> Marketplace
-                </button>
-                <button onClick={() => navigateTo('/pools')} className={styles.menuItem}>
-                  <FaChartLine /> Pools
                 </button>
                 <button
                   onClick={() => navigateTo(`/user/${publicKey.toBase58()}`)}

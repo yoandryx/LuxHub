@@ -59,7 +59,6 @@ export default function Footer() {
           <h4>Marketplace</h4>
           <Link href="/">Home</Link>
           <Link href="/marketplace">Browse Watches</Link>
-          <Link href="/pools">Pools</Link>
           <Link href="/learnMore">How It Works</Link>
           <Link href="/security">Security & Trust</Link>
         </div>

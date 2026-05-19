@@ -18,9 +18,8 @@ import {
   HiOutlineChevronDown,
   HiOutlineChevronRight,
 } from 'react-icons/hi';
-import { FaStore, FaUsers, FaLock, FaChartLine } from 'react-icons/fa';
+import { FaStore } from 'react-icons/fa';
 import { HiOutlineBuildingStorefront } from 'react-icons/hi2';
-import { BiTargetLock } from 'react-icons/bi';
 import { SiSolana } from 'react-icons/si';
 import styles from '../styles/Marketplace.module.css';
 import MakeOfferModal from '../components/marketplace/MakeOfferModal';
@@ -31,10 +30,10 @@ import PriceRangeSlider from '../components/marketplace/PriceRangeSlider';
 import { NftDetailCard } from '../components/marketplace/NftDetailCard';
 import UnifiedNFTCard from '../components/common/UnifiedNFTCard';
 import { VendorCard } from '../components/common/VendorCard';
-import { useVendors, usePools, useEscrowListings, useSolPrice } from '../hooks/useSWR';
+import { useVendors, useEscrowListings, useSolPrice } from '../hooks/useSWR';
 
 // Types
-type MarketSection = 'direct_sales' | 'pools' | 'custody';
+type MarketSection = 'direct_sales';
 
 interface EscrowListing {
   _id: string;
@@ -82,58 +81,6 @@ interface EscrowListing {
   };
 }
 
-interface Pool {
-  _id: string;
-  poolNumber?: string;
-  targetAmountUSD: number;
-  sharesSold: number;
-  totalShares: number;
-  sharePriceUSD: number;
-  minBuyInUSD: number;
-  maxInvestors: number;
-  projectedROI: number;
-  status: string;
-  createdAt: string;
-  vendorWallet?: string;
-  participants?: Array<{ wallet: string }>;
-  asset?: {
-    _id?: string;
-    imageUrl?: string;
-    imageIpfsUrls?: string[];
-    images?: string[];
-    arweaveTxId?: string;
-    brand?: string;
-    model?: string;
-    description?: string;
-    priceUSD?: number;
-  };
-  vendor?: { businessName?: string };
-  // Computed helpers
-  title?: string;
-  brand?: string;
-  model?: string;
-  description?: string;
-  image?: string;
-  currentAmountUSD?: number;
-  currentInvestors?: number;
-}
-
-interface CustodyItem {
-  _id: string;
-  poolId: string;
-  title: string;
-  description: string;
-  image: string;
-  originalPurchaseUSD: number;
-  resaleListingPriceUSD: number;
-  resaleListingPriceSol: number;
-  totalInvestors: number;
-  projectedProfitPercent: number;
-  brand: string;
-  model: string;
-  status: string;
-}
-
 // Filter options
 const BRANDS = [
   'Rolex',
@@ -159,7 +106,6 @@ const SORT_OPTIONS = [
 // Import shared image utilities for consistent gateway handling
 import {
   resolveAssetImage,
-  resolvePoolImage,
   handleImageError,
   PLACEHOLDER_IMAGE,
 } from '../utils/imageUtils';
@@ -293,7 +239,7 @@ const MARKETPLACE_TOUR_STEPS: TourStep[] = [
     target: 'section-tabs',
     title: 'Browse by Category',
     description:
-      'Direct Sales are individual listings you can buy outright or make offers on. Pools let you participate in tokenized group ownership. Custody shows watches currently held in secure storage awaiting resale.',
+      'Direct Sales are individual listings you can buy outright or make offers on.',
     position: 'bottom',
   },
   {
@@ -467,8 +413,6 @@ export default function Marketplace() {
     isLoading: isLoadingListings,
     mutate: mutateListings,
   } = useEscrowListings('listed,initiated,offer_accepted', 100);
-  const { pools: openPools, isLoading: isLoadingPools } = usePools('open');
-  const { pools: listedPools, isLoading: isLoadingCustody } = usePools('listed');
   const { price: solPrice } = useSolPrice();
 
   // Auto-open pay modal when arriving from accepted offer notification (?pay=escrowPda)
@@ -695,48 +639,6 @@ export default function Marketplace() {
     sortBy,
   ]);
 
-  // Filter pools
-  const filteredPools = useMemo(() => {
-    let result = openPools as Pool[];
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (p: Pool) =>
-          p.asset?.model?.toLowerCase().includes(query) ||
-          p.asset?.brand?.toLowerCase().includes(query) ||
-          p.title?.toLowerCase().includes(query) ||
-          p.brand?.toLowerCase().includes(query)
-      );
-    }
-
-    if (selectedBrands.length) {
-      result = result.filter((p: Pool) => selectedBrands.includes(p.asset?.brand || p.brand || ''));
-    }
-
-    return result;
-  }, [openPools, searchQuery, selectedBrands]);
-
-  // Transform listed pools to custody items
-  const custodyItems: CustodyItem[] = useMemo(() => {
-    return (listedPools as Pool[]).map((pool) => ({
-      _id: pool._id,
-      poolId: pool._id,
-      title: pool.asset?.model || pool.model || 'Luxury Item',
-      description:
-        pool.asset?.description || pool.description || 'Verified item in LuxHub custody.',
-      image: resolvePoolImage(pool),
-      originalPurchaseUSD: pool.targetAmountUSD,
-      resaleListingPriceUSD: pool.targetAmountUSD * 1.15, // 15% markup
-      resaleListingPriceSol: (pool.targetAmountUSD * 1.15) / (solPrice || 100),
-      totalInvestors: new Set(pool.participants?.map((p) => p.wallet) || []).size,
-      projectedProfitPercent: 15,
-      brand: pool.asset?.brand || pool.brand || '',
-      model: pool.asset?.model || pool.model || '',
-      status: 'listed',
-    }));
-  }, [listedPools, solPrice]);
-
   // Filter vendors by search
   const filteredVendors = useMemo(() => {
     if (!searchQuery)
@@ -879,22 +781,6 @@ export default function Marketplace() {
               <HiOutlineBuildingStorefront className={styles.tabIcon} />
               <span>Direct Sales</span>
               <span className={styles.tabCount}>{filteredListings.length}</span>
-            </button>
-            <button
-              className={`${styles.sectionTab} ${activeSection === 'pools' ? styles.activeTab : ''}`}
-              onClick={() => setActiveSection('pools')}
-            >
-              <FaUsers className={styles.tabIcon} />
-              <span>Pools</span>
-              <span className={styles.tabCount}>{filteredPools.length}</span>
-            </button>
-            <button
-              className={`${styles.sectionTab} ${activeSection === 'custody' ? styles.activeTab : ''}`}
-              onClick={() => setActiveSection('custody')}
-            >
-              <FaLock className={styles.tabIcon} />
-              <span>Custody</span>
-              <span className={styles.tabCount}>{custodyItems.length}</span>
             </button>
           </div>
 
@@ -1149,169 +1035,6 @@ export default function Marketplace() {
                 </>
               )}
 
-              {/* Asset Pools Section */}
-              {activeSection === 'pools' && (
-                <>
-                  <span className={styles.sectionLabel}>Asset Pools</span>
-
-                  {isLoadingPools ? (
-                    <div className={styles.poolGrid}>
-                      {[...Array(4)].map((_, i) => (
-                        <div key={i} className={styles.skeletonCard}>
-                          <div className={styles.skeletonImage} />
-                          <div className={styles.skeletonContent}>
-                            <div className={styles.skeletonTitle} />
-                            <div className={styles.skeletonPrice} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : filteredPools.length > 0 ? (
-                    <div className={styles.poolGrid}>
-                      {filteredPools.map((pool: Pool) => {
-                        const raisedUSD = pool.sharesSold * pool.sharePriceUSD;
-                        const fundingPercent =
-                          pool.targetAmountUSD > 0
-                            ? Math.round((raisedUSD / pool.targetAmountUSD) * 100)
-                            : 0;
-                        const brand = pool.asset?.brand || pool.brand || '';
-                        const model = pool.asset?.model || pool.model || 'Luxury Watch';
-                        const holders = new Set(pool.participants?.map((p) => p.wallet) || []).size;
-                        return (
-                          <div key={pool._id} className={styles.poolCard}>
-                            <div className={styles.poolImageWrapper}>
-                              <img
-                                src={resolvePoolImage(pool)}
-                                alt={model}
-                                className={styles.poolImage}
-                                onError={handleImageError}
-                              />
-                              {brand && <div className={styles.poolBrand}>{brand}</div>}
-                            </div>
-                            <div className={styles.poolContent}>
-                              <h4 className={styles.poolTitle}>{model}</h4>
-                              {brand && <p className={styles.poolModel}>{brand}</p>}
-
-                              <div className={styles.progressSection}>
-                                <div className={styles.progressHeader}>
-                                  <span>Funding</span>
-                                  <span className={styles.progressPercent}>{fundingPercent}%</span>
-                                </div>
-                                <div className={styles.progressBarTrack}>
-                                  <div
-                                    className={styles.progressBarFill}
-                                    style={{ width: `${Math.min(fundingPercent, 100)}%` }}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className={styles.poolStats}>
-                                <div className={styles.poolStat}>
-                                  <BiTargetLock />
-                                  <span>${pool.targetAmountUSD.toLocaleString()}</span>
-                                </div>
-                                <div className={styles.poolStat}>
-                                  <FaUsers />
-                                  <span>{holders} holders</span>
-                                </div>
-                                <div className={styles.poolStat}>
-                                  <FaChartLine />
-                                  <span>{((pool.projectedROI - 1) * 100).toFixed(0)}% Est.</span>
-                                </div>
-                              </div>
-
-                              <Link href={`/pool/${pool._id}`} className={styles.investButton}>
-                                Join Pool
-                              </Link>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className={styles.emptyState}>
-                      <FaUsers className={styles.emptyIcon} />
-                      <h3>No active pools</h3>
-                      <p>New pool opportunities coming soon</p>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Custody Section */}
-              {activeSection === 'custody' && (
-                <>
-                  <span className={styles.sectionLabel}>Custody</span>
-
-                  {isLoadingCustody ? (
-                    <div className={styles.custodyGrid}>
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className={styles.skeletonCard}>
-                          <div className={styles.skeletonImage} />
-                          <div className={styles.skeletonContent}>
-                            <div className={styles.skeletonTitle} />
-                            <div className={styles.skeletonPrice} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : custodyItems.length > 0 ? (
-                    <div className={styles.custodyGrid}>
-                      {custodyItems.map((item) => (
-                        <div key={item._id} className={styles.custodyCard}>
-                          <div className={styles.custodyBadge}>
-                            <FaLock /> In Custody
-                          </div>
-                          <div className={styles.custodyImageWrapper}>
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className={styles.custodyImage}
-                              onError={handleImageError}
-                            />
-                          </div>
-                          <div className={styles.custodyContent}>
-                            <div className={styles.custodyBrandLabel}>{item.brand}</div>
-                            <h4 className={styles.custodyTitle}>{item.title}</h4>
-
-                            <div className={styles.custodyPricing}>
-                              <div className={styles.custodyPrice}>
-                                <span>Resale:</span>
-                                <span className={styles.priceHighlight}>
-                                  ${item.resaleListingPriceUSD.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className={styles.custodySol}>
-                                <SiSolana />
-                                <span>{item.resaleListingPriceSol.toFixed(1)} SOL</span>
-                              </div>
-                            </div>
-
-                            <div className={styles.custodyStats}>
-                              <span>
-                                <FaUsers /> {item.totalInvestors} participants
-                              </span>
-                              <span className={styles.profitBadge}>
-                                <FaChartLine /> +{item.projectedProfitPercent}% est.
-                              </span>
-                            </div>
-
-                            <Link href={`/pool/${item.poolId}`} className={styles.purchaseButton}>
-                              Purchase & Distribute
-                            </Link>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={styles.emptyState}>
-                      <FaLock className={styles.emptyIcon} />
-                      <h3>No custody items</h3>
-                      <p>Items appear here once pools are fully funded</p>
-                    </div>
-                  )}
-                </>
-              )}
             </div>
           </div>
         </main>

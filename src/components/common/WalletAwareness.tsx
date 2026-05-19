@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
-import { FiTag, FiPackage, FiGrid, FiTrendingUp, FiCheck } from 'react-icons/fi';
+import { FiTag, FiPackage, FiGrid, FiCheck } from 'react-icons/fi';
 import styles from '../../styles/WalletAwareness.module.css';
 
 const DISMISS_KEY = 'wallet-awareness-dismissed';
@@ -52,12 +52,6 @@ const WalletAwareness: React.FC = () => {
       title: 'Your Portfolio',
       desc: 'View your NFT holdings',
       href: `/user/${walletAddress}`,
-    },
-    {
-      icon: FiTrendingUp,
-      title: 'Join Pools',
-      desc: 'Co-own premium assets',
-      href: '/pools',
     },
   ];
 

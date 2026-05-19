@@ -83,13 +83,6 @@ const PlatformSettingsPanel = lazy(() =>
 const AssetCleanupPanel = lazy(() => import('../components/admins/AssetCleanupPanel'));
 const DelistRequestsPanel = lazy(() => import('../components/admins/DelistRequestsPanel'));
 const MintRequestsPanel = lazy(() => import('../components/admins/MintRequestsPanel'));
-const PoolManagementPanel = lazy(() =>
-  import('../components/pool/PoolManagement').then((m) => ({ default: m.PoolManagement }))
-);
-const PoolCreationStepperPanel = lazy(() =>
-  import('../components/pool/PoolCreationStepper').then((m) => ({ default: m.PoolCreationStepper }))
-);
-
 // Loading fallback for lazy components
 const TabLoader = () => <div className={styles.loadingTab}>Loading...</div>;
 // Squads multisig loaded dynamically where needed to reduce bundle size
@@ -282,8 +275,6 @@ const AdminDashboard: React.FC = () => {
 
   // Squads Protocol state
   const [squadsProposals, setSquadsProposals] = useState<SquadsProposal[]>([]);
-  const [allPools, setAllPools] = useState<any[]>([]);
-  const [showPoolCreator, setShowPoolCreator] = useState(false);
   const [squadsLoading, setSquadsLoading] = useState(false);
   const [squadsFilter, setSquadsFilter] = useState<string>('pending');
   const [squadsMultisigInfo, setSquadsMultisigInfo] = useState<{
@@ -721,16 +712,6 @@ const AdminDashboard: React.FC = () => {
   // ------------------------------------------------
   // Refresh Data Fetch Logic
   // ------------------------------------------------
-  const fetchAllPools = async () => {
-    try {
-      const res = await fetch('/api/pool/list');
-      if (res.ok) {
-        const data = await res.json();
-        setAllPools(data.pools || []);
-      }
-    } catch { /* silent */ }
-  };
-
   const refreshData = async () => {
     setLoading(true);
     await Promise.all([
@@ -741,7 +722,6 @@ const AdminDashboard: React.FC = () => {
       fetchSquadsMultisigInfo(),
       fetchAuthorizedAdmins(),
       fetchPendingCounts(),
-      fetchAllPools(),
     ]);
     setLoading(false);
   };
@@ -2727,55 +2707,6 @@ const AdminDashboard: React.FC = () => {
             <MintRequestsPanel />
           </Suspense>
         );
-      case 17: // Pools Management
-        return (
-          <Suspense fallback={<TabLoader />}>
-            <PoolManagementPanel
-              pools={allPools}
-              isAdmin={true}
-              onRefresh={refreshData}
-              onCreatePool={() => setShowPoolCreator(true)}
-            />
-            {showPoolCreator && (
-              <div style={{
-                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
-                backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', zIndex: 10000, padding: '20px',
-              }}
-                onClick={() => setShowPoolCreator(false)}
-              >
-                <div
-                  style={{
-                    background: '#0a0a0c', borderRadius: '16px', border: '1px solid #222',
-                    padding: '24px', maxWidth: '600px', width: '100%', maxHeight: '90vh',
-                    overflowY: 'auto',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ color: '#c8a1ff', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', opacity: 0.6 }}>
-                      Create Pool for Vendor
-                    </span>
-                    <button
-                      onClick={() => setShowPoolCreator(false)}
-                      style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.48)', cursor: 'pointer', fontSize: '16px' }}
-                    >
-                      <HiOutlineX />
-                    </button>
-                  </div>
-                  <Suspense fallback={<TabLoader />}>
-                    <PoolCreationStepperPanel
-                      adminMode={true}
-                      vendorWallet={publicKey?.toBase58() || ''}
-                      onComplete={() => { setShowPoolCreator(false); refreshData(); }}
-                      onCancel={() => setShowPoolCreator(false)}
-                    />
-                  </Suspense>
-                </div>
-              </div>
-            )}
-          </Suspense>
-        );
       default:
         return null;
     }
@@ -2788,7 +2719,6 @@ const AdminDashboard: React.FC = () => {
     { id: 2, label: 'Active Escrows', icon: HiOutlineLockClosed, badge: activeEscrows.length },
     { id: 10, label: 'Shipments', icon: HiOutlineTruck },
     { id: 11, label: 'Pool Custody', icon: HiOutlineCube },
-    { id: 17, label: 'Pools', icon: HiOutlineCash, badge: allPools.length },
   ];
 
   const nftNavItems = [

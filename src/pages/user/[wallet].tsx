@@ -17,7 +17,6 @@ import {
   FaRegCircleCheck,
 } from 'react-icons/fa6';
 import { IoGridOutline, IoBookmarkOutline } from 'react-icons/io5';
-import { FiPieChart } from 'react-icons/fi';
 
 // Generate a deterministic gradient from wallet address
 const GRADIENT_PALETTES = [
@@ -96,7 +95,7 @@ const UserProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'nfts' | 'pools'>('nfts');
+  const [activeTab, setActiveTab] = useState<'nfts'>('nfts');
 
   const walletStr = typeof routeWallet === 'string' ? routeWallet : '';
   const isOwnProfile = connectedPublicKey?.toBase58() === walletStr;
@@ -315,16 +314,6 @@ const UserProfilePage = () => {
                   <span className={styles.statValue}>{data.stats.totalNFTValueSOL.toFixed(1)}</span>
                   <span className={styles.statLabel}>SOL Value</span>
                 </div>
-                <div className={styles.statBadge}>
-                  <span className={styles.statValue}>{data.stats.activePools}</span>
-                  <span className={styles.statLabel}>Pools</span>
-                </div>
-                <div className={styles.statBadge}>
-                  <span className={styles.statValue}>
-                    ${data.stats.totalPoolInvested.toFixed(0)}
-                  </span>
-                  <span className={styles.statLabel}>Contributed</span>
-                </div>
               </div>
             </div>
           </motion.div>
@@ -338,22 +327,11 @@ const UserProfilePage = () => {
               <IoGridOutline />
               <span>HOLDINGS ({data.nfts.length})</span>
             </button>
-            <button
-              className={`${styles.tabItem} ${activeTab === 'pools' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('pools')}
-            >
-              <FiPieChart />
-              <span>POOLS ({data.pools.length})</span>
-            </button>
           </div>
 
           {/* Section Heading */}
           <div className={styles.sectionHeading}>
-            <h2>
-              {activeTab === 'nfts'
-                ? `Collection (${data.nfts.length})`
-                : `Pool Positions (${data.pools.length})`}
-            </h2>
+            <h2>Collection ({data.nfts.length})</h2>
           </div>
 
           {/* NFT Grid */}
@@ -393,82 +371,6 @@ const UserProfilePage = () => {
             </div>
           )}
 
-          {/* Pool Positions */}
-          {activeTab === 'pools' && (
-            <div className={styles.nftGrid}>
-              {data.pools.length === 0 && (
-                <div className={styles.emptyState}>
-                  <FiPieChart className={styles.emptyIcon} />
-                  <h3>No pool contributions yet</h3>
-                  <p>This wallet hasn&apos;t contributed to any pools</p>
-                </div>
-              )}
-              {data.pools.map((pool, index) => (
-                <motion.div
-                  key={pool.poolId}
-                  className={styles.nftCardWrapper}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  onClick={() => router.push('/pools')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className={styles.poolCard}>
-                    <div className={styles.poolCardImage}>
-                      {pool.asset?.image ? (
-                        <img
-                          src={resolveImageUrl(pool.asset.image) || PLACEHOLDER_IMAGE}
-                          alt={pool.asset?.model || 'Pool Asset'}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            background: '#111',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <FiPieChart style={{ fontSize: '2rem', color: '#333' }} />
-                        </div>
-                      )}
-                      <span
-                        className={`${styles.poolStatus} ${
-                          pool.status === 'active'
-                            ? styles.poolStatusOpen
-                            : pool.status === 'filled'
-                              ? styles.poolStatusFilled
-                              : styles.poolStatusClosed
-                        }`}
-                      >
-                        {pool.status}
-                      </span>
-                    </div>
-                    <div className={styles.poolCardInfo}>
-                      <h4>
-                        {pool.asset?.brand}{' '}
-                        {pool.asset?.model || `Pool #${pool.poolId.toString().slice(-6)}`}
-                      </h4>
-                      <div className={styles.poolProgress}>
-                        <div
-                          className={styles.poolProgressBar}
-                          style={{ width: `${Math.min(pool.ownershipPercent, 100)}%` }}
-                        />
-                      </div>
-                      <div className={styles.poolShareInfo}>
-                        <span>
-                          {pool.shares} shares · {pool.ownershipPercent?.toFixed(1)}%
-                        </span>
-                        <span>${pool.investedUSD?.toFixed(0)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </>

@@ -7,7 +7,6 @@ import {
   FaPlus,
   FaUserShield,
   FaClock,
-  FaChartLine,
   FaUser,
   FaGem,
   FaUsers,
@@ -34,14 +33,6 @@ const NAV_ITEMS: NavItem[] = [
     icon: <FaGem />,
     roles: ['user', 'vendor', 'admin'],
     description: 'Browse luxury listings',
-    category: 'explore',
-  },
-  {
-    href: '/pools',
-    label: 'Pools',
-    icon: <FaChartLine />,
-    roles: ['user', 'vendor', 'admin'],
-    description: 'Tokenized pools',
     category: 'explore',
   },
   {

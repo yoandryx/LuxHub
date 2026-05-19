@@ -7,7 +7,6 @@ import {
   FaUsers,
   FaArrowRight,
   FaLock,
-  FaChartLine,
   FaCheckCircle,
   FaSyncAlt,
   FaGlobe,
@@ -22,7 +21,7 @@ const LearnMorePage: React.FC = () => {
         <title>Learn More | LuxHub</title>
         <meta
           name="description"
-          content="LuxHub — decentralized luxury marketplace on Solana. NFT-backed physical assets with verified provenance, on-chain escrow, and tokenized asset pools."
+          content="LuxHub — decentralized luxury marketplace on Solana. NFT-backed physical assets with verified provenance and on-chain escrow."
         />
       </Head>
 
@@ -39,7 +38,7 @@ const LearnMorePage: React.FC = () => {
             </h1>
             <p className={styles.heroSubtitle}>
               NFT-backed watches, jewelry, and collectibles with verified provenance, on-chain
-              escrow, multisig security, and tokenized asset pools.
+              escrow, and multisig security.
             </p>
             <div className={styles.heroActions}>
               <Link href="/marketplace" className={styles.primaryBtn}>
@@ -98,17 +97,6 @@ const LearnMorePage: React.FC = () => {
                 <p>
                   Funds locked in Anchor program PDAs — not LuxHub wallets. Squads Protocol multisig
                   required for all fund releases. 14-day auto-cancel if vendor doesn't ship.
-                </p>
-              </div>
-
-              <div className={styles.card}>
-                <div className={styles.cardIcon}>
-                  <FaUsers />
-                </div>
-                <h3>Tokenized Pools</h3>
-                <p>
-                  Collective pools let multiple participants access high-value assets through
-                  tokenized positions. AMM-powered secondary trading and DAO graduation via Squads.
                 </p>
               </div>
 
@@ -190,18 +178,6 @@ const LearnMorePage: React.FC = () => {
                   <li>On-chain escrow with TX verification</li>
                   <li>Instant purchase or counter-offers</li>
                   <li>Admin-approved price changes</li>
-                </ul>
-              </div>
-
-              <div className={styles.featureCard}>
-                <h3>
-                  <FaChartLine /> Asset Pools
-                </h3>
-                <ul>
-                  <li>Tokenized positions in luxury assets</li>
-                  <li>AMM-powered secondary trading</li>
-                  <li>Automatic proceeds distribution</li>
-                  <li>DAO graduation via Squads multisig</li>
                 </ul>
               </div>
 
@@ -321,8 +297,8 @@ const LearnMorePage: React.FC = () => {
               <Link href="/marketplace" className={styles.primaryBtn}>
                 Browse Marketplace
               </Link>
-              <Link href="/pools" className={styles.secondaryBtn}>
-                View Pools
+              <Link href="/vendor/apply" className={styles.secondaryBtn}>
+                Become a Vendor
               </Link>
             </div>
           </div>

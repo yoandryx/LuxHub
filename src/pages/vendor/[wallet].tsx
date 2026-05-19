@@ -46,11 +46,10 @@ import {
   IoPin,
 } from 'react-icons/io5';
 import { HiOutlineShoppingCart, HiOutlineTag } from 'react-icons/hi';
-import { FiX, FiTruck, FiDollarSign, FiLoader, FiPieChart } from 'react-icons/fi';
+import { FiX, FiTruck, FiDollarSign, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import DelistRequestModal from '../../components/vendor/DelistRequestModal';
 import BulkDelistModal from '../../components/vendor/BulkDelistModal';
-import ConvertToPoolModal from '../../components/vendor/ConvertToPoolModal';
 import { TierBadge } from '../../components/common/TierBadge';
 import ShippingAddressForm, {
   type ShippingAddress,
@@ -102,13 +101,9 @@ const VendorProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [activeFilter, setActiveFilter] = useState<
-    'all' | 'available' | 'holding' | 'pooled' | 'burned'
+    'all' | 'available' | 'holding' | 'burned'
   >('all');
   const [burnedNfts, setBurnedNfts] = useState<NFT[]>([]);
-  const [pooledAssets, setPooledAssets] = useState<any[]>([]);
-  const [pooledAssetIds, setPooledAssetIds] = useState<Set<string>>(new Set());
-  const [poolsLoading, setPoolsLoading] = useState(false);
-  const [convertingNft, setConvertingNft] = useState<NFT | null>(null);
   const [stats, setStats] = useState<ProfileStats>({
     totalItems: 0,
     itemsListed: 0,
@@ -233,23 +228,6 @@ const VendorProfilePage = () => {
     };
 
     fetchNFTs();
-
-    // Eagerly fetch pooled asset IDs so we can hide the "Convert to Pool" button
-    const fetchPooledIds = async () => {
-      try {
-        const res = await fetch(`/api/pool/list?vendorWallet=${profile.wallet}`);
-        const data = await res.json();
-        if (data.success && data.pools) {
-          const ids = new Set<string>(
-            data.pools.map((p: any) => p.asset?._id || p.assetId).filter(Boolean)
-          );
-          setPooledAssetIds(ids);
-        }
-      } catch {
-        // Non-critical — button just stays visible
-      }
-    };
-    fetchPooledIds();
   }, [profile]);
 
   // Fetch burned NFTs only when burned tab is selected (lazy load)
@@ -271,29 +249,6 @@ const VendorProfilePage = () => {
 
     fetchBurnedNFTs();
   }, [profile, activeFilter, burnedNfts.length]);
-
-  // Fetch pooled assets when POOLED tab is selected (lazy load)
-  useEffect(() => {
-    if (!profile?.wallet || activeFilter !== 'pooled' || pooledAssets.length > 0) return;
-
-    const fetchPooledAssets = async () => {
-      setPoolsLoading(true);
-      try {
-        const res = await fetch(`/api/pool/list?vendorWallet=${profile.wallet}`);
-        const data = await res.json();
-
-        if (data.success) {
-          setPooledAssets(data.pools || []);
-        }
-      } catch (err) {
-        console.error('Failed to fetch pools:', err);
-      } finally {
-        setPoolsLoading(false);
-      }
-    };
-
-    fetchPooledAssets();
-  }, [profile, activeFilter, pooledAssets.length]);
 
   const _handlePurchase = async (nft: NFT) => {
     if (!publicKey || !program) return alert('Connect wallet first.');
@@ -435,14 +390,12 @@ const VendorProfilePage = () => {
   const filteredNFTs =
     activeFilter === 'burned'
       ? burnedNfts
-      : activeFilter === 'pooled'
-        ? []
-        : nftData.filter((nft) => {
-            if (activeFilter === 'all') return true;
-            if (activeFilter === 'available') return nft.marketStatus === 'active';
-            if (activeFilter === 'holding') return nft.marketStatus !== 'active';
-            return true;
-          });
+      : nftData.filter((nft) => {
+          if (activeFilter === 'all') return true;
+          if (activeFilter === 'available') return nft.marketStatus === 'active';
+          if (activeFilter === 'holding') return nft.marketStatus !== 'active';
+          return true;
+        });
 
   // Get NFTs that can be delisted (listed status)
   const delistableNfts = nftData.filter((nft) => nft.status === 'listed' && nft._id);
@@ -948,13 +901,6 @@ const VendorProfilePage = () => {
             <IoBookmarkOutline />
             <span>HOLDING</span>
           </button>
-          <button
-            className={`${styles.tabItem} ${activeFilter === 'pooled' ? styles.activeTab : ''}`}
-            onClick={() => setActiveFilter('pooled')}
-          >
-            <FiPieChart />
-            <span>POOLED</span>
-          </button>
           {/* Only show Burned tab if there are burned items or viewing own profile */}
           {(stats.itemsBurned > 0 || isOwnProfile) && (
             <button
@@ -972,9 +918,7 @@ const VendorProfilePage = () => {
           <h2>
             {activeFilter === 'burned'
               ? 'Burned Assets'
-              : activeFilter === 'pooled'
-                ? `Fractional Pools (${pooledAssets.length})`
-                : `Collection (${filteredNFTs.length})`}
+              : `Collection (${filteredNFTs.length})`}
           </h2>
 
           {/* Bulk Selection Controls - Only for own profile with listed items */}
@@ -1126,71 +1070,9 @@ const VendorProfilePage = () => {
           </div>
         )}
 
-        {/* NFT Grid / Pool Cards */}
+        {/* NFT Grid */}
         <div className={styles.gridSection}>
-          {/* Pool Cards for POOLED tab */}
-          {activeFilter === 'pooled' ? (
-            poolsLoading ? (
-              <div className={styles.emptyState}>
-                <div className={styles.loadingSpinner} />
-                <p>Loading pools...</p>
-              </div>
-            ) : pooledAssets.length > 0 ? (
-              <div className={styles.nftGrid}>
-                {pooledAssets.map((pool: any) => {
-                  const asset = pool.asset;
-                  const image =
-                    asset?.imageIpfsUrls?.[0] || asset?.images?.[0] || PLACEHOLDER_IMAGE;
-                  const progress =
-                    pool.totalShares > 0
-                      ? Math.round((pool.sharesSold / pool.totalShares) * 100)
-                      : 0;
-
-                  return (
-                    <motion.div
-                      key={pool._id}
-                      className={styles.poolCard}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      onClick={() => router.push(`/pool/${pool._id}`)}
-                    >
-                      <div className={styles.poolCardImage}>
-                        <img src={resolveImageUrl(image)} alt={asset?.model || 'Pool'} />
-                        <span
-                          className={`${styles.poolStatus} ${styles[`poolStatus${pool.status?.charAt(0).toUpperCase()}${pool.status?.slice(1)}`] || ''}`}
-                        >
-                          {pool.status}
-                        </span>
-                      </div>
-                      <div className={styles.poolCardInfo}>
-                        <h4>
-                          {asset?.brand} {asset?.model}
-                        </h4>
-                        <div className={styles.poolProgress}>
-                          <div
-                            className={styles.poolProgressBar}
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <div className={styles.poolShareInfo}>
-                          <span>
-                            {pool.sharesSold}/{pool.totalShares} shares
-                          </span>
-                          <span>${pool.sharePriceUSD?.toFixed(2)}/share</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className={styles.emptyState}>
-                <FiPieChart className={styles.emptyIcon} />
-                <h3>No pools yet</h3>
-                <p>Convert listed assets to tokenized pools</p>
-              </div>
-            )
-          ) : filteredNFTs.length > 0 ? (
+          {filteredNFTs.length > 0 ? (
             <div className={styles.nftGrid}>
               {filteredNFTs.map((nft, index) => (
                 <motion.div
@@ -1312,23 +1194,6 @@ const VendorProfilePage = () => {
                           Request Delist
                         </button>
                       )}
-
-                      {/* Convert to Pool button — only for listed/pending NFTs not already pooled */}
-                      {isOwnProfile &&
-                        (nft.status === 'listed' || nft.status === 'pending') &&
-                        nft._id &&
-                        !pooledAssetIds.has(nft._id) && (
-                          <button
-                            className={styles.convertToPoolBtn}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setConvertingNft(nft);
-                            }}
-                          >
-                            <FiPieChart size={14} />
-                            Convert to Pool
-                          </button>
-                        )}
 
                       {/* Buy & Offer buttons for visitors on listed NFTs */}
                       {!isOwnProfile && nft.status === 'listed' && (
@@ -1477,32 +1342,6 @@ const VendorProfilePage = () => {
           onSuccess={() => {
             // Clear selection and exit selection mode after successful submission
             clearSelection();
-          }}
-        />
-      )}
-
-      {/* Convert to Pool Modal */}
-      {convertingNft && (
-        <ConvertToPoolModal
-          asset={{
-            _id: convertingNft._id,
-            title: convertingNft.title,
-            mintAddress: convertingNft.mintAddress,
-            priceUSD: convertingNft.priceUSD,
-            priceSol: convertingNft.priceSol,
-            image: convertingNft.image,
-            escrowPda: convertingNft.escrowPda,
-          }}
-          onClose={() => setConvertingNft(null)}
-          onSuccess={() => {
-            // Mark asset as pooled so button hides immediately
-            if (convertingNft._id) {
-              setPooledAssetIds((prev) => new Set(prev).add(convertingNft._id!));
-            }
-            setConvertingNft(null);
-            // Reset pooled assets so they re-fetch next time tab is opened
-            setPooledAssets([]);
-            toast.success('Asset converted to pool');
           }}
         />
       )}

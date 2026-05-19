@@ -587,13 +587,6 @@ const VendorDashboard = () => {
               </button>
             );
           })}
-          <button
-            className={styles.tabItem}
-            onClick={() => router.push('/vendor/pools')}
-          >
-            <FiDroplet className={styles.tabIcon} />
-            <span className={styles.tabLabel}>Pools</span>
-          </button>
         </div>
       </nav>
 
@@ -710,9 +703,6 @@ const VendorDashboard = () => {
                 </button>
                 <button className={styles.quickActionButton} onClick={() => setActiveTab('orders')}>
                   <FiTruck /> Manage Orders
-                </button>
-                <button className={styles.quickActionButton} onClick={() => router.push('/vendor/pools')}>
-                  <FiDroplet /> Manage Pools
                 </button>
               </div>
 
@@ -913,17 +903,6 @@ const VendorDashboard = () => {
                             >
                               <FiAlertCircle /> Report External Sale
                             </button>
-                            {request.status === 'minted' && !request.pooled && request.mintAddress && (
-                              <button
-                                className={styles.actionItem}
-                                onClick={() => {
-                                  setOpenActionMenu(null);
-                                  router.push(`/vendor/pools?action=create&assetId=${request._id}`);
-                                }}
-                              >
-                                <FiDroplet /> Create Pool
-                              </button>
-                            )}
                           </div>
                         )}
 

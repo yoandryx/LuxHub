@@ -342,8 +342,7 @@ export default function IndexTest() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
-              NFT-backed luxury timepieces with verified provenance, secure escrow, and tokenized
-              asset pools.
+              NFT-backed luxury timepieces with verified provenance and secure escrow.
             </motion.p>
 
             <motion.div
@@ -355,9 +354,6 @@ export default function IndexTest() {
               <Link href="/marketplace" className={styles.primaryBtn}>
                 Marketplace
                 <FaArrowRight />
-              </Link>
-              <Link href="/pools" className={styles.secondaryBtn}>
-                Pools
               </Link>
               <Link href="/vendor/apply" className={styles.secondaryBtn}>
                 Become a Vendor
@@ -548,9 +544,6 @@ export default function IndexTest() {
               </a>
               <a href="https://www.privy.io" target="_blank" rel="noopener noreferrer">
                 <Image src="/images/Privy_Brandmark_White.png" alt="Privy" width={40} height={40} />
-              </a>
-              <a href="https://bags.fm" target="_blank" rel="noopener noreferrer">
-                <Image src="/images/bags-icon.png" alt="Bags" width={40} height={40} />
               </a>
             </div>
           </div>

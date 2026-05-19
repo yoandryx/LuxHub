@@ -93,7 +93,7 @@ const SecurityPage = () => {
                 </div>
                 <h3>On-Chain Proof</h3>
                 <p>
-                  Every purchase and pool contribution transaction signature is verified against the
+                  Every purchase transaction signature is verified against the
                   Solana blockchain before any database state changes occur.
                 </p>
               </div>
@@ -113,7 +113,7 @@ const SecurityPage = () => {
                 </div>
                 <h3>Helius DAS Indexing</h3>
                 <p>
-                  Real-time asset indexing via Helius DAS API. NFT holdings, pool positions, and
+                  Real-time asset indexing via Helius DAS API. NFT holdings and
                   transaction history are always accurate.
                 </p>
               </div>
@@ -237,13 +237,12 @@ const SecurityPage = () => {
                   <FaShoppingBag /> Buyers
                 </h3>
                 <ul>
-                  <li>Browse marketplace and asset pools</li>
+                  <li>Browse the marketplace</li>
                   <li>Purchase NFT-backed luxury items</li>
                   <li>Make offers on listings</li>
                   <li>Track orders and shipping</li>
                   <li>View on-chain NFT portfolio</li>
                   <li>Open disputes and request refunds</li>
-                  <li>Participate in tokenized asset pools</li>
                 </ul>
               </div>
               <div className={styles.featureCard}>
@@ -285,8 +284,8 @@ const SecurityPage = () => {
               <Link href="/marketplace" className={styles.primaryBtn}>
                 Explore Marketplace <FaArrowRight />
               </Link>
-              <Link href="/pools" className={styles.secondaryBtn}>
-                View Pools
+              <Link href="/vendor/apply" className={styles.secondaryBtn}>
+                Become a Vendor
               </Link>
             </div>
             <p style={{ marginTop: '24px', fontSize: '13px', opacity: 0.4 }}>
