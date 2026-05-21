@@ -8,8 +8,7 @@ if (typeof (globalThis as any).nodeCrypto === 'undefined') {
 
 import { AppProps } from 'next/app';
 import Head from 'next/head';
-import React, { useEffect, useState, useMemo } from 'react';
-// import { EscrowProvider } from "../context/src/EscrowContext";
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -26,35 +25,25 @@ import {
   createDefaultWalletNotFoundHandler,
 } from '@solana-mobile/wallet-adapter-mobile';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import type { WalletError } from '@solana/wallet-adapter-base';
 import '@solana/wallet-adapter-react-ui/styles.css';
-// Consolidated to single toast library (react-hot-toast) - saves ~5KB
 import LuxuryAssistant from '../components/user/LuxuryAssistant';
 import VendorFab from '../components/vendor/VendorFab';
 import { Toaster, toast } from 'react-hot-toast';
 import { PriceDisplayProvider } from '../components/marketplace/PriceDisplay';
-import { PrivyProvider } from '@privy-io/react-auth';
-import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 
-// Privy Solana wallet connectors for external wallets
-const solanaConnectors = toSolanaWalletConnectors({
-  // Show Phantom and Solflare in Privy's wallet connect modal
-  shouldAutoConnect: true,
-});
-
 const App = ({ Component, pageProps }: AppProps) => {
   const [isClient, setIsClient] = useState(false);
-  const { network, endpoint, chain } = getClusterConfig();
+  const { endpoint, chain } = getClusterConfig();
 
   useEffect(() => {
-    setIsClient(true); // Ensuring everything is loaded on the client side
+    setIsClient(true);
   }, []);
 
-  // Show testing notice on page load (production is live but in testing)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Show once per session
     if (sessionStorage.getItem('luxhub_testing_notice_shown')) return;
     sessionStorage.setItem('luxhub_testing_notice_shown', '1');
     setTimeout(() => {
@@ -80,7 +69,6 @@ const App = ({ Component, pageProps }: AppProps) => {
     }, 1200);
   }, []);
 
-  // Memoize wallet adapter setup
   const wallets = useMemo(
     () => [
       new RemoteSolanaMobileWalletAdapter({
@@ -102,62 +90,9 @@ const App = ({ Component, pageProps }: AppProps) => {
     [chain]
   );
 
-  const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-  const hasValidPrivyId = privyAppId && privyAppId.length > 10;
-
-  // Debug: log Privy app ID status
-  useEffect(() => {
-    if (!hasValidPrivyId) {
-      console.warn('[LuxHub] Privy app ID not configured or invalid. Email login disabled.');
-    }
-  }, [hasValidPrivyId]);
-
-  // Inner content wrapped with providers
-  const createInnerContent = () => (
-    <PriceDisplayProvider>
-      <ConnectionProvider endpoint={endpoint}>
-        <WalletProvider wallets={wallets} autoConnect>
-          <WalletModalProvider>
-            <Navbar />
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: 'rgba(10, 10, 14, 0.92)',
-                  backdropFilter: 'blur(24px)',
-                  WebkitBackdropFilter: 'blur(24px)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(200, 161, 255, 0.15)',
-                  borderRadius: '12px',
-                  fontSize: '13px',
-                  padding: '12px 16px',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-                },
-                success: {
-                  iconTheme: { primary: '#26a69a', secondary: '#0a0a0e' },
-                  style: { borderColor: 'rgba(38, 166, 154, 0.3)' },
-                },
-                error: {
-                  iconTheme: { primary: '#ef5350', secondary: '#0a0a0e' },
-                  style: { borderColor: 'rgba(239, 83, 80, 0.3)' },
-                },
-                loading: {
-                  iconTheme: { primary: '#c8a1ff', secondary: '#0a0a0e' },
-                },
-              }}
-            />
-            <Component {...pageProps} />
-            <VendorFab />
-            <LuxuryAssistant />
-            <Footer />
-            <SpeedInsights />
-            <Analytics />
-          </WalletModalProvider>
-        </WalletProvider>
-      </ConnectionProvider>
-    </PriceDisplayProvider>
-  );
+  const handleWalletError = useCallback((error: WalletError) => {
+    console.error('[LuxHub wallet]', error);
+  }, []);
 
   const content = (
     <ClusterErrorBoundary>
@@ -177,36 +112,49 @@ const App = ({ Component, pageProps }: AppProps) => {
           />
         </Head>
 
-        {hasValidPrivyId ? (
-          <PrivyProvider
-            appId={privyAppId}
-            config={{
-              loginMethods: ['email', 'wallet'],
-              appearance: {
-                theme: 'dark',
-                accentColor: '#c8a1ff',
-                logo: '/images/purpleLGG.png',
-                showWalletLoginFirst: true,
-              },
-              // Solana embedded wallet configuration
-              embeddedWallets: {
-                solana: {
-                  createOnLogin: 'off',
-                },
-              },
-              // External wallet connectors (Phantom, Solflare via Privy)
-              externalWallets: {
-                solana: {
-                  connectors: solanaConnectors,
-                },
-              },
-            }}
-          >
-            {createInnerContent()}
-          </PrivyProvider>
-        ) : (
-          createInnerContent()
-        )}
+        <PriceDisplayProvider>
+          <ConnectionProvider endpoint={endpoint}>
+            <WalletProvider wallets={wallets} autoConnect onError={handleWalletError}>
+              <WalletModalProvider>
+                <Navbar />
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: 'rgba(10, 10, 14, 0.92)',
+                      backdropFilter: 'blur(24px)',
+                      WebkitBackdropFilter: 'blur(24px)',
+                      color: '#ffffff',
+                      border: '1px solid rgba(200, 161, 255, 0.15)',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      padding: '12px 16px',
+                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                    },
+                    success: {
+                      iconTheme: { primary: '#26a69a', secondary: '#0a0a0e' },
+                      style: { borderColor: 'rgba(38, 166, 154, 0.3)' },
+                    },
+                    error: {
+                      iconTheme: { primary: '#ef5350', secondary: '#0a0a0e' },
+                      style: { borderColor: 'rgba(239, 83, 80, 0.3)' },
+                    },
+                    loading: {
+                      iconTheme: { primary: '#c8a1ff', secondary: '#0a0a0e' },
+                    },
+                  }}
+                />
+                <Component {...pageProps} />
+                <VendorFab />
+                <LuxuryAssistant />
+                <Footer />
+                <SpeedInsights />
+                <Analytics />
+              </WalletModalProvider>
+            </WalletProvider>
+          </ConnectionProvider>
+        </PriceDisplayProvider>
       </ErrorBoundary>
     </ClusterErrorBoundary>
   );

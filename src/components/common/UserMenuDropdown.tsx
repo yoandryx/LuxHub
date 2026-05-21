@@ -20,7 +20,6 @@ import {
   FaInfoCircle,
 } from 'react-icons/fa';
 import { SiSolana } from 'react-icons/si';
-import { usePrivy } from '@privy-io/react-auth';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
@@ -59,7 +58,6 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
   const [isClient, setIsClient] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { logout } = usePrivy();
   const { disconnect } = useWallet();
   const { connection } = useConnection();
   const { role, isConnected, walletAddress, displayAddress, vendorProfile } = useUserRole();
@@ -100,19 +98,16 @@ function UserMenuDropdown({ className = '' }: UserMenuDropdownProps) {
 
   const handleDisconnect = useCallback(async () => {
     await disconnect().catch(() => {});
-    await logout().catch(() => {});
     setIsOpen(false);
-  }, [disconnect, logout]);
+  }, [disconnect]);
 
   const close = useCallback(() => setIsOpen(false), []);
 
-  const { login, ready: privyReady } = usePrivy();
   const { setVisible: setWalletModalVisible } = useWalletModal();
 
   const handleConnect = useCallback(() => {
-    if (process.env.NEXT_PUBLIC_PRIVY_APP_ID && privyReady) login();
-    else setWalletModalVisible(true);
-  }, [login, privyReady, setWalletModalVisible]);
+    setWalletModalVisible(true);
+  }, [setWalletModalVisible]);
 
   // Build sectioned nav items based on role (D-11: section headers, D-12: LearnMore moved here)
   const sections = useMemo(() => {

@@ -9,8 +9,8 @@ import {
   FaUsers,
   FaInfoCircle,
 } from 'react-icons/fa';
-import { usePrivy } from '@privy-io/react-auth';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useUserRole, UserRole } from '@/hooks/useUserRole';
 import RoleNavItems from './RoleNavItems';
 import styles from '@/styles/MobileDrawer.module.css';
@@ -37,8 +37,8 @@ const RoleBadge = memo(function RoleBadge({ role }: { role: UserRole }) {
 
 function MobileDrawer({ isOpen, onClose, balance }: MobileDrawerProps) {
   // Hooks
-  const { login, logout } = usePrivy();
   const { disconnect } = useWallet();
+  const { setVisible: setWalletModalVisible } = useWalletModal();
   const { role, isConnected, walletAddress, displayAddress, vendorProfile, isLoading } =
     useUserRole();
 
@@ -74,18 +74,17 @@ function MobileDrawer({ isOpen, onClose, balance }: MobileDrawerProps) {
   const handleDisconnect = useCallback(async () => {
     try {
       await disconnect();
-      await logout();
       onClose();
     } catch (err) {
       console.error('Failed to disconnect:', err);
     }
-  }, [disconnect, logout, onClose]);
+  }, [disconnect, onClose]);
 
   // Handle connect
   const handleConnect = useCallback(() => {
-    login();
+    setWalletModalVisible(true);
     onClose();
-  }, [login, onClose]);
+  }, [setWalletModalVisible, onClose]);
 
   // Handle link click
   const handleLinkClick = useCallback(() => {
