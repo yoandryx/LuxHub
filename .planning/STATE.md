@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 12
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-05-21T04:37:29Z"
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-05-21T04:54:08Z"
 last_activity: 2026-05-21
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 46
-  completed_plans: 42
+  completed_plans: 43
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 12 (wallet-stack-consolidation-strip-privy-commit-to-solana-wallet-adapter) — EXECUTING
-Plan: 3 of 5 (Plans 12-01, 12-02 complete 2026-05-21)
+Plan: 4 of 5 (Plans 12-01, 12-02, 12-03 complete 2026-05-21)
 Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 
 ## Performance Metrics
@@ -81,6 +81,7 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P15 | 25min | 5 tasks | 11 files |
 | Phase 12 P01 | 5min | 3 tasks | 4 files |
 | Phase 12 P02 | 4min | 2 tasks | 2 files |
+| Phase 12 P03 | 11min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,10 @@ Recent decisions affecting current work:
 - [Phase 12-02]: useEffectiveWallet refactored to thin pass-through over @solana/wallet-adapter-react (156→78 lines); useUserRole refactored with strict isConnected=wallet.connected (169→138 lines); both Wave 0 RED tests flipped GREEN (9/9 pass); zero new typecheck errors vs baseline; 32 downstream consumers unmodified because public API surface preserved
 - [Phase 12-02]: source hardcoded as 'wallet-adapter' as const per 12-01-AUDITS Source Discriminant disposition (zero production consumers branch on .source)
 - [Phase 12-02]: Pitfall 4 caveat applied — Privy-email-only users (no linked wallet) will see isConnected=false on next page load; intentional, wallet-adapter modal will prompt them to connect a real Solana wallet
+- [Phase 12-03]: ZERO @privy-io imports remain in src/ source code; _app.tsx provider tree is canonical Pattern 1 (ConnectionProvider -> WalletProvider(autoConnect, onError) -> WalletModalProvider); UserMenuDropdown + MobileDrawer + WalletGuide all route through useWalletModal().setVisible(true) for connect and useWallet().disconnect() for disconnect; 3 orphan files deleted (WalletConnect.tsx, sync-privy.ts, me.ts) per 12-01-AUDITS dispositions; User.ts privyId/privyCreatedAt/emailVerified marked DEPRECATED Phase 12 per WALLET-12 (fields retained for read-back compat); CLAUDE.md updated; npm run build exits 0 (29/29 pages generated); npx tsc --noEmit produces byte-identical 12-error baseline; Wave A hook tests 9/9 still GREEN
+- [Phase 12-03]: api/users/me.ts DELETED (not refactored) — audit confirmed zero callers, refactoring would have left a maintenance-liability zombie endpoint
+- [Phase 12-03]: User.ts deprecation comments only — schema field types, indexes, defaults unchanged; Mongoose migration deferred to follow-up quick task per WALLET-12
+- [Phase 12-03]: WalletGuide.tsx usePrivySafe lazy require() entirely deleted — RESEARCH Pitfall 7 dead-code pattern eliminated, not just gated
 
 ### Roadmap Evolution
 
@@ -172,8 +177,8 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-05-21
-Stopped at: Completed 12-02-PLAN.md
-Key context: Phase 12 Wave A (source hook refactor) shipped. useEffectiveWallet + useUserRole are now wallet-adapter-only thin pass-throughs; Wave 0 RED tests flipped GREEN automatically (9/9 pass); zero new typecheck errors; 32 downstream consumers unmodified. Next: Plan 12-03 (Wave B) — strip Privy from 6 frontend callsites (_app.tsx, UserMenuDropdown.tsx, MobileDrawer.tsx, WalletGuide.tsx), delete orphan endpoints (sync-privy.ts, me.ts) + WalletConnect.tsx. Plan 12-04 reserved for npm uninstall + CI guard wiring + Mongo Privy-user-count runtime check. Earlier context: Phase 12 Wave 0 (TDD scaffolding) shipped. All Phase 11 Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
+Stopped at: Completed 12-03-PLAN.md
+Key context: Phase 12 Wave B (UI callsite refactor + orphan deletion) shipped. ZERO `@privy-io` imports remain in src/ source code. _app.tsx provider tree is canonical ConnectionProvider → WalletProvider(autoConnect, onError) → WalletModalProvider. UserMenuDropdown + MobileDrawer + WalletGuide route connect through useWalletModal().setVisible(true) and disconnect through useWallet().disconnect() — single unified path. 3 orphan files deleted: WalletConnect.tsx, sync-privy.ts, me.ts. User.ts privyId/privyCreatedAt/emailVerified marked DEPRECATED Phase 12 (fields retained for read-back compat per WALLET-12). CLAUDE.md updated. npm run build exits 0 (29/29 pages SSG/SSR). Wave A hook tests still 9/9 GREEN. Zero new typecheck errors vs baseline. Next: Plan 12-04 (Wave C) — `npm uninstall @privy-io/react-auth` + scrub NEXT_PUBLIC_PRIVY_APP_ID from 5 env files + wire scripts/check-no-privy.sh into CI + run deferred Mongo Privy-user-count query. Plan 12-05 reserved for human-verify smoke test on devnet+mainnet. Earlier context: Phase 12 Wave A (source hook refactor) shipped — useEffectiveWallet + useUserRole wallet-adapter-only thin pass-throughs. All Phase 11 Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ`.
 
 ## 2026-04-10 — Phase 11 Context Captured
 
