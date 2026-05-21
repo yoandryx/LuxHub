@@ -51,7 +51,7 @@
 .heroSection {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  min-height: 50vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -172,7 +172,7 @@
 .heroButtons {
   display: flex;
   gap: 12px;
-  margin-bottom: 0;
+  margin: 0 0 50px;
   justify-content: center;
   flex-wrap: nowrap;
 }
@@ -251,16 +251,29 @@
 }
 
 .heroTitle {
+  position: relative;
   font-size: 4rem;
   font-weight: 800;
   letter-spacing: 2px;
-  margin: 0 0 24px;
+  margin: 100px 0 25px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  /* Reserve height for 3 lines (line-height 1.1) so AnimatePresence swaps don't collapse layout. em scales per breakpoint. */
+  min-height: 3.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Gradient text lives on the swapping phrase so the background is sized to the actual text element */
+.heroTitlePhrase {
+  display: block;
+  width: 100%;
   background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  line-height: 1.1;
-  text-transform: uppercase;
+  will-change: transform, opacity, filter;
 }
 
 .heroSubtitle {
@@ -1312,7 +1325,7 @@
   .heroTitle {
     font-size: 1.8rem;
     letter-spacing: 0;
-    margin-bottom: 12px;
+    margin: 12px;
   }
 
   .heroSubtitle {
@@ -1510,6 +1523,7 @@
 
   .heroTitle {
     font-size: 1.7rem;
+    margin: 12px;
   }
 
   .heroSubtitle {
@@ -1615,6 +1629,7 @@
 
   .heroTitle {
     font-size: 1.5rem;
+    margin: 12px;
   }
 
   .heroSubtitle {
