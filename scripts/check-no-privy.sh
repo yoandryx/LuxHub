@@ -8,8 +8,13 @@ set -u
 FAILED=0
 
 echo "[check-no-privy] Scanning src/ for Privy imports and identifiers..."
-if grep -rnE '@privy-io|usePrivy|PrivyProvider|toSolanaWalletConnectors|usePrivySafe' src/ 2>/dev/null; then
-  echo "[check-no-privy] FAIL: Privy references found in src/"
+# Exclude __tests__/ — test files contain intentional negative-assertion string literals
+# (e.g., "// DO NOT mock @privy-io/react-auth") that serve as regression guards per Plan 12-01.
+# Production code in src/ (outside __tests__) must remain Privy-free.
+PRIVY_MATCHES=$(grep -rnE '@privy-io|usePrivy|PrivyProvider|toSolanaWalletConnectors|usePrivySafe' src/ 2>/dev/null | grep -v '__tests__')
+if [ -n "$PRIVY_MATCHES" ]; then
+  echo "$PRIVY_MATCHES"
+  echo "[check-no-privy] FAIL: Privy references found in src/ (excluding __tests__/)"
   FAILED=1
 fi
 
