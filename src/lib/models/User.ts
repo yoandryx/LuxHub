@@ -11,7 +11,7 @@ const LinkedWalletSchema = new Schema(
       default: 'external',
     },
     chainType: { type: String, default: 'solana' },
-    walletClient: String, // e.g., 'phantom', 'solflare', 'privy_embedded'
+    walletClient: String, // e.g., 'phantom', 'solflare' (privy_embedded deprecated Phase 12)
     isPrimary: { type: Boolean, default: false },
     linkedAt: { type: Date, default: Date.now },
     verified: { type: Boolean, default: true },
@@ -21,9 +21,12 @@ const LinkedWalletSchema = new Schema(
 
 const UserSchema = new Schema(
   {
-    // Privy Integration
-    privyId: { type: String, unique: true, sparse: true, index: true }, // Privy DID (did:privy:xxx)
-    privyCreatedAt: Date,
+    // DEPRECATED Phase 12 (2026-05-21): Privy removed; fields retained for read-back compatibility only.
+    // No code writes to privyId/privyCreatedAt after Phase 12. Drop these fields + the sparse unique index
+    // in a follow-up quick task once a `db.users.countDocuments({ privyId: { $exists: true } })` query
+    // confirms it is safe to migrate.
+    privyId: { type: String, unique: true, sparse: true, index: true }, // DEPRECATED — Privy DID
+    privyCreatedAt: Date, // DEPRECATED
 
     // Primary wallet (for backwards compatibility and on-chain tracking)
     wallet: { type: String, unique: true, sparse: true, index: true },
@@ -38,6 +41,8 @@ const UserSchema = new Schema(
 
     // Email (from Privy or direct signup)
     email: { type: String, unique: true, sparse: true },
+    // DEPRECATED Phase 12 (2026-05-21): emailVerified was set by Privy email-login flow only.
+    // After Phase 12, no code writes to this field. Retained for read-back compatibility.
     emailVerified: { type: Boolean, default: false },
 
     // Role and permissions

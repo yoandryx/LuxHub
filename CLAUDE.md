@@ -380,7 +380,7 @@ const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: 0 });
 2. **6-Agent Automation System** - Documented and implemented development workflow automation
 3. **Phase 2 UI/UX Overhaul** - Major update (5,237 lines) to AdminDashboard, CreateNFT, Vendor Dashboard with glass-morphism effects
 4. **Partnership Assets** - Added Solana, Helius, IPFS, Bags logos for integration showcase
-5. **Privy Integration** - Added NavbarPrivy, WalletNavbarPrivy components for enhanced wallet connection
+5. **Wallet Stack Consolidation (Phase 12, 2026-05-21)** - Stripped Privy from frontend; wallet-adapter is now the single source of truth for wallet connection, signing, and session state
 
 ### Completed Features
 - [x] NFT minting with IPFS metadata via Pinata
@@ -401,7 +401,7 @@ const [vaultPda] = multisig.getVaultPda({ multisigPda: msigPk, index: 0 });
 - [x] On-chain transaction verification for all fund-moving endpoints
 - [x] Buyer dispute/refund system with 7-day SLA
 - [x] Escrow timeout enforcement (auto-cancel, overdue flags, dispute escalation)
-- [x] Unified wallet connection (Privy + wallet adapter fallback)
+- [x] Wallet stack consolidated to @solana/wallet-adapter-react only (Phase 12, 2026-05-21)
 - [x] Compact user menu dropdown with role-based navigation
 
 ### Deferred
