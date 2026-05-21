@@ -6,7 +6,7 @@ import dbConnect from '../../../lib/database/mongodb';
 import VendorInterest from '../../../lib/models/VendorInterest';
 import { notifyUser, notifyNewVendorApplication } from '../../../lib/services/notificationService';
 import { z } from 'zod';
-import { apiLimiter } from '../../../lib/middleware/rateLimit';
+import { vendorInterestLimiter } from '../../../lib/middleware/rateLimit';
 
 const interestSchema = z.object({
   wallet: z.string().nullable().optional(),
@@ -18,7 +18,29 @@ const interestSchema = z.object({
   contact: z.string().max(200).nullable().optional(),
   website: z.string().max(500).nullable().optional(),
   inventorySize: z.string().max(20).nullable().optional(),
+  // Anti-bot: honeypot field — humans never fill, bots auto-fill
+  company_url: z.string().optional(),
+  // Anti-bot: Cloudflare Turnstile token (optional — only enforced if TURNSTILE_SECRET_KEY is set)
+  turnstileToken: z.string().optional(),
 });
+
+async function verifyTurnstile(token: string | undefined, remoteIp: string): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) return true; // Not configured — skip verification (dev / setup mode)
+  if (!token) return false;
+  try {
+    const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret, response: token, remoteip: remoteIp }),
+    });
+    const data = await verifyRes.json();
+    return !!data?.success;
+  } catch (err) {
+    console.error('[vendor/interest] Turnstile verification error:', err);
+    return false;
+  }
+}
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -27,6 +49,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   try {
     const parsed = interestSchema.parse(req.body);
+
+    // Anti-bot: server-side honeypot check. Silent success so bots don't retry.
+    if (parsed.company_url && parsed.company_url.length > 0) {
+      return res.status(200).json({ success: true, message: 'Interest submitted!' });
+    }
+
+    // Anti-bot: Turnstile verification (no-op until TURNSTILE_SECRET_KEY is configured)
+    const remoteIp =
+      (req.headers['x-forwarded-for']?.toString().split(',')[0] || '').trim() ||
+      req.socket?.remoteAddress ||
+      '';
+    const turnstileOk = await verifyTurnstile(parsed.turnstileToken, remoteIp);
+    if (!turnstileOk) {
+      return res.status(400).json({ error: 'Verification failed. Please reload and try again.' });
+    }
 
     await dbConnect();
 
@@ -114,4 +151,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default apiLimiter(handler);
+export default vendorInterestLimiter(handler);

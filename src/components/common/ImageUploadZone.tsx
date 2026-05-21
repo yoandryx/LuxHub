@@ -23,6 +23,8 @@ interface ImageUploadZoneProps {
   maxSizeMB?: number;
   minFiles?: number;
   disabled?: boolean;
+  /** Connected wallet (base58). Required by /api/arweave/upload for abuse protection. */
+  wallet?: string;
 }
 
 // --- SortableImage sub-component ---
@@ -96,6 +98,7 @@ export default function ImageUploadZone({
   maxSizeMB = 10,
   minFiles = 5,
   disabled = false,
+  wallet,
 }: ImageUploadZoneProps) {
   // Track previous preview URLs for cleanup
   const prevPreviewsRef = useRef<string[]>([]);
@@ -146,6 +149,7 @@ export default function ImageUploadZone({
 
           const response = await fetch('/api/arweave/upload', {
             method: 'POST',
+            headers: wallet ? { 'X-Wallet-Address': wallet } : undefined,
             body: formData,
           });
 

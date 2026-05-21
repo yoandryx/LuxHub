@@ -65,6 +65,8 @@ interface NftFormProps {
   onAnalyzeImage?: (imageUrl: string) => Promise<void>;
   analyzingImage?: boolean;
   analysisError?: string | null;
+  /** Connected wallet (base58). Required by upload endpoints for abuse protection. */
+  wallet?: string;
 }
 
 export const NftForm: React.FC<NftFormProps> = ({
@@ -121,6 +123,7 @@ export const NftForm: React.FC<NftFormProps> = ({
   onAnalyzeImage,
   analyzingImage = false,
   analysisError,
+  wallet,
 }) => {
   const [usdInput, setUsdInput] = useState('');
   const [showShimmer, setShowShimmer] = useState(false);
@@ -186,6 +189,7 @@ export const NftForm: React.FC<NftFormProps> = ({
             maxSizeMB={10}
             minFiles={5}
             disabled={minting}
+            wallet={wallet}
           />
         </div>
 

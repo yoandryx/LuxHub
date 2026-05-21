@@ -4,6 +4,8 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { uploadMetadata, uploadImage, getStorageConfig } from '../../../utils/storage';
+import { requireConnectedWallet } from '../../../lib/middleware/requireConnectedWallet';
+import { uploadLimiter } from '../../../lib/middleware/rateLimit';
 
 export const config = {
   api: {
@@ -31,7 +33,7 @@ interface UploadResponse {
   error?: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<UploadResponse>) {
+async function handler(req: NextApiRequest, res: NextApiResponse<UploadResponse>) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
@@ -107,3 +109,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     });
   }
 }
+
+export default requireConnectedWallet(uploadLimiter(handler as any));

@@ -58,8 +58,6 @@ export default function ExploreVendors() {
   }, [activeTab, searchQuery, allVendors, verifiedVendors, unverifiedVendors]);
 
   // Stats
-  const totalItems = allVendors.reduce((sum, v) => sum + (v.stats?.totalItems || 0), 0);
-  const totalListed = allVendors.reduce((sum, v) => sum + (v.stats?.itemsListed || 0), 0);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -85,31 +83,6 @@ export default function ExploreVendors() {
         <div className={styles.ambientBg} />
 
         <main className={styles.main}>
-          {/* Stats Bar */}
-          {!loading && (
-            <div className={styles.statsBar}>
-              <div className={styles.stat}>
-                <span className={styles.statValue}>{allVendors.length}</span>
-                <span className={styles.statLabel}>Dealers</span>
-              </div>
-              <div className={styles.statDivider} />
-              <div className={styles.stat}>
-                <span className={styles.statValue}>{verifiedVendors.length}</span>
-                <span className={styles.statLabel}>Verified</span>
-              </div>
-              <div className={styles.statDivider} />
-              <div className={styles.stat}>
-                <span className={styles.statValue}>{totalItems}</span>
-                <span className={styles.statLabel}>Items</span>
-              </div>
-              <div className={styles.statDivider} />
-              <div className={styles.stat}>
-                <span className={styles.statValue}>{totalListed}</span>
-                <span className={styles.statLabel}>Listed</span>
-              </div>
-            </div>
-          )}
-
           {/* Tabs + Search */}
           <div className={styles.toolbar}>
             <div className={styles.tabs}>

@@ -121,7 +121,10 @@ export default function AddInventoryForm({ onSuccess }: { onSuccess: () => void 
       const base64 = await fileToBase64(single.images[0]);
       const res = await fetch('/api/ai/analyze-watch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(publicKey ? { 'X-Wallet-Address': publicKey.toBase58() } : {}),
+        },
         body: JSON.stringify({ imageUrl: base64 }),
       });
 

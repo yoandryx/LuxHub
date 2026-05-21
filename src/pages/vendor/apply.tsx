@@ -1,7 +1,8 @@
 import Head from 'next/head';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useEffectiveWallet } from '../../hooks/useEffectiveWallet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   FaShieldAlt,
   FaGem,
@@ -10,16 +11,18 @@ import {
   FaArrowRight,
   FaEnvelope,
 } from 'react-icons/fa';
-import { FaXTwitter, FaDiscord } from 'react-icons/fa6';
-import { FaTelegram } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 import toast from 'react-hot-toast';
 import styles from '../../styles/VendorApply.module.css';
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
 export default function VendorApply() {
   const { publicKey } = useEffectiveWallet();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadedAt] = useState(Date.now());
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [form, setForm] = useState({
     name: '',
     category: '',
@@ -32,6 +35,16 @@ export default function VendorApply() {
     // Honeypot — hidden from real users, bots will fill it
     company_url: '',
   });
+
+  // Expose a global callback for Cloudflare Turnstile to call when the user passes verification
+  useEffect(() => {
+    (window as any).onTurnstileSuccess = (token: string) => setTurnstileToken(token);
+    (window as any).onTurnstileExpired = () => setTurnstileToken('');
+    return () => {
+      delete (window as any).onTurnstileSuccess;
+      delete (window as any).onTurnstileExpired;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +71,11 @@ export default function VendorApply() {
       toast.error('Please provide an email or connect your wallet so we can reach you');
       return;
     }
+    // Turnstile: only enforced when a site key is configured (no-op in dev / before setup)
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      toast.error('Please complete the verification challenge below');
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch('/api/vendor/interest', {
@@ -73,15 +91,17 @@ export default function VendorApply() {
           contact: form.contact.trim() || null,
           website: form.website.trim() || null,
           inventorySize: form.inventorySize || null,
+          turnstileToken: turnstileToken || undefined,
+          company_url: form.company_url || undefined,
         }),
       });
       setSubmitted(true);
       toast.success(
-        res.ok ? "Interest submitted! We'll be in touch." : 'Thanks! Reach out on X or Discord.'
+        res.ok ? "Interest submitted! We'll be in touch." : 'Thanks! Reach out on X or via email.'
       );
     } catch {
       setSubmitted(true);
-      toast.success('Thanks! Reach out on X or Discord for faster response.');
+      toast.success('Thanks! Reach out on X or via email for faster response.');
     } finally {
       setSubmitting(false);
     }
@@ -158,28 +178,28 @@ export default function VendorApply() {
                   <span className={styles.stepNum}>1</span>
                   <div>
                     <h3>Reach Out</h3>
-                    <p>Contact us via X, Discord, or the form below.</p>
+                    <p>Submit the form below or DM us on X. No public sign-up — every dealer is vetted personally.</p>
                   </div>
                 </div>
                 <div className={styles.step}>
                   <span className={styles.stepNum}>2</span>
                   <div>
                     <h3>Get Verified</h3>
-                    <p>We review your background and inventory.</p>
+                    <p>We review your background, inventory, and existing storefront before approval.</p>
                   </div>
                 </div>
                 <div className={styles.step}>
                   <span className={styles.stepNum}>3</span>
                   <div>
                     <h3>Onboard</h3>
-                    <p>Set up your vendor profile and list your first items.</p>
+                    <p>Approved dealers receive an invite link. We help you set up your profile and list your inventory.</p>
                   </div>
                 </div>
                 <div className={styles.step}>
                   <span className={styles.stepNum}>4</span>
                   <div>
                     <h3>Start Selling</h3>
-                    <p>NFT-backed listings with escrow protection. Get paid in SOL.</p>
+                    <p>You keep 97% of every sale, paid in USDC after the buyer confirms delivery. Funds stay in on-chain escrow until then.</p>
                   </div>
                 </div>
               </div>
@@ -204,34 +224,10 @@ export default function VendorApply() {
                     <span className={styles.contactHint}>DM us on X</span>
                   </div>
                 </a>
-                <a
-                  href="https://discord.gg/luxhub"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.contactCard}
-                >
-                  <FaDiscord />
-                  <div>
-                    <span>LuxHub Discord</span>
-                    <span className={styles.contactHint}>Join & open a ticket</span>
-                  </div>
-                </a>
-                <a
-                  href="https://t.me/luxhub"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.contactCard}
-                >
-                  <FaTelegram />
-                  <div>
-                    <span>LuxHub Telegram</span>
-                    <span className={styles.contactHint}>Message us directly</span>
-                  </div>
-                </a>
-                <a href="mailto:LuxHubMarket@gmail.com" className={styles.contactCard}>
+                <a href="mailto:support@luxhub.gold" className={styles.contactCard}>
                   <FaEnvelope />
                   <div>
-                    <span>LuxHubMarket@gmail.com</span>
+                    <span>support@luxhub.gold</span>
                     <span className={styles.contactHint}>Email us</span>
                   </div>
                 </a>
@@ -247,15 +243,13 @@ export default function VendorApply() {
                   <FaCheckCircle className={styles.successIcon} />
                   <h3>Thanks for your interest!</h3>
                   <p>
-                    We've noted your application. DM us on{' '}
+                    We've noted your application and will be in touch personally. For a faster
+                    response, DM us on{' '}
                     <a href="https://x.com/LuxHubStudio" target="_blank" rel="noopener noreferrer">
-                      X
+                      @LuxHubStudio
                     </a>{' '}
-                    or join{' '}
-                    <a href="https://discord.gg/luxhub" target="_blank" rel="noopener noreferrer">
-                      Discord
-                    </a>{' '}
-                    for faster response.
+                    or email{' '}
+                    <a href="mailto:support@luxhub.gold">support@luxhub.gold</a>.
                   </p>
                 </div>
               ) : (
@@ -376,6 +370,25 @@ export default function VendorApply() {
                     <p className={styles.walletNote}>
                       Connect your wallet for faster onboarding (we'll link your invite to it)
                     </p>
+                  )}
+                  {/* Cloudflare Turnstile — renders nothing if NEXT_PUBLIC_TURNSTILE_SITE_KEY is unset */}
+                  {TURNSTILE_SITE_KEY && (
+                    <>
+                      <Script
+                        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+                        async
+                        defer
+                        strategy="afterInteractive"
+                      />
+                      <div
+                        className="cf-turnstile"
+                        data-sitekey={TURNSTILE_SITE_KEY}
+                        data-callback="onTurnstileSuccess"
+                        data-expired-callback="onTurnstileExpired"
+                        data-theme="dark"
+                        style={{ marginTop: 4 }}
+                      />
+                    </>
                   )}
                   <button type="submit" className={styles.submitBtn} disabled={submitting}>
                     {submitting ? 'Submitting...' : 'Submit Interest'}{' '}

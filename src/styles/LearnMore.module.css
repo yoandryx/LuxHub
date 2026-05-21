@@ -382,6 +382,35 @@
   pointer-events: none;
 }
 
+.sectionHeading {
+  margin: 0 0 12px;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  background: linear-gradient(90deg, #dbc2ff, #fff, #dbc2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sectionLede {
+  margin: 0 0 28px;
+  max-width: 620px;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #a1a1a1);
+}
+
+@media (max-width: 640px) {
+  .sectionHeading {
+    font-size: 1.5rem;
+  }
+  .sectionLede {
+    font-size: 0.95rem;
+  }
+}
+
 /* ========== CARD GRID (Why LuxHub) ========== */
 .cardGrid {
   display: grid;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEffectiveWallet } from '../hooks/useEffectiveWallet';
 import { FaLock, FaArrowRight, FaChartLine } from 'react-icons/fa';
 import { HiCube } from 'react-icons/hi2';
@@ -50,6 +50,12 @@ interface NFT {
   attributes?: { trait_type: string; value: string }[];
 }
 
+// Hero title rotation — three lines each, middle line is accented
+const heroPhrases: { top: string; accent: string; bottom: string }[] = [
+  { top: 'Real World', accent: 'Luxury', bottom: 'On Chain' },
+  { top: 'From', accent: 'Wallet', bottom: 'to Wrist.' },
+];
+
 // Features data
 const features = [
   {
@@ -83,6 +89,7 @@ export default function IndexTest() {
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [selectedBuyNFT, setSelectedBuyNFT] = useState<NFT | null>(null);
   const [selectedOfferNFT, setSelectedOfferNFT] = useState<NFT | null>(null);
+  const [heroPhraseIdx, setHeroPhraseIdx] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const pointerDownRef = useRef(false);
@@ -103,6 +110,14 @@ export default function IndexTest() {
       el.scrollLeft += half;
       scrollStartRef.current += half;
     }
+  }, []);
+
+  // Cycle the hero title phrase every 4.5s
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHeroPhraseIdx((i) => (i + 1) % heroPhrases.length);
+    }, 4500);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -253,27 +268,26 @@ export default function IndexTest() {
         <section className={styles.heroSection}>
           {/* Centered hero text content */}
           <div className={styles.heroContent}>
-            <motion.h1
-              className={styles.heroTitle}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-            >
-              Authenticated
-              <br />
-              <span className={styles.heroTitleAccent}>Luxury</span>
-              <br />
-              On-Chain
-            </motion.h1>
-
-            <motion.p
-              className={styles.heroSubtitle}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-            >
-              NFT-backed luxury timepieces with verified provenance and secure escrow.
-            </motion.p>
+            <h1 className={styles.heroTitle}>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={heroPhraseIdx}
+                  className={styles.heroTitlePhrase}
+                  initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, y: -18, filter: 'blur(6px)' }}
+                  transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  {heroPhrases[heroPhraseIdx].top}
+                  <br />
+                  <span className={styles.heroTitleAccent}>
+                    {heroPhrases[heroPhraseIdx].accent}
+                  </span>
+                  <br />
+                  {heroPhrases[heroPhraseIdx].bottom}
+                </motion.span>
+              </AnimatePresence>
+            </h1>
 
             <motion.div
               className={styles.heroButtons}
@@ -289,30 +303,6 @@ export default function IndexTest() {
                 Become a Vendor
               </Link>
             </motion.div>
-
-            <motion.nav
-              className={styles.sectionNav}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.7 }}
-            >
-              {[
-                { id: 'featured', label: 'Featured' },
-                { id: 'features', label: 'How It Works' },
-                { id: 'cta', label: 'Get Started' },
-                { id: 'partners', label: 'Partners' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  className={styles.sectionNavItem}
-                  onClick={() =>
-                    document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' })
-                  }
-                >
-                  {item.label}
-                </button>
-              ))}
-            </motion.nav>
           </div>
         </section>
 

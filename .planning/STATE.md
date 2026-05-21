@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Mainnet & Pools
 status: Executing Phase 11
 stopped_at: Completed 11-15-PLAN.md
-last_updated: "2026-04-12T20:10:00.000Z"
-last_activity: 2026-04-12 — Wave E plan 11-15 complete. Webhooks + reconcile cron rewired for phase 11 fee-funded model, fail-loud Helius filter canary shipped.
+last_updated: "2026-05-21T03:27:58Z"
+last_activity: 2026-05-20 — Quick task 260520-wi8 complete. Fixed .heroTitle mobile margin (12px on all sides at ≤768px breakpoints) in src/styles/IndexTest.module.css.
 progress:
   total_phases: 7
   completed_phases: 5
@@ -158,6 +158,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260405-c3k | Smoke test buy/sell on mainnet bonding curve (72DexA...BAGS) — audit + runbook | 2026-04-05 | 4da37dd | [260405-c3k-smoke-test-buy-sell-on-mainnet-bonding-c](./quick/260405-c3k-smoke-test-buy-sell-on-mainnet-bonding-c/) |
+| 260520-wi8 | Fix hero title mobile margin — 12px on all sides at 768/480/360 breakpoints | 2026-05-20 | 320bb51 | [260520-wi8-fix-hero-title-mobile-margin-12px-all-ar](./quick/260520-wi8-fix-hero-title-mobile-margin-12px-all-ar/) |
 
 ## Session Continuity
 

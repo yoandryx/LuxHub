@@ -18,10 +18,13 @@ import { createMetadata } from '../utils/metadata';
 import { getClusterConfig } from '@/lib/solana/clusterConfig';
 
 // Upload metadata via server-side API (supports Irys/Pinata based on config)
-async function uploadMetadataViaApi(metadata: object, name: string): Promise<string> {
+async function uploadMetadataViaApi(metadata: object, name: string, wallet: string): Promise<string> {
   const response = await fetch('/api/storage/upload', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(wallet ? { 'X-Wallet-Address': wallet } : {}),
+    },
     body: JSON.stringify({
       type: 'metadata',
       data: metadata,
@@ -430,7 +433,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       const imageUrl = `${gateway}${fileCid}`;
       const response = await fetch('/api/ai/verify-listing', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminWallet ? { 'X-Wallet-Address': adminWallet } : {}),
+        },
         body: JSON.stringify({
           imageUrl,
           category: 'watches', // Default to watches, could be made dynamic
@@ -571,7 +577,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
       setStatusMessage('Uploading metadata to storage...');
       console.log('[MINT] Uploading metadata via API...');
 
-      const metadataUri = await uploadMetadataViaApi(metadataJson, title);
+      const metadataUri = await uploadMetadataViaApi(metadataJson, title, adminWallet);
 
       console.log('[MINT] Metadata uploaded successfully');
       console.log('[MINT] Metadata URI:', metadataUri);
@@ -821,7 +827,10 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
     try {
       const response = await fetch('/api/ai/analyze-watch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminWallet ? { 'X-Wallet-Address': adminWallet } : {}),
+        },
         body: JSON.stringify({ imageUrl }),
       });
 
@@ -1051,7 +1060,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
         // Upload metadata via server-side API (Irys/Pinata based on config)
         console.log(`[BULK-MINT] Row ${index + 1}: Uploading metadata via API...`);
 
-        const metadataUri = await uploadMetadataViaApi(metadataJson, row.title);
+        const metadataUri = await uploadMetadataViaApi(metadataJson, row.title, adminWallet);
 
         console.log(`[BULK-MINT] Row ${index + 1}: Metadata uploaded: ${metadataUri}`);
 
@@ -1563,7 +1572,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
 
       // Upload new metadata via server-side API
       console.log('[UPDATE] Uploading updated metadata via API...');
-      const newUri = await uploadMetadataViaApi(updatedJson, title);
+      const newUri = await uploadMetadataViaApi(updatedJson, title, adminWallet);
       console.log('[UPDATE] Metadata uploaded:', newUri);
 
       // Fetch and update on-chain metadata
@@ -1812,6 +1821,7 @@ const CreateNFT = ({ initialMintedNFTs, initialSolPrice }: Props) => {
             <div className={styles.mintCard}>
               <div className={styles.leftColumn}>
                 <NftForm
+                  wallet={adminWallet}
                   fileCid={fileCid}
                   setFileCid={setFileCid}
                   imageUri={imageUri}

@@ -4,6 +4,7 @@ import { uploadMetadata, getStorageConfig } from '@/utils/storage';
 import { uploadLimiter } from '@/lib/middleware/rateLimit';
 import { withErrorMonitoring } from '@/lib/monitoring/errorHandler';
 import { validateBody } from '@/lib/middleware/validate';
+import { requireConnectedWallet } from '@/lib/middleware/requireConnectedWallet';
 import { z } from 'zod';
 
 // Request schema
@@ -56,4 +57,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Apply validation, rate limiting and error monitoring
-export default validateBody(UploadMetadataSchema)(uploadLimiter(withErrorMonitoring(handler)));
+export default requireConnectedWallet(
+  validateBody(UploadMetadataSchema)(uploadLimiter(withErrorMonitoring(handler)))
+);

@@ -50,29 +50,6 @@ const LearnMorePage: React.FC = () => {
             </div>
           </header>
 
-          {/* Stats */}
-          <div className={styles.statsBar}>
-            <div className={styles.stat}>
-              <span className={styles.statValue}>5%</span>
-              <span className={styles.statLabel}>Treasury Fee</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={styles.statValue}>v0.2</span>
-              <span className={styles.statLabel}>Version</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={styles.statValue}>Devnet</span>
-              <span className={styles.statLabel}>Network</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={styles.statValue}>Anchor</span>
-              <span className={styles.statLabel}>Framework</span>
-            </div>
-          </div>
-
           {/* Why LuxHub */}
           <section className={styles.section}>
             <span className={styles.sectionLabel}>Why LuxHub</span>
@@ -83,9 +60,9 @@ const LearnMorePage: React.FC = () => {
                 </div>
                 <h3>Verified Authenticity</h3>
                 <p>
-                  Every asset is admin-verified before NFT minting. On-chain provenance with
-                  metadata stored on IPFS via Pinata. AI-powered watch analysis for
-                  auto-identification.
+                  Every asset is admin-reviewed before its on-chain record is minted. Metadata is
+                  written to permanent decentralized storage via Irys. AI-assisted watch analysis
+                  helps detect brand, model, and specs from photos.
                 </p>
               </div>
 
@@ -123,8 +100,8 @@ const LearnMorePage: React.FC = () => {
                   <h3>List & Verify</h3>
                   <p>
                     Vendor submits asset details and images. Admin reviews authenticity, then mints
-                    an NFT with full metadata on IPFS. AI can auto-detect watch brand, model, and
-                    specs from photos.
+                    the on-chain record with full metadata written to permanent decentralized
+                    storage (Irys). AI assist can auto-detect watch brand, model, and specs.
                   </p>
                 </div>
               </div>
@@ -156,11 +133,70 @@ const LearnMorePage: React.FC = () => {
                 <div className={styles.stepContent}>
                   <h3>Multisig Release</h3>
                   <p>
-                    Squads multisig executes the release: NFT transfers to buyer, 95% of funds go to
-                    seller, 5% to LuxHub treasury vault. Provenance history recorded on-chain
-                    forever.
+                    Squads multisig executes the release: the on-chain record transfers to the
+                    buyer, 97% of funds go to the vendor, 3% to the LuxHub treasury vault.
+                    Provenance history is preserved on-chain forever.
                   </p>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Verification — deep-linkable via /learnMore#verification */}
+          <section id="verification" className={styles.section}>
+            <span className={styles.sectionLabel}>Verification</span>
+            <h2 className={styles.sectionHeading}>Four layers of trust.</h2>
+            <p className={styles.sectionLede}>
+              Every transaction on LuxHub passes through four independent verification gates —
+              from the vendor at the front door to the package in your hand.
+            </p>
+            <div className={styles.cardGrid}>
+              <div className={styles.card}>
+                <div className={styles.cardIcon}>
+                  <FaUsers />
+                </div>
+                <h3>Vendor Verification</h3>
+                <p>
+                  Dealers apply through a structured onboarding flow. Admins manually review each
+                  application before granting listing access — no anonymous sellers, no
+                  self-serve approvals.
+                </p>
+              </div>
+
+              <div className={styles.card}>
+                <div className={styles.cardIcon}>
+                  <FaShieldAlt />
+                </div>
+                <h3>Asset Verification</h3>
+                <p>
+                  Every item is admin-reviewed before its on-chain record is created. AI watch
+                  analysis assists with brand, model, and spec detection. Metadata is written
+                  permanently to Irys — it cannot be altered or removed after mint.
+                </p>
+              </div>
+
+              <div className={styles.card}>
+                <div className={styles.cardIcon}>
+                  <SiSolana />
+                </div>
+                <h3>Transaction Verification</h3>
+                <p>
+                  Every purchase signature is verified on-chain before our database records the
+                  sale. If the Solana transaction didn't actually occur — or wasn't signed by the
+                  buyer's wallet — the order is rejected.
+                </p>
+              </div>
+
+              <div className={styles.card}>
+                <div className={styles.cardIcon}>
+                  <FaCheckCircle />
+                </div>
+                <h3>Delivery Verification</h3>
+                <p>
+                  Funds stay in the escrow PDA until the buyer confirms receipt. If the vendor
+                  doesn't ship within 14 days, escrow auto-cancels and the buyer is refunded.
+                  Disputes follow a 7-day admin SLA.
+                </p>
               </div>
             </div>
           </section>
@@ -220,12 +256,12 @@ const LearnMorePage: React.FC = () => {
                 <p>RPC infrastructure, DAS API for on-chain asset indexing</p>
               </div>
               <div className={styles.partnerCard}>
-                <h4>Pinata</h4>
-                <p>IPFS gateway for NFT metadata and asset image storage</p>
+                <h4>Irys</h4>
+                <p>Permanent decentralized storage for asset metadata and images</p>
               </div>
               <div className={styles.partnerCard}>
                 <h4>Metaplex</h4>
-                <p>Token Metadata standard for SPL NFTs</p>
+                <p>Token Metadata standard for the on-chain asset records</p>
               </div>
             </div>
           </section>
@@ -263,27 +299,40 @@ const LearnMorePage: React.FC = () => {
                 </ul>
               </div>
 
+              <div className={`${styles.roadmapCard} ${styles.complete}`}>
+                <div className={styles.roadmapStatus}>
+                  <FaCheckCircle /> Complete
+                </div>
+                <h3>Phase 3 — Launch</h3>
+                <ul>
+                  <li>Mainnet deployment (v1.0)</li>
+                  <li>Full escrow lifecycle proven on-chain</li>
+                  <li>First vendor onboarded</li>
+                  <li>Chrome-glass UI polish</li>
+                </ul>
+              </div>
+
               <div className={`${styles.roadmapCard} ${styles.active}`}>
                 <div className={styles.roadmapStatus}>
                   <FaSyncAlt /> Current
                 </div>
-                <h3>Phase 3 — Launch</h3>
+                <h3>Phase 4 — Growth</h3>
                 <ul>
-                  <li>Mainnet deployment</li>
-                  <li>First vendor onboarding</li>
+                  <li>Expanding the dealer network</li>
+                  <li>Mobile-first experience</li>
+                  <li>Marketplace discovery & filters</li>
                   <li>Community building</li>
-                  <li>Mobile optimization</li>
                 </ul>
               </div>
 
               <div className={styles.roadmapCard}>
                 <div className={styles.roadmapStatus}>Upcoming</div>
-                <h3>Phase 4 — Scale</h3>
+                <h3>Phase 5 — Scale</h3>
                 <ul>
-                  <li>Tokenized asset pools launch</li>
+                  <li>NFC authentication chips on physical assets</li>
                   <li>Advanced analytics dashboards</li>
                   <li>Third-party API integrations</li>
-                  <li>NFC authentication chips</li>
+                  <li>International dealer expansion</li>
                 </ul>
               </div>
             </div>
@@ -307,8 +356,8 @@ const LearnMorePage: React.FC = () => {
           <footer className={styles.footer}>
             <div className={styles.footerLinks}>
               <span>Program: kW2w...Npj</span>
-              <span>Devnet</span>
-              <span>v0.2.0</span>
+              <span>Mainnet</span>
+              <span>v1.0.0</span>
             </div>
           </footer>
         </main>

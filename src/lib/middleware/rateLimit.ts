@@ -121,3 +121,10 @@ export const strictLimiter = rateLimit({
   maxRequests: 5,
   message: 'Rate limit exceeded for this operation',
 });
+
+// Vendor interest form: 3 submissions per hour per IP — public-facing, no auth, scammer target
+export const vendorInterestLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 3,
+  message: 'Too many applications from this network. Please reach out via X or email.',
+});

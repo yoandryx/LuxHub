@@ -4,6 +4,7 @@ import { aiLimiter } from '@/lib/middleware/rateLimit';
 import { withErrorMonitoring } from '@/lib/monitoring/errorHandler';
 import { validateBody } from '@/lib/middleware/validate';
 import { AnalyzeImageSchema } from '@/lib/validation/schemas';
+import { requireConnectedWallet } from '@/lib/middleware/requireConnectedWallet';
 
 export const config = {
   api: {
@@ -260,4 +261,4 @@ Be specific and accurate. If you notice any authenticity concerns, add them to v
 }
 
 // Apply rate limiting and error monitoring
-export default aiLimiter(withErrorMonitoring(handler));
+export default requireConnectedWallet(aiLimiter(withErrorMonitoring(handler)));

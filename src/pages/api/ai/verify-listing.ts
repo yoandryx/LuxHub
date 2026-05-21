@@ -4,6 +4,7 @@ import { aiLimiter } from '@/lib/middleware/rateLimit';
 import { withErrorMonitoring } from '@/lib/monitoring/errorHandler';
 import { validateBody } from '@/lib/middleware/validate';
 import { VerifyListingSchema, type VerifyListingInput } from '@/lib/validation/schemas';
+import { requireConnectedWallet } from '@/lib/middleware/requireConnectedWallet';
 import {
   buildVerificationPrompt,
   getApprovalThresholds,
@@ -193,4 +194,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Apply validation, rate limiting, and error monitoring
-export default validateBody(VerifyListingSchema)(aiLimiter(withErrorMonitoring(handler)));
+export default requireConnectedWallet(
+  validateBody(VerifyListingSchema)(aiLimiter(withErrorMonitoring(handler)))
+);

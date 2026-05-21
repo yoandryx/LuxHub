@@ -5,6 +5,7 @@ import fs from 'fs';
 import { uploadImage, uploadMetadata, getStorageConfig } from '@/utils/storage';
 import { uploadLimiter } from '@/lib/middleware/rateLimit';
 import { withErrorMonitoring } from '@/lib/monitoring/errorHandler';
+import { requireConnectedWallet } from '@/lib/middleware/requireConnectedWallet';
 
 // Configure multer to use /tmp folder with 10MB limit
 const upload = multer({
@@ -112,4 +113,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Apply rate limiting and error monitoring
-export default uploadLimiter(withErrorMonitoring(handler));
+export default requireConnectedWallet(uploadLimiter(withErrorMonitoring(handler)));
