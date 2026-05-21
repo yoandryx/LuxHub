@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mainnet & Pools
-status: Executing Phase 11
-stopped_at: Completed 11-15-PLAN.md
-last_updated: "2026-05-21T03:27:58Z"
-last_activity: 2026-05-20 — Quick task 260520-wi8 complete. Fixed .heroTitle mobile margin (12px on all sides at ≤768px breakpoints) in src/styles/IndexTest.module.css.
+status: Executing Phase 12
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-05-21T04:37:29Z"
+last_activity: 2026-05-21
 progress:
-  total_phases: 7
-  completed_phases: 5
-  total_plans: 41
-  completed_plans: 39
-  percent: 95
+  total_phases: 8
+  completed_phases: 6
+  total_plans: 46
+  completed_plans: 42
 ---
 
 # Project State
@@ -21,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Every purchase is protected by on-chain escrow -- funds held in PDA until buyer confirms delivery, then split 97% vendor / 3% treasury automatically.
-**Current focus:** Phase 11 — pool-fee-funded-rewire (supersedes phase 8)
+**Current focus:** Phase 12 — wallet-stack-consolidation-strip-privy-commit-to-solana-wallet-adapter
 
 ## Current Position
 
-Phase: 11 (pool-fee-funded-rewire) — EXECUTING
-Plan: Wave 0 (11-00) + Wave A (11-01 through 11-04) + Wave B (11-05 through 11-08) complete. Wave C (11-09 through 11-11) executing.
+Phase: 12 (wallet-stack-consolidation-strip-privy-commit-to-solana-wallet-adapter) — EXECUTING
+Plan: 3 of 5 (Plans 12-01, 12-02 complete 2026-05-21)
 Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 
 ## Performance Metrics
@@ -80,6 +79,8 @@ Execution order: Phase 9 → 10 → 11 (phase 8 superseded)
 | Phase 11 P17 | 249s | 3 tasks | 3 files |
 | Phase 11 P16 | 12min | 5 tasks | 9 files |
 | Phase 11 P15 | 25min | 5 tasks | 11 files |
+| Phase 12 P01 | 5min | 3 tasks | 4 files |
+| Phase 12 P02 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -139,10 +140,18 @@ Recent decisions affecting current work:
 - [Phase 11-15]: Helius filter smoke test emits Sentry level=error (not warning) so on-call is paged; folded into daily drift-check-pool-fees cron to avoid a new Vercel cron slot
 - [Phase 11-15]: pool/finalize.ts + createPoolSquad deletion deferred to plan 11-18 (already scoped there) to keep plan 11-15 focused on the three rewired endpoints
 - [Phase 11-15]: new env var HELIUS_WEBHOOK_ID required for /api/internal/smoke-test-helius-filter canary
+- [Phase 12-01]: Wave 0 RED tests for useEffectiveWallet + useUserRole authored; both fail today via Jest ESM parse of transitive jose dep — desired RED signal until Plan 12-02 strips Privy imports
+- [Phase 12-01]: scripts/check-no-privy.sh CI regression guard added (executable, exits 1 today); NOT yet wired into package.json or CI — wiring reserved for Plan 12-04 after Privy is fully removed
+- [Phase 12-01]: Audit findings doc 12-01-AUDITS.md green-lights Plan 12-02 — confirmed zero production consumers of useEffectiveWallet().source, exactly 6 Privy frontend callsites (matches RESEARCH), orphan endpoints + WalletConnect.tsx safe to delete in 12-03
+- [Phase 12-01]: MongoDB Privy-only-user count (Pitfall 4) deferred to runtime check before Plan 12-04 merge — non-blocking for source refactor
+- [Phase 12-02]: useEffectiveWallet refactored to thin pass-through over @solana/wallet-adapter-react (156→78 lines); useUserRole refactored with strict isConnected=wallet.connected (169→138 lines); both Wave 0 RED tests flipped GREEN (9/9 pass); zero new typecheck errors vs baseline; 32 downstream consumers unmodified because public API surface preserved
+- [Phase 12-02]: source hardcoded as 'wallet-adapter' as const per 12-01-AUDITS Source Discriminant disposition (zero production consumers branch on .source)
+- [Phase 12-02]: Pitfall 4 caveat applied — Privy-email-only users (no linked wallet) will see isConnected=false on next page load; intentional, wallet-adapter modal will prompt them to connect a real Solana wallet
 
 ### Roadmap Evolution
 
 - Phase 5.1 inserted after Phase 5: Anchor Program Security Hardening (URGENT) — 2 critical, 5 high vulnerabilities found in pre-mainnet audit. Must complete before Phase 6 mainnet deployment.
+- Phase 12 added: Wallet Stack Consolidation — Strip Privy, commit to Solana Wallet Adapter (2026-05-21). User report: dual wallet stack (Privy + wallet-adapter) causes session-confusion bugs. Commit to wallet-adapter as single source of truth; Privy advantage (email/social login) not aligned with crypto-native target market.
 
 ### Pending Todos
 
@@ -162,9 +171,9 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-04-12 — Wave C complete. 11-11 (confirm-resale hook + DAS snapshot) done.
-Stopped at: Completed 11-16-PLAN.md
-Key context: All Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
+Last activity: 2026-05-21
+Stopped at: Completed 12-02-PLAN.md
+Key context: Phase 12 Wave A (source hook refactor) shipped. useEffectiveWallet + useUserRole are now wallet-adapter-only thin pass-throughs; Wave 0 RED tests flipped GREEN automatically (9/9 pass); zero new typecheck errors; 32 downstream consumers unmodified. Next: Plan 12-03 (Wave B) — strip Privy from 6 frontend callsites (_app.tsx, UserMenuDropdown.tsx, MobileDrawer.tsx, WalletGuide.tsx), delete orphan endpoints (sync-privy.ts, me.ts) + WalletConnect.tsx. Plan 12-04 reserved for npm uninstall + CI guard wiring + Mongo Privy-user-count runtime check. Earlier context: Phase 12 Wave 0 (TDD scaffolding) shipped. All Phase 11 Wave 0 resolutions locked. TREASURY_POOLS updated to Squads vault PDA `FJYnuRUvMM9zuiEDMPyuVBMgGs5UtkAKSouTaMTaoqqZ` in .env.local + .env.mainnet. Vercel prod env needs manual update by user.
 
 ## 2026-04-10 — Phase 11 Context Captured
 

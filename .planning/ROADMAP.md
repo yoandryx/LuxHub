@@ -29,7 +29,7 @@
 - [x] **Phase 9: Offer UX & UI Polish** - Countdown timers on offers, offer confirm_delivery flow, landing page refresh, navbar reorganization
 - [ ] **Phase 10: AI Bulk Inventory Upload** - AI-powered CSV parsing, image analysis, admin review queue, batch minting
 - [~] **Phase 8: Pool Lifecycle** — **SUPERSEDED BY PHASE 11** (see 2026-04-10 decision). Phase 8's code is treated as scaffolding to be rewired by phase 11; phase 8 will NOT execute on mainnet as originally scoped.
-- [ ] **Phase 11: Pool Fee-Funded Rewire** - Canonical pool lifecycle execution. Replaces phase 8. Fee-driven graduation via cumulative Bags trading fees accumulated to Pools Treasury, vendor payout gated by existing marketplace escrow `confirm_delivery`, Helius DAS holder snapshot at resale, claimable distribution with 90-day graceful expiry.
+- [x] **Phase 11: Pool Fee-Funded Rewire** - Canonical pool lifecycle execution. Replaces phase 8. Fee-driven graduation via cumulative Bags trading fees accumulated to Pools Treasury, vendor payout gated by existing marketplace escrow `confirm_delivery`, Helius DAS holder snapshot at resale, claimable distribution with 90-day graceful expiry. (completed 2026-04-12)
 
 ## Phase Details
 
@@ -216,7 +216,41 @@ Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 11
 | 9. Offer UX & UI Polish | v1.1 | 3/3 | Complete | 2026-03-29 |
 | 10. AI Bulk Inventory Upload | v1.1 | 2/4 | In Progress|  |
 | 8. Pool Lifecycle | v1.1 | — | Superseded by 11 | - |
-| 11. Pool Fee-Funded Rewire | v1.1 | 18/20 | In Progress|  |
+| 11. Pool Fee-Funded Rewire | v1.1 | 20/20 | Complete   | 2026-04-12 |
+| 12. Wallet Stack Consolidation | v1.1 | 1/5 | In Progress|  |
+
+### Phase 12: Wallet Stack Consolidation — Strip Privy, commit to Solana Wallet Adapter
+
+**Goal:** Eliminate the dual wallet stack (Privy + `@solana/wallet-adapter-react` running simultaneously) that causes wallet-session confusion. Commit to wallet-adapter as the single source of truth; remove Privy entirely from runtime, deps, and env.
+
+**Why now:** User reports wallet-connection confusion when multiple stacks are mounted. For LuxHub's crypto-native target market ("Real World Luxury On Chain", "From Wallet to Wrist"), wallet-adapter is the simpler, free, industry-standard choice. Privy's advantage (email/social login for Web2 users) isn't aligned with this audience. Privy free tier covers MVP but hits $299/mo at 500+ MAU without proportional value for crypto-native buyers.
+
+**Requirements**: WALLET-01, WALLET-02, WALLET-03, WALLET-04, WALLET-05, WALLET-06, WALLET-07, WALLET-08, WALLET-09, WALLET-10, WALLET-11, WALLET-12 (see REQUIREMENTS.md)
+
+**Depends on:** None — independent of Phase 11 (pool work).
+
+**Risk:** Touches many files. A bad refactor breaks every wallet-driven flow (mint, escrow, purchase, offer, vendor inventory). Use isolated branch + smoke-test before merge.
+
+**Scope hints (planner refines):**
+1. `_app.tsx`: remove `PrivyProvider` + Privy Solana connectors; keep `ConnectionProvider` + `WalletProvider` (re-enable `autoConnect`); keep `WalletModalProvider` as the only UI modal.
+2. Drop `@privy-io/react-auth` from `package.json` + lockfile.
+3. Refactor `src/hooks/useEffectiveWallet.ts` to be a thin wrapper over `useWallet()` only (no Privy branch).
+4. Migrate the ~5 files that call `usePrivy()` directly → `useWallet()` / `useEffectiveWallet()`.
+5. Audit ~32 files using raw `useWallet()` — most should be no-op since `useEffectiveWallet` preserves the wallet-adapter API surface; confirm no regressions.
+6. Audit Navbar / connect-button UI for Privy-branded buttons → swap for `WalletMultiButton`.
+7. Remove Privy env vars from `.env.local`, `.env.mainnet`, `.env.devnet`, Vercel config.
+8. Smoke-test critical flows: mint NFT, escrow purchase, make offer, vendor inventory upload, admin actions.
+
+**Out of scope:** Wallet UX redesign. Wallet-adapter version bump. Changes to supported wallets (Phantom, Solflare, mobile remain).
+
+**Plans:** 5 plans
+
+Plans:
+- [x] 12-01-PLAN.md — Wave 0: test scaffolds (RED state), CI regression guard, audit document — completed 2026-05-21
+- [x] 12-02-PLAN.md — Wave A: refactor useEffectiveWallet.ts + useUserRole.ts to wallet-adapter-only (RED -> GREEN) — completed 2026-05-21
+- [ ] 12-03-PLAN.md — Wave B: strip Privy from _app.tsx + 3 UI components, delete orphans, User.ts deprecation markers, CLAUDE.md update
+- [ ] 12-04-PLAN.md — Wave C: npm uninstall @privy-io/react-auth, scrub NEXT_PUBLIC_PRIVY_APP_ID from 5 env files, full build/lint/test gate
+- [ ] 12-05-PLAN.md — Wave D: human-verify smoke test of 5 critical flows on devnet then mainnet (WALLET-11), Vercel dashboard env cleanup checkpoint
 
 ---
 *Full v1.0 details: .planning/milestones/v1.0-ROADMAP.md*
