@@ -217,7 +217,7 @@ Phases execute in order: 5.1 -> 6 -> 7 -> 9 -> 10 -> 11
 | 10. AI Bulk Inventory Upload | v1.1 | 2/4 | In Progress|  |
 | 8. Pool Lifecycle | v1.1 | — | Superseded by 11 | - |
 | 11. Pool Fee-Funded Rewire | v1.1 | 20/20 | Complete   | 2026-04-12 |
-| 12. Wallet Stack Consolidation | v1.1 | 1/5 | In Progress|  |
+| 12. Wallet Stack Consolidation | v1.1 | 4/5 | In Progress|  |
 
 ### Phase 12: Wallet Stack Consolidation — Strip Privy, commit to Solana Wallet Adapter
 
@@ -249,7 +249,7 @@ Plans:
 - [x] 12-01-PLAN.md — Wave 0: test scaffolds (RED state), CI regression guard, audit document — completed 2026-05-21
 - [x] 12-02-PLAN.md — Wave A: refactor useEffectiveWallet.ts + useUserRole.ts to wallet-adapter-only (RED -> GREEN) — completed 2026-05-21
 - [x] 12-03-PLAN.md — Wave B: strip Privy from _app.tsx + 3 UI components, delete orphans, User.ts deprecation markers, CLAUDE.md update — completed 2026-05-21
-- [ ] 12-04-PLAN.md — Wave C: npm uninstall @privy-io/react-auth, scrub NEXT_PUBLIC_PRIVY_APP_ID from 5 env files, full build/lint/test gate
+- [x] 12-04-PLAN.md — Wave C: npm uninstall @privy-io/react-auth, scrub NEXT_PUBLIC_PRIVY_APP_ID from 5 env files, full build/lint/test gate — completed 2026-05-21
 - [ ] 12-05-PLAN.md — Wave D: human-verify smoke test of 5 critical flows on devnet then mainnet (WALLET-11), Vercel dashboard env cleanup checkpoint
 
 ---

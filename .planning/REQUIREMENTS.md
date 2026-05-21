@@ -75,13 +75,13 @@ Requirements for mainnet launch and pool feature completion. Each maps to roadma
 Phase 12 — Strip Privy, commit to `@solana/wallet-adapter-react` as the single source of wallet state. Added 2026-05-21 in response to dual-wallet-stack session-confusion bugs. The 34 consumer files already use `useEffectiveWallet()` as the unified abstraction; this phase makes `useEffectiveWallet` a thin pass-through over wallet-adapter and removes Privy entirely.
 
 - [x] **WALLET-01**: `PrivyProvider` and `toSolanaWalletConnectors` are removed from `src/pages/_app.tsx`; provider tree is `ConnectionProvider → WalletProvider (autoConnect) → WalletModalProvider` with no Privy wrappers and no `hasValidPrivyId` conditional shell
-- [ ] **WALLET-02**: `@privy-io/react-auth` package is removed from `package.json` dependencies and the lockfile is regenerated (no `@privy-io` references in `package.json` or `package-lock.json`)
+- [x] **WALLET-02**: `@privy-io/react-auth` package is removed from `package.json` dependencies and the lockfile is regenerated (no `@privy-io` references in `package.json` or `package-lock.json`)
 - [x] **WALLET-03**: `src/hooks/useEffectiveWallet.ts` is refactored to depend only on `useWallet()` and `useConnection()` from `@solana/wallet-adapter-react`; all Privy imports and branches removed; public API surface (`publicKey`, `connected`, `signTransaction`, `signAllTransactions`, `signMessage`, `sendVersionedTransaction`, `source`) preserved with `source` hardcoded to `'wallet-adapter' as const`
 - [x] **WALLET-04**: `src/hooks/useUserRole.ts` is refactored to drop `usePrivy` and `useWallets`; `activePublicKey` derives only from `wallet.publicKey`; `isConnected` derives only from `wallet.connected`
 - [x] **WALLET-05**: `src/components/common/UserMenuDropdown.tsx` is refactored: remove `usePrivy` import, remove `login`/`logout`/`privyReady` usage, route "Connect" CTA through `useWalletModal().setVisible(true)`, route "Sign Out" through `useWallet().disconnect()` only
 - [x] **WALLET-06**: `src/components/common/MobileDrawer.tsx` is refactored: remove `usePrivy` import, remove `login`/`logout`, route connect through `useWalletModal()`, route disconnect through `useWallet().disconnect()`
 - [x] **WALLET-07**: `src/components/common/WalletGuide.tsx` is refactored: remove the `usePrivySafe` runtime-require pattern entirely; route all connects through `useWalletModal()`
-- [ ] **WALLET-08**: `NEXT_PUBLIC_PRIVY_APP_ID` (and any `# Privy` comments) removed from `.env.local`, `.env.mainnet`, `.env.devnet`, `.env.example`, `.env.vercel`; Vercel dashboard env var deletion called out as manual user task in plan summary
+- [x] **WALLET-08**: `NEXT_PUBLIC_PRIVY_APP_ID` (and any `# Privy` comments) removed from `.env.local`, `.env.mainnet`, `.env.devnet`, `.env.example`, `.env.vercel`; Vercel dashboard env var deletion called out as manual user task in plan summary
 - [x] **WALLET-09**: The `src/pages/api/users/sync-privy.ts` orphan endpoint is deleted (no callers in the codebase) and `src/pages/api/users/me.ts` is either deleted or refactored to drop the `privyId` query param branch
 - [x] **WALLET-10**: The `src/components/common/WalletConnect.tsx` legacy component is deleted (no callers in `src/`)
 - [ ] **WALLET-11**: Smoke-test pass on devnet then mainnet: (a) mint NFT via `/createNFT`, (b) escrow purchase via `BuyModal`, (c) make offer via `MakeOfferModal`, (d) vendor bulk inventory upload via `/vendor/bulk-upload`, (e) admin confirm-delivery via `adminDashboard` — all complete successfully with Phantom
@@ -169,13 +169,13 @@ Deferred to future release. Tracked but not in current roadmap.
 | INFRA-04 | Phase 8 | Complete |
 
 | WALLET-01 | Phase 12 | Complete (12-03) |
-| WALLET-02 | Phase 12 | Pending |
+| WALLET-02 | Phase 12 | Complete (12-04, 2026-05-21) |
 | WALLET-03 | Phase 12 | Complete (12-02, 2026-05-21) |
 | WALLET-04 | Phase 12 | Complete (12-02, 2026-05-21) |
 | WALLET-05 | Phase 12 | Complete (12-03) |
 | WALLET-06 | Phase 12 | Complete (12-03) |
 | WALLET-07 | Phase 12 | Complete (12-03) |
-| WALLET-08 | Phase 12 | Pending |
+| WALLET-08 | Phase 12 | Complete (12-04, 2026-05-21) |
 | WALLET-09 | Phase 12 | Complete (12-03) |
 | WALLET-10 | Phase 12 | Complete (12-03) |
 | WALLET-11 | Phase 12 | Pending |
