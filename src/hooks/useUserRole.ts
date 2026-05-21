@@ -1,10 +1,8 @@
 // src/hooks/useUserRole.ts - Unified role detection with SWR caching
+// Phase 12 (2026-05-21): Privy removed. Wallet state derives only from @solana/wallet-adapter-react.
 import { useMemo, useCallback } from 'react';
 import useSWR from 'swr';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { usePrivy } from '@privy-io/react-auth';
-import { useWallets } from '@privy-io/react-auth/solana';
-import { PublicKey } from '@solana/web3.js';
 import { VendorProfile } from '@/lib/models/VendorProfile';
 
 // Role hierarchy: admin > vendor > user > browser
@@ -34,39 +32,10 @@ const fetcher = async (url: string) => {
 };
 
 export function useUserRole(): UserRoleState {
-  // Wallet adapter hooks
+  // Wallet adapter is the sole source of wallet state
   const wallet = useWallet();
-
-  // Privy hooks for authentication
-  const { authenticated } = usePrivy();
-  const { wallets: privyWallets } = useWallets();
-  // Prefer external wallet over Privy's embedded wallet.
-  // When multiple wallets exist, the last connected (external) is typically last in the array.
-  // Use wallet adapter publicKey first if available, then try last Privy wallet, then first.
-  const privyWalletAddress = useMemo(() => {
-    if (!privyWallets?.length) return undefined;
-    if (privyWallets.length > 1) return privyWallets[privyWallets.length - 1]?.address;
-    return privyWallets[0]?.address;
-  }, [privyWallets]);
-
-  // Get active public key — prefer Privy when authenticated (primary connection method).
-  // Wallet adapter may have a stale auto-connected wallet from a previous session.
-  const activePublicKey = useMemo(() => {
-    if (authenticated && privyWalletAddress) {
-      try {
-        return new PublicKey(privyWalletAddress);
-      } catch {
-        // fall through
-      }
-    }
-    if (wallet.publicKey) return wallet.publicKey;
-    return null;
-  }, [wallet.publicKey, authenticated, privyWalletAddress]);
-
-  // Check if connected via any method
-  const isConnected = wallet.connected || (authenticated && !!privyWalletAddress);
-
-  // Get wallet address string
+  const activePublicKey = wallet.publicKey ?? null;
+  const isConnected = wallet.connected;
   const walletAddress = activePublicKey?.toBase58() || null;
 
   // Display address (truncated)
